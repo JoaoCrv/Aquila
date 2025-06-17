@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Aquila"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Aquila" Height="450" Width="800">
     <Grid>
-
+        <TextBlock x:Name="versionTextBlock" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"/>
     </Grid>
 </Window>

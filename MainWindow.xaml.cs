@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Aquila.Services;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -19,6 +20,10 @@ namespace Aquila
         public MainWindow()
         {
             InitializeComponent();
+            versionTextBlock.Text = AppInfo.GetApplicationVersion();
+            this.Title = $"Minha Aplicação WPF - {AppInfo.GetApplicationVersion()}";
         }
+
+
     }
 }
