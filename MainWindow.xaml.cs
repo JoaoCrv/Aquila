@@ -1,4 +1,4 @@
-﻿using Aquila.Aquila.Services.Utilities;
+﻿using Aquila.Services.Utilities;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;

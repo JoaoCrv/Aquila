@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Diagnostics;
 
-namespace Aquila.Aquila.Services.Utilities
+namespace Aquila.Services.Utilities
 {
     public static class AppInfo
     {
