@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Reflection;
-using System.Diagnostics; // Para FileVersionInfo
+using System.Diagnostics;
 
-namespace Aquila.Services
+namespace Aquila.Aquila.Services.Utilities
 {
     public static class AppInfo
     {
