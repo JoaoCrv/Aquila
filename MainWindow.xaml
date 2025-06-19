@@ -7,6 +7,9 @@
         mc:Ignorable="d"
         Title="Aquila" Height="450" Width="800">
     <Grid>
+        <ScrollViewer>
+        <TextBlock x:Name="txtHardwareInfo" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" TextWrapping="Wrap" Text="TextBox" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        </ScrollViewer>
         <TextBlock x:Name="versionTextBlock" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"/>
     </Grid>
 </Window>

@@ -21,9 +21,14 @@ namespace Aquila
         {
             InitializeComponent();
             versionTextBlock.Text = AppInfo.GetApplicationVersion();
-            this.Title = $"Minha Aplicação WPF - {AppInfo.GetApplicationVersion()}";
+            HardwareMonitorService _hardwareMonitor = new HardwareMonitorService();
+            _hardwareMonitor.StartMonitoring();
+            txtHardwareInfo.Text = _hardwareMonitor.listSensors();
         }
 
+        private void txtHardwareInfo_Scroll(object sender, System.Windows.Controls.Primitives.ScrollEventArgs e)
+        {
 
+        }
     }
 }
