@@ -2,12 +2,28 @@
 using System;
 using System.Text;
 using System.Windows.Automation;
+using System.Threading.Tasks;
 
 
 /// <summary>
 /// Class to deal with hardware monitoring using LibreHardwareMonitor library.
 /// </summary>
 /// 
+
+public class SensorInfo
+{
+    public required string HardwareName { get; set; }
+    public required string SensorName { get; set; }
+    public required string SensorType { get; set; }
+    public required string Identifier { get; set; }
+    public float Value { get; set; }
+
+    public override string ToString()
+    {
+        return $"{HardwareName} - {SensorType} - {SensorName}: {Value}";
+    }
+}
+
 namespace Aquila.Services.Utilities
 {
     public class UpdateVisitor : IVisitor
@@ -27,7 +43,7 @@ namespace Aquila.Services.Utilities
     public class HardwareMonitorService
     {
 
-        private Computer computer = new Computer();
+        private Computer? computer;
 
 
         // Initialize monitoring for CPU, GPU, Memory, etc.
@@ -55,11 +71,6 @@ namespace Aquila.Services.Utilities
                 return;
             }
         }
-
-        public void UpdateSensors()
-        {
-            // computer.Hardware.Update();
-        }
         public void StopMonitoring()
         {
             // Stop monitoring hardware components and release resources
@@ -67,57 +78,54 @@ namespace Aquila.Services.Utilities
             {
                 try
                 {
-                    computer.Hardware.Clear();
                     computer.Close();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during hardware cleanup: {ex.Message}");
+                    Console.WriteLine($"Error during hardware monitoring cleanup: {ex.Message}");
                 }
             }
         }
 
-        public string listSensors()
+        public List<SensorInfo> GetUpdatedSensorReadings()
         {
-            StringBuilder sbHardwareList = new StringBuilder();
+            List<SensorInfo> sensors = new List<SensorInfo>();
+            if (computer == null)
+            {
+                return sensors;
+            }
+
             foreach (IHardware hardware in computer.Hardware)
             {
-                sbHardwareList.AppendLine("Hardware: " + hardware.Name);
-                if (hardware.SubHardware.Length > 0)
-                {
-                    foreach (IHardware subhardware in hardware.SubHardware)
-                    {
-                        sbHardwareList.AppendLine("\tSubhardware: " + subhardware.Name);
-                        if (subhardware.Sensors.Length > 0)
-                        {
-                            foreach (ISensor sensor in subhardware.Sensors)
-                            {
-                                sbHardwareList.Append(sensor.SensorType + ": ");
-                                sbHardwareList.AppendLine($"\t\tSensor: {sensor.Name}, value: {sensor.Value}");
-                            }
-                        }
-                        else
-                        {
-                            sbHardwareList.AppendLine("\tNo sensors available.\n");
-                        }
-                    }
-                }
+                hardware.Update();
+                sensors.AddRange(GetSensorsFromHardware(hardware, hardware.Name));
 
-                if (hardware.Sensors.Length > 0)
+                foreach (IHardware subHardware in hardware.SubHardware)
                 {
-                    foreach (ISensor sensor in hardware.Sensors.OrderBy(s => s.SensorType).ToList())
-                    {
-                        sbHardwareList.Append(sensor.SensorType + ": ");
-                        sbHardwareList.AppendLine($"\t\tTipo: {sensor.SensorType}, Index: {sensor.Index}, Indentifier: {sensor.Identifier}, Sensor: {sensor.Name}, value: {sensor.Value}");
-                    }
-                }
-                else
-                {
-                    sbHardwareList.AppendLine("\tNo sensors available.\n");
+                    subHardware.Update();
+                    sensors.AddRange(GetSensorsFromHardware(subHardware, $"{hardware.Name} - {subHardware.Name}"));
+
                 }
             }
-            return sbHardwareList.ToString();
+            return sensors;
         }
 
+        private IEnumerable<SensorInfo> GetSensorsFromHardware(IHardware hardware, string displayName)
+        {
+            foreach (ISensor sensor in hardware.Sensors.OrderBy(s => s.SensorType))
+            {
+                if (sensor.Value.HasValue)
+                {
+                    yield return new SensorInfo
+                    {
+                        HardwareName = displayName,
+                        SensorName = sensor.Name,
+                        SensorType = sensor.SensorType.ToString(),
+                        Identifier = sensor.Identifier.ToString(),
+                        Value = sensor.Value.Value
+                    };
+                }
+            }
+        }
     }
 }

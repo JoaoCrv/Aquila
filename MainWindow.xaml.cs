@@ -1,5 +1,6 @@
 ﻿using Aquila.Services.Utilities;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -9,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace Aquila
 {
@@ -17,18 +19,27 @@ namespace Aquila
     /// </summary>
     public partial class MainWindow : Window
     {
+        private DispatcherTimer _timer;
+        private HardwareMonitorService _monitor;
+
         public MainWindow()
         {
             InitializeComponent();
-            versionTextBlock.Text = AppInfo.GetApplicationVersion();
-            HardwareMonitorService _hardwareMonitor = new HardwareMonitorService();
-            _hardwareMonitor.StartMonitoring();
-            txtHardwareInfo.Text = _hardwareMonitor.listSensors();
+            _monitor = new HardwareMonitorService();
+            _monitor.StartMonitoring();
+
+            _timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timer.Tick += UpdateHardwareInfo;
+            _timer.Start();
         }
 
-        private void txtHardwareInfo_Scroll(object sender, System.Windows.Controls.Primitives.ScrollEventArgs e)
+        private void UpdateHardwareInfo(object? sender, EventArgs e)
         {
-
+            var readings = _monitor.GetUpdatedSensorReadings();
+            txtHardwareInfo.Text = string.Join("\n", readings.Select(r => r.ToString()));
         }
     }
 }
