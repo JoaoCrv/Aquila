@@ -8,7 +8,16 @@
         Title="Aquila" Height="450" Width="800">
     <Grid>
         <ScrollViewer>
-        <TextBlock x:Name="txtHardwareInfo" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" TextWrapping="Wrap" Text="TextBox" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+            <ListView ItemsSource="{Binding Sensores}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Hardware" DisplayMemberBinding="{Binding HardwareName}" />
+                        <GridViewColumn Header="Type" DisplayMemberBinding="{Binding SensorType}" />
+                        <GridViewColumn Header="Sensor" DisplayMemberBinding="{Binding SensorName}" />
+                        <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
         </ScrollViewer>
         <TextBlock x:Name="versionTextBlock" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"/>
     </Grid>

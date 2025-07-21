@@ -103,7 +103,7 @@ namespace Aquila.Services.Utilities
                 foreach (IHardware subHardware in hardware.SubHardware)
                 {
                     subHardware.Update();
-                    sensors.AddRange(GetSensorsFromHardware(subHardware, $"{hardware.Name} - {subHardware.Name}"));
+                    sensors.AddRange(GetSensorsFromHardware(subHardware, $"{hardware.Name}"));
 
                 }
             }

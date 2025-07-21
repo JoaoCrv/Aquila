@@ -1,30 +1,25 @@
-﻿using Aquila.Services.Utilities;
-using System.Text;
-using System.Threading;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
+using Aquila.Services.Utilities;
 
 namespace Aquila
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private DispatcherTimer _timer;
         private HardwareMonitorService _monitor;
 
+        public ObservableCollection<SensorInfo> Sensores { get; set; } = new();
+
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = this;
+
             _monitor = new HardwareMonitorService();
             _monitor.StartMonitoring();
 
@@ -38,8 +33,16 @@ namespace Aquila
 
         private void UpdateHardwareInfo(object? sender, EventArgs e)
         {
-            var readings = _monitor.GetUpdatedSensorReadings();
-            txtHardwareInfo.Text = string.Join("\n", readings.Select(r => r.ToString()));
+            var novos = _monitor.GetUpdatedSensorReadings();
+
+            Sensores.Clear();
+            foreach (var sensor in novos)
+                Sensores.Add(sensor);
         }
+
+        // Suporte a INotifyPropertyChanged (para futura expansão)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
