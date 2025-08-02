@@ -1,14 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36202.13 d17.14
+VisualStudioVersion = 17.14.36202.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aquila", "Aquila.csproj", "{E8B4461D-38B5-4AF2-9504-39AAF99BE9E9}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
-	ProjectSection(SolutionItems) = preProject
-		Class1.cs = Class1.cs
-	EndProjectSection
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aquila", "Aquila\Aquila.csproj", "{1B7D3BCA-F1BD-033D-F8B1-E645FE0B325D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E8B4461D-38B5-4AF2-9504-39AAF99BE9E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E8B4461D-38B5-4AF2-9504-39AAF99BE9E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E8B4461D-38B5-4AF2-9504-39AAF99BE9E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E8B4461D-38B5-4AF2-9504-39AAF99BE9E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B7D3BCA-F1BD-033D-F8B1-E645FE0B325D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B7D3BCA-F1BD-033D-F8B1-E645FE0B325D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B7D3BCA-F1BD-033D-F8B1-E645FE0B325D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B7D3BCA-F1BD-033D-F8B1-E645FE0B325D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
