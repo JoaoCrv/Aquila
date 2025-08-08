@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-  <Version>0.0.4</Version>
+  <Version>0.1.0</Version>
 	  <PackageVersion>$(Version).0</PackageVersion>
 	  <PackageDisplayVersion>$(Version).0</PackageDisplayVersion>
 	  <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
