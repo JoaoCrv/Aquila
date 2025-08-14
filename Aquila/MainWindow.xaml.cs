@@ -29,10 +29,7 @@ namespace Aquila
             };
             _timer.Tick += UpdateHardwareInfo;
             _timer.Start();
-            // Replace this line:
-            // _aquila = Aquila.Services.Utilities.AppInfo();
 
-            // With this line:
             versionTextBlock.Text = Aquila.Services.Utilities.AppInfo.GetApplicationVersion();
         }
 
