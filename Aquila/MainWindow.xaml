@@ -8,6 +8,12 @@
         Title="Aquila" Height="450" Width="800">
 
     <DockPanel LastChildFill="True">
+        <DockPanel.Background>
+            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                <GradientStop Color="Black"/>
+                <GradientStop Color="White" Offset="1"/>
+            </LinearGradientBrush>
+        </DockPanel.Background>
         <!-- Versão no canto inferior esquerdo -->
         <TextBlock x:Name="versionTextBlock"
                    DockPanel.Dock="Bottom"
@@ -16,6 +22,14 @@
                    Foreground="Gray"
                    HorizontalAlignment="Left"
                     />
+        <!-- Barra de carregamento -->
+        <ProgressBar x:Name="loadingBar"
+                 Height="4"
+                 DockPanel.Dock="Top"
+                 IsIndeterminate="True"
+                 Visibility="Collapsed"
+                 Foreground="SteelBlue" />
+
 
         <!-- Conteúdo principal -->
         <Grid>

@@ -10,10 +10,10 @@ namespace Aquila
 {
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private DispatcherTimer _timer;
-        private HardwareMonitorService _monitor;
+        private readonly DispatcherTimer _timer;
+        private readonly HardwareMonitorService _monitor;
 
-        public ObservableCollection<SensorInfo> Sensores { get; set; } = new();
+        public ObservableCollection<SensorInfo> Sensores { get; set; } = [];
 
         public MainWindow()
         {
@@ -35,6 +35,9 @@ namespace Aquila
             // With this line:
             versionTextBlock.Text = Aquila.Services.Utilities.AppInfo.GetApplicationVersion();
         }
+
+        public void ShowLoadingBar() => loadingBar.Visibility = Visibility.Visible;
+        public void HideLoadingBar() => loadingBar.Visibility = Visibility.Collapsed;
 
         private void UpdateHardwareInfo(object? sender, EventArgs e)
         {

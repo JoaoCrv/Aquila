@@ -1,8 +1,10 @@
-﻿using System.Configuration;
+﻿using Aquila;
+using System.Configuration;
 using System.Data;
 using System.IO;
 using System.Windows;
 using Velopack;
+using Velopack.Sources;
 
 
 namespace Aquila
@@ -38,19 +40,30 @@ namespace Aquila
 
         private static async Task UpdateMyApp()
         {
-            var mgr = new UpdateManager("https://github.com/JoaoCrv/Aquila/releases/latest/download");
 
+
+            try
+            {
+                var mgr = new UpdateManager(new GithubSource("https://github.com/JoaoCrv/Aquila", null, false));
+                var newVersion = await mgr.CheckForUpdatesAsync();
+                MessageBox.Show("Checking for updates...");
+                if (newVersion == null)
+                    return; // no update available
+
+                // download new version
+                await mgr.DownloadUpdatesAsync(newVersion);
+
+                // install new version and restart app
+                mgr.ApplyUpdatesAndRestart(newVersion);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Unhandled exception: " + ex.ToString());
+            }
             // check for new version
-            var newVersion = await mgr.CheckForUpdatesAsync();
-    
-            if (newVersion == null)
-                return; // no update available
-
-            // download new version
-            await mgr.DownloadUpdatesAsync(newVersion);
-
-            // install new version and restart app
-            mgr.ApplyUpdatesAndRestart(newVersion);
+            
+ 
+            
         }
     }
 
