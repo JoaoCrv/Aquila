@@ -15,8 +15,7 @@ namespace Aquila
         [STAThread]
         private static void Main(string[] args)
         {
-            MessageBox.Show("Aquila is starting");
-        
+            
             try
             {
                 // It's important to Run() the VelopackApp as early as possible in app startup.
@@ -39,12 +38,10 @@ namespace Aquila
 
         private static async Task UpdateMyApp()
         {
-            MessageBox.Show("Checking for updates...");
             var mgr = new UpdateManager("https://github.com/JoaoCrv/Aquila/releases");
 
             // check for new version
             var newVersion = await mgr.CheckForUpdatesAsync();
-            MessageBox.Show("Update check complete. New version: " + newVersion);
     
             if (newVersion == null)
                 return; // no update available
