@@ -4,7 +4,6 @@
   <Version>0.0.4</Version>
 	  <PackageVersion>$(Version).0</PackageVersion>
 	  <PackageDisplayVersion>$(Version).0</PackageDisplayVersion>
-	  <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
@@ -12,11 +11,16 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <PackageIcon>icon.png</PackageIcon>
+	  <StartupObject>Aquila.App</StartupObject>  
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="Assets\icon.ico" />
   </ItemGroup>
+	<ItemGroup>
+		<ApplicationDefinition Remove="App.xaml"/>
+		<Page Include="App.xaml"/>
+	</ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.4" />
