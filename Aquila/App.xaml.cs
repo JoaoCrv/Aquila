@@ -38,7 +38,7 @@ namespace Aquila
 
         private static async Task UpdateMyApp()
         {
-            var mgr = new UpdateManager("https://github.com/JoaoCrv/Aquila/releases");
+            var mgr = new UpdateManager("https://github.com/JoaoCrv/Aquila/releases/latest/download");
 
             // check for new version
             var newVersion = await mgr.CheckForUpdatesAsync();

@@ -6,19 +6,31 @@
         xmlns:local="clr-namespace:Aquila"
         mc:Ignorable="d"
         Title="Aquila" Height="450" Width="800">
-    <Grid>
-        <ScrollViewer>
-            <ListView ItemsSource="{Binding Sensores}">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Header="Hardware" DisplayMemberBinding="{Binding HardwareName}" />
-                        <GridViewColumn Header="Type" DisplayMemberBinding="{Binding SensorType}" />
-                        <GridViewColumn Header="Sensor" DisplayMemberBinding="{Binding SensorName}" />
-                        <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value}" />
-                    </GridView>
-                </ListView.View>
-            </ListView>
-        </ScrollViewer>
-        <TextBlock x:Name="versionTextBlock" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"/>
-    </Grid>
+
+    <DockPanel LastChildFill="True">
+        <!-- Versão no canto inferior esquerdo -->
+        <TextBlock x:Name="versionTextBlock"
+                   DockPanel.Dock="Bottom"
+                   Margin="10"
+                   FontSize="12"
+                   Foreground="Gray"
+                   HorizontalAlignment="Left"
+                    />
+
+        <!-- Conteúdo principal -->
+        <Grid>
+            <ScrollViewer>
+                <ListView ItemsSource="{Binding Sensores}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Hardware" DisplayMemberBinding="{Binding HardwareName}" />
+                            <GridViewColumn Header="Type" DisplayMemberBinding="{Binding SensorType}" />
+                            <GridViewColumn Header="Sensor" DisplayMemberBinding="{Binding SensorName}" />
+                            <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
 </Window>
