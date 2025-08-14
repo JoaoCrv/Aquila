@@ -12,18 +12,4 @@ All notable changes to this project will be documented in this file. See [versio
 * improve async app initialization and update handling ([87a8bcd](https://www.github.com/JoaoCrv/Aquila/commit/87a8bcdbbd8f7c6667999b2bb98c922c37bbc2b9))
 * improve version handling and UI layout ([e2e980f](https://www.github.com/JoaoCrv/Aquila/commit/e2e980fcb5cc1f7d4943047338b722dc29259e31))
 
-<a name="0.0.4"></a>
-## [0.0.4](https://www.github.com/JoaoCrv/Aquila/releases/tag/v0.0.4) (2025-07-21)
-
-<a name="0.0.3"></a>
-## [0.0.3](https://www.github.com/JoaoCrv/Aquila/releases/tag/v0.0.3) (2025-06-19)
-
-<a name="0.0.2"></a>
-## [0.0.2](https://www.github.com/JoaoCrv/Aquila/releases/tag/v0.0.2) (2025-06-17)
-
-<a name="0.0.1"></a>
-## [0.0.1](https://www.github.com/JoaoCrv/Aquila/releases/tag/v0.0.1) (2025-06-17)
-
-<a name="0.0.0"></a>
-## [0.0.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v0.0.0) (2025-06-17)
 
