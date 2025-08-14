@@ -36,9 +36,6 @@ namespace Aquila
             versionTextBlock.Text = Aquila.Services.Utilities.AppInfo.GetApplicationVersion();
         }
 
-        public void ShowLoadingBar() => loadingBar.Visibility = Visibility.Visible;
-        public void HideLoadingBar() => loadingBar.Visibility = Visibility.Collapsed;
-
         private void UpdateHardwareInfo(object? sender, EventArgs e)
         {
             var novos = _monitor.GetUpdatedSensorReadings();

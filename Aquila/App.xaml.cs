@@ -46,7 +46,6 @@ namespace Aquila
             {
                 var mgr = new UpdateManager(new GithubSource("https://github.com/JoaoCrv/Aquila", null, false));
                 var newVersion = await mgr.CheckForUpdatesAsync();
-                MessageBox.Show("Checking for updates...");
                 if (newVersion == null)
                     return; // no update available
 
