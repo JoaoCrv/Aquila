@@ -22,7 +22,6 @@ namespace Aquila
             {
                 // It's important to Run() the VelopackApp as early as possible in app startup.
                 VelopackApp.Build().Run();
-
                 Task.Run(async () => await UpdateMyApp());
 
                 // We can now launch the WPF application as normal.
@@ -41,7 +40,7 @@ namespace Aquila
         private static async Task UpdateMyApp()
         {
 
-
+            // check for new version
             try
             {
                 var mgr = new UpdateManager(new GithubSource("https://github.com/JoaoCrv/Aquila", null, false));
@@ -59,7 +58,7 @@ namespace Aquila
             {
                 MessageBox.Show("Unhandled exception: " + ex.ToString());
             }
-            // check for new version
+            
             
  
             

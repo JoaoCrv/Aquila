@@ -9,6 +9,9 @@
 *.user
 *.userosscache
 *.sln.docstates
+build.ps1
+aquila-cert.pfx
+commit-types.md
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
