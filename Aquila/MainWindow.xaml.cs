@@ -30,7 +30,7 @@ namespace Aquila
             _timer.Tick += UpdateHardwareInfo;
             _timer.Start();
 
-            versionTextBlock.Text = Aquila.Services.Utilities.AppInfo.GetApplicationVersion();
+            //versionTextBlock.Text = Aquila.Services.Utilities.AppInfo.GetApplicationVersion();
         }
 
         private void UpdateHardwareInfo(object? sender, EventArgs e)

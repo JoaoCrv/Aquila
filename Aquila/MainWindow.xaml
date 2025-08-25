@@ -1,26 +1,91 @@
-﻿<Window x:Class="Aquila.MainWindow"
+﻿
+
+<Window x:Class="Aquila.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Aquila"
         mc:Ignorable="d"
-        Title="Aquila" Height="450" Width="800">
+        Title="Aquila" Height="450" Width="800"
+        ThemeMode="System"
+        >
+    <Window.Resources>
+        <Style x:Key="NavButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="60"/>
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
 
-    <DockPanel LastChildFill="True">
-        <!-- Versão no canto inferior esquerdo -->
-        <TextBlock x:Name="versionTextBlock"
-                   DockPanel.Dock="Bottom"
-                   Margin="10"
-                   FontSize="12"
-                   Foreground="Gray"
-                   HorizontalAlignment="Right"
-                    />
+        <Style x:Key="NavButtonStyle.Icon" TargetType="TextBlock" >
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,5,0,4"/>
+        </Style>
 
+        <Style x:Key="NavButtonStyle.Label" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="VerticalAlignment" Value="Bottom"/>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
+        <Grid  Width="80" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!-- Top buttons -->
+                <RowDefinition Height="*" />
+                <!-- Spacer -->
+                <RowDefinition Height="Auto" />
+                <!-- Bottom buttons -->
+            </Grid.RowDefinitions>
 
-        <!-- Conteúdo principal -->
-        <Grid>
+            <!-- Top buttons -->
+            <StackPanel Grid.Row="0">
+                <Button Style="{StaticResource NavButtonStyle}" ToolTip="Home">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="&#xE10F;" Style="{StaticResource NavButtonStyle.Icon}" VerticalAlignment="Center" />
+                        <TextBlock Text="Home" Style="{StaticResource NavButtonStyle.Label}"/>
+                    </StackPanel>
+                </Button>
+
+                <Button ToolTip="View" Style="{StaticResource NavButtonStyle}">
+                <StackPanel Orientation="Vertical" >
+                        <TextBlock Text="&#xEC49;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Style="{StaticResource NavButtonStyle.Icon}"/>
+                        <TextBlock Text="View"  Style="{StaticResource NavButtonStyle.Label}" VerticalAlignment="Bottom"/>
+                </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <!-- Bottom buttons -->
+            <StackPanel Grid.Row="2">
+                <Button ToolTip="About" Style="{StaticResource NavButtonStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="&#xEC42;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Style="{StaticResource NavButtonStyle.Icon}"/>
+                        <TextBlock Text="About"  Style="{StaticResource NavButtonStyle.Label}"/>
+                    </StackPanel>
+                </Button>
+                <Button ToolTip="Settings" Style="{StaticResource NavButtonStyle}">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="&#xE115;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Style="{StaticResource NavButtonStyle.Icon}"/>
+                        <TextBlock Text="Settings"  Style="{StaticResource NavButtonStyle.Label}"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Column="1">
             <ScrollViewer>
                 <ListView ItemsSource="{Binding Sensores}">
                     <ListView.View>
@@ -34,5 +99,6 @@
                 </ListView>
             </ScrollViewer>
         </Grid>
-    </DockPanel>
+    </Grid>
+
 </Window>
