@@ -1,6 +1,4 @@
-﻿
-
-<Window x:Class="Aquila.MainWindow"
+﻿<Window x:Class="Aquila.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -61,10 +59,10 @@
                 </Button>
 
                 <Button ToolTip="View" Style="{StaticResource NavButtonStyle}">
-                <StackPanel Orientation="Vertical" >
+                    <StackPanel Orientation="Vertical" >
                         <TextBlock Text="&#xEC49;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Style="{StaticResource NavButtonStyle.Icon}"/>
                         <TextBlock Text="View"  Style="{StaticResource NavButtonStyle.Label}" VerticalAlignment="Bottom"/>
-                </StackPanel>
+                    </StackPanel>
                 </Button>
             </StackPanel>
 

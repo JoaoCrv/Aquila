@@ -1,28 +1,11 @@
-﻿using LibreHardwareMonitor.Hardware;
-using System;
-using System.Text;
-using System.Windows.Automation;
-using System.Threading.Tasks;
+﻿using Aquila.Models;
+using LibreHardwareMonitor.Hardware;
 
 
 /// <summary>
 /// Class to deal with hardware monitoring using LibreHardwareMonitor library.
 /// </summary>
 /// 
-
-public class SensorInfo
-{
-    public required string HardwareName { get; set; }
-    public required string SensorName { get; set; }
-    public required string SensorType { get; set; }
-    public required string Identifier { get; set; }
-    public float Value { get; set; }
-
-    public override string ToString()
-    {
-        return $"{HardwareName} - {SensorType} - {SensorName}: {Value}";
-    }
-}
 
 namespace Aquila.Services.Utilities
 {
