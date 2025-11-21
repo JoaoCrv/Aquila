@@ -85,7 +85,7 @@
 
         <Grid Grid.Column="1">
             <ScrollViewer>
-                <ListView ItemsSource="{Binding Sensores}">
+                <ListView ItemsSource="{Binding Sensors}">
                     <ListView.View>
                         <GridView>
                             <GridViewColumn Header="Hardware" DisplayMemberBinding="{Binding HardwareName}" />
