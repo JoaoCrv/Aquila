@@ -6,7 +6,7 @@ namespace UiDesktopApp1.ViewModels.Windows
     public partial class MainWindowViewModel : ObservableObject
     {
         [ObservableProperty]
-        private string _applicationTitle = "WPF UI - UiDesktopApp1";
+        private string _applicationTitle = "Aquila";
 
         [ObservableProperty]
         private ObservableCollection<object> _menuItems = new()
@@ -19,7 +19,7 @@ namespace UiDesktopApp1.ViewModels.Windows
             },
             new NavigationViewItem()
             {
-                Content = "Data",
+                Content = "Dash",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
                 TargetPageType = typeof(Views.Pages.DataPage)
             }
@@ -30,7 +30,7 @@ namespace UiDesktopApp1.ViewModels.Windows
         {
             new NavigationViewItem()
             {
-                Content = "Settings",
+                Content = "Definições",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Settings24 },
                 TargetPageType = typeof(Views.Pages.SettingsPage)
             }
