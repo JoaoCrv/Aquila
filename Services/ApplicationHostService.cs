@@ -12,12 +12,14 @@ namespace Aquila.Services
     public class ApplicationHostService : IHostedService
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly HardwareMonitorService _hardwareMonitor;
 
         private INavigationWindow _navigationWindow;
 
-        public ApplicationHostService(IServiceProvider serviceProvider)
+        public ApplicationHostService(IServiceProvider serviceProvider, HardwareMonitorService hardwareMonitor)
         {
             _serviceProvider = serviceProvider;
+            _hardwareMonitor = hardwareMonitor;
         }
 
         /// <summary>
@@ -26,7 +28,9 @@ namespace Aquila.Services
         /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await HandleActivationAsync();
+            await HandleActivationAsync();  
+            _hardwareMonitor.StartMonitoring();
+
         }
 
         /// <summary>

@@ -17,23 +17,25 @@ namespace Aquila.ViewModels.Windows
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
                 TargetPageType = typeof(Views.Pages.DashboardPage)
             },
-            new NavigationViewItem()
-            {
-                Content = "Dash",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
-                TargetPageType = typeof(Views.Pages.DataPage)
-            }
+           // new NavigationViewItem()
+           // {
+             //   Content = "Dash",
+               // Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
+                //TargetPageType = typeof(Views.Pages.DataPage)
+            //}
         };
 
         [ObservableProperty]
         private ObservableCollection<object> _footerMenuItems = new()
         {
-            new NavigationViewItem()
+            /*
+             * new NavigationViewItem()
             {
                 Content = "Definições",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Settings24 },
                 TargetPageType = typeof(Views.Pages.SettingsPage)
             }
+            */
         };
 
         [ObservableProperty]

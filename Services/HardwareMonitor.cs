@@ -1,9 +1,11 @@
-﻿using LibreHardwareMonitor.Hardware;
+﻿using Aquila.Models;
+using LibreHardwareMonitor.Hardware;
 using System;
+using System.Collections.ObjectModel;
 using System.Text;
-using System.Windows.Automation;
 using System.Threading.Tasks;
-using Aquila.Models;
+using System.Windows.Automation;
+using System.Windows.Threading;
 
 
 /// <summary>
@@ -33,13 +35,26 @@ namespace Aquila.Services
     {
 
         private Computer? computer;
+        private DispatcherTimer? _timer;
 
+        public ObservableCollection<SensorInfo> Sensors { get; } = new();
+
+        public HardwareMonitorService()
+        {
+            _timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timer.Tick += UpdateSensorReadings;
+
+        }
 
         // Initialize monitoring for CPU, GPU, Memory, etc.
         // This method should set up the necessary hooks or listeners
         // to monitor the hardware components based on the enabled flags.
         public void StartMonitoring(bool enableCpu = true, bool enableGpu = true, bool enableMemory = true, bool enableMotherboard = true, bool enableController = true, bool enableNetwork = true, bool enableStorage = true)
         {
+            System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Start Monitoring");
             computer = new Computer
             {
                 IsCpuEnabled = enableCpu,
@@ -51,8 +66,12 @@ namespace Aquila.Services
             };
             try
             {
+
                 computer.Open();
                 computer.Accept(new UpdateVisitor());
+
+                UpdateSensorReadings(null, EventArgs.Empty);
+                _timer.Start();
             }
             catch (Exception ex)
             {
@@ -76,6 +95,20 @@ namespace Aquila.Services
             }
         }
 
+        private void UpdateSensorReadings(object? sender, EventArgs e)
+        {
+            if (computer == null)
+            {
+                return;
+            }
+            var currentReadings = GetUpdatedSensorReadings();
+            System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Leituras encontradas: {currentReadings.Count}");
+            Sensors.Clear();
+            foreach (var sensor in currentReadings)
+            {
+                Sensors.Add(sensor);
+            }
+        }
         public List<SensorInfo> GetUpdatedSensorReadings()
         {
             List<SensorInfo> sensors = new List<SensorInfo>();
