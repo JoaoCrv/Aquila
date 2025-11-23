@@ -15,22 +15,17 @@
     ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     mc:Ignorable="d">
-
-    <Grid VerticalAlignment="Top">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-
-        <ui:Button
-            Grid.Column="0"
-            Command="{Binding ViewModel.CounterIncrementCommand, Mode=OneWay}"
-            Content="Click me!"
-            Icon="Fluent24" />
-        <TextBlock
-            Grid.Column="1"
-            Margin="12,0,0,0"
-            VerticalAlignment="Center"
-            Text="{Binding ViewModel.Counter, Mode=OneWay}" />
+    <Grid Margin="15,0,15,15">
+        <ListView ItemsSource="{Binding ViewModel.Sensors}" Background="Transparent">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Hardware" DisplayMemberBinding="{Binding HardwareName}" Width="200"/>
+                    <GridViewColumn Header="Sensor" DisplayMemberBinding="{Binding SensorName}" Width="250"/>
+                    <GridViewColumn Header="Type" DisplayMemberBinding="{Binding SensorType}" Width="150"/>
+                    <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value, StringFormat={}{0:F2}}" Width="100"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
     </Grid>
+
 </Page>
