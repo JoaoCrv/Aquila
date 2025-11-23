@@ -1,7 +1,7 @@
-﻿using UiDesktopApp1.ViewModels.Pages;
+﻿using Aquila.ViewModels.Pages;
 using Wpf.Ui.Abstractions.Controls;
 
-namespace UiDesktopApp1.Views.Pages
+namespace Aquila.Views.Pages
 {
     public partial class SettingsPage : INavigableView<SettingsViewModel>
     {

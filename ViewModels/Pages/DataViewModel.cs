@@ -1,8 +1,8 @@
 ﻿using System.Windows.Media;
-using UiDesktopApp1.Models;
+using Aquila.Models;
 using Wpf.Ui.Abstractions.Controls;
 
-namespace UiDesktopApp1.ViewModels.Pages
+namespace Aquila.ViewModels.Pages
 {
     public partial class DataViewModel : ObservableObject, INavigationAware
     {

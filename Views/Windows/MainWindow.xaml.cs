@@ -1,10 +1,10 @@
-﻿using UiDesktopApp1.ViewModels.Windows;
+﻿using Aquila.ViewModels.Windows;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
-namespace UiDesktopApp1.Views.Windows
+namespace Aquila.Views.Windows
 {
     public partial class MainWindow : INavigationWindow
     {

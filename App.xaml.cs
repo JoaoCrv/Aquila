@@ -4,17 +4,17 @@ using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Reflection;
 using System.Windows.Threading;
-using UiDesktopApp1.Services;
-using UiDesktopApp1.ViewModels.Pages;
-using UiDesktopApp1.ViewModels.Windows;
-using UiDesktopApp1.Views.Pages;
-using UiDesktopApp1.Views.Windows;
+using Aquila.Services;
+using Aquila.ViewModels.Pages;
+using Aquila.ViewModels.Windows;
+using Aquila.Views.Pages;
+using Aquila.Views.Windows;
 using Velopack;
 using Velopack.Sources;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
 
-namespace UiDesktopApp1
+namespace Aquila
 {
     /// <summary>
     /// Interaction logic for App.xaml

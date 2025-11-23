@@ -1,4 +1,4 @@
-﻿namespace UiDesktopApp1.Models
+﻿namespace Aquila.Models
 {
     public class AppConfig
     {

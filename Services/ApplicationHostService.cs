@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using UiDesktopApp1.Views.Pages;
-using UiDesktopApp1.Views.Windows;
+using Aquila.Views.Pages;
+using Aquila.Views.Windows;
 using Wpf.Ui;
 
-namespace UiDesktopApp1.Services
+namespace Aquila.Services
 {
     /// <summary>
     /// Managed host of the application.

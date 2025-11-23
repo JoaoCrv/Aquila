@@ -1,14 +1,12 @@
-﻿namespace UiDesktopApp1.ViewModels.Pages
-{
-    public partial class DashboardViewModel : ObservableObject
-    {
-        [ObservableProperty]
-        private int _counter = 0;
+﻿using Aquila.Services.Utilities;
+using Aquila.ViewModels.Windows;
+using System.Collections.ObjectModel;
+using System.Windows.Threading;
 
-        [RelayCommand]
-        private void OnCounterIncrement()
-        {
-            Counter++;
-        }
+namespace Aquila.ViewModels.Pages
+{
+    public class DashboardViewModel 
+    {
+
     }
 }

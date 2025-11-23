@@ -1,7 +1,7 @@
 ﻿using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
-namespace UiDesktopApp1.ViewModels.Pages
+namespace Aquila.ViewModels.Pages
 {
     public partial class SettingsViewModel : ObservableObject, INavigationAware
     {
@@ -26,7 +26,7 @@ namespace UiDesktopApp1.ViewModels.Pages
         private void InitializeViewModel()
         {
             CurrentTheme = ApplicationThemeManager.GetAppTheme();
-            AppVersion = $"UiDesktopApp1 - {GetAssemblyVersion()}";
+            AppVersion = $"Aquila - {GetAssemblyVersion()}";
 
             _isInitialized = true;
         }

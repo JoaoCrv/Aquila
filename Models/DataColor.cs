@@ -1,6 +1,6 @@
 ﻿using System.Windows.Media;
 
-namespace UiDesktopApp1.Models
+namespace Aquila.Models
 {
     public struct DataColor
     {

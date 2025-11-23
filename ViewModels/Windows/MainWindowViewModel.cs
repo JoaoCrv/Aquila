@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using Wpf.Ui.Controls;
 
-namespace UiDesktopApp1.ViewModels.Windows
+namespace Aquila.ViewModels.Windows
 {
     public partial class MainWindowViewModel : ObservableObject
     {
