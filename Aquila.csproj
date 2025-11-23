@@ -1,6 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+	  <Version>0.1.0</Version>
+	  <PackageVersion>$(Version).0</PackageVersion>
+	  <PackageDisplayVersion>$(Version).0</PackageDisplayVersion>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
