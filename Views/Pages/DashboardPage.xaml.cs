@@ -1,0 +1,23 @@
+﻿using Aquila.ViewModels.Pages;
+using Wpf.Ui.Abstractions.Controls;
+
+namespace Aquila.Views.Pages
+{
+    public partial class DashboardPage : INavigableView<DashboardViewModel>
+    {
+        public DashboardViewModel ViewModel { get; }
+
+        public DashboardPage(DashboardViewModel viewModel)
+        {
+            ViewModel = viewModel;
+            DataContext = this;
+
+            InitializeComponent();
+        }
+
+        private void ListView_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+
+        }
+    }
+}

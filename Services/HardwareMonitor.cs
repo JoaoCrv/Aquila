@@ -1,8 +1,11 @@
-﻿using LibreHardwareMonitor.Hardware;
+﻿using Aquila.Models;
+using LibreHardwareMonitor.Hardware;
 using System;
+using System.Collections.ObjectModel;
 using System.Text;
-using System.Windows.Automation;
 using System.Threading.Tasks;
+using System.Windows.Automation;
+using System.Windows.Threading;
 
 
 /// <summary>
@@ -10,21 +13,9 @@ using System.Threading.Tasks;
 /// </summary>
 /// 
 
-public class SensorInfo
-{
-    public required string HardwareName { get; set; }
-    public required string SensorName { get; set; }
-    public required string SensorType { get; set; }
-    public required string Identifier { get; set; }
-    public float Value { get; set; }
 
-    public override string ToString()
-    {
-        return $"{HardwareName} - {SensorType} - {SensorName}: {Value}";
-    }
-}
 
-namespace Aquila.Services.Utilities
+namespace Aquila.Services
 {
     public class UpdateVisitor : IVisitor
     {
@@ -44,13 +35,26 @@ namespace Aquila.Services.Utilities
     {
 
         private Computer? computer;
+        private DispatcherTimer? _timer;
 
+        public ObservableCollection<SensorInfo> Sensors { get; } = new();
+
+        public HardwareMonitorService()
+        {
+            _timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timer.Tick += UpdateSensorReadings;
+
+        }
 
         // Initialize monitoring for CPU, GPU, Memory, etc.
         // This method should set up the necessary hooks or listeners
         // to monitor the hardware components based on the enabled flags.
         public void StartMonitoring(bool enableCpu = true, bool enableGpu = true, bool enableMemory = true, bool enableMotherboard = true, bool enableController = true, bool enableNetwork = true, bool enableStorage = true)
         {
+            System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Start Monitoring");
             computer = new Computer
             {
                 IsCpuEnabled = enableCpu,
@@ -62,8 +66,12 @@ namespace Aquila.Services.Utilities
             };
             try
             {
+
                 computer.Open();
                 computer.Accept(new UpdateVisitor());
+
+                UpdateSensorReadings(null, EventArgs.Empty);
+                _timer.Start();
             }
             catch (Exception ex)
             {
@@ -87,6 +95,20 @@ namespace Aquila.Services.Utilities
             }
         }
 
+        private void UpdateSensorReadings(object? sender, EventArgs e)
+        {
+            if (computer == null)
+            {
+                return;
+            }
+            var currentReadings = GetUpdatedSensorReadings();
+            System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Leituras encontradas: {currentReadings.Count}");
+            Sensors.Clear();
+            foreach (var sensor in currentReadings)
+            {
+                Sensors.Add(sensor);
+            }
+        }
         public List<SensorInfo> GetUpdatedSensorReadings()
         {
             List<SensorInfo> sensors = new List<SensorInfo>();

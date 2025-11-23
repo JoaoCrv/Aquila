@@ -1,0 +1,37 @@
+﻿<Page
+    x:Class="Aquila.Views.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Aquila.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="DashboardPage"
+    d:DataContext="{d:DesignInstance local:DashboardPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    mc:Ignorable="d">
+    <Grid Margin="15,0,15,15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="98*"/>
+            <RowDefinition Height="47*"/>
+        </Grid.RowDefinitions>
+        <ui:ListView   ItemsSource="{Binding ViewModel.Sensors}"  BorderThickness="0">
+            <ui:ListView.View>
+                <ui:GridView>
+                    <ui:GridViewColumn  DisplayMemberBinding="{Binding HardwareName}" MinWidth="100" Header="Hardware"/>
+                    <ui:GridViewColumn  DisplayMemberBinding="{Binding SensorName}" Width="250" Header="Sensor"/>
+                    <ui:GridViewColumn  DisplayMemberBinding="{Binding SensorType}" Width="150" Header="Type"/>
+                    <ui:GridViewColumn  DisplayMemberBinding="{Binding Value, StringFormat=\{0:F2\}}" Width="100" Header="Value"/>
+                </ui:GridView>
+            </ui:ListView.View>
+        </ui:ListView>
+
+    </Grid>
+
+</Page>

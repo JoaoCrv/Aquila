@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
-<a name="0.1.0"></a>
-## [0.1.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v0.1.0) (2025-08-14)
+<a name="1.0.0"></a>
+## [1.0.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.0.0) (2025-11-23)
 
 ### Features
 
@@ -12,4 +12,7 @@ All notable changes to this project will be documented in this file. See [versio
 * improve async app initialization and update handling ([87a8bcd](https://www.github.com/JoaoCrv/Aquila/commit/87a8bcdbbd8f7c6667999b2bb98c922c37bbc2b9))
 * improve version handling and UI layout ([e2e980f](https://www.github.com/JoaoCrv/Aquila/commit/e2e980fcb5cc1f7d4943047338b722dc29259e31))
 
+### Breaking Changes
+
+* Replaces the project base with the official Wpf.Ui template" -m "This change removes the corrupted .csproj configuration and adopts the recommended Dependency Injection and Host structure, ensuring compatibility with the UI library. ([c26f779](https://www.github.com/JoaoCrv/Aquila/commit/c26f779e68b0b400f0306b06ad96a0f4fc3e434e))
 
