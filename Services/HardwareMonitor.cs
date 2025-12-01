@@ -1,11 +1,14 @@
 ﻿using Aquila.Models;
 using LibreHardwareMonitor.Hardware;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Automation;
 using System.Windows.Threading;
+using System.Xml.Linq;
 
 
 /// <summary>
@@ -19,10 +22,8 @@ namespace Aquila.Services
 {
     public class UpdateVisitor : IVisitor
     {
-        public void VisitComputer(IComputer computer)
-        {
-            computer.Traverse(this);
-        }
+        public void VisitComputer(IComputer computer) => computer.Traverse(this);
+
         public void VisitHardware(IHardware hardware)
         {
             hardware.Update();
@@ -31,13 +32,20 @@ namespace Aquila.Services
         public void VisitSensor(ISensor sensor) { }
         public void VisitParameter(IParameter parameter) { }
     }
+
+    /// <summary>
+    ///     Singleton service to monitor hardware components and retrieve sensor data.
+    ///     It acts like the only source of truth for hardware information in the application.
+    /// </summary>
     public class HardwareMonitorService
     {
 
-        private Computer? computer;
-        private DispatcherTimer? _timer;
+        private Computer? _computer;
+        private readonly DispatcherTimer _timer;
 
-        public ObservableCollection<SensorInfo> Sensors { get; } = new();
+        public Dictionary<string, HardwareModel> Hardware { get; } = new();
+
+        private bool isInitialScanComplete = false;
 
         public HardwareMonitorService()
         {
@@ -46,8 +54,128 @@ namespace Aquila.Services
                 Interval = TimeSpan.FromSeconds(1)
             };
             _timer.Tick += UpdateSensorReadings;
-
         }
+
+        public void StartMonitoring()
+        {
+            if (_computer != null) return;
+
+            _computer = new Computer
+            {
+                IsCpuEnabled = true,
+                IsGpuEnabled = true,
+                IsMemoryEnabled = true,
+                IsMotherboardEnabled = true,
+                IsStorageEnabled = true,
+                IsNetworkEnabled = true
+            };
+
+            try
+            {
+                _computer.Open();
+                _timer.Start();
+                // _computer.Accept(new UpdateVisitor());
+                //UpdateSensorReadings(null, EventArgs.Empty);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] ERRO CRÍTICO ao iniciar: {ex.ToString()}");
+            }
+        }
+
+        private void UpdateSensorReadings(object? sender, EventArgs e)
+        {
+            if (_computer == null) return;
+
+            // Asks LibreHardwareMonitor to read new values from hardware
+            _computer.Accept(new UpdateVisitor());
+
+            //Process all detected hardware components
+            foreach (IHardware hw in _computer.Hardware)
+            {
+                ProcessHardware(hw);
+                foreach (IHardware subHw in hw.SubHardware)
+                {
+                    ProcessHardware(subHw);
+                }
+            }
+
+            _isInitialScanComplete = true;
+        }
+
+        private void ProcessHardware(IHardware hw)
+        {
+            //if it's not in the Dictionary its the first time we see it
+
+            if (!_isInitialScanComplete && !Hardware.ContainsKey(hw.Name)) {
+
+                //Create a new HardwareModel for it
+                var hardwareModel = new HardwareModel(Name = hw.Name);
+
+                foreach (ISensor sensor in hw.Sensors.OrderBy(s => s.SensorType).ThenBy(s => s.Name))
+                {
+                    var sensorModel = new SensorModel
+                    {
+                        Name = sensor.Name,
+                        Identifier = sensor.Identifier.ToString(),
+                        Value = sensor.Value ?? 0,
+                        Unit = GetSensorUnit(sensor.SensorType)
+                    };
+                    hardwareModel.Sensors[sensorModel[sensorModel.Identifier] = sensorModel;
+                }
+                Hardware[hw.Name] = hardwareModel;
+            }
+            else if (Hardware.TryGetValue(hw.Name, out var hardwareModel))
+            {
+                foreach (ISensor sensor in hw.Sensors)
+                {
+                    var sensorId = sensor.Identifier.ToString();
+                    if (hardwareModel.Sensors.TryGetValue(sensorId, out var sensorModel))
+                    {
+                        // the Ui is automatically notified
+                        sensorModel.Value = sensor.Value ?? 0;
+                    }
+                }
+            }
+        }
+
+        private string GetSensorUnit(SensorType type)
+        {
+            return type switch
+            {
+                SensorType.Temperature => "°C",
+                SensorType.Load => "%",
+                SensorType.Clock => "MHz",
+                SensorType.Power => "W",
+                SensorType.Fan => "RPM",
+                SensorType.Data => "GB",
+                SensorType.SmallData => "MB",
+                SensorType.Throughput => "MB/s",
+                SensorType.Voltage => "V",
+                SensorType.Frequency => "Hz",
+                SensorType.Control => "%",
+                _ => string.Empty
+            };
+        }
+    }
+}
+
+
+
+
+
+        /*
+        //public ObservableCollection<SensorInfo> Sensors { get; } = new();
+
+        //public HardwareMonitorService()
+        //{
+        //    _timer = new DispatcherTimer
+        //    {
+        //        Interval = TimeSpan.FromSeconds(1)
+        //    };
+        //    _timer.Tick += UpdateSensorReadings;
+
+        //}
 
         // Initialize monitoring for CPU, GPU, Memory, etc.
         // This method should set up the necessary hooks or listeners
@@ -150,4 +278,4 @@ namespace Aquila.Services
             }
         }
     }
-}
+}*/
