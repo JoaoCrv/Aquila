@@ -74,12 +74,10 @@ namespace Aquila.Services
             {
                 _computer.Open();
                 _timer.Start();
-                // _computer.Accept(new UpdateVisitor());
-                //UpdateSensorReadings(null, EventArgs.Empty);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] ERRO CRÍTICO ao iniciar: {ex.ToString()}");
+                System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Failed to start monitoring: {ex.ToString()}");
             }
         }
 
@@ -99,43 +97,47 @@ namespace Aquila.Services
                     ProcessHardware(subHw);
                 }
             }
-
-            _isInitialScanComplete = true;
         }
 
         private void ProcessHardware(IHardware hw)
         {
-            //if it's not in the Dictionary its the first time we see it
+            // We try to obtain the hardware model from our dictionary
+            //the variable 'hardwareModel'  will contain the model if it exists
 
-            if (!_isInitialScanComplete && !Hardware.ContainsKey(hw.Name)) {
+            if (!Hardware.TryGetValue(hw.Name, out var hardwareModel)) {
 
-                //Create a new HardwareModel for it
-                var hardwareModel = new HardwareModel(Name = hw.Name);
+                //If it does not exist, we create a new one
+                hardwareModel = new HardwareModel { Name = hw.Name };
 
-                foreach (ISensor sensor in hw.Sensors.OrderBy(s => s.SensorType).ThenBy(s => s.Name))
-                {
-                    var sensorModel = new SensorModel
-                    {
-                        Name = sensor.Name,
-                        Identifier = sensor.Identifier.ToString(),
-                        Value = sensor.Value ?? 0,
-                        Unit = GetSensorUnit(sensor.SensorType)
-                    };
-                    hardwareModel.Sensors[sensorModel[sensorModel.Identifier] = sensorModel;
-                }
+                //And then we add the new model to our Dictionary
                 Hardware[hw.Name] = hardwareModel;
             }
-            else if (Hardware.TryGetValue(hw.Name, out var hardwareModel))
+
+            // At this point, we are sure that the 'hardwareModel' contains the correct model, and if not, we created a new one
+
+
+            // now we process the sensors of the hardware
+            foreach (ISensor sensor in hw.Sensors)
             {
-                foreach (ISensor sensor in hw.Sensors)
+                var sensorId = sensor.Identifier.ToString();
+
+                //  check if we already have a model for this sepecific sensor
+                if (!hardwareModel.Sensors.TryGetValue(sensorId, out var sensorModel))
                 {
-                    var sensorId = sensor.Identifier.ToString();
-                    if (hardwareModel.Sensors.TryGetValue(sensorId, out var sensorModel))
+                    // if not, we create a new sensor model
+                    sensorModel = new SensorModel
                     {
-                        // the Ui is automatically notified
-                        sensorModel.Value = sensor.Value ?? 0;
-                    }
+                        Name = sensor.Name,
+                        Identifier = sensorId,
+                        Unit = GetSensorUnit(sensor.SensorType)
+                    };
+                    // E adicionamo-lo ao dicionário de sensores do nosso hardware.
+                    hardwareModel.Sensors[sensorId] = sensorModel;
                 }
+
+                // Finalmente, atualizamos o valor do sensor.
+                // Isto acontece quer o sensor seja novo ou já existente.
+                sensorModel.Value = sensor.Value ?? 0;
             }
         }
 
@@ -159,123 +161,3 @@ namespace Aquila.Services
         }
     }
 }
-
-
-
-
-
-        /*
-        //public ObservableCollection<SensorInfo> Sensors { get; } = new();
-
-        //public HardwareMonitorService()
-        //{
-        //    _timer = new DispatcherTimer
-        //    {
-        //        Interval = TimeSpan.FromSeconds(1)
-        //    };
-        //    _timer.Tick += UpdateSensorReadings;
-
-        //}
-
-        // Initialize monitoring for CPU, GPU, Memory, etc.
-        // This method should set up the necessary hooks or listeners
-        // to monitor the hardware components based on the enabled flags.
-        public void StartMonitoring(bool enableCpu = true, bool enableGpu = true, bool enableMemory = true, bool enableMotherboard = true, bool enableController = true, bool enableNetwork = true, bool enableStorage = true)
-        {
-            System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Start Monitoring");
-            computer = new Computer
-            {
-                IsCpuEnabled = enableCpu,
-                IsGpuEnabled = enableGpu,
-                IsMemoryEnabled = enableMemory,
-                IsMotherboardEnabled = enableMotherboard,
-                IsStorageEnabled = enableStorage,
-                IsNetworkEnabled = enableNetwork
-            };
-            try
-            {
-
-                computer.Open();
-                computer.Accept(new UpdateVisitor());
-
-                UpdateSensorReadings(null, EventArgs.Empty);
-                _timer.Start();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error initializing hardware monitoring: {ex.Message}");
-                return;
-            }
-        }
-        public void StopMonitoring()
-        {
-            // Stop monitoring hardware components and release resources
-            if (computer != null)
-            {
-                try
-                {
-                    computer.Close();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during hardware monitoring cleanup: {ex.Message}");
-                }
-            }
-        }
-
-        private void UpdateSensorReadings(object? sender, EventArgs e)
-        {
-            if (computer == null)
-            {
-                return;
-            }
-            var currentReadings = GetUpdatedSensorReadings();
-            System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Leituras encontradas: {currentReadings.Count}");
-            Sensors.Clear();
-            foreach (var sensor in currentReadings)
-            {
-                Sensors.Add(sensor);
-            }
-        }
-        public List<SensorInfo> GetUpdatedSensorReadings()
-        {
-            List<SensorInfo> sensors = new List<SensorInfo>();
-            if (computer == null)
-            {
-                return sensors;
-            }
-
-            foreach (IHardware hardware in computer.Hardware)
-            {
-                hardware.Update();
-                sensors.AddRange(GetSensorsFromHardware(hardware, hardware.Name));
-
-                foreach (IHardware subHardware in hardware.SubHardware)
-                {
-                    subHardware.Update();
-                    sensors.AddRange(GetSensorsFromHardware(subHardware, $"{hardware.Name}"));
-
-                }
-            }
-            return sensors;
-        }
-
-        private IEnumerable<SensorInfo> GetSensorsFromHardware(IHardware hardware, string displayName)
-        {
-            foreach (ISensor sensor in hardware.Sensors.OrderBy(s => s.SensorType))
-            {
-                if (sensor.Value.HasValue)
-                {
-                    yield return new SensorInfo
-                    {
-                        HardwareName = displayName,
-                        SensorName = sensor.Name,
-                        SensorType = sensor.SensorType.ToString(),
-                        Identifier = sensor.Identifier.ToString(),
-                        Value = sensor.Value.Value
-                    };
-                }
-            }
-        }
-    }
-}*/

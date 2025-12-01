@@ -1,23 +1,25 @@
-﻿using Aquila.Services;
+﻿using Aquila.Models;
+using Aquila.Services;
 using Aquila.ViewModels.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Windows.Threading;
-using Aquila.Models;
 
 namespace Aquila.ViewModels.Pages
 {
-    public class DashboardViewModel : ViewModelBase
+    public class DashboardViewModel : ObservableObject
     {
        
         private readonly HardwareMonitorService _hardwareMonitorService;
 
-        public ObservableCollection<SensorInfo> Sensors =>_hardwareMonitorService.Sensors;
+        public Dictionary<string, HardwareModel> Hardware => _hardwareMonitorService.Hardware;
 
         // HardwareMonitorService is injected via dependency injection
-        public DashboardViewModel( HardwareMonitorService monitor)
+        public DashboardViewModel( HardwareMonitorService hardwareMonitorService)
         {
            
-            _hardwareMonitorService = monitor;
+            _hardwareMonitorService = hardwareMonitorService;
 
         }
 
