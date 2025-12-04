@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using Wpf.Ui.Controls;
+using Aquila.Views.Pages;
 
 namespace Aquila.ViewModels.Windows
 {
@@ -13,35 +14,46 @@ namespace Aquila.ViewModels.Windows
         {
             new NavigationViewItem()
             {
-                Content = "Home",
+                Content = "Dashboard",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
-                TargetPageType = typeof(Views.Pages.DashboardPage)
+                TargetPageType = typeof(DashboardPage)
             },
-           // new NavigationViewItem()
-           // {
-             //   Content = "Dash",
-               // Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
-                //TargetPageType = typeof(Views.Pages.DataPage)
-            //}
+            new NavigationViewItem()
+            {
+                Content = "Explorer",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
+                TargetPageType = typeof(ExplorerPage)
+            },
+            new NavigationViewItem()
+            {
+                Content = "Storage",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Storage24 },
+                TargetPageType = typeof(StoragePage)
+            }
         };
 
         [ObservableProperty]
         private ObservableCollection<object> _footerMenuItems = new()
         {
-            /*
-             * new NavigationViewItem()
+            new NavigationViewItem()
             {
-                Content = "Definições",
+                Content = "About",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Info24 },
+                TargetPageType = typeof(AboutPage)
+            },
+            new NavigationViewItem()
+            {
+                Content = "Settings",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Settings24 },
-                TargetPageType = typeof(Views.Pages.SettingsPage)
+                TargetPageType = typeof(SettingsPage)
             }
-            */
+            
         };
 
         [ObservableProperty]
         private ObservableCollection<MenuItem> _trayMenuItems = new()
         {
-            new MenuItem { Header = "Home", Tag = "tray_home" }
+            new MenuItem { Header = "Open Aquila", Tag = "tray_home" }
         };
     }
 }

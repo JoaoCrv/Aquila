@@ -53,8 +53,10 @@ namespace Aquila
 
                 services.AddSingleton<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-                services.AddSingleton<DataPage>();
-                services.AddSingleton<DataViewModel>();
+                services.AddSingleton<ExplorerPage>();
+                services.AddSingleton<StoragePage>();
+                services.AddSingleton<AboutPage>();
+                services.AddSingleton<AboutViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
             }).Build();
