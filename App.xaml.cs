@@ -116,15 +116,15 @@ namespace Aquila
         {
             try
             {
-                // Executa o método de atualização e ESPERA por ele DENTRO desta thread.
+                // Executes the update method and WAITS for it INSIDE this thread.
                 await UpdateMyApp();
             }
             catch (Exception ex)
             {
-                // Se o UpdateMyApp falhar, a exceção é apanhada aqui
-                // e a aplicação NÃO VAI ABAIXO.
-                // No futuro, podes substituir isto por um sistema de logging.
-                Console.WriteLine($"ERRO: A verificação de atualização falhou. {ex.Message}");
+                // If UpdateMyApp fails, the exception is caught here
+                // and the application DOES NOT CRASH.
+                // In the future, you can replace this with a logging system.
+                Console.WriteLine($"ERROR: Update check failed. {ex.Message}");
             }
         }
         private static async Task UpdateMyApp()
@@ -143,11 +143,11 @@ namespace Aquila
             }
             catch (Exception ex)
             {
-                // Este catch lida com erros esperados do Velopack (ex: sem internet).
-                // O catch no método de cima lida com erros inesperados.
+                // This catch handles expected errors from Velopack (e.g., no internet).
+                // The catch in the method above handles unexpected errors.
                 Console.WriteLine("Update check failed: " + ex.ToString());
 
-                // Re-lança a exceção para que o método chamador (StartUpdateCheckInBackground) saiba que algo correu mal.
+                // Rethrows the exception so that the calling method (StartUpdateCheckInBackground) knows that something went wrong.
                 throw;
             }
         }
