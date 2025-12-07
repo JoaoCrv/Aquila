@@ -11,7 +11,7 @@
       Style="{StaticResource BasePageStyle}"
     >
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
         <ItemsControl ItemsSource="{Binding ViewModel.Hardware}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>

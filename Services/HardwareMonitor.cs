@@ -91,26 +91,26 @@ namespace Aquila.Services
             //Process all detected hardware components
             foreach (IHardware hw in _computer.Hardware)
             {
-                ProcessHardware(hw);
+                ProcessHardware(hw, hw.Name);
                 foreach (IHardware subHw in hw.SubHardware)
                 {
-                    ProcessHardware(subHw);
+                    ProcessHardware(subHw, hw.Name);
                 }
             }
         }
 
-        private void ProcessHardware(IHardware hw)
+        private void ProcessHardware(IHardware hw, string parentHardwareName)
         {
             // We try to obtain the hardware model from our dictionary
             //the variable 'hardwareModel'  will contain the model if it exists
 
-            if (!Hardware.TryGetValue(hw.Name, out var hardwareModel)) {
+            if (!Hardware.TryGetValue(parentHardwareName, out var hardwareModel)) {
 
                 //If it does not exist, we create a new one
-                hardwareModel = new HardwareModel { Name = hw.Name };
+                hardwareModel = new HardwareModel { Name = parentHardwareName };
 
                 //And then we add the new model to our Dictionary
-                Hardware[hw.Name] = hardwareModel;
+                Hardware[parentHardwareName] = hardwareModel;
             }
 
             // At this point, we are sure that the 'hardwareModel' contains the correct model, and if not, we created a new one
