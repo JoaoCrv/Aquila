@@ -3,35 +3,45 @@ using Aquila.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks; // Adiciona este using!
 
 namespace Aquila.ViewModels.Pages
 {
-    public partial class ExplorerViewModel : ObservableObject
+    public partial class ExplorerViewModel(HardwareMonitorService monitor) : ObservableObject
     {
-        private readonly HardwareMonitorService _monitor;
+        private readonly HardwareMonitorService _monitor = monitor;
 
-        // A View vai fazer o binding a esta nova propriedade.
-        public List<HardwareGroupViewModel> GroupedHardware { get; }
+        // A propriedade agora notifica a UI quando a sua referência muda.
+        [ObservableProperty]
+        private List<HardwareGroupViewModel> _groupedHardware = [];
 
-        public ExplorerViewModel(HardwareMonitorService monitor)
+        /// <summary>
+        /// Este método carrega e processa os dados de forma assíncrona.
+        /// </summary>
+        public async Task InitializeAsync()
         {
-            _monitor = monitor;
+            // Executa a tarefa de processamento intensiva numa thread de fundo.
+            var processedData = await Task.Run(() =>
+            {
+                // A nossa lógica de transformação LINQ, exatamente como antes.
+                return _monitor.Hardware.Values
+                    .Select(hw => new HardwareGroupViewModel
+                    {
+                        HardwareName = hw.Name,
+                        SensorGroups = [.. hw.Sensors.Values
+                                           .GroupBy(sensor => sensor.SensorType)
+                                           .Select(group => new SensorGroupViewModel
+                                           {
+                                               CategoryName = group.Key.ToString(),
+                                               Sensors = [.. group.OrderBy(s => s.Name)]
+                                           })
+                                           .OrderBy(g => g.CategoryName)]
+                    })
+                    .ToList();
+            });
 
-            // A LÓGICA DE TRANSFORMAÇÃO
-            // Usamos LINQ para converter o Dicionário do serviço na nossa estrutura agrupada.
-            GroupedHardware = [.. _monitor.Hardware.Values
-                .Select(hw => new HardwareGroupViewModel
-                {
-                    HardwareName = hw.Name,
-                    SensorGroups = [.. hw.Sensors.Values
-                                       .GroupBy(sensor => sensor.SensorType) // 1. Agrupa os sensores pelo seu tipo
-                                       .Select(group => new SensorGroupViewModel
-                                       {
-                                           CategoryName = group.Key.ToString(), // 2. O nome do grupo é o tipo (ex: "Temperature")
-                                           Sensors = [.. group.OrderBy(s => s.Name)] // 3. A lista de sensores para esse grupo
-                                       })
-                                       .OrderBy(g => g.CategoryName)]
-                })];
+            // Depois de os dados estarem prontos, atualizamos a propriedade na thread da UI.
+            GroupedHardware = processedData;
         }
     }
 }

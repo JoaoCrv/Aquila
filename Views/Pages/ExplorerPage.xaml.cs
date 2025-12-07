@@ -23,12 +23,19 @@ namespace Aquila.Views.Pages
     {
 
         public ExplorerViewModel ViewModel { get; }
-        public ExplorerPage( ExplorerViewModel viewModel)
+        public ExplorerPage(ExplorerViewModel viewModel)
         {
             ViewModel = viewModel;
             DataContext = this;
 
             InitializeComponent();
+            this.Loaded += OnExplorerPageLoaded;
+        }
+
+        private async void OnExplorerPageLoaded(object sender, RoutedEventArgs e)
+        {
+            this.Loaded -= OnExplorerPageLoaded;
+            await ViewModel.InitializeAsync();
         }
     }
 }
