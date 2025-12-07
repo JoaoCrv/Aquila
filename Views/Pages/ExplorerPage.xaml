@@ -13,36 +13,44 @@
     >
 
 
-    <ItemsControl ItemsSource="{Binding ViewModel.Hardware}" Margin="15">
+    <ItemsControl ItemsSource="{Binding ViewModel.GroupedHardware}" Margin="15">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                    <ui:ListView ItemsSource="{Binding Sensors.Values}" Background="Transparent" BorderThickness="0">
-                        <ui:ListView.View>
-                            <ui:GridView>
-                                <ui:GridViewColumn Header="Sensor Name" DisplayMemberBinding="{Binding Name}" Width="250"/>
-
-
-                                <ui:GridViewColumn Header="Value" Width="100">
-                                    <ui:GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock HorizontalAlignment="Right">
-                                                <TextBlock.Text>
-                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                        <Binding Path="Value"/>
-                                                        <Binding Path="Unit"/>
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </ui:GridViewColumn.CellTemplate>
-                                </ui:GridViewColumn>
-
-                                <GridViewColumn Header="Identifier" DisplayMemberBinding="{Binding Identifier}" Width="350"/>
-                            </ui:GridView>
-                        </ui:ListView.View>
-                    </ui:ListView>
+                <StackPanel Margin="0,0,0,25">
+                    <TextBlock Text="{Binding HardwareName}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                    <ItemsControl ItemsSource="{Binding SensorGroups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ui:Card Margin="10,0,0,15">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding CategoryName}" FontSize="16" FontWeight="Medium" Margin="0,0,0,5"/>
+                                        <ui:ListView ItemsSource="{Binding Sensors}" Background="Transparent" BorderThickness="0">
+                                            <ui:ListView.View>
+                                                <ui:GridView>
+                                                    <ui:GridViewColumn Header="Sensor Name" DisplayMemberBinding="{Binding Name}" Width="250"/>
+                                                    <ui:GridViewColumn Header="Value" Width="100">
+                                                        <ui:GridViewColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock HorizontalAlignment="Right">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                            <Binding Path="Value"/>
+                                                                            <Binding Path="Unit"/>
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                            </DataTemplate>
+                                                        </ui:GridViewColumn.CellTemplate>
+                                                    </ui:GridViewColumn>
+                                                    <ui:GridViewColumn Header="Identifier" DisplayMemberBinding="{Binding Identifier}" Width="350"/>
+                                                </ui:GridView>
+                                            </ui:ListView.View>
+                                        </ui:ListView>
+                                     </StackPanel>
+                                </ui:Card>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </DataTemplate>
         </ItemsControl.ItemTemplate>

@@ -43,9 +43,7 @@ namespace Aquila.Services
         private Computer? _computer;
         private readonly DispatcherTimer _timer;
 
-        public Dictionary<string, HardwareModel> Hardware { get; } = new();
-
-        private bool isInitialScanComplete = false;
+        public Dictionary<string, HardwareModel> Hardware { get; } = [];
 
         public HardwareMonitorService()
         {
@@ -77,7 +75,7 @@ namespace Aquila.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Failed to start monitoring: {ex.ToString()}");
+                System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Failed to start monitoring: {ex}");
             }
         }
 
@@ -129,7 +127,8 @@ namespace Aquila.Services
                     {
                         Name = sensor.Name,
                         Identifier = sensorId,
-                        Unit = GetSensorUnit(sensor.SensorType)
+                        Unit = GetSensorUnit(sensor.SensorType),
+                        SensorType = sensor.SensorType
                     };
                     // E adicionamo-lo ao dicionário de sensores do nosso hardware.
                     hardwareModel.Sensors[sensorId] = sensorModel;
@@ -141,7 +140,7 @@ namespace Aquila.Services
             }
         }
 
-        private string GetSensorUnit(SensorType type)
+        private static string GetSensorUnit(SensorType type)
         {
             return type switch
             {

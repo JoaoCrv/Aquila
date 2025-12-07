@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
+using LibreHardwareMonitor.Hardware;
 
 namespace Aquila.Models
 {
@@ -20,6 +21,7 @@ namespace Aquila.Models
         private string? _unit;
         public string Name { get; set; } = string.Empty;
         public string Identifier { get; set; } = string.Empty;//unique ID for the sensor, ex: "/amdcpu/0/temperature/0"
+        public SensorType SensorType { get; set; }
 
         //when the value of the sensor changes, he calls onPropertyChanged("value")
         //this makes that any control binded to this property to update its value automatically
@@ -52,6 +54,6 @@ namespace Aquila.Models
     public class HardwareModel
     {
         public string Name { get; set; } = string.Empty;
-        public Dictionary<string, SensorModel> Sensors { get;  } = new ();
+        public Dictionary<string, SensorModel> Sensors { get; } = [];
     }
 }
