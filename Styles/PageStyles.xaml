@@ -4,6 +4,7 @@
     <Style x:Key="BasePageStyle" TargetType="{x:Type Page}">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="ui:Design.Background" Value="{DynamicResource ApplicationBackgroundBrush}" />
+        
     </Style>
 
 </ResourceDictionary>

@@ -1,4 +1,5 @@
-﻿using Aquila.ViewModels.Pages;
+﻿using Aquila.Extensions;
+using Aquila.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,10 +33,14 @@ namespace Aquila.Views.Pages
             this.Loaded += OnExplorerPageLoaded;
         }
 
-        private async void OnExplorerPageLoaded(object sender, RoutedEventArgs e)
+        private void OnExplorerPageLoaded(object sender, RoutedEventArgs e)
         {
             this.Loaded -= OnExplorerPageLoaded;
-            await ViewModel.InitializeAsync();
+            ViewModel.InitializeAsync().SafeFireAndForget(ex => 
+            {
+                // Handle exceptions here, e.g., log them
+                Console.WriteLine($"Error initializing ExplorerPage: {ex.Message}");
+            });
         }
     }
 }

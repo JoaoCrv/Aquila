@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using Wpf.Ui.Controls;
 using Aquila.Views.Pages;
+using Aquila.Services;
 
 namespace Aquila.ViewModels.Windows
 {
@@ -9,9 +10,26 @@ namespace Aquila.ViewModels.Windows
         [ObservableProperty]
         private string _applicationTitle = "Aquila";
 
-        [ObservableProperty]
-        private ObservableCollection<object> _menuItems = new()
+        private readonly UiService _uiService;
+
+        public bool IsLoading => _uiService.IsLoading;
+
+        public MainWindowViewModel(UiService uiService)
         {
+            _uiService = uiService;
+
+            _uiService.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(UiService.IsLoading))
+                {
+                    OnPropertyChanged(nameof(IsLoading));
+                }
+            };
+        }
+
+        [ObservableProperty]
+        private ObservableCollection<object> _menuItems =
+        [
             new NavigationViewItem()
             {
                 Content = "Dashboard",
@@ -30,11 +48,11 @@ namespace Aquila.ViewModels.Windows
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Storage24 },
                 TargetPageType = typeof(StoragePage)
             }
-        };
+        ];
 
         [ObservableProperty]
-        private ObservableCollection<object> _footerMenuItems = new()
-        {
+        private ObservableCollection<object> _footerMenuItems =
+        [
             new NavigationViewItem()
             {
                 Content = "About",
@@ -48,12 +66,12 @@ namespace Aquila.ViewModels.Windows
                 TargetPageType = typeof(SettingsPage)
             }
             
-        };
+        ];
 
         [ObservableProperty]
-        private ObservableCollection<MenuItem> _trayMenuItems = new()
-        {
+        private ObservableCollection<MenuItem> _trayMenuItems =
+        [
             new MenuItem { Header = "Open Aquila", Tag = "tray_home" }
-        };
+        ];
     }
 }
