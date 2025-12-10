@@ -14,23 +14,27 @@
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
-    <Grid Margin="15,0,15,15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="98*"/>
-            <RowDefinition Height="47*"/>
-        </Grid.RowDefinitions>
-        <TextBlock Text="System Sensors" FontSize="20" FontWeight="Medium" VerticalAlignment="Center"/>
-        <ui:ListView   ItemsSource="{Binding ViewModel.Sensors}"  BorderThickness="0">
-            <ui:ListView.View>
-                <ui:GridView>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding HardwareName}" MinWidth="100" Header="Hardware"/>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding SensorName}" Width="250" Header="Sensor"/>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding SensorType}" Width="150" Header="Type"/>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding Value, StringFormat=\{0:F2\}}" Width="100" Header="Value"/>
-                </ui:GridView>
-            </ui:ListView.View>
-        </ui:ListView>
-
-    </Grid>
+    <WrapPanel Margin="15">
+        <ui:Card Width="220" Margin="5">
+            <StackPanel>
+                <TextBlock Text="CPU" FontSize="16" FontWeight="SemiBold" Margin="12" />
+                <StackPanel Margin="12,-6,12,12" HorizontalAlignment="Center">
+                    <ui:SymbolIcon Symbol="Temperature24" FontSize="24" Margin="0,0,0,5"/>
+                    <TextBlock  HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0:F0}{1}">
+                                <Binding Path="ViewModel.CPU.Sensors[0].Value" FallbackValue="--"/>
+                                <Binding Path="ViewModel.CPU.Sensors[0].Unit" FallbackValue="--"/>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock Text="{Binding ViewModel.CPU.Sensors[0].Name}" 
+                               HorizontalAlignment="Center" 
+                               FontSize="12" 
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </StackPanel>
+        </ui:Card>
+    </WrapPanel>
 
 </Page>

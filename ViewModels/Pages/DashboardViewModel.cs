@@ -3,25 +3,25 @@ using Aquila.Services;
 using Aquila.ViewModels.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Windows.Threading;
 
 namespace Aquila.ViewModels.Pages
 {
-    public class DashboardViewModel : ObservableObject
+    public partial class DashboardViewModel(HardwareMonitorService monitor) : ObservableObject
     {
        
-        private readonly HardwareMonitorService _hardwareMonitorService;
+        private readonly HardwareMonitorService _monitor = monitor;
 
-        public Dictionary<string, HardwareModel> Hardware => _hardwareMonitorService.Hardware;
+        public HardwareModel? CPU =>
+        _monitor.Hardware.Values.FirstOrDefault(h =>
+            h.Name.Contains("CPU"));
 
-        // HardwareMonitorService is injected via dependency injection
-        public DashboardViewModel( HardwareMonitorService hardwareMonitorService)
-        {
-           
-            _hardwareMonitorService = hardwareMonitorService;
-
-        }
+        public HardwareModel? GPU =>
+       _monitor.Hardware.Values.FirstOrDefault(h =>
+           h.Name.Contains("GPU"));
 
     }
+
 }

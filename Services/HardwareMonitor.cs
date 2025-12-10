@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Automation;
 using System.Windows.Threading;
 using System.Xml.Linq;
+using System.Diagnostics;
 
 
 /// <summary>
@@ -85,7 +86,7 @@ namespace Aquila.Services
 
             // Asks LibreHardwareMonitor to read new values from hardware
             _computer.Accept(new UpdateVisitor());
-
+            
             //Process all detected hardware components
             foreach (IHardware hw in _computer.Hardware)
             {
@@ -95,6 +96,7 @@ namespace Aquila.Services
                     ProcessHardware(subHw, hw.Name);
                 }
             }
+           
         }
 
         private void ProcessHardware(IHardware hw, string parentHardwareName)
@@ -123,12 +125,14 @@ namespace Aquila.Services
                 if (!hardwareModel.Sensors.TryGetValue(sensorId, out var sensorModel))
                 {
                     // if not, we create a new sensor model
+                    
                     sensorModel = new SensorModel
                     {
                         Name = sensor.Name,
                         Identifier = sensorId,
                         Unit = GetSensorUnit(sensor.SensorType),
                         SensorType = sensor.SensorType
+                       
                     };
                     // E adicionamo-lo ao dicionário de sensores do nosso hardware.
                     hardwareModel.Sensors[sensorId] = sensorModel;
