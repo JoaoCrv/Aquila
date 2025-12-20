@@ -1,11 +1,15 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System.Collections.Generic;
+using HidSharp.Reports.Units;
 using LibreHardwareMonitor.Hardware;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Aquila.Models
 {
-    // This is the sensor model that the UI will consume.
-    public partial class Sensor : ObservableObject
+    /// <summary>
+    ///     The nomenclature is designed to avoid conflict with Services and Librehardwaremonitor.
+    /// </summary>
+    public partial class DataSensor : ObservableObject
     {
         public int Index { get; }
         public string Identifier { get; }
@@ -17,8 +21,7 @@ namespace Aquila.Models
         [ObservableProperty] private float _max;
         [ObservableProperty] private string? _unit;
 
-        /// We use a constructor to set the immutable properties once.
-        public Sensor(int index, string identifier, string name, SensorType sensorType, string? unit)
+        public DataSensor(int index, string identifier, string name, SensorType sensorType, string? unit)
         {
             Index = index;
             Identifier = identifier;
@@ -28,22 +31,23 @@ namespace Aquila.Models
         }
     }
 
-    // The hardware that the UI will consume.
-    public class Hardware(int index, string identifier, string name, HardwareType hardwareType)
+    public class DataHardware(string identifier, string name, HardwareType hardwareType)
     {
-        public int Index { get; } = index;
         public string Identifier { get; } = identifier;
         public string Name { get; } = name;
         public HardwareType HardwareType { get; } = hardwareType;
-
-
-        // Dictionary of sensors for quick access. The key is the Sensor Index (int).
-        public Dictionary<int, Sensor> Sensors { get; } = [];
+        // One single list of ALL sensors that belong to this hardware.
+        public ObservableCollection<DataSensor> Sensors { get; } = [];
     }
 
-    // The root of our API. The key is the HardwareType (enum).
-    public class HardwareRoot
+    // The root of our model. Contains the list and the index.
+    public class ComputerData
     {
-        public Dictionary<HardwareType, Dictionary<int, Hardware>> Data { get; } = new();
+        // The hierarchical list, perfect for the ExplorerPage.
+        public ObservableCollection<DataHardware> HardwareList { get; } = [];
+
+        // Global index, perfect for Dashboard widgets.
+        // The key is the Identifier (string), the value is the DataSensor object.
+        public Dictionary<string, DataSensor> SensorIndex { get; } = [];
     }
 }

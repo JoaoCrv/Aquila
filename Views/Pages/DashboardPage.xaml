@@ -21,16 +21,55 @@
             <RowDefinition Height="98*"/>
             <RowDefinition Height="47*"/>
         </Grid.RowDefinitions>
-        <ui:ListView   ItemsSource="{Binding ViewModel.Sensors}"  BorderThickness="0">
-            <ui:ListView.View>
-                <ui:GridView>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding HardwareName}" MinWidth="100" Header="Hardware"/>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding SensorName}" Width="250" Header="Sensor"/>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding SensorType}" Width="150" Header="Type"/>
-                    <ui:GridViewColumn  DisplayMemberBinding="{Binding Value, StringFormat=\{0:F2\}}" Width="100" Header="Value"/>
-                </ui:GridView>
-            </ui:ListView.View>
-        </ui:ListView>
+        <ItemsControl ItemsSource="{Binding ViewModel.Computer.HardwareList}" Margin="15">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <!-- Usamos o ui:Card para ter o aspeto de widget -->
+                    <ui:Card Margin="10,0,0,15">
+                        <StackPanel>
+                            <!-- O Título do Cartão é o nome do Hardware -->
+                            <TextBlock Text="{Binding Name}" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Margin="12" />
+
+                            <!-- A ListView para os sensores deste hardware -->
+                            <ui:ListView ItemsSource="{Binding Sensors}" 
+                                     Background="Transparent" 
+                                     BorderThickness="0"
+                                     Margin="12,-6,12,12">
+                                <ui:ListView.View>
+                                    <GridView>
+                                        <GridView.ColumnHeaderContainerStyle>
+                                            <Style TargetType="{x:Type GridViewColumnHeader}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </Style>
+                                        </GridView.ColumnHeaderContainerStyle>
+
+                                        <GridViewColumn DisplayMemberBinding="{Binding Name}" Width="250"/>
+                                        <GridViewColumn Width="100">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock HorizontalAlignment="Right">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                <Binding Path="Value" />
+                                                                <Binding Path="Unit" />
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn DisplayMemberBinding="{Binding Identifier}" Width="350"/>
+                                    </GridView>
+                                </ui:ListView.View>
+                            </ui:ListView>
+                        </StackPanel>
+                    </ui:Card>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
     </Grid>
 

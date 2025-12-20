@@ -37,6 +37,7 @@ namespace Aquila
 
                 // Hardware monitoring service
                 services.AddSingleton<HardwareMonitorService>();
+                services.AddSingleton<HardwareMonitorService>();
 
                 // Theme manipulation
                 services.AddSingleton<IThemeService, ThemeService>();

@@ -1,11 +1,13 @@
-﻿using LibreHardwareMonitor.Hardware;
+﻿using Aquila.Models;
+using LibreHardwareMonitor.Hardware;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Threading;
 
 namespace Aquila.Services
 {
-    // The UpdateVisitor class is a helper for LHM and remains unchanged.
+    //The class UpdateVisitor is a helper for LHM.
     public class UpdateVisitor : IVisitor
     {
         public void VisitComputer(IComputer computer) => computer.Traverse(this);
@@ -18,35 +20,21 @@ namespace Aquila.Services
         public void VisitParameter(IParameter parameter) { }
     }
 
-
-    ///<summary>
-    ///"Driver" service at a low level. Its sole responsibility is to read raw data from LibreHardwareMonitor and trigger an event.
+    /// <summary>
+    /// The ONE and ONLY hardware service. Reads raw data and transforms it 
     /// </summary>
     public class HardwareMonitorService
     {
         private Computer? _computer;
-        private readonly DispatcherTimer _timer;
-
-        /// <summary>
-        /// Expose the collection of raw data read directly from the library.
-        /// </summary>
-        /// 
-        public IHardware[] RawHardware { get; private set; } = [];
-
-        /// <summary>
-        /// Event triggered every second, after reading new data.
-        /// </summary>
-        public event Action? DataUpdated;
-
-        public HardwareMonitorService()
-        {
-            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _timer.Tick += UpdateSensorReadings;
-        }
+        private DispatcherTimer? _timer;
+ 
+        public ComputerData ComputerData { get; } = new();
 
         public void StartMonitoring()
         {
             if (_computer != null) return;
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _timer.Tick += UpdateDataModel;
 
             _computer = new Computer
             {
@@ -65,21 +53,64 @@ namespace Aquila.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Failed to start: {ex}");
+                System.Diagnostics.Debug.WriteLine($"[HardwareApiService] Failed to Start: {ex}");
             }
         }
 
-        private void UpdateSensorReadings(object? sender, EventArgs e)
+        private void UpdateDataModel(object? sender, EventArgs e)
         {
             if (_computer == null) return;
 
             _computer.Accept(new UpdateVisitor());
 
-            //Update the property with the latest data
-            RawHardware = (IHardware[])_computer.Hardware;
+            foreach (var rawHardware in _computer.Hardware)
+            {
+                var hardwareNode = ComputerData.HardwareList.FirstOrDefault(h => h.Identifier == rawHardware.Identifier.ToString());
+                if (hardwareNode == null)
+                {
+                    hardwareNode = new DataHardware(rawHardware.Identifier.ToString(), rawHardware.Name, rawHardware.HardwareType);
+                    ComputerData.HardwareList.Add(hardwareNode);
+                }
+                var allSensors = rawHardware.Sensors.Concat(rawHardware.SubHardware.SelectMany(s => s.Sensors));
+                foreach (var rawSensor in allSensors)
+                {
+                    var sensorId = rawSensor.Identifier.ToString();
+                    if(!ComputerData.SensorIndex.TryGetValue(sensorId, out var dataSensor))
+                    {
+                        dataSensor = new DataSensor(
+                            rawSensor.Index,
+                            sensorId,
+                            rawSensor.Name,
+                            rawSensor.SensorType,
+                            GetSensorUnit(rawSensor.SensorType)
+                            );
+                        ComputerData.SensorIndex[sensorId] = dataSensor;
+                        hardwareNode.Sensors.Add(dataSensor);
+                    }
+                    dataSensor.Value = rawSensor.Value ?? 0;
+                    dataSensor.Min = rawSensor.Min ?? 0;
+                    dataSensor.Max = rawSensor.Max ?? 0;
+                }
+            }
+        }
 
-            //Notify subscribers (like HardwareApiService) that new data is available
-            DataUpdated?.Invoke();
+        private static string GetSensorUnit(SensorType type)
+        {
+            return type switch
+            {
+                SensorType.Temperature => "°C",
+                SensorType.Load => "%",
+                SensorType.Clock => "MHz",
+                SensorType.Power => "W",
+                SensorType.Fan => "RPM",
+                SensorType.Data => "GB",
+                SensorType.SmallData => "MB",
+                SensorType.Throughput => "B/s",
+                SensorType.Voltage => "V",
+                SensorType.Frequency => "Hz",
+                SensorType.Control => "%",
+                _ => string.Empty
+            };
         }
     }
 }
