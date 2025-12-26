@@ -14,27 +14,61 @@
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
-    <WrapPanel Margin="15">
-        <ui:Card Width="220" Margin="5">
-            <StackPanel>
-                <TextBlock Text="CPU" FontSize="16" FontWeight="SemiBold" Margin="12" />
-                <StackPanel Margin="12,-6,12,12" HorizontalAlignment="Center">
-                    <ui:SymbolIcon Symbol="Temperature24" FontSize="24" Margin="0,0,0,5"/>
-                    <TextBlock  HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:F0}{1}">
-                                <Binding Path="ViewModel.CPU.Sensors[0].Value" FallbackValue="--"/>
-                                <Binding Path="ViewModel.CPU.Sensors[0].Unit" FallbackValue="--"/>
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                    <TextBlock Text="{Binding ViewModel.CPU.Sensors[0].Name}" 
-                               HorizontalAlignment="Center" 
-                               FontSize="12" 
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                </StackPanel>
-            </StackPanel>
-        </ui:Card>
-    </WrapPanel>
+    <Grid Margin="15,0,15,15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="98*"/>
+            <RowDefinition Height="47*"/>
+        </Grid.RowDefinitions>
+        <ItemsControl ItemsSource="{Binding ViewModel.Computer.HardwareList}" Margin="15">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <!-- Usamos o ui:Card para ter o aspeto de widget -->
+                    <ui:Card Margin="10,0,0,15">
+                        <StackPanel>
+                            <!-- O Título do Cartão é o nome do Hardware -->
+                            <TextBlock Text="{Binding Name}" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold"
+                                   Margin="12" />
+
+                            <!-- A ListView para os sensores deste hardware -->
+                            <ui:ListView ItemsSource="{Binding Sensors}" 
+                                     Background="Transparent" 
+                                     BorderThickness="0"
+                                     Margin="12,-6,12,12">
+                                <ui:ListView.View>
+                                    <GridView>
+                                        <GridView.ColumnHeaderContainerStyle>
+                                            <Style TargetType="{x:Type GridViewColumnHeader}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </Style>
+                                        </GridView.ColumnHeaderContainerStyle>
+
+                                        <GridViewColumn DisplayMemberBinding="{Binding Name}" Width="250"/>
+                                        <GridViewColumn Width="100">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock HorizontalAlignment="Right">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                <Binding Path="Value" />
+                                                                <Binding Path="Unit" />
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn DisplayMemberBinding="{Binding Identifier}" Width="350"/>
+                                    </GridView>
+                                </ui:ListView.View>
+                            </ui:ListView>
+                        </StackPanel>
+                    </ui:Card>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+    </Grid>
 
 </Page>

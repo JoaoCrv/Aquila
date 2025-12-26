@@ -9,18 +9,12 @@ namespace Aquila.Services
     /// <summary>
     /// Managed host of the application.
     /// </summary>
-    public class ApplicationHostService : IHostedService
+    public class ApplicationHostService(IServiceProvider serviceProvider, HardwareMonitorService hardwareMonitor) : IHostedService
     {
-        private readonly IServiceProvider _serviceProvider;
-        private readonly HardwareMonitorService _hardwareMonitor;
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
+        private readonly HardwareMonitorService _hardwareMonitor = hardwareMonitor;
 
-        private INavigationWindow _navigationWindow;
-
-        public ApplicationHostService(IServiceProvider serviceProvider, HardwareMonitorService hardwareMonitor)
-        {
-            _serviceProvider = serviceProvider;
-            _hardwareMonitor = hardwareMonitor;
-        }
+        private INavigationWindow? _navigationWindow;
 
         /// <summary>
         /// Triggered when the application host is ready to start the service.
