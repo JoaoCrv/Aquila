@@ -20,19 +20,13 @@ namespace Aquila.ViewModels.Pages
         public List<DataSensor> Sensors { get; set; } = [];
     }
 
-    public partial class ExplorerViewModel : ObservableObject
+    public partial class ExplorerViewModel(HardwareMonitorService monitorService, UiService uiService) : ObservableObject
     {
-        private readonly HardwareMonitorService _monitorService;
-        private readonly UiService _uiService;
+        private readonly HardwareMonitorService _monitorService = monitorService;
+        private readonly UiService _uiService = uiService;
 
         [ObservableProperty]
         private List<ExplorerGroupedHardware> _groupedHardware = [];
-
-        public ExplorerViewModel(HardwareMonitorService monitorService, UiService uiService)
-        {
-            _monitorService = monitorService;
-            _uiService = uiService;
-        }
 
         public async Task InitializeAsync()
         {
