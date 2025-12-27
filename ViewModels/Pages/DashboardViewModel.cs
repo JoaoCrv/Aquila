@@ -14,13 +14,15 @@ namespace Aquila.ViewModels.Pages
        
         private readonly HardwareMonitorService _monitor = monitor;
 
-        public HardwareModel? CPU =>
+       /*
+        * public HardwareModel? CPU =>
         _monitor.Hardware.Values.FirstOrDefault(h =>
             h.Name.Contains("CPU"));
 
         public HardwareModel? GPU =>
        _monitor.Hardware.Values.FirstOrDefault(h =>
            h.Name.Contains("GPU"));
+       */
 
     }
 
