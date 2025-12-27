@@ -22,7 +22,7 @@ namespace Aquila.Views.Pages
     /// </summary>
     public partial class ExplorerPage : Page
     {
-        /*
+        
                 public ExplorerViewModel ViewModel { get; }
                 public ExplorerPage(ExplorerViewModel viewModel)
                 {
@@ -42,7 +42,7 @@ namespace Aquila.Views.Pages
                         Console.WriteLine($"Error initializing ExplorerPage: {ex.Message}");
                     });
                 }
-        */
+        
     }
 
 }
