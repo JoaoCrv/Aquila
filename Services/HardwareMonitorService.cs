@@ -27,7 +27,8 @@ namespace Aquila.Services
     {
         private Computer? _computer;
         private DispatcherTimer? _timer;
- 
+        public event Action? DataUpdated;
+
         public ComputerData ComputerData { get; } = new();
 
         public void StartMonitoring()
@@ -92,6 +93,7 @@ namespace Aquila.Services
                     dataSensor.Max = rawSensor.Max ?? 0;
                 }
             }
+            DataUpdated?.Invoke();
         }
 
         private static string GetSensorUnit(SensorType type)

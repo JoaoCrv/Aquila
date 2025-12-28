@@ -1,29 +1,49 @@
 ﻿using Aquila.Models;
 using Aquila.Services;
-using Aquila.ViewModels.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading;
-using System.Windows.Threading;
 
 namespace Aquila.ViewModels.Pages
 {
-    public partial class DashboardViewModel(HardwareMonitorService monitor) : ObservableObject
+    public partial class DashboardViewModel : ObservableObject
     {
-       
-        private readonly HardwareMonitorService _monitor = monitor;
+        private readonly HardwareMonitorService _monitorService;
 
-       /*
-        * public HardwareModel? CPU =>
-        _monitor.Hardware.Values.FirstOrDefault(h =>
-            h.Name.Contains("CPU"));
+        public ComputerData Computer => _monitorService.ComputerData;
+        public string? CpuName => _monitorService.ComputerData.HardwareList
+                                            .FirstOrDefault(h => h.HardwareType == LibreHardwareMonitor.Hardware.HardwareType.Cpu)?
+                                            .Name;
+        public DataSensor? CpuTemperatureSensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0");
+        public DataSensor? CpuUsageSensor => Computer.SensorIndex.GetValueOrDefault("/amdcpu/0/load/0");
+        //public DataSensor? CpuSpeedSensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0"); //não existe sensor direto para cpu speed
+        public DataSensor? CpuEnergySensor => Computer.SensorIndex.GetValueOrDefault("/amdcpu/0/power/0");
+        public DataSensor? CpuFanSpeed1Sensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/fan/0");
+        public DataSensor? CpuFanSpeed2Sensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/fan/1");
 
-        public HardwareModel? GPU =>
-       _monitor.Hardware.Values.FirstOrDefault(h =>
-           h.Name.Contains("GPU"));
-       */
+        public DataSensor? GpuUsageSensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0");
+        public DataSensor? GpuTemperatureSensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0");
+        public DataSensor? GpuSpeedSensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0");
+        public DataSensor? GpuEnergySensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0");
+        public DataSensor? GpuFanSpeed1Sensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0");
+        public DataSensor? GpuFanSpeed2Sensor => Computer.SensorIndex.GetValueOrDefault("/lpc/nct6687d/0/temperature/0");
 
+
+
+        public DashboardViewModel(HardwareMonitorService monitorService)
+        {
+            _monitorService = monitorService;
+
+            
+            _monitorService.DataUpdated += () =>
+            {
+                OnPropertyChanged(nameof(CpuName));
+                OnPropertyChanged(nameof(CpuTemperatureSensor));
+                OnPropertyChanged(nameof(CpuUsageSensor));
+                OnPropertyChanged(nameof(CpuEnergySensor));
+                OnPropertyChanged(nameof(CpuFanSpeed1Sensor));
+                OnPropertyChanged(nameof(CpuFanSpeed2Sensor));
+
+            };
+        }
     }
-
 }
