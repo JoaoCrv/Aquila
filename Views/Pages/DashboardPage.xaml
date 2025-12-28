@@ -11,95 +11,283 @@
     Title="DashboardPage"
     d:DataContext="{d:DesignInstance local:DashboardPage,
                                      IsDesignTimeCreatable=False}"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
+    d:DesignHeight="600.798"
+    d:DesignWidth="1157.846"
     mc:Ignorable="d">
-    <WrapPanel Margin="10">
-        <ui:Card>
-            <StackPanel>
-                <TextBlock Text="{Binding ViewModel.CpuName}" FontWeight="Bold" />
-        <ui:Card Width="220" Margin="5">
-            <StackPanel>
-                <TextBlock Text="CPU Temperature" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                <StackPanel Margin="12,-6,12,12">
-                    <ui:SymbolIcon Symbol="Temperature24" Width="24" Margin="0,0,0,5"/>
-                    <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="-- °C">
-                                <Binding Path="ViewModel.CpuTemperatureSensor.Value" />
-                                <Binding Path="ViewModel.CpuTemperatureSensor.Unit" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </StackPanel>
-            </StackPanel>
-        </ui:Card>
-        <ui:Card Width="220" Margin="5">
-            <StackPanel>
-                <TextBlock Text="CPU Usage" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                <StackPanel Margin="12,-6,12,12">
-                    <ui:SymbolIcon Symbol="TopSpeed24" Width="24" Margin="0,0,0,5"/>
-                    <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="-- %">
-                                <Binding Path="ViewModel.CpuUsageSensor.Value" />
-                                <Binding Path="ViewModel.CpuUsageSensor.Unit" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </StackPanel>
-            </StackPanel>
-        </ui:Card>
-        <ui:Card Width="220" Margin="5">
-            <StackPanel>
-                <TextBlock Text="CPU Fan Speed 1" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                <StackPanel Margin="12,-6,12,12">
-                    <ui:SymbolIcon Symbol="DataUsage24" Width="24" Margin="0,0,0,5"/>
-                    <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="-- RPM">
-                                <Binding Path="ViewModel.CpuFanSpeed1Sensor.Value" />
-                                <Binding Path="ViewModel.CpuFanSpeed1Sensor.Unit" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </StackPanel>
-            </StackPanel>
-        </ui:Card>
-        <ui:Card Width="220" Margin="5">
-            <StackPanel>
-                <TextBlock Text="CPU Fan Speed 2" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                <StackPanel Margin="12,-6,12,12">
-                    <ui:SymbolIcon Symbol="DataUsage24" Width="24" Margin="0,0,0,5"/>
-                    <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="-- RPM">
-                                <Binding Path="ViewModel.CpuFanSpeed1Sensor.Value" />
-                                <Binding Path="ViewModel.CpuFanSpeed1Sensor.Unit" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </StackPanel>
-            </StackPanel>
-        </ui:Card>
-        <ui:Card Width="220" Margin="5">
-            <StackPanel>
-                <TextBlock Text="CPU Power Usage" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                <StackPanel Margin="12,-6,12,12">
-                    <ui:SymbolIcon Symbol="Alert24" Width="24" Margin="0,0,0,5"/>
-                    <TextBlock HorizontalAlignment="Center" FontSize="28" FontWeight="SemiBold">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="-- RPM">
-                                <Binding Path="ViewModel.CpuEnergySensor.Value" />
-                                <Binding Path="ViewModel.CpuEnergySensor.Unit" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </StackPanel>
-            </StackPanel>
-        </ui:Card>
-            </StackPanel>
-        </ui:Card>
-    </WrapPanel>
+    <StackPanel>
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock Text="{Binding ViewModel.CpuName}" FontSize="20" FontWeight="SemiBold" Margin="5,0,0,5"/>
+            <WrapPanel>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Temperature" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Temperature24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.CpuTemperatureSensor.Value" />
+                                        <Binding Path="ViewModel.CpuTemperatureSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Usage" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="TopSpeed24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.CpuUsageSensor.Value" />
+                                        <Binding Path="ViewModel.CpuUsageSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="CPU Fan Speed" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.CpuFanSpeed1Sensor.Value" />
+                                        <Binding Path="ViewModel.CpuFanSpeed1Sensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="CPU Fan Speed 2" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.CpuFanSpeed2Sensor.Value" />
+                                        <Binding Path="ViewModel.CpuFanSpeed2Sensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="CPU Power Usage" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Flash24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0}{1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.CpuEnergySensor.Value" />
+                                        <Binding Path="ViewModel.CpuEnergySensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+            </WrapPanel>
+        </StackPanel>
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock Text="{Binding ViewModel.GpuName}" FontSize="20" FontWeight="SemiBold" Margin="5,0,0,5"/>
+            <WrapPanel>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Temperature" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Temperature24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.GpuTemperatureSensor.Value" />
+                                        <Binding Path="ViewModel.GpuTemperatureSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Usage" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="TopSpeed24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.GpuUsageSensor.Value" />
+                                        <Binding Path="ViewModel.GpuUsageSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Fan Speed 1" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.GpuFanSpeed1Sensor.Value" />
+                                        <Binding Path="ViewModel.GpuFanSpeed1Sensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Fan Speed 2" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.GpuFanSpeed2Sensor.Value" />
+                                        <Binding Path="ViewModel.GpuFanSpeed2Sensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Power Usage" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Flash24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.GpuEnergySensor.Value" />
+                                        <Binding Path="ViewModel.GpuEnergySensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+            </WrapPanel>
+        </StackPanel>
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock Text="{Binding ViewModel.MemoryName}" FontSize="20" FontWeight="SemiBold" Margin="5,0,0,5"/>
+            <WrapPanel>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Memory Usage" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="TopSpeed24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.MemoryUsageSensor.Value" />
+                                        <Binding Path="ViewModel.MemoryUsageSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Memory Available" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Ram20" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.MemoryAvailableSensor.Value" />
+                                        <Binding Path="ViewModel.MemoryAvailableSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Memory Used" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Ram20" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.MemoryUsedSensor.Value" />
+                                        <Binding Path="ViewModel.MemoryUsedSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Virtual Memory Usage" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="TopSpeed24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.VirtualMemoryUsageSensor.Value" />
+                                        <Binding Path="ViewModel.VirtualMemoryUsageSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Virtual Memory Available" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Ram20" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.VirtualMemoryAvailableSensor.Value" />
+                                        <Binding Path="ViewModel.VirtualMemoryAvailableSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Virtual Memory Used" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Ram20" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.VirtualMemoryUsedSensor.Value" />
+                                        <Binding Path="ViewModel.VirtualMemoryUsedSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+            </WrapPanel>
+        </StackPanel>
+
+    </StackPanel>
+
 
 </Page>
