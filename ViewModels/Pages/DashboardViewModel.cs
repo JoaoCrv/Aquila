@@ -1,6 +1,7 @@
 ﻿using Aquila.Models;
 using Aquila.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
+using LibreHardwareMonitor.Hardware;
 using System.Linq;
 
 namespace Aquila.ViewModels.Pages
@@ -10,6 +11,49 @@ namespace Aquila.ViewModels.Pages
         private readonly HardwareMonitorService _monitorService;
 
         public ComputerData Computer => _monitorService.ComputerData;
+
+        [ObservableProperty]
+        private float _effectiveCpuClock;
+
+        // Calculate CPU Speed
+        private void CalculateEffectiveCpuClock()
+        {
+            var cpu = Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
+            if (cpu == null)
+            {
+                EffectiveCpuClock = 0;
+                return;
+            }
+
+            var clockSensors = cpu.Sensors.Where(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core #")).ToList();
+            var loadSensors = cpu.Sensors.Where(s => s.SensorType == SensorType.Load && s.Name.Contains("CPU Core #")).ToList();
+
+            float maxEffectiveClock = 0;
+
+           
+            foreach (var clockSensor in clockSensors)
+            {
+               
+                var coreNumber = clockSensor.Name.Replace("Core #", "");
+                var correspondingLoadSensor = loadSensors.FirstOrDefault(s => s.Name.EndsWith(coreNumber, StringComparison.Ordinal));
+
+                if (correspondingLoadSensor != null)
+                {
+                    
+                    float effectiveClock = clockSensor.Value * (correspondingLoadSensor.Value / 100);
+
+                    
+                    if (effectiveClock > maxEffectiveClock)
+                    {
+                        maxEffectiveClock = effectiveClock;
+                    }
+                }
+            }
+
+            
+            EffectiveCpuClock = maxEffectiveClock;
+        }
+
 
         //CPU
         public string? CpuName => _monitorService.ComputerData.HardwareList
@@ -52,6 +96,7 @@ namespace Aquila.ViewModels.Pages
             
             _monitorService.DataUpdated += () =>
             {
+                CalculateEffectiveCpuClock();
                 //CPU
                 OnPropertyChanged(nameof(CpuName));
                 OnPropertyChanged(nameof(CpuTemperatureSensor));
@@ -59,6 +104,7 @@ namespace Aquila.ViewModels.Pages
                 OnPropertyChanged(nameof(CpuEnergySensor));
                 OnPropertyChanged(nameof(CpuFanSpeed1Sensor));
                 OnPropertyChanged(nameof(CpuFanSpeed2Sensor));
+                OnPropertyChanged(nameof(_effectiveCpuClock));
 
                 //Gpu
                 OnPropertyChanged(nameof(GpuName));
