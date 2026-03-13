@@ -104,7 +104,6 @@
                         <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
                             <ui:SymbolIcon Symbol="TopSpeed24" FontSize="24" Margin="0,0,0,5"/>
                             <TextBlock FontSize="28" FontWeight="SemiBold">
-                <!-- O Binding é super simples! -->
                 <Run Text="{Binding ViewModel.EffectiveCpuClock, StringFormat={}{0:F0}, FallbackValue=--}"/><Run Text=" MHz"/>
                             </TextBlock>
                         </StackPanel>
@@ -200,8 +199,7 @@
         <TextBlock Text="CPU Speed" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
         <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
             <ui:SymbolIcon Symbol="TopSpeed24" FontSize="24" Margin="0,0,0,5"/>
-            <TextBlock FontSize="28" FontWeight="SemiBold">
-                <!-- O Binding é super simples! -->
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
                 <Run Text="{Binding ViewModel.EffectiveCpuClock, StringFormat={}{0:F0}, FallbackValue=--}"/><Run Text=" MHz"/>
             </TextBlock>
         </StackPanel>
@@ -311,7 +309,94 @@
             </WrapPanel>
         </StackPanel>
 
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock Text="Network" FontSize="20" FontWeight="SemiBold" Margin="5,0,0,5"/>
+            <WrapPanel>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Network Usage" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="Wifi120" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.NetworkUsageSensor.Value" />
+                                        <Binding Path="ViewModel.NetworkUsageSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Upload Speed" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowUp24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.NetworkUploadSpeedSensor.Value" />
+                                        <Binding Path="ViewModel.NetworkUploadSpeedSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Download Speed" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowDown24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.NetworkDownloadSpeedSensor.Value" />
+                                        <Binding Path="ViewModel.NetworkDownloadSpeedSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Data Downloaded" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.NetworkDataDownloadedSensor.Value" />
+                                        <Binding Path="ViewModel.NetworkDataDownloadedSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+                <ui:Card Width="220" Margin="5">
+                    <StackPanel>
+                        <TextBlock Text="Data Uploaded" FontSize="16" FontWeight="SemiBold" Margin="12,12,12,0"/>
+                        <StackPanel HorizontalAlignment="Center" Margin="12,6,12,12">
+                            <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="24" Margin="0,0,0,5"/>
+                            <TextBlock FontSize="28" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.NetworkDataUploadedSensor.Value" />
+                                        <Binding Path="ViewModel.NetworkDataUploadedSensor.Unit" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+            </WrapPanel>
+        </StackPanel>
+
     </StackPanel>
+    
 
 
 </Page>
