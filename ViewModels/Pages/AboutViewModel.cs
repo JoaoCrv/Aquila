@@ -1,27 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace Aquila.ViewModels.Pages
 {
-    public  partial class AboutViewModel : ObservableObject
+    public partial class AboutViewModel : ObservableObject
     {
         [ObservableProperty]
-        private string _appVersion = String.Empty;
+        private string _appVersion = string.Empty;
 
         public AboutViewModel()
         {
             _appVersion = GetAssemblyVersion();
         }
 
-        private string GetAssemblyVersion()
-        {
-            return Assembly.GetExecutingAssembly().GetName().Version?.ToString()
-                ?? String.Empty;
-        }
+        private static string GetAssemblyVersion() =>
+            Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty;
     }
 }

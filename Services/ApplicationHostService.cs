@@ -22,9 +22,9 @@ namespace Aquila.Services
         /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await HandleActivationAsync();  
+            // Start monitoring first so data is ready when the UI loads
             _hardwareMonitor.StartMonitoring();
-
+            await HandleActivationAsync();
         }
 
         /// <summary>
@@ -33,6 +33,7 @@ namespace Aquila.Services
         /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
         public async Task StopAsync(CancellationToken cancellationToken)
         {
+            _hardwareMonitor.Dispose();
             await Task.CompletedTask;
         }
 

@@ -1,13 +1,11 @@
 ﻿using Aquila.Models;
 using LibreHardwareMonitor.Hardware;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Threading;
 
 namespace Aquila.Services
 {
-    //The class UpdateVisitor is a helper for LHM.
     public class UpdateVisitor : IVisitor
     {
         public void VisitComputer(IComputer computer) => computer.Traverse(this);
@@ -21,19 +19,21 @@ namespace Aquila.Services
     }
 
     /// <summary>
-    /// The ONE and ONLY hardware service. Reads raw data and transforms it 
+    /// The ONE and ONLY hardware service. Reads raw data and transforms it.
     /// </summary>
-    public class HardwareMonitorService
+    public class HardwareMonitorService : IDisposable
     {
         private Computer? _computer;
         private DispatcherTimer? _timer;
-        public event Action? DataUpdated;
+        private bool _disposed;
 
+        public event Action? DataUpdated;
         public ComputerData ComputerData { get; } = new();
 
         public void StartMonitoring()
         {
             if (_computer != null) return;
+
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _timer.Tick += UpdateDataModel;
 
@@ -54,8 +54,20 @@ namespace Aquila.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[HardwareApiService] Failed to Start: {ex}");
+                System.Diagnostics.Debug.WriteLine($"[HardwareMonitorService] Failed to start: {ex}");
             }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            _timer?.Stop();
+            _timer = null;
+
+            _computer?.Close();
+            _computer = null;
         }
 
         private void UpdateDataModel(object? sender, EventArgs e)
@@ -72,19 +84,19 @@ namespace Aquila.Services
                     hardwareNode = new DataHardware(rawHardware.Identifier.ToString(), rawHardware.Name, rawHardware.HardwareType);
                     ComputerData.HardwareList.Add(hardwareNode);
                 }
+
                 var allSensors = rawHardware.Sensors.Concat(rawHardware.SubHardware.SelectMany(s => s.Sensors));
                 foreach (var rawSensor in allSensors)
                 {
                     var sensorId = rawSensor.Identifier.ToString();
-                    if(!ComputerData.SensorIndex.TryGetValue(sensorId, out var dataSensor))
+                    if (!ComputerData.SensorIndex.TryGetValue(sensorId, out var dataSensor))
                     {
                         dataSensor = new DataSensor(
                             rawSensor.Index,
                             sensorId,
                             rawSensor.Name,
                             rawSensor.SensorType,
-                            GetSensorUnit(rawSensor.SensorType)
-                            );
+                            GetSensorUnit(rawSensor.SensorType));
                         ComputerData.SensorIndex[sensorId] = dataSensor;
                         hardwareNode.Sensors.Add(dataSensor);
                     }
@@ -93,26 +105,24 @@ namespace Aquila.Services
                     dataSensor.Max = rawSensor.Max ?? 0;
                 }
             }
+
             DataUpdated?.Invoke();
         }
 
-        private static string GetSensorUnit(SensorType type)
+        private static string GetSensorUnit(SensorType type) => type switch
         {
-            return type switch
-            {
-                SensorType.Temperature => "°C",
-                SensorType.Load => "%",
-                SensorType.Clock => "MHz",
-                SensorType.Power => "W",
-                SensorType.Fan => "RPM",
-                SensorType.Data => "GB",
-                SensorType.SmallData => "MB",
-                SensorType.Throughput => "B/s",
-                SensorType.Voltage => "V",
-                SensorType.Frequency => "Hz",
-                SensorType.Control => "%",
-                _ => string.Empty
-            };
-        }
+            SensorType.Temperature => "°C",
+            SensorType.Load => "%",
+            SensorType.Clock => "MHz",
+            SensorType.Power => "W",
+            SensorType.Fan => "RPM",
+            SensorType.Data => "GB",
+            SensorType.SmallData => "MB",
+            SensorType.Throughput => "B/s",
+            SensorType.Voltage => "V",
+            SensorType.Frequency => "Hz",
+            SensorType.Control => "%",
+            _ => string.Empty
+        };
     }
 }
