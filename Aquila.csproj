@@ -19,6 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include=".github\GITHUB_SETUP.md" />
+    <None Include=".github\ISSUE_TEMPLATE\bug_report.md" />
+    <None Include=".github\ISSUE_TEMPLATE\documentation.md" />
+    <None Include=".github\ISSUE_TEMPLATE\feature_request.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.4" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="WPF-UI" Version="4.0.2" />
