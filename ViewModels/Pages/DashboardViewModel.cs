@@ -81,6 +81,11 @@ namespace Aquila.ViewModels.Pages
         public DataSensor? NetworkDataUploadedSensor => Computer.SensorIndex.GetValueOrDefault("/nic/0/data/0");
         public DataSensor? NetworkDataDownloadedSensor => Computer.SensorIndex.GetValueOrDefault("/nic/0/data/1");
 
+        // Tracks which sensor properties have been resolved (non-null) at least once.
+        // Once resolved, DataSensor.Value is [ObservableProperty] and updates itself —
+        // no need to keep notifying the reference.
+        private bool _sensorsResolved = false;
+
         public DashboardViewModel(HardwareMonitorService monitorService)
         {
             _monitorService = monitorService;
@@ -89,13 +94,56 @@ namespace Aquila.ViewModels.Pages
             {
                 CalculateEffectiveCpuClock();
 
-                // Only notify computed/derived properties — sensor .Value bindings update automatically
-                // via DataSensor's own [ObservableProperty] on Value.
+                // Always notify derived string properties (hardware names)
                 OnPropertyChanged(nameof(CpuName));
                 OnPropertyChanged(nameof(GpuName));
                 OnPropertyChanged(nameof(MemoryName));
                 OnPropertyChanged(nameof(NetworkName));
+
+                // Notify sensor references until all are resolved.
+                // After that, DataSensor.Value notifies its own bindings automatically.
+                if (!_sensorsResolved)
+                    NotifySensorReferences();
             };
+        }
+
+        private void NotifySensorReferences()
+        {
+            // CPU
+            OnPropertyChanged(nameof(CpuTemperatureSensor));
+            OnPropertyChanged(nameof(CpuUsageSensor));
+            OnPropertyChanged(nameof(CpuEnergySensor));
+            OnPropertyChanged(nameof(CpuFanSpeed1Sensor));
+            OnPropertyChanged(nameof(CpuFanSpeed2Sensor));
+
+            // GPU
+            OnPropertyChanged(nameof(GpuUsageSensor));
+            OnPropertyChanged(nameof(GpuTemperatureSensor));
+            OnPropertyChanged(nameof(GpuSpeedSensor));
+            OnPropertyChanged(nameof(GpuEnergySensor));
+            OnPropertyChanged(nameof(GpuFanSpeed1Sensor));
+            OnPropertyChanged(nameof(GpuFanSpeed2Sensor));
+
+            // RAM
+            OnPropertyChanged(nameof(MemoryUsageSensor));
+            OnPropertyChanged(nameof(MemoryAvailableSensor));
+            OnPropertyChanged(nameof(MemoryUsedSensor));
+            OnPropertyChanged(nameof(VirtualMemoryUsageSensor));
+            OnPropertyChanged(nameof(VirtualMemoryAvailableSensor));
+            OnPropertyChanged(nameof(VirtualMemoryUsedSensor));
+
+            // Network
+            OnPropertyChanged(nameof(NetworkUploadSpeedSensor));
+            OnPropertyChanged(nameof(NetworkDownloadSpeedSensor));
+            OnPropertyChanged(nameof(NetworkDataUploadedSensor));
+            OnPropertyChanged(nameof(NetworkDataDownloadedSensor));
+
+            // Stop notifying once all expected sensors are present in the index
+            _sensorsResolved =
+                CpuTemperatureSensor != null &&
+                CpuUsageSensor != null &&
+                GpuTemperatureSensor != null &&
+                MemoryUsageSensor != null;
         }
     }
 }
