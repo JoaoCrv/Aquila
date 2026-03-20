@@ -16,7 +16,8 @@
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,0,20">
-        <ItemsControl ItemsSource="{Binding ViewModel.GroupedHardware}" Margin="20,8,20,0">
+        <ItemsControl ItemsSource="{Binding ViewModel.GroupedHardware}" Margin="20,8,20,0"
+                      helpers:ScrollViewerHelper.BubbleScrollEvents="True">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <ui:CardExpander
