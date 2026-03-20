@@ -80,126 +80,118 @@
                         </StackPanel>
                     </ui:CardExpander.Header>
 
-                    <!-- Content: one block per sensor type -->
-                    <ItemsControl ItemsSource="{Binding SensorGroups}" Margin="0,8,0,4"
-                                  HorizontalAlignment="Stretch"
-                                  HorizontalContentAlignment="Stretch">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="0,0,0,12" HorizontalAlignment="Stretch">
+                    <!-- Content: column headers once + sensor groups -->
+                    <StackPanel Margin="0,8,0,4">
 
-                                    <!-- Category label + column headers in one Grid -->
-                                    <Grid Margin="10,0,10,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="110"/>
-                                            <ColumnDefinition Width="80"/>
-                                            <ColumnDefinition Width="80"/>
-                                            <ColumnDefinition Width="120"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
+                        <!-- Column headers — shown once per hardware block -->
+                        <Border
+                            Margin="10,0,10,0"
+                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="0,0,0,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="120"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="SENSOR" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="VALUE"  FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="MIN"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="MAX"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
-                                        <!-- Row 0: category label -->
+                        <ItemsControl ItemsSource="{Binding SensorGroups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,8">
+
+                                        <!-- Category label as section divider -->
                                         <TextBlock
-                                            Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
                                             Text="{Binding CategoryName}"
                                             FontSize="11"
                                             FontWeight="SemiBold"
-                                            Opacity="0.55"
-                                            Margin="0,0,0,4"
-                                            TextWrapping="NoWrap"
-                                            TextTrimming="CharacterEllipsis"/>
+                                            Opacity="0.45"
+                                            Margin="10,8,0,2"
+                                            HorizontalAlignment="Left"
+                                            TextWrapping="NoWrap"/>
 
-                                        <!-- Row 1: column headers -->
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Sensor" FontSize="11" Opacity="0.5" FontWeight="Medium"/>
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Value"  FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
-                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Min"    FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
-                                        <TextBlock Grid.Row="1" Grid.Column="3" Text="Max"    FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
-                                    </Grid>
-
-                                    <!-- Sensor rows as ListBox -->
-                                    <ListBox
-                                        ItemsSource="{Binding Sensors}"
-                                        ItemContainerStyle="{StaticResource SensorListBoxItemStyle}"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                        SelectionMode="Single">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid MinHeight="32">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="110"/>
-                                                        <ColumnDefinition Width="80"/>
-                                                        <ColumnDefinition Width="80"/>
-                                                        <!-- reserved for "Add Widget" button -->
-                                                        <ColumnDefinition Width="120"/>
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <TextBlock
-                                                        Grid.Column="0"
-                                                        Text="{Binding Name}"
-                                                        FontSize="13"
-                                                        VerticalAlignment="Center"/>
-
-                                                    <TextBlock
-                                                        Grid.Column="1"
-                                                        FontSize="13"
-                                                        FontWeight="SemiBold"
-                                                        HorizontalAlignment="Right"
-                                                        VerticalAlignment="Center">
-                                                        <TextBlock.Text>
-                                                            <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                <Binding Path="Value"/>
-                                                                <Binding Path="Unit"/>
-                                                            </MultiBinding>
-                                                        </TextBlock.Text>
-                                                    </TextBlock>
-
-                                                    <TextBlock
-                                                        Grid.Column="2"
-                                                        FontSize="12"
-                                                        Opacity="0.55"
-                                                        HorizontalAlignment="Right"
-                                                        VerticalAlignment="Center">
-                                                        <TextBlock.Text>
-                                                            <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                <Binding Path="Min"/>
-                                                                <Binding Path="Unit"/>
-                                                            </MultiBinding>
-                                                        </TextBlock.Text>
-                                                    </TextBlock>
-
-                                                    <TextBlock
-                                                        Grid.Column="3"
-                                                        FontSize="12"
-                                                        Opacity="0.55"
-                                                        HorizontalAlignment="Right"
-                                                        VerticalAlignment="Center">
-                                                        <TextBlock.Text>
-                                                            <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                <Binding Path="Max"/>
-                                                                <Binding Path="Unit"/>
-                                                            </MultiBinding>
-                                                        </TextBlock.Text>
-                                                    </TextBlock>
-
-                                                    <!-- col 4: future "Add Widget" button placeholder -->
-
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                        <!-- Sensor rows -->
+                                        <ListBox
+                                            ItemsSource="{Binding Sensors}"
+                                            ItemContainerStyle="{StaticResource SensorListBoxItemStyle}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                            SelectionMode="Single">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid MinHeight="32">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="110"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                            <ColumnDefinition Width="80"/>
+                                                            <ColumnDefinition Width="120"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock
+                                                            Grid.Column="0"
+                                                            Text="{Binding Name}"
+                                                            FontSize="13"
+                                                            VerticalAlignment="Center"/>
+                                                        <TextBlock
+                                                            Grid.Column="1"
+                                                            FontSize="13"
+                                                            FontWeight="SemiBold"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center">
+                                                            <TextBlock.Text>
+                                                                <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                    <Binding Path="Value"/>
+                                                                    <Binding Path="Unit"/>
+                                                                </MultiBinding>
+                                                            </TextBlock.Text>
+                                                        </TextBlock>
+                                                        <TextBlock
+                                                            Grid.Column="2"
+                                                            FontSize="12"
+                                                            Opacity="0.55"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center">
+                                                            <TextBlock.Text>
+                                                                <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                    <Binding Path="Min"/>
+                                                                    <Binding Path="Unit"/>
+                                                                </MultiBinding>
+                                                            </TextBlock.Text>
+                                                        </TextBlock>
+                                                        <TextBlock
+                                                            Grid.Column="3"
+                                                            FontSize="12"
+                                                            Opacity="0.55"
+                                                            HorizontalAlignment="Right"
+                                                            VerticalAlignment="Center">
+                                                            <TextBlock.Text>
+                                                                <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                    <Binding Path="Max"/>
+                                                                    <Binding Path="Unit"/>
+                                                                </MultiBinding>
+                                                            </TextBlock.Text>
+                                                        </TextBlock>
+                                                        <!-- col 4: future "Add Widget" button -->
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </ui:CardExpander>
             </DataTemplate>
         </ItemsControl.ItemTemplate>
