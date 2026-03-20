@@ -1,6 +1,6 @@
 ﻿using Aquila.Models;
 using Aquila.Services;
-using CommunityToolkit.Mvvm.ComponentModel;
+using LibreHardwareMonitor.Hardware;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +11,7 @@ namespace Aquila.ViewModels.Pages
     public class ExplorerGroupedHardware
     {
         public string HardwareName { get; set; } = string.Empty;
+        public HardwareType HardwareType { get; set; }
         public List<ExplorerGroupedSensor> SensorGroups { get; set; } = [];
     }
 
@@ -43,6 +44,7 @@ namespace Aquila.ViewModels.Pages
                         .Select(hw => new ExplorerGroupedHardware
                         {
                             HardwareName = hw.Name,
+                            HardwareType = hw.HardwareType,
                             SensorGroups = hw.Sensors
                                 .GroupBy(sensor => sensor.SensorType)
                                 .Select(group => new ExplorerGroupedSensor
