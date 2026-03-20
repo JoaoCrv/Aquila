@@ -81,10 +81,12 @@
                     </ui:CardExpander.Header>
 
                     <!-- Content: one block per sensor type -->
-                    <ItemsControl ItemsSource="{Binding SensorGroups}" Margin="0,8,0,4">
+                    <ItemsControl ItemsSource="{Binding SensorGroups}" Margin="0,8,0,4"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="0,0,0,12">
+                                <Grid Margin="0,0,0,12" HorizontalAlignment="Stretch">
 
                                     <!-- Category label + column headers in one Grid -->
                                     <Grid Margin="10,0,10,2">
@@ -194,7 +196,7 @@
                                         </ListBox.ItemTemplate>
                                     </ListBox>
 
-                                </StackPanel>
+                                </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
