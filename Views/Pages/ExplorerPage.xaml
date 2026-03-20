@@ -14,6 +14,37 @@
 
     <Page.Resources>
         <helpers:HardwareTypeToIconConverter x:Key="HardwareTypeToIconConverter"/>
+
+        <!-- ListBoxItem style: subtle hover, no aggressive selection color, rounded -->
+        <Style x:Key="SensorListBoxItemStyle" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border
+                            x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}"
+                            MinHeight="{TemplateBinding MinHeight}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
 
     <ItemsControl
@@ -29,37 +60,31 @@
                     CornerRadius="8"
                     Icon="{Binding HardwareType, Converter={StaticResource HardwareTypeToIconConverter}}">
 
-                    <!-- Header: Hardware name + sensor count -->
+                    <!-- Header: hardware name + sensor count -->
                     <ui:CardExpander.Header>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock
-                                    Text="{Binding HardwareName}"
-                                    FontSize="14"
-                                    FontWeight="SemiBold"/>
-                                <TextBlock
-                                    FontSize="12"
-                                    Opacity="0.6"
-                                    Margin="0,2,0,0">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0} sensor groups">
-                                            <Binding Path="SensorGroups.Count"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                        </Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock
+                                Text="{Binding HardwareName}"
+                                FontSize="14"
+                                FontWeight="SemiBold"/>
+                            <TextBlock
+                                FontSize="12"
+                                Opacity="0.6"
+                                Margin="0,2,0,0">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0} sensor groups">
+                                        <Binding Path="SensorGroups.Count"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
                     </ui:CardExpander.Header>
 
-                    <!-- Content: sensor groups -->
+                    <!-- Content: one block per sensor type -->
                     <ItemsControl ItemsSource="{Binding SensorGroups}" Margin="0,8,0,4">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="0,0,0,16">
+                                <StackPanel Margin="0,0,0,12">
 
                                     <!-- Category label -->
                                     <TextBlock
@@ -67,40 +92,51 @@
                                         FontSize="11"
                                         FontWeight="SemiBold"
                                         Opacity="0.55"
-                                        Margin="2,0,0,6"/>
+                                        Margin="10,0,0,4"/>
 
                                     <!-- Column headers -->
-                                    <Grid Margin="2,0,2,4">
+                                    <Grid Margin="10,0,10,2">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="80"/>
                                             <ColumnDefinition Width="80"/>
+                                            <!-- reserved for future "Add Widget" button -->
+                                            <ColumnDefinition Width="120"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Sensor" FontSize="11" Opacity="0.5" FontWeight="Medium"/>
-                                        <TextBlock Grid.Column="1" Text="Value" FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
-                                        <TextBlock Grid.Column="2" Text="Min" FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
-                                        <TextBlock Grid.Column="3" Text="Max" FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
+                                        <TextBlock Grid.Column="0" Text="Sensor"     FontSize="11" Opacity="0.5" FontWeight="Medium"/>
+                                        <TextBlock Grid.Column="1" Text="Value"      FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
+                                        <TextBlock Grid.Column="2" Text="Min"        FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
+                                        <TextBlock Grid.Column="3" Text="Max"        FontSize="11" Opacity="0.5" FontWeight="Medium" HorizontalAlignment="Right"/>
                                     </Grid>
 
-                                    <!-- Sensor rows -->
-                                    <ItemsControl ItemsSource="{Binding Sensors}">
-                                        <ItemsControl.ItemTemplate>
+                                    <!-- Sensor rows as ListBox -->
+                                    <ListBox
+                                        ItemsSource="{Binding Sensors}"
+                                        ItemContainerStyle="{StaticResource SensorListBoxItemStyle}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                        SelectionMode="Single">
+                                        <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Grid
-                                                    Margin="2,0,2,0"
-                                                    MinHeight="32">
+                                                <Grid MinHeight="32">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="110"/>
                                                         <ColumnDefinition Width="80"/>
                                                         <ColumnDefinition Width="80"/>
+                                                        <!-- reserved for "Add Widget" button -->
+                                                        <ColumnDefinition Width="120"/>
                                                     </Grid.ColumnDefinitions>
+
                                                     <TextBlock
                                                         Grid.Column="0"
                                                         Text="{Binding Name}"
                                                         FontSize="13"
                                                         VerticalAlignment="Center"/>
+
                                                     <TextBlock
                                                         Grid.Column="1"
                                                         FontSize="13"
@@ -114,6 +150,7 @@
                                                             </MultiBinding>
                                                         </TextBlock.Text>
                                                     </TextBlock>
+
                                                     <TextBlock
                                                         Grid.Column="2"
                                                         FontSize="12"
@@ -127,6 +164,7 @@
                                                             </MultiBinding>
                                                         </TextBlock.Text>
                                                     </TextBlock>
+
                                                     <TextBlock
                                                         Grid.Column="3"
                                                         FontSize="12"
@@ -140,10 +178,14 @@
                                                             </MultiBinding>
                                                         </TextBlock.Text>
                                                     </TextBlock>
+
+                                                    <!-- col 4: future "Add Widget" button placeholder -->
+
                                                 </Grid>
                                             </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

@@ -142,6 +142,32 @@
 
 ---
 
+## Phase 11 — Desktop Widgets (Rainmeter-style)
+
+> Goal: Allow users to pin any sensor from the Explorer as a floating widget on the desktop.
+> The Explorer page is the natural starting point — every sensor is already listed and one click should be enough to create a widget.
+
+### Concept
+- Each `DataSensor` can be "pinned" as a transparent, always-on-top `Window` that floats over the desktop (like Rainmeter skins).
+- Widgets are fully configurable: position, size, style, update rate.
+- The Explorer page acts as the **widget catalogue** — the user browses sensors and clicks "Add Widget" on any row.
+
+### Tasks
+- [ ] **11.1** Design `WidgetDefinition` model — stores sensor identifier, widget type (text, bar, graph), position, size, theme.
+- [ ] **11.2** Persist widget definitions to a JSON file in `AppData` (reuse Settings infrastructure from Phase 5).
+- [ ] **11.3** Create `WidgetWindow` — a transparent, borderless, always-on-top `Window` that binds to a `DataSensor` via `HardwareMonitorService`.
+- [ ] **11.4** Add "Add Widget" button to each sensor row in `ExplorerPage` — opens a `WidgetConfigDialog` to choose widget style before pinning.
+- [ ] **11.5** ?? [#5](https://github.com/JoaoCrv/Aquila/issues/5) — "Copy Identifier" also lives here, useful for manual widget config.
+- [ ] **11.6** `WidgetManagerService` — singleton that tracks all active `WidgetWindow` instances, loads/saves definitions, and connects each widget to the live sensor data stream.
+- [ ] **11.7** Widget styles (start simple, expand over time):
+  - `TextWidget` — large value + label (e.g. "72 °C / CPU Package")
+  - `BarWidget` — horizontal/vertical fill bar (e.g. CPU load %)
+  - `GraphWidget` — sparkline of last N seconds (links to Phase 4.1)
+- [ ] **11.8** Widget tray menu — right-click on tray icon (Phase 7) shows active widgets with toggle visibility / remove options.
+- [ ] **11.9** Lock/unlock widget positions — drag to reposition when unlocked, fixed when locked.
+
+---
+
 ## Versioning Plan
 
 | Version | Milestone                              |
@@ -153,4 +179,5 @@
 | 1.4.0   | Phase 5 (Settings persistence)         |
 | 1.5.0   | Phase 6 (Logging)                      |
 | 1.6.0   | Phase 9 (Release pipeline)             |
-| 2.0.0   | Phase 7+ (Tray, i18n, advanced)        |
+| 2.0.0   | Phase 7 + 8 (Tray, i18n)              |
+| 3.0.0   | Phase 11 (Desktop Widgets)             |
