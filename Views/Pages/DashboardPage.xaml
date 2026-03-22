@@ -6,265 +6,568 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+    xmlns:vm="clr-namespace:Aquila.ViewModels.Pages"
+    xmlns:helpers="clr-namespace:Aquila.Helpers"
     Style="{StaticResource BasePageStyle}"
     Title="DashboardPage"
     mc:Ignorable="d">
 
     <Page.Resources>
-        <Style x:Key="MetricLabel" TargetType="TextBlock">
+
+        <helpers:ThroughputConverter x:Key="ThroughputConverter"/>
+
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Opacity" Value="0.38"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style x:Key="ChipName" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="RowLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Opacity" Value="0.55"/>
+            <Setter Property="Opacity" Value="0.50"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style x:Key="MetricValue" TargetType="TextBlock">
+        <Style x:Key="RowValue" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="HorizontalAlignment" Value="Right"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style x:Key="MetricRow" TargetType="Grid">
-            <Setter Property="Margin" Value="0,4,0,0"/>
+        <Style x:Key="StatBox" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,8"/>
         </Style>
         <Style x:Key="ThinBar" TargetType="ProgressBar">
             <Setter Property="Height" Value="3"/>
-            <Setter Property="Margin" Value="0,3,0,0"/>
             <Setter Property="Minimum" Value="0"/>
             <Setter Property="Maximum" Value="100"/>
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
+        <Style x:Key="Divider" TargetType="Border">
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+            <Setter Property="Opacity" Value="0.14"/>
+            <Setter Property="Margin" Value="0,10"/>
+        </Style>
+
+        <!-- ── Core bar DataTemplate ── -->
+        <DataTemplate x:Key="CoreBarTemplate" DataType="{x:Type vm:CoreBarItem}">
+            <StackPanel Margin="0,0,5,0">
+                <TextBlock Text="{Binding Label}" FontSize="9" Opacity="0.38"
+                           HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="3" Height="64" Width="22">
+                    <Border VerticalAlignment="Bottom" CornerRadius="3"
+                            Background="#60CDFF" Opacity="0.85"
+                            Height="{Binding BarHeight}"/>
+                </Border>
+                <TextBlock Text="{Binding ValueText}" FontSize="8" Opacity="0.45"
+                           HorizontalAlignment="Center" Margin="0,3,0,0"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ── GPU card DataTemplate (GPU1 and GPU2 share this) ── -->
+        <DataTemplate x:Key="GpuCardTemplate" DataType="{x:Type vm:GpuCardData}">
+            <ui:Card Margin="0,0,0,8" Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="GPU" Style="{StaticResource SectionLabel}"/>
+                    <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,0,0,12"/>
+
+                    <!-- 4 stat boxes -->
+                    <UniformGrid Columns="4" Margin="0,0,0,14">
+                        <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
+                            <StackPanel>
+                                <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold">
+                                    <Run Text="{Binding LoadSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <Run Text="%" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                </TextBlock>
+                                <TextBlock Text="Usage" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatBox}" Margin="3,0">
+                            <StackPanel>
+                                <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="#FF6B35">
+                                    <Run Text="{Binding TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <Run Text="°C" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                </TextBlock>
+                                <TextBlock Text="Temp" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatBox}" Margin="3,0">
+                            <StackPanel>
+                                <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="#9D6EF5">
+                                    <Run Text="{Binding ClockSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <Run Text="MHz" FontSize="9" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                </TextBlock>
+                                <TextBlock Text="Clock" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
+                            <StackPanel>
+                                <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="#F5A623">
+                                    <Run Text="{Binding PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <Run Text="W" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                </TextBlock>
+                                <TextBlock Text="Power" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <!-- Sparkline using per-card history -->
+                    <TextBlock Text="USAGE — 60s" Style="{StaticResource SectionLabel}" Margin="0,2,0,2"/>
+                    <lvc:CartesianChart
+                        Height="64"
+                        Series="{Binding SparkSeries}"
+                        XAxes="{Binding SparkXAxes}"
+                        YAxes="{Binding SparkYAxes}"
+                        TooltipPosition="Hidden"
+                        LegendPosition="Hidden"
+                        ZoomMode="None"
+                        AnimationsSpeed="00:00:00.200"
+                        Background="Transparent"/>
+
+                    <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            Opacity="0.14" Margin="0,10"/>
+
+                    <!-- Fans -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Fan 1" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
+                            <TextBlock FontSize="13" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="Fan1Sensor.Value"/>
+                                        <Binding Path="Fan1Sensor.Unit"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Fan 2" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
+                            <TextBlock FontSize="13" FontWeight="SemiBold">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                        <Binding Path="Fan2Sensor.Value"/>
+                                        <Binding Path="Fan2Sensor.Unit"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+        </DataTemplate>
+
     </Page.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,8,20,20">
-        <StackPanel>
+    <!-- ════════════════════════════════════════════════════════════════
+         3-COLUMN GRID
+         Col 0  (2*) — CPU + GPU(s)
+         Col 1  (1.3*) — RAM + Network
+         Col 2  (1.3*) — Power + Temperatures + Fans
+         ════════════════════════════════════════════════════════════════ -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  Padding="18,6,18,18">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1.3*"/>
+                <ColumnDefinition Width="1.3*"/>
+            </Grid.ColumnDefinitions>
 
-            <!-- ══════════ CPU ══════════ -->
-            <ui:CardExpander Margin="0,0,0,6" IsExpanded="True" Icon="{ui:SymbolIcon Molecule24}">
-                <ui:CardExpander.Header>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding ViewModel.CpuName, FallbackValue='CPU'}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="Processor" FontSize="12" Opacity="0.55" Margin="0,1,0,0"/>
-                    </StackPanel>
-                </ui:CardExpander.Header>
-                <Grid Margin="0,4,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="180"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+            <!-- ══════════════════════════════════════════════════════════
+                 COL 0 — CPU card  +  GPU card(s) below
+                 ══════════════════════════════════════════════════════════ -->
+            <StackPanel Grid.Column="0" Margin="0,0,8,0">
 
-                    <lvc:PieChart Grid.Column="0" Width="160" Height="160"
-                                  InitialRotation="-225" MaxAngle="270" MinValue="0" MaxValue="100">
-                        <lvc:PieChart.Series>
-                            <lvc:SeriesCollection>
-                                <lvc:XamlGaugeSeries
-                                    GaugeValue="{Binding ViewModel.CpuGaugeValue}"
-                                    Fill="#60CDFF"
-                                    ShowDataLabels="True"
-                                    DataLabelsSize="22"
-                                    DataLabelsPosition="ChartCenter"
-                                    InnerRadius="52"/>
-                                <lvc:XamlGaugeBackgroundSeries
-                                    InnerRadius="52"
-                                    Fill="#1A60CDFF"/>
-                            </lvc:SeriesCollection>
-                        </lvc:PieChart.Series>
-                    </lvc:PieChart>
+                <!-- CPU card -->
+                <ui:Card Margin="0,0,0,8" Padding="16,14">
+                    <StackPanel>
+                        <TextBlock Text="CPU" Style="{StaticResource SectionLabel}"/>
+                        <TextBlock Text="{Binding ViewModel.CpuName, FallbackValue='Processor'}"
+                                   Style="{StaticResource ChipName}" Margin="0,0,0,12"/>
 
-                    <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Temperature" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.CpuTemperatureSensor.Value"/><Binding Path="ViewModel.CpuTemperatureSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}" Value="{Binding ViewModel.CpuTemperatureSensor.Value, FallbackValue=0}" Maximum="110" Foreground="#60CDFF"/>
+                        <!-- 4 stat boxes -->
+                        <UniformGrid Columns="4" Margin="0,0,0,14">
+                            <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
+                                <StackPanel>
+                                    <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold">
+                                        <Run Text="{Binding ViewModel.CpuGaugeValue, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="%" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="Usage" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatBox}" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="#F5A623">
+                                        <Run Text="{Binding ViewModel.CpuTemperatureSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="°C" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="Temp" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatBox}" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="#60CDFF">
+                                        <Run Text="{Binding ViewModel.EffectiveCpuClock, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="MHz" FontSize="9" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="Eff. Clock" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
+                                <StackPanel>
+                                    <TextBlock HorizontalAlignment="Center" FontSize="22" FontWeight="Bold" Foreground="#6BCB77">
+                                        <Run Text="{Binding ViewModel.CpuEnergySensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="W" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="Power" FontSize="10" Opacity="0.40" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
 
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Effective Clock" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} MHz" FallbackValue="--"><Binding Path="ViewModel.EffectiveCpuClock"/></MultiBinding></TextBlock.Text></TextBlock>
-                        </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}" Value="{Binding ViewModel.EffectiveCpuClock, FallbackValue=0}" Maximum="6000" Foreground="#60CDFF"/>
+                        <!-- Per-core bar chart — WrapPanel fills available width -->
+                        <TextBlock Text="CORE LOAD" Style="{StaticResource SectionLabel}"/>
+                        <ItemsControl ItemsSource="{Binding ViewModel.CpuCoreItems}"
+                                      ItemTemplate="{StaticResource CoreBarTemplate}"
+                                      Margin="0,0,0,12">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
 
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Power" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.CpuEnergySensor.Value"/><Binding Path="ViewModel.CpuEnergySensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}" Value="{Binding ViewModel.CpuEnergySensor.Value, FallbackValue=0}" Maximum="200" Foreground="#60CDFF"/>
+                        <!-- CPU sparkline -->
+                        <TextBlock Text="USAGE — 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"/>
+                        <lvc:CartesianChart
+                            Height="64"
+                            Series="{Binding ViewModel.CpuHistorySeries}"
+                            XAxes="{Binding ViewModel.SparklineXAxes}"
+                            YAxes="{Binding ViewModel.CpuHistoryYAxes}"
+                            TooltipPosition="Hidden"
+                            LegendPosition="Hidden"
+                            ZoomMode="None"
+                            AnimationsSpeed="00:00:00.200"
+                            Background="Transparent"/>
 
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock Text="Fan 1" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.CpuFanSpeed1Sensor.Value"/><Binding Path="ViewModel.CpuFanSpeed1Sensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
+                        <Border Style="{StaticResource Divider}"/>
+
+                        <!-- CPU fans -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Fan 1" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
+                                <TextBlock FontSize="13" FontWeight="SemiBold">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                            <Binding Path="ViewModel.CpuFanSpeed1Sensor.Value"/>
+                                            <Binding Path="ViewModel.CpuFanSpeed1Sensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
-                                <TextBlock Text="Fan 2" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.CpuFanSpeed2Sensor.Value"/><Binding Path="ViewModel.CpuFanSpeed2Sensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
+                                <TextBlock Text="Fan 2" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
+                                <TextBlock FontSize="13" FontWeight="SemiBold">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                            <Binding Path="ViewModel.CpuFanSpeed2Sensor.Value"/>
+                                            <Binding Path="ViewModel.CpuFanSpeed2Sensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </StackPanel>
                         </Grid>
                     </StackPanel>
-                </Grid>
-            </ui:CardExpander>
+                </ui:Card>
 
-            <!-- ══════════ GPU ══════════ -->
-            <ui:CardExpander Margin="0,0,0,6" IsExpanded="True" Icon="{ui:SymbolIcon DrawImage24}">
-                <ui:CardExpander.Header>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding ViewModel.GpuName, FallbackValue='GPU'}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="Graphics" FontSize="12" Opacity="0.55" Margin="0,1,0,0"/>
-                    </StackPanel>
-                </ui:CardExpander.Header>
-                <Grid Margin="0,4,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="180"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                <!-- GPU cards — all rendered via the shared GpuCardTemplate -->
+                <ItemsControl ItemsSource="{Binding ViewModel.GpuCards}"
+                              ItemTemplate="{StaticResource GpuCardTemplate}"/>
 
-                    <lvc:PieChart Grid.Column="0" Width="160" Height="160"
-                                  InitialRotation="-225" MaxAngle="270" MinValue="0" MaxValue="100">
-                        <lvc:PieChart.Series>
-                            <lvc:SeriesCollection>
-                                <lvc:XamlGaugeSeries
-                                    GaugeValue="{Binding ViewModel.GpuGaugeValue}"
-                                    Fill="#9D6EF5"
-                                    ShowDataLabels="True"
-                                    DataLabelsSize="22"
-                                    DataLabelsPosition="ChartCenter"
-                                    InnerRadius="52"/>
-                                <lvc:XamlGaugeBackgroundSeries
-                                    InnerRadius="52"
-                                    Fill="#1A9D6EF5"/>
-                            </lvc:SeriesCollection>
-                        </lvc:PieChart.Series>
-                    </lvc:PieChart>
+            </StackPanel>
 
-                    <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Temperature" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.GpuTemperatureSensor.Value"/><Binding Path="ViewModel.GpuTemperatureSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}" Value="{Binding ViewModel.GpuTemperatureSensor.Value, FallbackValue=0}" Maximum="110" Foreground="#9D6EF5"/>
+            <!-- ══════════════════════════════════════════════════════════
+                 COL 1 — RAM + Network
+                 ══════════════════════════════════════════════════════════ -->
+            <StackPanel Grid.Column="1" Margin="4,0,8,0">
 
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Core Clock" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.GpuSpeedSensor.Value"/><Binding Path="ViewModel.GpuSpeedSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}" Value="{Binding ViewModel.GpuSpeedSensor.Value, FallbackValue=0}" Maximum="3000" Foreground="#9D6EF5"/>
+                <!-- RAM card -->
+                <ui:Card Margin="0,0,0,8" Padding="16,14">
+                    <StackPanel>
+                        <TextBlock Text="MEMORY" Style="{StaticResource SectionLabel}"/>
 
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Power" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.GpuEnergySensor.Value"/><Binding Path="ViewModel.GpuEnergySensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}" Value="{Binding ViewModel.GpuEnergySensor.Value, FallbackValue=0}" Maximum="350" Foreground="#9D6EF5"/>
+                        <!-- Big value + gauge inline -->
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock Text="Fan 1" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.GpuFanSpeed1Sensor.Value"/><Binding Path="ViewModel.GpuFanSpeed1Sensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                    <TextBlock FontSize="36" FontWeight="Bold" Foreground="#6BCB77"
+                                               Text="{Binding ViewModel.MemoryUsedSensor.Value, StringFormat='{}{0:F2}', FallbackValue='--'}"/>
+                                    <TextBlock Text="GB" FontSize="14" VerticalAlignment="Bottom"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                               Margin="4,0,0,7"/>
+                                </StackPanel>
+                                <TextBlock FontSize="11" Opacity="0.45">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F2} GB free" FallbackValue="-- free">
+                                            <Binding Path="ViewModel.MemoryAvailableSensor.Value"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                                <TextBlock Text="RAM used" FontSize="10" Opacity="0.35" Margin="0,1,0,0"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="Fan 2" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--"><Binding Path="ViewModel.GpuFanSpeed2Sensor.Value"/><Binding Path="ViewModel.GpuFanSpeed2Sensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                </Grid>
-            </ui:CardExpander>
 
-            <!-- ══════════ RAM ══════════ -->
-            <ui:CardExpander Margin="0,0,0,6" IsExpanded="True" Icon="{ui:SymbolIcon Ram20}">
-                <ui:CardExpander.Header>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding ViewModel.MemoryName, FallbackValue='Memory'}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="RAM" FontSize="12" Opacity="0.55" Margin="0,1,0,0"/>
-                    </StackPanel>
-                </ui:CardExpander.Header>
-                <Grid Margin="0,4,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="180"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <lvc:PieChart Grid.Column="0" Width="160" Height="160"
-                                  InitialRotation="-225" MaxAngle="270" MinValue="0" MaxValue="100">
-                        <lvc:PieChart.Series>
-                            <lvc:SeriesCollection>
-                                <lvc:XamlGaugeSeries
-                                    GaugeValue="{Binding ViewModel.RamGaugeValue}"
-                                    Fill="#6BCB77"
-                                    ShowDataLabels="True"
-                                    DataLabelsSize="22"
-                                    DataLabelsPosition="ChartCenter"
-                                    InnerRadius="52"/>
-                                <lvc:XamlGaugeBackgroundSeries
-                                    InnerRadius="52"
-                                    Fill="#1A6BCB77"/>
-                            </lvc:SeriesCollection>
-                        </lvc:PieChart.Series>
-                    </lvc:PieChart>
-
-                    <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Used" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.MemoryUsedSensor.Value"/><Binding Path="ViewModel.MemoryUsedSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}" Value="{Binding ViewModel.RamGaugeValue, FallbackValue=0}" Foreground="#6BCB77"/>
-
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Available" Style="{StaticResource MetricLabel}"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource MetricValue}"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.MemoryAvailableSensor.Value"/><Binding Path="ViewModel.MemoryAvailableSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
+                            <!-- Gauge — DataLabelsPaint bound from VM for white text -->
+                            <lvc:PieChart Grid.Column="1" Width="100" Height="100"
+                                          InitialRotation="-90" MinValue="0" MaxValue="100"
+                                          TooltipPosition="Hidden" AnimationsSpeed="00:00:00.300"
+                                          Background="Transparent">
+                                <lvc:PieChart.Series>
+                                    <lvc:SeriesCollection>
+                                        <lvc:XamlGaugeSeries
+                                            GaugeValue="{Binding ViewModel.RamGaugeValue}"
+                                            Fill="#6BCB77"
+                                            ShowDataLabels="True"
+                                            DataLabelsSize="16"
+                                            DataLabelsPaint="{Binding ViewModel.RamGaugeLabelPaint}"
+                                            DataLabelsPosition="ChartCenter"
+                                            MaxRadialColumnWidth="11"
+                                            InnerRadius="34"/>
+                                        <lvc:XamlGaugeBackgroundSeries
+                                            MaxRadialColumnWidth="11"
+                                            InnerRadius="34"
+                                            Fill="#1A6BCB77"/>
+                                    </lvc:SeriesCollection>
+                                </lvc:PieChart.Series>
+                            </lvc:PieChart>
                         </Grid>
 
-                        <Grid Style="{StaticResource MetricRow}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock Text="Virtual Used" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.VirtualMemoryUsedSensor.Value"/><Binding Path="ViewModel.VirtualMemoryUsedSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
+                        <Border Style="{StaticResource Divider}"/>
+
+                        <!-- Virtual memory -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Virtual used" FontSize="10" Opacity="0.40" Margin="0,0,0,2"/>
+                                <TextBlock FontSize="12" FontWeight="SemiBold">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
+                                            <Binding Path="ViewModel.VirtualMemoryUsedSensor.Value"/>
+                                            <Binding Path="ViewModel.VirtualMemoryUsedSensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
-                                <TextBlock Text="Virtual Free" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.VirtualMemoryAvailableSensor.Value"/><Binding Path="ViewModel.VirtualMemoryAvailableSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
+                                <TextBlock Text="Virtual free" FontSize="10" Opacity="0.40" Margin="0,0,0,2"/>
+                                <TextBlock FontSize="12" FontWeight="SemiBold">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
+                                            <Binding Path="ViewModel.VirtualMemoryAvailableSensor.Value"/>
+                                            <Binding Path="ViewModel.VirtualMemoryAvailableSensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </StackPanel>
                         </Grid>
                     </StackPanel>
-                </Grid>
-            </ui:CardExpander>
+                </ui:Card>
 
-            <!-- ══════════ Network ══════════ -->
-            <ui:CardExpander Margin="0,0,0,6" IsExpanded="True" Icon="{ui:SymbolIcon NetworkCheck24}">
-                <ui:CardExpander.Header>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding ViewModel.NetworkName, FallbackValue='Network'}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="Adapter" FontSize="12" Opacity="0.55" Margin="0,1,0,0"/>
-                    </StackPanel>
-                </ui:CardExpander.Header>
-                <Grid Margin="12,8,8,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="UPLOAD" FontSize="10" FontWeight="SemiBold" Opacity="0.5" Margin="0,0,0,4"/>
-                        <TextBlock FontSize="22" FontWeight="Bold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.NetworkUploadSpeedSensor.Value"/><Binding Path="ViewModel.NetworkUploadSpeedSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        <TextBlock Text="Total sent" Style="{StaticResource MetricLabel}" Margin="0,10,0,2"/>
-                        <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.NetworkDataUploadedSensor.Value"/><Binding Path="ViewModel.NetworkDataUploadedSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="DOWNLOAD" FontSize="10" FontWeight="SemiBold" Opacity="0.5" Margin="0,0,0,4"/>
-                        <TextBlock FontSize="22" FontWeight="Bold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.NetworkDownloadSpeedSensor.Value"/><Binding Path="ViewModel.NetworkDownloadSpeedSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                        <TextBlock Text="Total received" Style="{StaticResource MetricLabel}" Margin="0,10,0,2"/>
-                        <TextBlock FontSize="13" FontWeight="SemiBold"><TextBlock.Text><MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--"><Binding Path="ViewModel.NetworkDataDownloadedSensor.Value"/><Binding Path="ViewModel.NetworkDataDownloadedSensor.Unit"/></MultiBinding></TextBlock.Text></TextBlock>
-                    </StackPanel>
-                </Grid>
-            </ui:CardExpander>
+                <!-- Network card -->
+                <ui:Card Padding="16,14">
+                    <StackPanel>
+                        <TextBlock Text="NETWORK" Style="{StaticResource SectionLabel}"/>
+                        <TextBlock Text="{Binding ViewModel.NetworkName, FallbackValue='Adapter'}"
+                                   FontSize="12" FontWeight="Normal" Opacity="0.55"
+                                   TextTrimming="CharacterEllipsis" Margin="0,0,0,10"/>
 
-        </StackPanel>
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="↓ Download" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold" Foreground="#60CDFF"
+                                       Text="{Binding ViewModel.NetworkDownloadSpeedSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                        </Grid>
+                        <ProgressBar Style="{StaticResource ThinBar}" Foreground="#60CDFF" Margin="0,2,0,8"
+                                     Value="{Binding ViewModel.NetworkDownloadSpeedSensor.Value, FallbackValue=0}"
+                                     Maximum="125000000"/>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="↑ Upload" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold" Foreground="#6BCB77"
+                                       Text="{Binding ViewModel.NetworkUploadSpeedSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                        </Grid>
+                        <ProgressBar Style="{StaticResource ThinBar}" Foreground="#6BCB77" Margin="0,2,0,0"
+                                     Value="{Binding ViewModel.NetworkUploadSpeedSensor.Value, FallbackValue=0}"
+                                     Maximum="125000000"/>
+
+                        <Border Style="{StaticResource Divider}"/>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Received" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="1" Style="{StaticResource RowValue}">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.NetworkDataDownloadedSensor.Value"/>
+                                        <Binding Path="ViewModel.NetworkDataDownloadedSensor.Unit"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Sent" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="1" Style="{StaticResource RowValue}">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.NetworkDataUploadedSensor.Value"/>
+                                        <Binding Path="ViewModel.NetworkDataUploadedSensor.Unit"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+            </StackPanel>
+
+            <!-- ══════════════════════════════════════════════════════════
+                 COL 2 — Power + Temperatures + Fans
+                 ══════════════════════════════════════════════════════════ -->
+            <StackPanel Grid.Column="2" Margin="4,0,0,0">
+
+                <!-- Power card -->
+                <ui:Card Margin="0,0,0,8" Padding="16,14">
+                    <StackPanel>
+                        <TextBlock Text="POWER" Style="{StaticResource SectionLabel}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <TextBlock FontSize="34" FontWeight="Bold"
+                                       Text="{Binding ViewModel.TotalPower, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                            <TextBlock Text="W total" FontSize="13" VerticalAlignment="Bottom"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="5,0,0,6"/>
+                        </StackPanel>
+
+                        <Grid Margin="0,0,0,5">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="CPU" Style="{StaticResource RowLabel}"/>
+                            <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}" VerticalAlignment="Center"
+                                         Value="{Binding ViewModel.CpuEnergySensor.Value, FallbackValue=0}"
+                                         Maximum="250" Foreground="#60CDFF"/>
+                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
+                                       Text="{Binding ViewModel.CpuEnergySensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,5">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="GPU" Style="{StaticResource RowLabel}"/>
+                            <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}" VerticalAlignment="Center"
+                                         Value="{Binding ViewModel.Gpu1.PowerSensor.Value, FallbackValue=0}"
+                                         Maximum="450" Foreground="#9D6EF5"/>
+                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
+                                       Text="{Binding ViewModel.Gpu1.PowerSensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="RAM" Style="{StaticResource RowLabel}"/>
+                            <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}" VerticalAlignment="Center"
+                                         Value="{Binding ViewModel.MemoryPowerSensor.Value, FallbackValue=0}"
+                                         Maximum="30" Foreground="#6BCB77"/>
+                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
+                                       Text="{Binding ViewModel.MemoryPowerSensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Temperatures card -->
+                <ui:Card Margin="0,0,0,8" Padding="16,14">
+                    <StackPanel>
+                        <TextBlock Text="TEMPERATURES" Style="{StaticResource SectionLabel}"/>
+                        <ItemsControl ItemsSource="{Binding ViewModel.SystemTemperatures}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Label}"
+                                                       Style="{StaticResource RowLabel}"/>
+                                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                                        <Binding Path="Sensor.Value"/>
+                                                        <Binding Path="Sensor.Unit"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </Grid>
+                                        <ProgressBar Style="{StaticResource ThinBar}"
+                                                     Value="{Binding Sensor.Value, FallbackValue=0}"
+                                                     Maximum="110" Foreground="#F5A623"
+                                                     Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Fans card -->
+                <ui:Card Padding="16,14">
+                    <StackPanel>
+                        <TextBlock Text="FANS" Style="{StaticResource SectionLabel}"/>
+                        <ItemsControl ItemsSource="{Binding ViewModel.SystemFans}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,7">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                   Style="{StaticResource RowLabel}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                                    <Binding Path="Value"/>
+                                                    <Binding Path="Unit"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ui:Card>
+
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 
 </Page>
