@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using HidSharp.Reports.Units;
 using LibreHardwareMonitor.Hardware;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
