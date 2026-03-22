@@ -1,28 +1,15 @@
 using Aquila.Models;
 using LibreHardwareMonitor.Hardware;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Aquila.Helpers
 {
-    /// <summary>
-    /// Finds sensors dynamically by hardware type, sensor type and name pattern.
-    /// Replaces hardcoded sensor identifier strings — works on any machine regardless
-    /// of CPU/GPU vendor or motherboard chipset.
-    /// </summary>
     public static class SensorLocator
     {
-        // ?? Generic lookup ????????????????????????????????????????????????????
+        // ?? Generic lookup ????????????????????????????????????????????????
 
-        /// <summary>
-        /// Returns the first sensor of <paramref name="sensorType"/> from the first
-        /// hardware of <paramref name="hardwareType"/> whose name contains
-        /// <paramref name="nameFragment"/> (case-insensitive). Returns null if not found.
-        /// </summary>
-        public static DataSensor? Find(
-            ComputerData data,
-            HardwareType hardwareType,
-            SensorType sensorType,
-            string nameFragment)
+        public static DataSensor? Find(ComputerData data, HardwareType hardwareType, SensorType sensorType, string nameFragment)
         {
             var hw = data.HardwareList.FirstOrDefault(h => h.HardwareType == hardwareType);
             return hw?.Sensors.FirstOrDefault(s =>
@@ -30,37 +17,27 @@ namespace Aquila.Helpers
                 s.Name.Contains(nameFragment, StringComparison.OrdinalIgnoreCase));
         }
 
-        /// <summary>
-        /// Returns the first sensor of <paramref name="sensorType"/> from the first
-        /// hardware of <paramref name="hardwareType"/>, ordered by sensor index.
-        /// Useful when the name is not predictable but the order is stable.
-        /// </summary>
-        public static DataSensor? FindFirst(
-            ComputerData data,
-            HardwareType hardwareType,
-            SensorType sensorType)
+        public static DataSensor? FindFirst(ComputerData data, HardwareType hardwareType, SensorType sensorType)
         {
             var hw = data.HardwareList.FirstOrDefault(h => h.HardwareType == hardwareType);
-            return hw?.Sensors
-                .Where(s => s.SensorType == sensorType)
-                .OrderBy(s => s.Index)
-                .FirstOrDefault();
+            return hw?.Sensors.Where(s => s.SensorType == sensorType).OrderBy(s => s.Index).FirstOrDefault();
         }
 
-        // ?? GPU vendor detection ??????????????????????????????????????????????
+        // ?? GPU detection ?????????????????????????????????????????????????
 
-        /// <summary>
-        /// Returns the HardwareType of the first GPU found, regardless of vendor.
-        /// Returns null if no GPU is detected yet.
-        /// </summary>
         public static HardwareType? DetectGpuType(ComputerData data)
         {
             HardwareType[] gpuTypes = [HardwareType.GpuNvidia, HardwareType.GpuAmd, HardwareType.GpuIntel];
-            return gpuTypes.Cast<HardwareType?>()
-                .FirstOrDefault(t => data.HardwareList.Any(h => h.HardwareType == t));
+            return gpuTypes.Cast<HardwareType?>().FirstOrDefault(t => data.HardwareList.Any(h => h.HardwareType == t));
         }
 
-        // ?? CPU ???????????????????????????????????????????????????????????????
+        public static IEnumerable<DataHardware> AllGpus(ComputerData data)
+        {
+            HardwareType[] gpuTypes = [HardwareType.GpuNvidia, HardwareType.GpuAmd, HardwareType.GpuIntel];
+            return data.HardwareList.Where(h => gpuTypes.Contains(h.HardwareType));
+        }
+
+        // ?? CPU ???????????????????????????????????????????????????????????
 
         public static DataSensor? CpuTemperature(ComputerData data) =>
             Find(data, HardwareType.Cpu, SensorType.Temperature, "Package")
@@ -76,8 +53,16 @@ namespace Aquila.Helpers
             ?? Find(data, HardwareType.Cpu, SensorType.Power, "Total")
             ?? FindFirst(data, HardwareType.Cpu, SensorType.Power);
 
-        // CPU fans come from the motherboard (LPC chipset), not from the CPU hardware node.
-        // We look in Motherboard hardware and find fans by name pattern.
+        public static List<DataSensor> CpuCoreSensors(ComputerData data)
+        {
+            var hw = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
+            if (hw == null) return [];
+            return hw.Sensors
+                .Where(s => s.SensorType == SensorType.Load && s.Name.Contains("CPU Core #"))
+                .OrderBy(s => s.Index)
+                .ToList();
+        }
+
         public static DataSensor? CpuFan(ComputerData data, int index = 0) =>
             data.HardwareList
                 .Where(h => h.HardwareType == HardwareType.Motherboard)
@@ -86,74 +71,56 @@ namespace Aquila.Helpers
                 .OrderBy(s => s.Index)
                 .ElementAtOrDefault(index);
 
-        // ?? GPU ???????????????????????????????????????????????????????????????
-
-        public static DataSensor? GpuTemperature(ComputerData data)
-        {
-            var gpuType = DetectGpuType(data);
-            if (gpuType is null) return null;
-            return Find(data, gpuType.Value, SensorType.Temperature, "GPU Core")
-                ?? FindFirst(data, gpuType.Value, SensorType.Temperature);
-        }
+        // ?? GPU (primary, by type) ????????????????????????????????????????
 
         public static DataSensor? GpuLoad(ComputerData data)
         {
             var gpuType = DetectGpuType(data);
-            if (gpuType is null) return null;
-            return Find(data, gpuType.Value, SensorType.Load, "GPU Core")
-                ?? FindFirst(data, gpuType.Value, SensorType.Load);
+            return gpuType is null ? null :
+                Find(data, gpuType.Value, SensorType.Load, "GPU Core") ??
+                FindFirst(data, gpuType.Value, SensorType.Load);
         }
 
-        public static DataSensor? GpuClock(ComputerData data)
-        {
-            var gpuType = DetectGpuType(data);
-            if (gpuType is null) return null;
-            return Find(data, gpuType.Value, SensorType.Clock, "GPU Core")
-                ?? FindFirst(data, gpuType.Value, SensorType.Clock);
-        }
+        // ?? GPU helpers for a specific hardware node ??????????????????????
 
-        public static DataSensor? GpuPower(ComputerData data)
-        {
-            var gpuType = DetectGpuType(data);
-            if (gpuType is null) return null;
-            return Find(data, gpuType.Value, SensorType.Power, "GPU Package")
-                ?? Find(data, gpuType.Value, SensorType.Power, "GPU Total")
-                ?? FindFirst(data, gpuType.Value, SensorType.Power);
-        }
+        public static DataSensor? GpuTemperatureFor(DataHardware gpu) =>
+            gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("GPU Core", StringComparison.OrdinalIgnoreCase))
+            ?? gpu.Sensors.Where(s => s.SensorType == SensorType.Temperature).OrderBy(s => s.Index).FirstOrDefault();
 
-        public static DataSensor? GpuFan(ComputerData data, int index = 0)
-        {
-            var gpuType = DetectGpuType(data);
-            if (gpuType is null) return null;
-            return data.HardwareList
-                .Where(h => h.HardwareType == gpuType.Value)
-                .SelectMany(h => h.Sensors)
-                .Where(s => s.SensorType == SensorType.Fan)
-                .OrderBy(s => s.Index)
-                .ElementAtOrDefault(index);
-        }
+        public static DataSensor? GpuLoadFor(DataHardware gpu) =>
+            gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("GPU Core", StringComparison.OrdinalIgnoreCase))
+            ?? gpu.Sensors.Where(s => s.SensorType == SensorType.Load).OrderBy(s => s.Index).FirstOrDefault();
 
-        // ?? RAM ???????????????????????????????????????????????????????????????
+        public static DataSensor? GpuClockFor(DataHardware gpu) =>
+            gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("GPU Core", StringComparison.OrdinalIgnoreCase))
+            ?? gpu.Sensors.Where(s => s.SensorType == SensorType.Clock).OrderBy(s => s.Index).FirstOrDefault();
+
+        public static DataSensor? GpuPowerFor(DataHardware gpu) =>
+            gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Power &&
+                (s.Name.Contains("GPU Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("GPU Total", StringComparison.OrdinalIgnoreCase)))
+            ?? gpu.Sensors.Where(s => s.SensorType == SensorType.Power).OrderBy(s => s.Index).FirstOrDefault();
+
+        public static DataSensor? GpuFanFor(DataHardware gpu, int index = 0) =>
+            gpu.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).ElementAtOrDefault(index);
+
+        // ?? RAM ???????????????????????????????????????????????????????????
 
         public static DataSensor? MemoryLoad(ComputerData data) =>
-            Find(data, HardwareType.Memory, SensorType.Load, "Memory")
-            ?? FindFirst(data, HardwareType.Memory, SensorType.Load);
+            Find(data, HardwareType.Memory, SensorType.Load, "Memory") ?? FindFirst(data, HardwareType.Memory, SensorType.Load);
 
         public static DataSensor? MemoryUsed(ComputerData data) =>
-            Find(data, HardwareType.Memory, SensorType.Data, "Memory Used")
-            ?? FindFirst(data, HardwareType.Memory, SensorType.Data);
+            Find(data, HardwareType.Memory, SensorType.Data, "Memory Used") ?? FindFirst(data, HardwareType.Memory, SensorType.Data);
 
         public static DataSensor? MemoryAvailable(ComputerData data) =>
             Find(data, HardwareType.Memory, SensorType.Data, "Memory Available");
 
+        public static DataSensor? MemoryPower(ComputerData data) =>
+            FindFirst(data, HardwareType.Memory, SensorType.Power);
+
         public static DataSensor? VirtualMemoryLoad(ComputerData data) =>
             Find(data, HardwareType.Memory, SensorType.Load, "Virtual Memory")
-            ?? data.HardwareList
-                .FirstOrDefault(h => h.HardwareType == HardwareType.Memory)
-                ?.Sensors
-                .Where(s => s.SensorType == SensorType.Load)
-                .OrderBy(s => s.Index)
-                .ElementAtOrDefault(1);
+            ?? data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Memory)
+                ?.Sensors.Where(s => s.SensorType == SensorType.Load).OrderBy(s => s.Index).ElementAtOrDefault(1);
 
         public static DataSensor? VirtualMemoryUsed(ComputerData data) =>
             Find(data, HardwareType.Memory, SensorType.Data, "Virtual Memory Used");
@@ -161,7 +128,47 @@ namespace Aquila.Helpers
         public static DataSensor? VirtualMemoryAvailable(ComputerData data) =>
             Find(data, HardwareType.Memory, SensorType.Data, "Virtual Memory Available");
 
-        // ?? Network ???????????????????????????????????????????????????????????
+        // ?? Fans ??????????????????????????????????????????????????????????
+
+        public static List<DataSensor> MotherboardFans(ComputerData data) =>
+            data.HardwareList
+                .Where(h => h.HardwareType == HardwareType.Motherboard)
+                .SelectMany(h => h.Sensors)
+                .Where(s => s.SensorType == SensorType.Fan)
+                .OrderBy(s => s.Index)
+                .ToList();
+
+        // ?? System temperatures ???????????????????????????????????????????
+
+        public static List<(string Label, DataSensor Sensor)> SystemTemperatures(ComputerData data)
+        {
+            var results = new List<(string Label, DataSensor Sensor)>();
+
+            if (CpuTemperature(data) is { } cpuTemp)
+                results.Add(("CPU", cpuTemp));
+
+            foreach (var gpu in AllGpus(data))
+            {
+                if (GpuTemperatureFor(gpu) is { } gpuTemp)
+                    results.Add(("GPU", gpuTemp));
+            }
+
+            var mb = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Motherboard);
+            if (mb != null)
+            {
+                foreach (var s in mb.Sensors
+                    .Where(s => s.SensorType == SensorType.Temperature)
+                    .OrderBy(s => s.Index)
+                    .Take(4))
+                {
+                    results.Add((s.Name, s));
+                }
+            }
+
+            return results;
+        }
+
+        // ?? Network ???????????????????????????????????????????????????????
 
         public static DataSensor? NetworkUploadSpeed(ComputerData data) =>
             Find(data, HardwareType.Network, SensorType.Throughput, "Upload")
@@ -169,12 +176,8 @@ namespace Aquila.Helpers
 
         public static DataSensor? NetworkDownloadSpeed(ComputerData data) =>
             Find(data, HardwareType.Network, SensorType.Throughput, "Download")
-            ?? data.HardwareList
-                .FirstOrDefault(h => h.HardwareType == HardwareType.Network)
-                ?.Sensors
-                .Where(s => s.SensorType == SensorType.Throughput)
-                .OrderBy(s => s.Index)
-                .ElementAtOrDefault(1);
+            ?? data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network)
+                ?.Sensors.Where(s => s.SensorType == SensorType.Throughput).OrderBy(s => s.Index).ElementAtOrDefault(1);
 
         public static DataSensor? NetworkDataUploaded(ComputerData data) =>
             Find(data, HardwareType.Network, SensorType.Data, "Data Uploaded")
@@ -182,11 +185,7 @@ namespace Aquila.Helpers
 
         public static DataSensor? NetworkDataDownloaded(ComputerData data) =>
             Find(data, HardwareType.Network, SensorType.Data, "Data Downloaded")
-            ?? data.HardwareList
-                .FirstOrDefault(h => h.HardwareType == HardwareType.Network)
-                ?.Sensors
-                .Where(s => s.SensorType == SensorType.Data)
-                .OrderBy(s => s.Index)
-                .ElementAtOrDefault(1);
+            ?? data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network)
+                ?.Sensors.Where(s => s.SensorType == SensorType.Data).OrderBy(s => s.Index).ElementAtOrDefault(1);
     }
 }
