@@ -34,18 +34,20 @@ namespace Aquila.ViewModels.Pages
             _uiService.IsLoading = true;
             try
             {
-                // Garante um tempo mínimo para a animação do loading
                 var delayTask = Task.Delay(500);
+
+                // Snapshot the list on the UI thread to avoid race with DispatcherTimer
+                var snapshot = _monitorService.ComputerData.HardwareList.ToList();
 
                 var processingTask = Task.Run(() =>
                 {
-                    // Transforma a lista "achatada" do serviço na estrutura agrupada que a View precisa
-                    return _monitorService.ComputerData.HardwareList
+                    return snapshot
                         .Select(hw => new ExplorerGroupedHardware
                         {
                             HardwareName = hw.Name,
                             HardwareType = hw.HardwareType,
                             SensorGroups = hw.Sensors
+                                .ToList()
                                 .GroupBy(sensor => sensor.SensorType)
                                 .Select(group => new ExplorerGroupedSensor
                                 {
