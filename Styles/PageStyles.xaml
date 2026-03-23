@@ -4,7 +4,43 @@
     <Style x:Key="BasePageStyle" TargetType="{x:Type Page}">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
         <Setter Property="ui:Design.Background" Value="{DynamicResource ApplicationBackgroundBrush}" />
-        
     </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Semantic accent brushes — theme-aware (Dark / Light).
+         
+         Each colour has a "dark" variant (for Dark theme, brighter) and a
+         "light" variant (for Light theme, darker/more saturated) so that
+         text and indicators remain readable against the respective
+         background.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ── CPU accent (blue) ────────────────────────────────────── -->
+    <SolidColorBrush x:Key="CpuAccentBrush.Dark"   Color="#60CDFF"/>
+    <SolidColorBrush x:Key="CpuAccentBrush.Light"  Color="#0078D4"/>
+
+    <!-- ── GPU accent (purple) ──────────────────────────────────── -->
+    <SolidColorBrush x:Key="GpuAccentBrush.Dark"   Color="#9D6EF5"/>
+    <SolidColorBrush x:Key="GpuAccentBrush.Light"  Color="#7B4FBF"/>
+
+    <!-- ── RAM / Success accent (green) ─────────────────────────── -->
+    <SolidColorBrush x:Key="RamAccentBrush.Dark"   Color="#6BCB77"/>
+    <SolidColorBrush x:Key="RamAccentBrush.Light"  Color="#107C10"/>
+
+    <!-- ── Temperature / Warning accent (orange) ────────────────── -->
+    <SolidColorBrush x:Key="TempAccentBrush.Dark"  Color="#F5A623"/>
+    <SolidColorBrush x:Key="TempAccentBrush.Light" Color="#CA5010"/>
+
+    <!-- ── GPU Temp (deep orange) ───────────────────────────────── -->
+    <SolidColorBrush x:Key="GpuTempAccentBrush.Dark"  Color="#FF6B35"/>
+    <SolidColorBrush x:Key="GpuTempAccentBrush.Light" Color="#DA3B01"/>
+
+    <!-- ── Power accent (amber/yellow) ──────────────────────────── -->
+    <SolidColorBrush x:Key="PowerAccentBrush.Dark"  Color="#F5A623"/>
+    <SolidColorBrush x:Key="PowerAccentBrush.Light" Color="#CA5010"/>
+
+    <!-- ── Gauge background (translucent green) ─────────────────── -->
+    <SolidColorBrush x:Key="GaugeBackgroundBrush.Dark"  Color="#1A6BCB77"/>
+    <SolidColorBrush x:Key="GaugeBackgroundBrush.Light" Color="#33107C10"/>
 
 </ResourceDictionary>

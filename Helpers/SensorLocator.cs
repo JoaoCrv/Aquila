@@ -103,6 +103,29 @@ namespace Aquila.Helpers
         public static DataSensor? GpuFanFor(DataHardware gpu, int index = 0) =>
             gpu.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).ElementAtOrDefault(index);
 
+        public static DataSensor? GpuVramUsedFor(DataHardware gpu) =>
+            gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.SmallData &&
+                s.Name.Contains("GPU Memory Used", StringComparison.OrdinalIgnoreCase))
+            ?? gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data &&
+                s.Name.Contains("GPU Memory Used", StringComparison.OrdinalIgnoreCase));
+
+        public static DataSensor? GpuVramTotalFor(DataHardware gpu) =>
+            gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.SmallData &&
+                s.Name.Contains("GPU Memory Total", StringComparison.OrdinalIgnoreCase))
+            ?? gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data &&
+                s.Name.Contains("GPU Memory Total", StringComparison.OrdinalIgnoreCase));
+
+        public static List<DataSensor> GpuCoreSensors(DataHardware gpu) =>
+            gpu.Sensors
+                .Where(s => s.SensorType == SensorType.Load &&
+                    (s.Name.Contains("GPU Core", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Contains("3D", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Contains("Video", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Contains("Bus", StringComparison.OrdinalIgnoreCase) ||
+                     s.Name.Contains("Memory Controller", StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(s => s.Index)
+                .ToList();
+
         // ?? RAM ???????????????????????????????????????????????????????????
 
         public static DataSensor? MemoryLoad(ComputerData data) =>

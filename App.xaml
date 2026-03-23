@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helpers="clr-namespace:Aquila.Helpers"
     DispatcherUnhandledException="OnDispatcherUnhandledException"
     Exit="OnExit"
     Startup="OnStartup">
@@ -13,6 +14,7 @@
                 <ui:ControlsDictionary />
                 <ResourceDictionary Source="Styles/PageStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <helpers:AccentBrushProvider x:Key="AccentBrushes"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
