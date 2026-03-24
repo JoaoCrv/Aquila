@@ -16,6 +16,7 @@
 
         <helpers:ThroughputConverter x:Key="ThroughputConverter"/>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
+        <helpers:ProgressBarWidthConverter x:Key="ProgressBarWidthConverter"/>
 
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10"/>
@@ -674,90 +675,127 @@
                 <!-- RAM card -->
                 <ui:Card Margin="0,0,0,8" Padding="16,14">
                     <StackPanel>
-                        <TextBlock Text="MEMORY" Style="{StaticResource SectionLabel}"/>
+                        <TextBlock Text="MEMÓRIA RAM" Style="{StaticResource SectionLabel}"/>
 
-                        <!-- Big value + gauge inline -->
-                        <Grid Margin="0,0,0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                        <!-- Big used value -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                            <TextBlock FontSize="36" FontWeight="Light"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       Text="{Binding ViewModel.MemoryUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
+                            <TextBlock Text="GB" FontSize="14" VerticalAlignment="Bottom"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       Margin="2,0,0,7"/>
+                        </StackPanel>
 
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                    <TextBlock FontSize="36" FontWeight="Bold"
-                                               Foreground="{Binding RamAccent, Source={StaticResource AccentBrushes}}"
-                                               Text="{Binding ViewModel.MemoryUsedSensor.Value, StringFormat='{}{0:F2}', FallbackValue='--'}"/>
-                                    <TextBlock Text="GB" FontSize="14" VerticalAlignment="Bottom"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                               Margin="4,0,0,7"/>
-                                </StackPanel>
-                                <TextBlock FontSize="11" Opacity="0.45">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F2} GB free" FallbackValue="-- free">
-                                            <Binding Path="ViewModel.MemoryAvailableSensor.Value"/>
+                        <!-- de X GB -->
+                        <TextBlock FontSize="12" Opacity="0.60" Margin="0,0,0,10">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="de {0:F0} GB total" FallbackValue="--">
+                                    <Binding Path="ViewModel.RamTotalGb"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+
+                        <!-- Segmented bar: Used / Cache / Free -->
+                        <Grid Height="8" Margin="0,10,0,6" x:Name="RamBar">
+                            <Border CornerRadius="4" Background="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                            <DockPanel>
+                                <!-- Used (CpuAccent / Blue) -->
+                                <Border DockPanel.Dock="Left"
+                                        Background="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"
+                                        CornerRadius="4,0,0,4">
+                                    <Border.Width>
+                                        <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
+                                            <Binding Path="ViewModel.RamGaugeValue"/>
+                                            <Binding Source="0"/>
+                                            <Binding Source="100"/>
+                                            <Binding ElementName="RamBar" Path="ActualWidth"/>
                                         </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                                <TextBlock Text="RAM used" FontSize="10" Opacity="0.35" Margin="0,1,0,0"/>
-                            </StackPanel>
-
-                            <!-- Gauge — DataLabelsPaint bound from VM for white text -->
-                            <lvc:PieChart Grid.Column="1" Width="100" Height="100"
-                                          InitialRotation="-90" MinValue="0" MaxValue="100"
-                                          TooltipPosition="Hidden" AnimationsSpeed="00:00:00.300"
-                                          Background="Transparent">
-                                <lvc:PieChart.Series>
-                                    <lvc:SeriesCollection>
-                                        <lvc:XamlGaugeSeries
-                                            GaugeValue="{Binding ViewModel.RamGaugeValue}"
-                                            DataLabelsFormatter="{Binding ViewModel.DataLabelsFormatter}"
-                                            Fill="#6BCB77"
-                                            ShowDataLabels="True"
-                                            DataLabelsSize="16"
-                                            DataLabelsPaint="{Binding ViewModel.RamGaugeLabelPaint}"
-                                            DataLabelsPosition="ChartCenter"
-                                            MaxRadialColumnWidth="11"
-                                            InnerRadius="34"/>
-                                        <lvc:XamlGaugeBackgroundSeries
-                                            MaxRadialColumnWidth="11"
-                                            InnerRadius="34"
-                                            Fill="#1A6BCB77"/>
-                                    </lvc:SeriesCollection>
-                                </lvc:PieChart.Series>
-                            </lvc:PieChart>
+                                    </Border.Width>
+                                </Border>
+                                <!-- Cache (RamAccent / Green) -->
+                                <Border DockPanel.Dock="Left"
+                                        Background="{Binding RamAccent, Source={StaticResource AccentBrushes}}"
+                                        Opacity="0.8">
+                                    <Border.Width>
+                                        <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
+                                            <Binding Path="ViewModel.CacheBarWeight"/>
+                                            <Binding Source="0"/>
+                                            <Binding Source="100"/>
+                                            <Binding ElementName="RamBar" Path="ActualWidth"/>
+                                        </MultiBinding>
+                                    </Border.Width>
+                                </Border>
+                                <!-- Gap for free space -->
+                            </DockPanel>
                         </Grid>
+
+                        <!-- Legend -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <!-- Used -->
+                            <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
+                                    Background="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"/>
+                            <TextBlock FontSize="11" Opacity="0.65" Margin="0,0,12,0">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Usada {0:F1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.MemoryUsedSensor.Value"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            
+                            <!-- Cache -->
+                            <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
+                                    Background="{Binding RamAccent, Source={StaticResource AccentBrushes}}"/>
+                            <TextBlock FontSize="11" Opacity="0.65" Margin="0,0,12,0">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Cache {0:F1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.CacheGb"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            
+                            <!-- Free -->
+                            <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
+                                    Background="{DynamicResource TextFillColorTertiaryBrush}" Opacity="0.3"/>
+                            <TextBlock FontSize="11" Opacity="0.65">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="Livre {0:F1}" FallbackValue="--">
+                                        <Binding Path="ViewModel.MemoryAvailableSensor.Value"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
 
                         <Border Style="{StaticResource Divider}"/>
 
-                        <!-- Virtual memory -->
+                        <!-- Page reads / writes StatBoxes -->
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Virtual used" FontSize="10" Opacity="0.40" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="12" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.VirtualMemoryUsedSensor.Value"/>
-                                            <Binding Path="ViewModel.VirtualMemoryUsedSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="Virtual free" FontSize="10" Opacity="0.40" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="12" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.VirtualMemoryAvailableSensor.Value"/>
-                                            <Binding Path="ViewModel.VirtualMemoryAvailableSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
+                            
+                            <!-- Leitura -->
+                            <Border Grid.Column="0" Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,4,0">
+                                <StackPanel>
+                                    <TextBlock Text="Page Reads" FontSize="10" Opacity="0.55" Margin="0,0,0,3"/>
+                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}">
+                                        <Run Text="{Binding ViewModel.PageReadsPerSec, Mode=OneWay, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="/s" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Escrita -->
+                            <Border Grid.Column="1" Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="10,8" Margin="4,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Page Writes" FontSize="10" Opacity="0.55" Margin="0,0,0,3"/>
+                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{Binding RamAccent, Source={StaticResource AccentBrushes}}">
+                                        <Run Text="{Binding ViewModel.PageWritesPerSec, Mode=OneWay, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="/s" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
                         </Grid>
                     </StackPanel>
                 </ui:Card>

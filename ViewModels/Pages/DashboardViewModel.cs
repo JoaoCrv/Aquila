@@ -74,6 +74,19 @@ namespace Aquila.ViewModels.Pages
         public DataSensor?   VirtualMemoryUsedSensor      => SensorLocator.VirtualMemoryUsed(Computer);
         public DataSensor?   VirtualMemoryAvailableSensor => SensorLocator.VirtualMemoryAvailable(Computer);
 
+        public float RamTotalGb  =>
+            (MemoryUsedSensor?.Value ?? 0) + (MemoryAvailableSensor?.Value ?? 0);
+
+        // ── RAM Windows extras ───────────────────────────────────────────
+        public float PageReadsPerSec  => _monitorService.PageReadsPerSec;
+        public float PageWritesPerSec => _monitorService.PageWritesPerSec;
+        public float CacheGb          => _monitorService.CacheBytes / 1_073_741_824f;
+
+        /// <summary>Cache weight for the segmented bar (as % of total RAM).</summary>
+        public double CacheBarWeight => RamTotalGb > 0 ? CacheGb / RamTotalGb * 100.0 : 0;
+        /// <summary>Free weight for the segmented bar (as % of total RAM).</summary>
+        public double FreeBarWeight  => Math.Max(0, 100.0 - _ramGaugeValue - CacheBarWeight);
+
         // ── Network sensors ──────────────────────────────────────────────
         public string?       NetworkName                   => Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network)?.Name;
         public DataSensor?   NetworkUploadSpeedSensor      => SensorLocator.NetworkUploadSpeed(Computer);
@@ -258,8 +271,13 @@ namespace Aquila.ViewModels.Pages
             OnPropertyChanged(nameof(MemoryUsedSensor));
             OnPropertyChanged(nameof(MemoryAvailableSensor));
             OnPropertyChanged(nameof(MemoryPowerSensor));
-            OnPropertyChanged(nameof(VirtualMemoryUsedSensor));
-            OnPropertyChanged(nameof(VirtualMemoryAvailableSensor));
+            OnPropertyChanged(nameof(RamTotalGb));
+            OnPropertyChanged(nameof(PageReadsPerSec));
+            OnPropertyChanged(nameof(PageWritesPerSec));
+            OnPropertyChanged(nameof(CacheGb));
+            OnPropertyChanged(nameof(CacheBarWeight));
+            OnPropertyChanged(nameof(FreeBarWeight));
+
             OnPropertyChanged(nameof(NetworkUploadSpeedSensor));
             OnPropertyChanged(nameof(NetworkDownloadSpeedSensor));
             OnPropertyChanged(nameof(NetworkDataUploadedSensor));

@@ -1,7 +1,9 @@
 ﻿using Aquila.Models;
 using LibreHardwareMonitor.Hardware;
 using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
 namespace Aquila.Services
@@ -27,8 +29,32 @@ namespace Aquila.Services
         private DispatcherTimer? _timer;
         private bool _disposed;
 
+        private PerformanceCounter? _pageReadCounter;
+        private PerformanceCounter? _pageWriteCounter;
+        private PerformanceCounter? _cacheCounter;
+
         public event Action? DataUpdated;
         public ComputerData ComputerData { get; } = new();
+
+        // ── Windows memory extras ────────────────────────────────────────
+        /// <summary>Page reads per second (paging file read activity).</summary>
+        public float PageReadsPerSec  { get; private set; }
+        /// <summary>Page writes per second (paging file write activity).</summary>
+        public float PageWritesPerSec { get; private set; }
+        /// <summary>System file cache size in bytes.</summary>
+        public long  CacheBytes       { get; private set; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct PERFORMANCE_INFORMATION
+        {
+            public uint  cb, CommitTotal, CommitLimit, CommitPeak,
+                         PhysicalTotal, PhysicalAvailable, SystemCache,
+                         KernelTotal, KernelPaged, KernelNonpaged, PageSize,
+                         HandleCount, ProcessCount, ThreadCount;
+        }
+
+        [DllImport("psapi.dll", SetLastError = true)]
+        private static extern bool GetPerformanceInfo(out PERFORMANCE_INFORMATION pPerformanceInformation, uint cb);
 
         public void StartMonitoring()
         {
@@ -51,6 +77,14 @@ namespace Aquila.Services
             {
                 _computer.Open();
                 _timer.Start();
+
+                _pageReadCounter  = new PerformanceCounter("Memory", "Page Reads/sec",  readOnly: true);
+                _pageWriteCounter = new PerformanceCounter("Memory", "Page Writes/sec", readOnly: true);
+                _cacheCounter     = new PerformanceCounter("Memory", "Cache Bytes",     readOnly: true);
+                // First call returns 0 — discard it
+                _pageReadCounter.NextValue();
+                _pageWriteCounter.NextValue();
+                _cacheCounter.NextValue();
             }
             catch (Exception ex)
             {
@@ -68,6 +102,10 @@ namespace Aquila.Services
 
             _computer?.Close();
             _computer = null;
+
+            _pageReadCounter?.Dispose();
+            _pageWriteCounter?.Dispose();
+            _cacheCounter?.Dispose();
         }
 
         private void UpdateDataModel(object? sender, EventArgs e)
@@ -105,6 +143,17 @@ namespace Aquila.Services
                     dataSensor.Max = rawSensor.Max ?? 0;
                 }
             }
+
+            // ── Update Windows memory extras ──────────────────────────────────────────────────────────────────
+            try
+            {
+                if (GetPerformanceInfo(out var pi, (uint)Marshal.SizeOf<PERFORMANCE_INFORMATION>()))
+                    CacheBytes = (long)pi.SystemCache * (long)pi.PageSize;
+
+                PageReadsPerSec  = _pageReadCounter?.NextValue()  ?? 0;
+                PageWritesPerSec = _pageWriteCounter?.NextValue() ?? 0;
+            }
+            catch { }
 
             DataUpdated?.Invoke();
         }
