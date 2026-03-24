@@ -38,22 +38,37 @@
 - [x] **0.5 (BUG)** `app.manifest` has the wrong assembly name (`UiDesktopApp1.app`) — corrected to `Aquila.app`.
   - **File:** `app.manifest`
 
+- [ ] **0.6 (BUG)** `ExplorerViewModel.InitializeAsync()` rebuilds the entire `GroupedHardware` list on every navigation — existing sensor groups are discarded and recreated from scratch. If the user navigates away and back, the list flickers and the loading overlay fires again unnecessarily. Should diff against existing state or only rebuild if the hardware list changed.
+  - **File:** `ViewModels/Pages/ExplorerViewModel.cs`
+
+- [ ] **0.7 (BUG)** `DashboardViewModel` subscribes to `ApplicationThemeManager.Changed` but never unsubscribes — causes a memory leak if the ViewModel is ever re-created (currently a singleton, so low impact, but incorrect regardless).
+  - **File:** `ViewModels/Pages/DashboardViewModel.cs`
+
+- [ ] **0.8 (BUG)** `AccentBrushProvider` subscribes to `ApplicationThemeManager.Changed` but never unsubscribes — same issue as 0.7. Both should unsubscribe in a `Dispose()` or by using a `WeakEventManager`.
+  - **File:** `Helpers/AccentBrushProvider.cs`
+
 ### Code Quality
 
-- [x] **0.6 (CODE)** `ExplorerPage` and `AboutPage` do not implement `INavigableView<TViewModel>` — both now implement the WPF-UI contract, consistent with `DashboardPage` and `SettingsPage`.
+- [x] **0.9 (CODE)** `ExplorerPage` and `AboutPage` do not implement `INavigableView<TViewModel>` — both now implement the WPF-UI contract, consistent with `DashboardPage` and `SettingsPage`.
   - **Files:** `Views/Pages/ExplorerPage.xaml.cs`, `Views/Pages/AboutPage.xaml.cs`
 
-- [x] **0.7 (CODE)** Network throughput displayed as raw `B/s` — added `ThroughputConverter` (`Helpers/ThroughputConverter.cs`) that scales B/s ? KB/s ? MB/s. Applied to Download and Upload labels in `DashboardPage.xaml`.
+- [x] **0.10 (CODE)** Network throughput displayed as raw `B/s` — added `ThroughputConverter` (`Helpers/ThroughputConverter.cs`) that scales B/s ? KB/s ? MB/s. Applied to Download and Upload labels in `DashboardPage.xaml`.
   - **Files:** `Helpers/ThroughputConverter.cs`, `Views/Pages/DashboardPage.xaml`
 
-- [x] **0.8 (CODE)** `using HidSharp.Reports.Units` in `HardwareMonitorModel.cs` is unused — removed.
+- [x] **0.11 (CODE)** `using HidSharp.Reports.Units` in `HardwareMonitorModel.cs` is unused — removed.
   - **File:** `Models/HardwareMonitorModel.cs`
 
-- [x] **0.9 (CODE)** `Resources/Translations.cs` is a dead empty file — deleted.
+- [x] **0.12 (CODE)** `Resources/Translations.cs` is a dead empty file — deleted.
   - **File:** `Resources/Translations.cs`
 
-- [x] **0.10 (CODE)** `ExplorerPage.xaml.cs` has incorrect indentation — fixed, class body is now correctly indented.
+- [x] **0.13 (CODE)** `ExplorerPage.xaml.cs` has incorrect indentation — fixed, class body is now correctly indented.
   - **File:** `Views/Pages/ExplorerPage.xaml.cs`
+
+- [ ] **0.14 (CODE)** `NotifySensorReferences()` in `DashboardViewModel` calls `OnPropertyChanged` for sensor properties every tick — this is unnecessary since `DataSensor` is already `ObservableObject` with `[ObservableProperty]` on `Value`. The per-tick notify should only fire if the sensor reference itself changes (i.e. on first discovery), not on every update.
+  - **File:** `ViewModels/Pages/DashboardViewModel.cs`
+
+- [ ] **0.15 (CODE)** `ProgressBarWidthConverter` receives `double` values but `DataSensor.Value` is `float` — the converter silently returns `0` when `values[0]` is a `float` because the `is not double` guard fails. The converter should accept both numeric types or use `Convert.ToDouble()`.
+  - **Files:** `Helpers/ProgressBarWidthConverter.cs`, `Views/Pages/DashboardPage.xaml`
 
 ---
 
@@ -67,8 +82,11 @@
 - [x] **1.4** Fix duplicate "CPU Speed" card in the GPU section of `DashboardPage.xaml`.
 - [x] **1.5** Implement `IDisposable` on `HardwareMonitorService` — `Computer.Close()` and timer stop on disposal. `ApplicationHostService.StopAsync` calls `Dispose()`.
 - [x] **1.6** Fix `MainWindow.xaml.cs` — duplicate `GetNavigation()` removed; `SetServiceProvider` now correctly no-ops instead of throwing.
-- [x] **1.7** Clean up unnecessary `using` statements — removed `using HidSharp.Reports.Units` (0.8), removed unused imports in `ExplorerPage.xaml.cs`.
+- [x] **1.7** Clean up unnecessary `using` statements — removed `using HidSharp.Reports.Units` (0.11), removed unused imports in `ExplorerPage.xaml.cs`.
 - [x] **1.8** ?? [#4](https://github.com/JoaoCrv/Aquila/issues/4) — `HardwareMonitorService.StartMonitoring()` is called in `ApplicationHostService.StartAsync` before the window opens — data is ready on first navigation.
+- [ ] **1.9** Fix `ProgressBarWidthConverter` to accept both `float` and `double` inputs (see 0.15) — affects the RAM segmented bar and all Dashboard progress bars.
+- [ ] **1.10** Implement `IDisposable` on `DashboardViewModel` — unsubscribe from `_monitorService.DataUpdated` and `ApplicationThemeManager.Changed` on disposal (see 0.7).
+- [ ] **1.11** Implement `IDisposable` on `AccentBrushProvider` — unsubscribe from `ApplicationThemeManager.Changed` on disposal (see 0.8).
 
 ---
 
@@ -81,6 +99,8 @@
 - [x] **2.3** GPU vendor detection — `SensorLocator.DetectGpuType()` checks AMD ? NVIDIA ? Intel in order.
 - [x] **2.4** `SensorLocator` static helper created in `Helpers/SensorLocator.cs` — centralizes all sensor discovery logic with name-pattern fallbacks.
 - [ ] **2.5** ?? [#2](https://github.com/JoaoCrv/Aquila/issues/2) — Velopack: replace auto-update on startup with a manual "Check for Updates" button in Settings. Avoid silent restarts and handle errors gracefully.
+- [ ] **2.6** Multi-network adapter support — `SensorLocator` currently returns the first network adapter only. When multiple adapters exist (e.g. Wi-Fi + Ethernet), the Dashboard should show the active one or allow selection. `AllNetworkAdapters()` helper needed.
+- [ ] **2.7** Handle hot-plug hardware — if a USB device or external GPU is connected after app launch, the `HardwareMonitorService` won't pick it up without a restart. Evaluate whether LHM supports re-opening or if a periodic re-scan is needed.
 
 ---
 
@@ -92,6 +112,8 @@
 - [ ] **3.2** Display per-drive info: name, type (SSD/HDD/NVMe), temperature, read/write rates, health (S.M.A.R.T. if available from LHM).
 - [ ] **3.3** Show used/total space using `DriveInfo` from .NET for capacity data.
 - [ ] **3.4** Design the UI with `ui:Card` widgets, progress bars for space usage.
+- [ ] **3.5** Add read/write throughput sparklines (reuse the `LineSeries<double>` + ring buffer pattern from `DashboardViewModel`).
+- [ ] **3.6** Show drive letter and filesystem type alongside capacity — `DriveInfo.DriveFormat` (NTFS, exFAT, etc.).
 
 ---
 
@@ -107,6 +129,10 @@
 - [ ] **4.6** Add **animations** — smooth value transitions on cards.
 - [ ] **4.7** ?? [#5](https://github.com/JoaoCrv/Aquila/issues/5) — Explorer: add a "Copy Identifier" button or right-click context menu on each sensor row, so users can easily copy sensor paths (useful for debugging and Dashboard configuration).
 - [ ] **4.8** **Refactor Dashboard cards into a reusable `UserControl` or `DataTemplate`** — current XAML is 400+ lines of identical repeated structure. A `SensorCardControl` with `Title`, `Icon`, `Sensor` (DataSensor) and `ValueOverride` (for EffectiveCpuClock) properties would reduce markup to ~20 lines per section and make future changes (colors, sparklines) happen in one place.
+- [ ] **4.9** Fix `ExplorerPage` scroll clipping (see 0.4) — wrap the `ItemsControl` in a `ScrollViewer` and remove the `ScrollViewer.VerticalScrollBarVisibility="Disabled"` overrides.
+- [ ] **4.10** Add a **Dashboard header** showing total system uptime and current date/time — a small info bar above the cards using `Environment.TickCount64` and a `DispatcherTimer` at 1-minute intervals.
+- [ ] **4.11** Show **CPU summary subtitle** on the CPU card — cores/threads and max boost clock. The `BuildCpuSummary()` method already exists in `DashboardViewModel`; it just needs to be wired into the XAML.
+- [ ] **4.12** Explorer: remember last expanded/collapsed state of each `CardExpander` per session — store a `HashSet<string>` of expanded hardware identifiers in `ExplorerViewModel` and restore on re-navigation.
 
 ---
 
@@ -119,6 +145,8 @@
 - [ ] **5.3** Persist window position and size.
 - [ ] **5.4** Allow user to configure **polling interval** (1s, 2s, 5s).
 - [ ] **5.5** Allow user to choose which Dashboard cards to show/hide.
+- [ ] **5.6** Persist Explorer expanded/collapsed state (links to 4.12) — save the `HashSet<string>` to the settings JSON file so it survives restarts.
+- [ ] **5.7** Allow user to configure **network adapter** used in the Dashboard Network card (links to 2.6).
 
 ---
 
@@ -130,6 +158,8 @@
 - [ ] **6.2** Replace all `Console.WriteLine` / `Debug.WriteLine` with structured logging.
 - [ ] **6.3** Add a log viewer page or export button in Settings.
 - [ ] **6.4** Improve error handling in `HardwareMonitorService` — gracefully handle sensor read failures.
+- [ ] **6.5** Surface hardware access errors to the user — if `Computer.Open()` fails (e.g. missing admin rights), show a clear message in the UI instead of silently showing `--` everywhere.
+- [ ] **6.6** Add crash reporting — catch unhandled exceptions in `App.OnDispatcherUnhandledException` (already wired, currently empty) and write a crash log to `%AppData%\Aquila\crash.log`.
 
 ---
 
@@ -142,6 +172,7 @@
 - [ ] **7.3** ?? [#3](https://github.com/JoaoCrv/Aquila/issues/3) — Start minimized / start with OS / start minimized with widgets.
 - [ ] **7.4** Configurable alerts (e.g., notify when CPU temp > threshold).
 - [ ] **7.5** ?? [#3](https://github.com/JoaoCrv/Aquila/issues/3) — Tray context menu with quick actions (open, settings, exit).
+- [ ] **7.6** Tray tooltip showing a summary of current stats (CPU%, GPU%, RAM%) — updated every polling tick via `HardwareMonitorService.DataUpdated`.
 
 ---
 
@@ -207,16 +238,31 @@
 
 ---
 
+## Phase 12 — Performance & Memory
+
+> Goal: Keep CPU and memory overhead as low as possible, especially during long-running sessions.
+
+- [ ] **12.1** **Reduce per-tick allocations in `DashboardViewModel`** — `OnDataUpdated` allocates new `List<CoreBarItem>`, `List<GpuCardData>`, `List<LabelledSensor>`, and `List<DataSensor>` on every tick (once per second). These should be updated in-place or pooled to avoid GC pressure over long sessions.
+- [ ] **12.2** **Profile memory growth over time** — run the app for 30+ minutes and verify that memory stays flat. Identify any unbounded collections or event subscriptions that grow with uptime.
+- [ ] **12.3** **Reduce unnecessary `OnPropertyChanged` calls** — `NotifySensorReferences()` fires for every sensor property on every tick (see 0.14). Evaluate which properties actually change after first load and skip notifications for stable references.
+- [ ] **12.4** **Throttle UI updates when the window is minimized** — if the main window is minimized (and tray is not active), reduce the polling interval or skip UI notifications entirely to save CPU. `HardwareMonitorService` can still poll at full rate for tray tooltip accuracy.
+- [ ] **12.5** **LiveCharts animation budget** — each chart has `AnimationsSpeed = 200ms`. With multiple charts running simultaneously, this can cause frame drops on slower machines. Make the animation speed configurable (links to Phase 5) or disable it below a performance threshold.
+- [ ] **12.6** **`PerformanceCounter` warmup delay** — the first call to `NextValue()` always returns 0 and is discarded in `StartMonitoring()`. However, `PageReadsPerSec` and `PageWritesPerSec` still show 0 on the first tick because the second call happens immediately. Add a 1-tick skip on first use or show `--` until the first valid reading.
+
+---
+
 ## Versioning Plan
 
-| Version | Milestone                              |
-| ------- | -------------------------------------- |
-| 1.0.x   | Current state — basic monitoring       |
-| 1.1.0   | Phase 1 + 2 complete (clean + portable)|
-| 1.2.0   | Phase 3 (Storage page)                 |
-| 1.3.0   | Phase 4 (UI polish)                    |
-| 1.4.0   | Phase 5 (Settings persistence)         |
-| 1.5.0   | Phase 6 (Logging)                      |
-| 1.6.0   | Phase 9 (Release pipeline)             |
-| 2.0.0   | Phase 7 + 8 (Tray, i18n)              |
-| 3.0.0   | Phase 11 (Desktop Widgets)             |
+| Version | Milestone                                    |
+| ------- | -------------------------------------------- |
+| 1.0.x   | Current state — basic monitoring             |
+| 1.1.0   | Phase 0 bugs + Phase 1 cleanup               |
+| 1.2.0   | Phase 2 complete (portable sensor discovery) |
+| 1.3.0   | Phase 3 (Storage page)                       |
+| 1.4.0   | Phase 4 (UI polish)                          |
+| 1.5.0   | Phase 5 (Settings persistence)               |
+| 1.6.0   | Phase 6 (Logging & error handling)           |
+| 1.7.0   | Phase 9 (Release pipeline)                   |
+| 2.0.0   | Phase 7 + 8 (Tray, i18n)                    |
+| 2.1.0   | Phase 12 (Performance & memory)              |
+| 3.0.0   | Phase 11 (Desktop Widgets)                   |
