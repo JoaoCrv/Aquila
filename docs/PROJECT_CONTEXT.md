@@ -5,6 +5,20 @@
 
 ---
 
+## 0. AI Assistant — Session Rules
+
+> Rules established to avoid terminal lockups and wasted context budget.
+
+- **No `run_build`** — builds are done manually with `Ctrl+Shift+B` in Visual Studio. If there are errors, the user pastes them into the chat.
+- **No `git diff`** without a specific file path — generates excessive output that blocks the terminal.
+- **No long-output terminal commands** — anything that may produce more than ~20 lines of output should be avoided.
+- **No `&&` in PowerShell** — it is not a valid statement separator. Use separate commands or `git -C <path> <command>`.
+- **Commits** are done via the user's external PowerShell or Visual Studio Source Control panel, not through the Copilot terminal.
+- **Build verification** — after code changes, ask the user to build with `Ctrl+Shift+B` and report any errors.
+- **Chat length** — long chats accumulate context and cause the terminal to hang on permission prompts. Start a new chat when the conversation becomes long, and re-read this file and `docs/ROADMAP.md` to restore context.
+
+---
+
 ## 1. What Is Aquila?
 
 Aquila is an **open-source desktop hardware monitoring application** built for Windows.
