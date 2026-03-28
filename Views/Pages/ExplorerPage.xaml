@@ -10,47 +10,17 @@
       d:DesignHeight="800" d:DesignWidth="1000"
       Title="Explorer"
       Style="{StaticResource BasePageStyle}"
-      ScrollViewer.VerticalScrollBarVisibility="Disabled">
+      ScrollViewer.VerticalScrollBarVisibility="Auto"
+      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
     <Page.Resources>
         <helpers:HardwareTypeToIconConverter x:Key="HardwareTypeToIconConverter"/>
-
-        <!-- ListBoxItem style: subtle hover, no aggressive selection color, rounded -->
-        <Style x:Key="SensorListBoxItemStyle" TargetType="ListBoxItem">
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="Padding" Value="8,0"/>
-            <Setter Property="MinHeight" Value="38"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border
-                            x:Name="Bd"
-                            Background="{TemplateBinding Background}"
-                            CornerRadius="4"
-                            Padding="{TemplateBinding Padding}"
-                            MinHeight="{TemplateBinding MinHeight}">
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Toolbar -->
@@ -84,9 +54,7 @@
         <ItemsControl
             Grid.Row="1"
             ItemsSource="{Binding ViewModel.GroupedHardware}"
-            Margin="20,8,20,20"
-            ScrollViewer.VerticalScrollBarVisibility="Disabled"
-            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            Margin="20,8,20,20">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
                 <ui:CardExpander
@@ -155,73 +123,78 @@
                                             TextWrapping="NoWrap"/>
 
                                         <!-- Sensor rows -->
-                                        <ListBox
-                                            ItemsSource="{Binding Sensors}"
-                                            ItemContainerStyle="{StaticResource SensorListBoxItemStyle}"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                            SelectionMode="Single">
-                                            <ListBox.ItemTemplate>
+                                        <ItemsControl ItemsSource="{Binding Sensors}">
+                                            <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid MinHeight="32">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="110"/>
-                                                            <ColumnDefinition Width="80"/>
-                                                            <ColumnDefinition Width="80"/>
-                                                            <ColumnDefinition Width="120"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock
-                                                            Grid.Column="0"
-                                                            Text="{Binding Name}"
-                                                            FontSize="13"
-                                                            VerticalAlignment="Center"/>
-                                                        <TextBlock
-                                                            Grid.Column="1"
-                                                            FontSize="13"
-                                                            FontWeight="SemiBold"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Center">
-                                                            <TextBlock.Text>
-                                                                <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                    <Binding Path="Value"/>
-                                                                    <Binding Path="Unit"/>
-                                                                </MultiBinding>
-                                                            </TextBlock.Text>
-                                                        </TextBlock>
-                                                        <TextBlock
-                                                            Grid.Column="2"
-                                                            FontSize="12"
-                                                            Opacity="0.55"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Center">
-                                                            <TextBlock.Text>
-                                                                <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                    <Binding Path="Min"/>
-                                                                    <Binding Path="Unit"/>
-                                                                </MultiBinding>
-                                                            </TextBlock.Text>
-                                                        </TextBlock>
-                                                        <TextBlock
-                                                            Grid.Column="3"
-                                                            FontSize="12"
-                                                            Opacity="0.55"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Center">
-                                                            <TextBlock.Text>
-                                                                <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                    <Binding Path="Max"/>
-                                                                    <Binding Path="Unit"/>
-                                                                </MultiBinding>
-                                                            </TextBlock.Text>
-                                                        </TextBlock>
-                                                        <!-- col 4: future "Add Widget" button -->
-                                                    </Grid>
+                                                    <Border Padding="8,0" MinHeight="38" CornerRadius="4">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <Grid MinHeight="32">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="110"/>
+                                                                <ColumnDefinition Width="80"/>
+                                                                <ColumnDefinition Width="80"/>
+                                                                <ColumnDefinition Width="120"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock
+                                                                Grid.Column="0"
+                                                                Text="{Binding Name}"
+                                                                FontSize="13"
+                                                                VerticalAlignment="Center"/>
+                                                            <TextBlock
+                                                                Grid.Column="1"
+                                                                FontSize="13"
+                                                                FontWeight="SemiBold"
+                                                                HorizontalAlignment="Right"
+                                                                VerticalAlignment="Center">
+                                                                <TextBlock.Text>
+                                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                        <Binding Path="Value"/>
+                                                                        <Binding Path="Unit"/>
+                                                                    </MultiBinding>
+                                                                </TextBlock.Text>
+                                                            </TextBlock>
+                                                            <TextBlock
+                                                                Grid.Column="2"
+                                                                FontSize="12"
+                                                                Opacity="0.55"
+                                                                HorizontalAlignment="Right"
+                                                                VerticalAlignment="Center">
+                                                                <TextBlock.Text>
+                                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                        <Binding Path="Min"/>
+                                                                        <Binding Path="Unit"/>
+                                                                    </MultiBinding>
+                                                                </TextBlock.Text>
+                                                            </TextBlock>
+                                                            <TextBlock
+                                                                Grid.Column="3"
+                                                                FontSize="12"
+                                                                Opacity="0.55"
+                                                                HorizontalAlignment="Right"
+                                                                VerticalAlignment="Center">
+                                                                <TextBlock.Text>
+                                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                        <Binding Path="Max"/>
+                                                                        <Binding Path="Unit"/>
+                                                                    </MultiBinding>
+                                                                </TextBlock.Text>
+                                                            </TextBlock>
+                                                            <!-- col 4: future "Add Widget" button -->
+                                                        </Grid>
+                                                    </Border>
                                                 </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
