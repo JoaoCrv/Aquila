@@ -873,32 +873,24 @@
                     <StackPanel>
                         <TextBlock Text="TEMPERATURES" Style="{StaticResource SectionLabel}"/>
                         <ItemsControl ItemsSource="{Binding ViewModel.SystemTemperatures}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Margin="0,0,0,8">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding Label}"
-                                                       Style="{StaticResource RowLabel}"/>
-                                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                                    <Border Style="{StaticResource StatBox}" Margin="0,0,6,6">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource StatBoxValue}"
                                                        Foreground="{Binding Sensor.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                                <TextBlock.Text>
-                                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                                        <Binding Path="Sensor.Value"/>
-                                                        <Binding Path="Sensor.Unit"/>
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
+                                                <Run Text="{Binding Sensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                <Run Text="°C" FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                             </TextBlock>
-                                        </Grid>
-                                        <ProgressBar Style="{StaticResource ThinBar}"
-                                                     Value="{Binding Sensor.Value, FallbackValue=0}"
-                                                     Maximum="110"
-                                                     Foreground="{Binding Sensor.Value, Converter={StaticResource ThermalBrushConverter}}"
-                                                     Margin="0,3,0,0"/>
-                                    </StackPanel>
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource StatBoxLabel}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
