@@ -87,6 +87,24 @@ namespace Aquila.ViewModels.Pages
 
         private bool _suspended;
 
+        // ── Sensor reference cache — notify XAML only when reference changes ────────
+        private DataSensor? _prevCpuTemperatureSensor;
+        private DataSensor? _prevCpuUsageSensor;
+        private DataSensor? _prevCpuEnergySensor;
+        private DataSensor? _prevCpuFanSpeed1Sensor;
+        private DataSensor? _prevCpuFanSpeed2Sensor;
+        private DataSensor? _prevMemoryUsageSensor;
+        private DataSensor? _prevMemoryUsedSensor;
+        private DataSensor? _prevMemoryAvailableSensor;
+        private DataSensor? _prevMemoryPowerSensor;
+        private DataSensor? _prevNetworkUploadSensor;
+        private DataSensor? _prevNetworkDownloadSensor;
+        private DataSensor? _prevNetworkDataUploadedSensor;
+        private DataSensor? _prevNetworkDataDownloadedSensor;
+        private string?     _prevCpuName;
+        private string?     _prevCpuSummary;
+        private string?     _prevNetworkName;
+
         public void Suspend() => _suspended = true;
         public void Resume()  => _suspended = false;
 
@@ -188,12 +206,7 @@ namespace Aquila.ViewModels.Pages
             var gpuW = _gpuCards.Count > 0 ? (_gpuCards[0].PowerSensor?.Value ?? 0) : 0;
             TotalPower = cpuW + ramW + gpuW;
 
-            OnPropertyChanged(nameof(CpuName));
-            OnPropertyChanged(nameof(CpuSummary));
-            OnPropertyChanged(nameof(NetworkName));
-            OnPropertyChanged(nameof(MemoryUsedSensor));
-            OnPropertyChanged(nameof(MemoryAvailableSensor));
-            OnPropertyChanged(nameof(MemoryPowerSensor));
+            // Derived values that depend on non-observable sources — notify every tick
             OnPropertyChanged(nameof(RamTotalGb));
             OnPropertyChanged(nameof(PageReadsPerSec));
             OnPropertyChanged(nameof(PageWritesPerSec));
@@ -201,11 +214,7 @@ namespace Aquila.ViewModels.Pages
             OnPropertyChanged(nameof(CacheBarWeight));
             OnPropertyChanged(nameof(FreeBarWeight));
 
-            OnPropertyChanged(nameof(NetworkUploadSpeedSensor));
-            OnPropertyChanged(nameof(NetworkDownloadSpeedSensor));
-            OnPropertyChanged(nameof(NetworkDataUploadedSensor));
-            OnPropertyChanged(nameof(NetworkDataDownloadedSensor));
-
+            // Sensor references and computed strings — notify only when the value changes
             NotifySensorReferences();
         }
 
@@ -237,12 +246,30 @@ namespace Aquila.ViewModels.Pages
 
         private void NotifySensorReferences()
         {
-            OnPropertyChanged(nameof(CpuTemperatureSensor));
-            OnPropertyChanged(nameof(CpuUsageSensor));
-            OnPropertyChanged(nameof(CpuEnergySensor));
-            OnPropertyChanged(nameof(CpuFanSpeed1Sensor));
-            OnPropertyChanged(nameof(CpuFanSpeed2Sensor));
-            OnPropertyChanged(nameof(MemoryUsageSensor));
+            NotifyIfChanged(ref _prevCpuName,       CpuName,       nameof(CpuName));
+            NotifyIfChanged(ref _prevCpuSummary,    CpuSummary,    nameof(CpuSummary));
+            NotifyIfChanged(ref _prevNetworkName,   NetworkName,   nameof(NetworkName));
+
+            NotifyIfChanged(ref _prevCpuTemperatureSensor,        CpuTemperatureSensor,        nameof(CpuTemperatureSensor));
+            NotifyIfChanged(ref _prevCpuUsageSensor,              CpuUsageSensor,              nameof(CpuUsageSensor));
+            NotifyIfChanged(ref _prevCpuEnergySensor,             CpuEnergySensor,             nameof(CpuEnergySensor));
+            NotifyIfChanged(ref _prevCpuFanSpeed1Sensor,          CpuFanSpeed1Sensor,          nameof(CpuFanSpeed1Sensor));
+            NotifyIfChanged(ref _prevCpuFanSpeed2Sensor,          CpuFanSpeed2Sensor,          nameof(CpuFanSpeed2Sensor));
+            NotifyIfChanged(ref _prevMemoryUsageSensor,           MemoryUsageSensor,           nameof(MemoryUsageSensor));
+            NotifyIfChanged(ref _prevMemoryUsedSensor,            MemoryUsedSensor,            nameof(MemoryUsedSensor));
+            NotifyIfChanged(ref _prevMemoryAvailableSensor,       MemoryAvailableSensor,       nameof(MemoryAvailableSensor));
+            NotifyIfChanged(ref _prevMemoryPowerSensor,           MemoryPowerSensor,           nameof(MemoryPowerSensor));
+            NotifyIfChanged(ref _prevNetworkUploadSensor,         NetworkUploadSpeedSensor,    nameof(NetworkUploadSpeedSensor));
+            NotifyIfChanged(ref _prevNetworkDownloadSensor,       NetworkDownloadSpeedSensor,  nameof(NetworkDownloadSpeedSensor));
+            NotifyIfChanged(ref _prevNetworkDataUploadedSensor,   NetworkDataUploadedSensor,   nameof(NetworkDataUploadedSensor));
+            NotifyIfChanged(ref _prevNetworkDataDownloadedSensor, NetworkDataDownloadedSensor, nameof(NetworkDataDownloadedSensor));
+        }
+
+        private void NotifyIfChanged<T>(ref T? last, T? current, string name) where T : class
+        {
+            if (Equals(last, current)) return;
+            last = current;
+            OnPropertyChanged(name);
         }
 
         public void Dispose()
