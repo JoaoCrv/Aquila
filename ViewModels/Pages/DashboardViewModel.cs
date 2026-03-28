@@ -117,7 +117,7 @@ namespace Aquila.ViewModels.Pages
         // ── Theme-aware SkiaSharp colors ─────────────────────────────────
 
         private static bool IsLight => ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Light;
-        internal static SKColor CpuColor => IsLight ? new SKColor(0x00, 0x78, 0xD4) : new SKColor(0x60, 0xCD, 0xFF);
+        internal static SKColor CpuColor => IsLight ? new SKColor(0xCA, 0x50, 0x10) : new SKColor(0xF5, 0xA6, 0x23);
         internal static SKColor GpuColor => IsLight ? new SKColor(0x7B, 0x4F, 0xBF) : new SKColor(0x9D, 0x6E, 0xF5);
 
         private static SolidColorPaint CreateLabelPaint()

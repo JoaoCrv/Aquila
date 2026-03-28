@@ -55,13 +55,30 @@ namespace Aquila.Helpers
                 ? ".Light"
                 : ".Dark";
 
-            CpuAccent        = Resolve("CpuAccentBrush" + suffix);
-            GpuAccent        = Resolve("GpuAccentBrush" + suffix);
-            RamAccent        = Resolve("RamAccentBrush" + suffix);
-            TempAccent       = Resolve("TempAccentBrush" + suffix);
-            GpuTempAccent    = Resolve("GpuTempAccentBrush" + suffix);
-            PowerAccent      = Resolve("PowerAccentBrush" + suffix);
-            GaugeBackground  = Resolve("GaugeBackgroundBrush" + suffix);
+            CpuAccent       = Resolve("Aquila.Cpu"             + suffix);
+            GpuAccent       = Resolve("Aquila.Gpu"             + suffix);
+            RamAccent       = Resolve("Aquila.Ram"             + suffix);
+            TempAccent      = Resolve("Aquila.Temp"            + suffix);
+            GpuTempAccent   = Resolve("Aquila.GpuTemp"         + suffix);
+            PowerAccent     = Resolve("Aquila.Power"           + suffix);
+            GaugeBackground = Resolve("Aquila.Gauge.Background" + suffix);
+
+            // If CpuAccent fell back to Gray the source resources are not yet
+            // available (too early in App.xaml parsing). Skip publishing so we
+            // don't overwrite the XAML layer-3 defaults with gray.
+            if (ReferenceEquals(CpuAccent, Brushes.Gray)) return;
+
+            var res = Application.Current?.Resources;
+            if (res == null) return;
+
+            res["Aquila.Cpu"]              = CpuAccent;
+            res["Aquila.Gpu"]              = GpuAccent;
+            res["Aquila.Ram"]              = RamAccent;
+            res["Aquila.Temp"]             = TempAccent;
+            res["Aquila.GpuTemp"]          = GpuTempAccent;
+            res["Aquila.Power"]            = PowerAccent;
+            res["Aquila.Gauge.Background"] = GaugeBackground;
+            res["Aquila.Critical"]         = Resolve("Aquila.Critical" + suffix);
         }
 
         private static Brush Resolve(string key)

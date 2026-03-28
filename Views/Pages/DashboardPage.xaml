@@ -18,82 +18,7 @@
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
         <helpers:ProgressBarWidthConverter x:Key="ProgressBarWidthConverter"/>
         <helpers:ZeroToCollapsedConverter x:Key="ZeroToCollapsedConverter"/>
-
-        <Style x:Key="SectionLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="Opacity" Value="0.38"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
-        <Style x:Key="ChipName" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-        </Style>
-        <Style x:Key="RowLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Opacity" Value="0.50"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="RowValue" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="HorizontalAlignment" Value="Right"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="StatBox" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="8,8"/>
-        </Style>
-        <!-- ── StatBox typography ── -->
-        <Style x:Key="StatBoxValue" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="28"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="StatBoxLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="Opacity" Value="0.40"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,2,0,0"/>
-        </Style>
-        <Style x:Key="ThinBar" TargetType="ProgressBar">
-            <Setter Property="Height" Value="6"/>
-            <Setter Property="Minimum" Value="0"/>
-            <Setter Property="Maximum" Value="100"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ProgressBar">
-                        <Border CornerRadius="3" Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                                Height="{TemplateBinding Height}">
-                            <Border x:Name="PART_Track" HorizontalAlignment="Left" CornerRadius="3"
-                                    Background="{TemplateBinding Foreground}">
-                                <Border.Width>
-                                    <MultiBinding>
-                                        <MultiBinding.Converter>
-                                            <helpers:ProgressBarWidthConverter/>
-                                        </MultiBinding.Converter>
-                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Value"/>
-                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Minimum"/>
-                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Maximum"/>
-                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ActualWidth"/>
-                                    </MultiBinding>
-                                </Border.Width>
-                            </Border>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="Divider" TargetType="Border">
-            <Setter Property="Height" Value="1"/>
-            <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
-            <Setter Property="Opacity" Value="0.14"/>
-            <Setter Property="Margin" Value="0,10"/>
-        </Style>
+        <helpers:ThermalBrushConverter x:Key="ThermalBrushConverter"/>
 
         <!-- ── Core bar DataTemplate ── -->
         <DataTemplate x:Key="CoreBarTemplate" DataType="{x:Type vm:CoreBarItem}">
@@ -104,7 +29,7 @@
                         CornerRadius="4" Height="120" Margin="6,0"
                         HorizontalAlignment="Stretch">
                     <Border VerticalAlignment="Bottom" CornerRadius="4"
-                            Background="{Binding CpuAccent, Source={StaticResource AccentBrushes}}" Opacity="0.85"
+                            Background="{DynamicResource Aquila.Cpu}" Opacity="0.85"
                             Height="{Binding BarHeight}"
                             HorizontalAlignment="Stretch"/>
                 </Border>
@@ -134,7 +59,7 @@
                         <Border Style="{StaticResource StatBox}" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
-                                           Foreground="{Binding GpuTempAccent, Source={StaticResource AccentBrushes}}">
+                                           Foreground="{Binding TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
                                     <Run Text="{Binding TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                     <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                 </TextBlock>
@@ -144,7 +69,7 @@
                         <Border Style="{StaticResource StatBox}" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
-                                           Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}">
+                                           Foreground="{DynamicResource Aquila.Gpu}">
                                     <Run Text="{Binding ClockSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                     <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                 </TextBlock>
@@ -154,7 +79,7 @@
                         <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
-                                           Foreground="{Binding PowerAccent, Source={StaticResource AccentBrushes}}">
+                                           Foreground="{DynamicResource Aquila.Power}">
                                     <Run Text="{Binding PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                     <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                 </TextBlock>
@@ -168,7 +93,7 @@
                         <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock FontSize="20" FontWeight="Normal"
-                                       Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
+                                       Foreground="{DynamicResource Aquila.Gpu}"
                                        Text="{Binding VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
                             <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}">
@@ -180,10 +105,9 @@
                                 </TextBlock.Text>
                             </TextBlock>
                         </StackPanel>
-                        <ProgressBar Style="{StaticResource ThinBar}" Height="8"
+                        <ProgressBar Style="{StaticResource GpuBar}" Height="8"
                                      Value="{Binding VramPercent, Mode=OneWay, FallbackValue=0}"
-                                     Maximum="100"
-                                     Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                     Maximum="100"/>
                         <Grid Margin="0,5,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -281,7 +205,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding TempAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{Binding ViewModel.CpuTemperatureSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
                                         <Run Text="{Binding ViewModel.CpuTemperatureSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -291,7 +215,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{DynamicResource Aquila.Cpu}">
                                         <Run Text="{Binding ViewModel.EffectiveCpuClock, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -301,7 +225,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding RamAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{DynamicResource Aquila.Power}">
                                         <Run Text="{Binding ViewModel.CpuEnergySensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -388,7 +312,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding GpuTempAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{Binding ViewModel.Gpu1.TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
                                         <Run Text="{Binding ViewModel.Gpu1.TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -398,7 +322,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{DynamicResource Aquila.Gpu}">
                                         <Run Text="{Binding ViewModel.Gpu1.ClockSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -408,7 +332,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding PowerAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{DynamicResource Aquila.Power}">
                                         <Run Text="{Binding ViewModel.Gpu1.PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -422,7 +346,7 @@
                             <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock FontSize="20" FontWeight="Normal"
-                                           Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
+                                           Foreground="{DynamicResource Aquila.Gpu}"
                                            Text="{Binding ViewModel.Gpu1.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
                                 <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}">
@@ -434,10 +358,9 @@
                                     </TextBlock.Text>
                                 </TextBlock>
                             </StackPanel>
-                            <ProgressBar Style="{StaticResource ThinBar}" Height="8"
+                            <ProgressBar Style="{StaticResource GpuBar}" Height="8"
                                          Value="{Binding ViewModel.Gpu1.VramPercent, Mode=OneWay, FallbackValue=0}"
-                                         Maximum="100"
-                                         Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                         Maximum="100"/>
                             <Grid Margin="0,5,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -508,7 +431,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding GpuTempAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{Binding ViewModel.Gpu2.TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
                                         <Run Text="{Binding ViewModel.Gpu2.TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -518,7 +441,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{DynamicResource Aquila.Gpu}">
                                         <Run Text="{Binding ViewModel.Gpu2.ClockSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -528,7 +451,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding PowerAccent, Source={StaticResource AccentBrushes}}">
+                                               Foreground="{DynamicResource Aquila.Power}">
                                         <Run Text="{Binding ViewModel.Gpu2.PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -542,7 +465,7 @@
                             <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock FontSize="20" FontWeight="Normal"
-                                           Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
+                                           Foreground="{DynamicResource Aquila.Gpu}"
                                            Text="{Binding ViewModel.Gpu2.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
                                 <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}">
@@ -554,10 +477,9 @@
                                     </TextBlock.Text>
                                 </TextBlock>
                             </StackPanel>
-                            <ProgressBar Style="{StaticResource ThinBar}" Height="8"
+                            <ProgressBar Style="{StaticResource GpuBar}" Height="8"
                                          Value="{Binding ViewModel.Gpu2.VramPercent, Mode=OneWay, FallbackValue=0}"
-                                         Maximum="100"
-                                         Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                         Maximum="100"/>
                             <Grid Margin="0,5,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -643,9 +565,9 @@
                         <Grid Height="8" Margin="0,10,0,6" x:Name="RamBar">
                             <Border CornerRadius="4" Background="{DynamicResource ControlFillColorSecondaryBrush}"/>
                             <DockPanel>
-                                <!-- Used (CpuAccent / Blue) -->
+                                <!-- Used (blue) -->
                                 <Border DockPanel.Dock="Left"
-                                        Background="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"
+                                        Background="{DynamicResource Aquila.Cpu}"
                                         CornerRadius="4,0,0,4">
                                     <Border.Width>
                                         <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
@@ -656,9 +578,9 @@
                                         </MultiBinding>
                                     </Border.Width>
                                 </Border>
-                                <!-- Cache (RamAccent / Green) -->
+                                <!-- Cache (green) -->
                                 <Border DockPanel.Dock="Left"
-                                        Background="{Binding RamAccent, Source={StaticResource AccentBrushes}}"
+                                        Background="{DynamicResource Aquila.Ram}"
                                         Opacity="0.8">
                                     <Border.Width>
                                         <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
@@ -677,7 +599,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                             <!-- Used -->
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
-                                    Background="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                    Background="{DynamicResource Aquila.Cpu}"/>
                             <TextBlock FontSize="11" Opacity="0.65" Margin="0,0,12,0">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="Usada {0:F1}" FallbackValue="--">
@@ -688,7 +610,7 @@
                             
                             <!-- Cache -->
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
-                                    Background="{Binding RamAccent, Source={StaticResource AccentBrushes}}"/>
+                                    Background="{DynamicResource Aquila.Ram}"/>
                             <TextBlock FontSize="11" Opacity="0.65" Margin="0,0,12,0">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="Cache {0:F1}" FallbackValue="--">
@@ -722,7 +644,7 @@
                             <Border Grid.Column="0" Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,4,0">
                                 <StackPanel>
                                     <TextBlock Text="Page Reads" FontSize="10" Opacity="0.55" Margin="0,0,0,3"/>
-                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}">
+                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Aquila.Cpu}">
                                         <Run Text="{Binding ViewModel.PageReadsPerSec, Mode=OneWay, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="/s" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -733,7 +655,7 @@
                             <Border Grid.Column="1" Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="10,8" Margin="4,0,0,0">
                                 <StackPanel>
                                     <TextBlock Text="Page Writes" FontSize="10" Opacity="0.55" Margin="0,0,0,3"/>
-                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{Binding RamAccent, Source={StaticResource AccentBrushes}}">
+                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Aquila.Ram}">
                                         <Run Text="{Binding ViewModel.PageWritesPerSec, Mode=OneWay, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="/s" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
@@ -755,11 +677,10 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="↓ Download" Style="{StaticResource RowLabel}"/>
                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"
+                                       Foreground="{DynamicResource Aquila.Cpu}"
                                        Text="{Binding ViewModel.NetworkDownloadSpeedSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                         </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}"
-                                     Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}" Margin="0,2,0,8"
+                        <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,8"
                                      Value="{Binding ViewModel.NetworkDownloadSpeedSensor.Value, FallbackValue=0}"
                                      Maximum="125000000"/>
 
@@ -767,11 +688,10 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="↑ Upload" Style="{StaticResource RowLabel}"/>
                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{Binding RamAccent, Source={StaticResource AccentBrushes}}"
+                                       Foreground="{DynamicResource Aquila.Ram}"
                                        Text="{Binding ViewModel.NetworkUploadSpeedSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                         </Grid>
-                        <ProgressBar Style="{StaticResource ThinBar}"
-                                     Foreground="{Binding RamAccent, Source={StaticResource AccentBrushes}}" Margin="0,2,0,0"
+                        <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,0"
                                      Value="{Binding ViewModel.NetworkUploadSpeedSensor.Value, FallbackValue=0}"
                                      Maximum="125000000"/>
 
@@ -816,7 +736,7 @@
                     <StackPanel>
                         <TextBlock Text="POWER" Style="{StaticResource SectionLabel}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <TextBlock FontSize="34" FontWeight="Bold"
+                            <TextBlock FontSize="34"
                                        Text="{Binding ViewModel.TotalPower, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                             <TextBlock Text="W total" FontSize="13" VerticalAlignment="Bottom"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="5,0,0,6"/>
@@ -825,30 +745,27 @@
                         <Grid Margin="0,0,0,5">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="CPU" Style="{StaticResource RowLabel}"/>
-                            <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}" VerticalAlignment="Center"
+                            <ProgressBar Grid.Column="1" Style="{StaticResource CpuBar}" VerticalAlignment="Center"
                                          Value="{Binding ViewModel.CpuEnergySensor.Value, FallbackValue=0}"
-                                         Maximum="250"
-                                         Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                         Maximum="250"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
                                        Text="{Binding ViewModel.CpuEnergySensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
                         <Grid Margin="0,0,0,5">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="GPU" Style="{StaticResource RowLabel}"/>
-                            <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}" VerticalAlignment="Center"
+                            <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
                                          Value="{Binding ViewModel.Gpu1.PowerSensor.Value, FallbackValue=0}"
-                                         Maximum="450"
-                                         Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                         Maximum="450"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
                                        Text="{Binding ViewModel.Gpu1.PowerSensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="RAM" Style="{StaticResource RowLabel}"/>
-                            <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}" VerticalAlignment="Center"
+                            <ProgressBar Grid.Column="1" Style="{StaticResource RamBar}" VerticalAlignment="Center"
                                          Value="{Binding ViewModel.MemoryPowerSensor.Value, FallbackValue=0}"
-                                         Maximum="30"
-                                         Foreground="{Binding RamAccent, Source={StaticResource AccentBrushes}}"/>
+                                         Maximum="30"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
                                        Text="{Binding ViewModel.MemoryPowerSensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
@@ -870,7 +787,8 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Label}"
                                                        Style="{StaticResource RowLabel}"/>
-                                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold">
+                                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{Binding Sensor.Value, Converter={StaticResource ThermalBrushConverter}}">
                                                 <TextBlock.Text>
                                                     <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
                                                         <Binding Path="Sensor.Value"/>
@@ -882,7 +800,7 @@
                                         <ProgressBar Style="{StaticResource ThinBar}"
                                                      Value="{Binding Sensor.Value, FallbackValue=0}"
                                                      Maximum="110"
-                                                     Foreground="{Binding TempAccent, Source={StaticResource AccentBrushes}}"
+                                                     Foreground="{Binding Sensor.Value, Converter={StaticResource ThermalBrushConverter}}"
                                                      Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </DataTemplate>
@@ -908,11 +826,10 @@
                                         <TextBlock Grid.Column="0" Text="{Binding Name}"
                                                    Style="{StaticResource RowLabel}"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}"
+                                        <ProgressBar Grid.Column="1" Style="{StaticResource FanBar}"
                                                      VerticalAlignment="Center"
                                                      Value="{Binding Value, FallbackValue=0}"
-                                                     Maximum="3000"
-                                                     Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                                     Maximum="3000"/>
                                         <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
