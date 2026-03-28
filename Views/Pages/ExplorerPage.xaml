@@ -47,11 +47,46 @@
         </Style>
     </Page.Resources>
 
-    <ItemsControl
-        ItemsSource="{Binding ViewModel.GroupedHardware}"
-        Margin="20,8,20,20"
-        ScrollViewer.VerticalScrollBarVisibility="Disabled"
-        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Padding="20,12,20,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="Hardware Sensors" FontSize="18" FontWeight="SemiBold"/>
+                    <TextBlock
+                        Text="All monitored sensors — identifiers for Dashboard widgets"
+                        FontSize="12"
+                        Opacity="0.6"
+                        Margin="0,2,0,0"/>
+                </StackPanel>
+                <ui:Button
+                    Grid.Column="1"
+                    Content="Export to HTML"
+                    Command="{Binding ViewModel.ExportToHtmlCommand}"
+                    VerticalAlignment="Center">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="ArrowExportLtr24"/>
+                    </ui:Button.Icon>
+                </ui:Button>
+            </Grid>
+        </Border>
+
+        <!-- Sensor list -->
+        <ItemsControl
+            Grid.Row="1"
+            ItemsSource="{Binding ViewModel.GroupedHardware}"
+            Margin="20,8,20,20"
+            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
                 <ui:CardExpander
@@ -196,4 +231,5 @@
             </DataTemplate>
         </ItemsControl.ItemTemplate>
     </ItemsControl>
+    </Grid>
 </Page>
