@@ -133,6 +133,7 @@
 - [ ] **4.10** Add a **Dashboard header** showing total system uptime and current date/time — a small info bar above the cards using `Environment.TickCount64` and a `DispatcherTimer` at 1-minute intervals.
 - [ ] **4.11** Show **CPU summary subtitle** on the CPU card — cores/threads and max boost clock. The `BuildCpuSummary()` method already exists in `DashboardViewModel`; it just needs to be wired into the XAML.
 - [ ] **4.12** Explorer: remember last expanded/collapsed state of each `CardExpander` per session — store a `HashSet<string>` of expanded hardware identifiers in `ExplorerViewModel` and restore on re-navigation.
+- [ ] **4.13** **Fan Card v2 — Control % + dynamic Maximum** — LHM exposes both `SensorType.Fan` (RPM) and `SensorType.Control` (%) for each fan header with matching `Index`. Use `Control %` (0–100) for the `ProgressBar` (eliminates the need for a hardcoded `Maximum="3000"`), keep RPM as the label value. Requires pairing `(FanSensor, ControlSensor)` by index in `SensorLocator` or `DashboardViewModel`. Related to item C (dynamic Maximum).
 
 ---
 
