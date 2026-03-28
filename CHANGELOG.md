@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.2.0"></a>
+## [1.2.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.2.0) (2026-03-28)
+
+### Features
+
+* **dashboard:** add GPU sparklines, VRAM bar, rounded progress bars and StatBox styles ([5c11410](https://www.github.com/JoaoCrv/Aquila/commit/5c11410c123cb97625b68182f6e817802cd28cac))
+
+### Bug Fixes
+
+* **dashboard:** remove GPU CartesianChart sparklines to fix NullReferenceException on navigation ([f16e55e](https://www.github.com/JoaoCrv/Aquila/commit/f16e55e08f7771d8ea0a62b4a0dc0a7353b0d618))
+
 <a name="1.1.0"></a>
 ## [1.1.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.1.0) (2026-03-22)
 
