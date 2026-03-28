@@ -1,14 +1,16 @@
-﻿using System.Windows.Controls;
+﻿using Aquila.ViewModels.Pages;
+using Wpf.Ui.Abstractions.Controls;
 
 namespace Aquila.Views.Pages
 {
-    /// <summary>
-    /// Interaction logic for StoragePage.xaml
-    /// </summary>
-    public partial class StoragePage : Page
+    public partial class StoragePage : INavigableView<StorageViewModel>
     {
-        public StoragePage()
+        public StorageViewModel ViewModel { get; }
+
+        public StoragePage(StorageViewModel viewModel)
         {
+            ViewModel = viewModel;
+            DataContext = this;
             InitializeComponent();
         }
     }
