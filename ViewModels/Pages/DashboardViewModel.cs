@@ -225,13 +225,12 @@ namespace Aquila.ViewModels.Pages
             float maxEffectiveClock = 0;
             foreach (var clockSensor in clockSensors)
             {
-                var coreNum = clockSensor.Name.Replace("Core #", "");
+                var coreNum = clockSensor.Name.Replace("Core #", "").Trim();
                 var loadSensor = loadSensors.FirstOrDefault(s => s.Name.EndsWith(coreNum, StringComparison.Ordinal));
-                if (loadSensor != null)
-                {
-                    float ec = clockSensor.Value * (loadSensor.Value / 100);
-                    if (ec > maxEffectiveClock) maxEffectiveClock = ec;
-                }
+                float ec = loadSensor != null
+                    ? clockSensor.Value * (loadSensor.Value / 100f)
+                    : clockSensor.Value;
+                if (ec > maxEffectiveClock) maxEffectiveClock = ec;
             }
             EffectiveCpuClock = maxEffectiveClock;
         }
@@ -251,31 +250,16 @@ namespace Aquila.ViewModels.Pages
             var cpu = Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
             if (cpu == null) return null;
 
-            var clockSensors = cpu.Sensors
-                .Where(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core #"))
-                .ToList();
-
-            var threadSensors = cpu.Sensors
-                .Where(s => s.SensorType == SensorType.Load && s.Name.Contains("CPU Core #"))
-                .ToList();
-
-            int cores   = clockSensors.Count;
-            int threads = threadSensors.Count;
-
+            int cores = cpu.Sensors
+                .Count(s => s.SensorType == SensorType.Clock
+                         && s.Name.Contains("Core #")
+                         && !s.Name.Contains("("));
             if (cores == 0) return null;
 
-            // Use Max (peak observed) rather than current Value to approximate boost clock
-            float maxClock = clockSensors.Max(s => s.Max);
-            if (maxClock <= 0)
-                maxClock = clockSensors.Max(s => s.Value);
+            int threads = cpu.Sensors
+                .Count(s => s.SensorType == SensorType.Load && s.Name.Contains("Thread #"));
 
-            string clockStr = maxClock >= 1000
-                ? $"{maxClock / 1000f:F1} GHz"
-                : $"{maxClock:F0} MHz";
-
-            return threads > 0 && threads != cores
-                ? $"{cores}C / {threads}T  ·  {clockStr}"
-                : $"{cores} Cores  ·  {clockStr}";
+            return threads > 0 ? $"{cores}C / {threads}T" : $"{cores} Cores";
         }
     }
 

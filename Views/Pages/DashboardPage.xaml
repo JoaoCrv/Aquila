@@ -190,7 +190,10 @@
                     <StackPanel>
                         <TextBlock Text="CPU" Style="{StaticResource SectionLabel}"/>
                         <TextBlock Text="{Binding ViewModel.CpuName, FallbackValue='Processor'}"
-                                   Style="{StaticResource ChipName}" Margin="0,0,0,12"/>
+                                   Style="{StaticResource ChipName}" Margin="0,0,0,2"/>
+                        <TextBlock Text="{Binding ViewModel.CpuSummary}"
+                                   FontSize="11" Opacity="0.45" Margin="0,0,0,12"
+                                   Visibility="{Binding ViewModel.CpuSummary, Converter={StaticResource NullToCollapsedConverter}}"/>
 
                         <!-- 4 stat boxes -->
                         <UniformGrid Columns="4" Margin="0,0,0,14">
