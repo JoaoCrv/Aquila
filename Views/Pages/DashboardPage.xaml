@@ -564,7 +564,7 @@
                 <!-- RAM card -->
                 <ui:Card Margin="0,0,0,8" Padding="16,14">
                     <StackPanel>
-                        <TextBlock Text="MEMÓRIA RAM" Style="{StaticResource SectionLabel}"/>
+                        <TextBlock Text="RAM" Style="{StaticResource SectionLabel}"/>
 
                         <!-- Big used value -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
@@ -748,6 +748,68 @@
                     </StackPanel>
                 </ui:Card>
 
+                <!-- Storage card -->
+                <ui:Card Margin="0,8,0,0" Padding="16,14"
+                         Visibility="{Binding ViewModel.StorageCards.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
+                    <StackPanel>
+                        <TextBlock Text="STORAGE" Style="{StaticResource SectionLabel}"/>
+                        <ItemsControl ItemsSource="{Binding ViewModel.StorageCards}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,14">
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,4,0,10"
+                                                   TextTrimming="CharacterEllipsis"/>
+
+                                        <UniformGrid Columns="2" Margin="0,0,0,10">
+                                            <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource StatBoxValue}"
+                                                               Foreground="{Binding TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                                        <Run Text="{Binding TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                        <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource StatBoxValue}">
+                                                        <Run Text="{Binding UsedSpaceSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                        <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="Used" Style="{StaticResource StatBoxLabel}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </UniformGrid>
+
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="↓ Read" Style="{StaticResource RowLabel}"/>
+                                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Aquila.Cpu}"
+                                                       Text="{Binding ReadRateSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                        </Grid>
+                                        <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,6"
+                                                     Value="{Binding ReadRateSensor.Value, FallbackValue=0}"
+                                                     Maximum="600000000"/>
+
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="↑ Write" Style="{StaticResource RowLabel}"/>
+                                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Aquila.Ram}"
+                                                       Text="{Binding WriteRateSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                        </Grid>
+                                        <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,0"
+                                                     Value="{Binding WriteRateSensor.Value, FallbackValue=0}"
+                                                     Maximum="600000000"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ui:Card>
+
             </StackPanel>
 
             <!-- ══════════════════════════════════════════════════════════
@@ -783,6 +845,16 @@
                                          Maximum="450"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
                                        Text="{Binding ViewModel.Gpu1.PowerSensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,5"
+                              Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="GPU 2" Style="{StaticResource RowLabel}"/>
+                            <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
+                                         Value="{Binding ViewModel.Gpu2.PowerSensor.Value, FallbackValue=0}"
+                                         Maximum="450"/>
+                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
+                                       Text="{Binding ViewModel.Gpu2.PowerSensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>

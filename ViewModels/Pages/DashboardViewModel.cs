@@ -44,6 +44,7 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty] private List<GpuCardData>    _gpuCards           = [];
         [ObservableProperty] private List<LabelledSensor> _systemTemperatures = [];
         [ObservableProperty] private List<DataSensor>     _systemFans         = [];
+        [ObservableProperty] private List<StorageDriveData> _storageCards     = [];
 
         // ── Gpu1 / Gpu2 convenience ──────────────────────────────────────
         public GpuCardData? Gpu1 => _gpuCards.Count > 0 ? _gpuCards[0] : null;
@@ -228,6 +229,11 @@ namespace Aquila.ViewModels.Pages
             // System fans
             SystemFans = SensorLocator.MotherboardFans(Computer);
 
+            // Storage cards — rebuild only when drive count changes
+            var allDrives = SensorLocator.AllStorageDrives(Computer).ToList();
+            if (allDrives.Count != _storageCards.Count)
+                StorageCards = allDrives.Select(d => new StorageDriveData(d)).ToList();
+
             // Total power
             var cpuW = CpuEnergySensor?.Value  ?? 0;
             var ramW = MemoryPowerSensor?.Value ?? 0;
@@ -369,5 +375,15 @@ namespace Aquila.ViewModels.Pages
     {
         public string     Label  => label;
         public DataSensor Sensor => sensor;
+    }
+
+    // ── Per-storage drive data ────────────────────────────────────────────────
+    public class StorageDriveData(DataHardware drive)
+    {
+        public string      Name            => drive.Name;
+        public DataSensor? TempSensor      => SensorLocator.StorageTemperatureFor(drive);
+        public DataSensor? ReadRateSensor  => SensorLocator.StorageReadRateFor(drive);
+        public DataSensor? WriteRateSensor => SensorLocator.StorageWriteRateFor(drive);
+        public DataSensor? UsedSpaceSensor => SensorLocator.StorageUsedSpaceFor(drive);
     }
 }

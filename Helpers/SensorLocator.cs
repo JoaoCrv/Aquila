@@ -210,5 +210,26 @@ namespace Aquila.Helpers
             Find(data, HardwareType.Network, SensorType.Data, "Data Downloaded")
             ?? data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network)
                 ?.Sensors.Where(s => s.SensorType == SensorType.Data).OrderBy(s => s.Index).ElementAtOrDefault(1);
+
+        // ?? Storage ???????????????????????????????????????????????????????????????????
+
+        public static IEnumerable<DataHardware> AllStorageDrives(ComputerData data) =>
+            data.HardwareList.Where(h => h.HardwareType == HardwareType.Storage);
+
+        public static DataSensor? StorageTemperatureFor(DataHardware drive) =>
+            drive.Sensors.Where(s => s.SensorType == SensorType.Temperature)
+                         .OrderBy(s => s.Index).FirstOrDefault();
+
+        public static DataSensor? StorageReadRateFor(DataHardware drive) =>
+            drive.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Throughput
+                && s.Name.Contains("Read", StringComparison.OrdinalIgnoreCase));
+
+        public static DataSensor? StorageWriteRateFor(DataHardware drive) =>
+            drive.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Throughput
+                && s.Name.Contains("Write", StringComparison.OrdinalIgnoreCase));
+
+        public static DataSensor? StorageUsedSpaceFor(DataHardware drive) =>
+            drive.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load
+                && s.Name.Contains("Used Space", StringComparison.OrdinalIgnoreCase));
     }
 }
