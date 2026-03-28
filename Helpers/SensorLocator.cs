@@ -234,5 +234,13 @@ namespace Aquila.Helpers
         public static DataSensor? StorageUsedSpaceFor(DataHardware drive) =>
             drive.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load
                 && s.Name.Contains("Used Space", StringComparison.OrdinalIgnoreCase));
+
+        public static DataSensor? StorageDataReadFor(DataHardware drive) =>
+            drive.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data
+                && s.Name.Contains("Data Read", StringComparison.OrdinalIgnoreCase));
+
+        public static DataSensor? StorageDataWrittenFor(DataHardware drive) =>
+            drive.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data
+                && s.Name.Contains("Data Written", StringComparison.OrdinalIgnoreCase));
     }
 }

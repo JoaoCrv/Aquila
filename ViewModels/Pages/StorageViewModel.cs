@@ -55,18 +55,26 @@ namespace Aquila.ViewModels.Pages
     public partial class StoragePageDriveItem : ObservableObject
     {
         [ObservableProperty] private string _driveLetter  = "";
-        [ObservableProperty] private string _label        = "";
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(DisplayName))]
+        private string _label = "";
         [ObservableProperty] private string _fileSystem   = "";
         [ObservableProperty] private string _totalCapacity = "";
         [ObservableProperty] private string _usedCapacity  = "";
         [ObservableProperty] private string _freeCapacity  = "";
         [ObservableProperty] private double _usedPercent;
 
-        [ObservableProperty] private string?     _lhmName;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(DisplayName))]
+        private string?     _lhmName;
         [ObservableProperty] private string?     _driveTypeTag;
         [ObservableProperty] private DataSensor? _tempSensor;
         [ObservableProperty] private DataSensor? _readSensor;
         [ObservableProperty] private DataSensor? _writeSensor;
+        [ObservableProperty] private DataSensor? _dataReadSensor;
+        [ObservableProperty] private DataSensor? _dataWrittenSensor;
+
+        public string DisplayName => LhmName ?? Label;
 
         public StoragePageDriveItem(DriveInfo drive, DataHardware? lhm) => Refresh(drive, lhm);
 
@@ -87,11 +95,13 @@ namespace Aquila.ViewModels.Pages
             FreeCapacity  = FormatBytes(free);
             UsedPercent   = total > 0 ? (double)used / total * 100.0 : 0;
 
-            LhmName      = lhm?.Name;
-            DriveTypeTag = DetectType(lhm);
-            TempSensor   = lhm is null ? null : SensorLocator.StorageTemperatureFor(lhm);
-            ReadSensor   = lhm is null ? null : SensorLocator.StorageReadRateFor(lhm);
-            WriteSensor  = lhm is null ? null : SensorLocator.StorageWriteRateFor(lhm);
+            LhmName           = lhm?.Name;
+            DriveTypeTag      = DetectType(lhm);
+            TempSensor        = lhm is null ? null : SensorLocator.StorageTemperatureFor(lhm);
+            ReadSensor        = lhm is null ? null : SensorLocator.StorageReadRateFor(lhm);
+            WriteSensor       = lhm is null ? null : SensorLocator.StorageWriteRateFor(lhm);
+            DataReadSensor    = lhm is null ? null : SensorLocator.StorageDataReadFor(lhm);
+            DataWrittenSensor = lhm is null ? null : SensorLocator.StorageDataWrittenFor(lhm);
         }
 
         private static string FormatBytes(long bytes)
