@@ -34,9 +34,18 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private List<ExplorerGroupedHardware> _groupedHardware = [];
 
+        private IReadOnlyList<(string Name, HardwareType Type)> _hwSignature = [];
+
         public async Task InitializeAsync()
         {
             var snapshot = _monitorService.ComputerData.HardwareList.ToList();
+
+            // Skip rebuild if hardware composition hasn't changed — prevents flicker on re-navigation
+            var signature = snapshot.Select(hw => (hw.Name, hw.HardwareType)).ToList();
+            if (GroupedHardware.Count > 0 && _hwSignature.SequenceEqual(signature))
+                return;
+
+            _hwSignature = signature;
 
             GroupedHardware = await Task.Run(() =>
                 snapshot
