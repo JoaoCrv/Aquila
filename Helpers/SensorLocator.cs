@@ -180,7 +180,10 @@ namespace Aquila.Helpers
             if (mb != null)
             {
                 foreach (var s in mb.Sensors
-                    .Where(s => s.SensorType == SensorType.Temperature)
+                    .Where(s => s.SensorType == SensorType.Temperature
+                             && s.Value > 0
+                             && !s.Name.Equals("CPU", StringComparison.OrdinalIgnoreCase)
+                             && !s.Name.StartsWith("CPU ", StringComparison.OrdinalIgnoreCase))
                     .OrderBy(s => s.Index)
                     .Take(4))
                 {
