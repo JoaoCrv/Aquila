@@ -101,6 +101,8 @@ namespace Aquila
         /// </summary>
         private async void OnExit(object sender, ExitEventArgs e)
         {
+            (Resources["AccentBrushes"] as IDisposable)?.Dispose();
+
             await _host.StopAsync();
 
             _host.Dispose();

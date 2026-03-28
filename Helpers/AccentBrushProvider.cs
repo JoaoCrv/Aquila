@@ -9,14 +9,17 @@ namespace Aquila.Helpers
     /// Automatically switches between Dark/Light variants when the WPF-UI theme changes.
     /// <para>Usage in XAML: <c>Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"</c></para>
     /// </summary>
-    public sealed class AccentBrushProvider : ObservableObject
+    public sealed class AccentBrushProvider : ObservableObject, IDisposable
     {
-        public static AccentBrushProvider Instance { get; } = new();
-
         public AccentBrushProvider()
         {
             ApplicationThemeManager.Changed += OnThemeChanged;
             Refresh();
+        }
+
+        public void Dispose()
+        {
+            ApplicationThemeManager.Changed -= OnThemeChanged;
         }
 
         // ?? Public brush properties ??????????????????????????????????????

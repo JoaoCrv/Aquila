@@ -13,7 +13,7 @@ using Wpf.Ui.Appearance;
 
 namespace Aquila.ViewModels.Pages
 {
-    public partial class DashboardViewModel : ObservableObject
+    public partial class DashboardViewModel : ObservableObject, IDisposable
     {
         private readonly HardwareMonitorService _monitorService;
         private const int HistorySize = 60;
@@ -243,6 +243,12 @@ namespace Aquila.ViewModels.Pages
             OnPropertyChanged(nameof(CpuFanSpeed1Sensor));
             OnPropertyChanged(nameof(CpuFanSpeed2Sensor));
             OnPropertyChanged(nameof(MemoryUsageSensor));
+        }
+
+        public void Dispose()
+        {
+            _monitorService.DataUpdated -= OnDataUpdated;
+            ApplicationThemeManager.Changed -= OnThemeChanged;
         }
 
         private string? BuildCpuSummary()
