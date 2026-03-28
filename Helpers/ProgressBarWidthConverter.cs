@@ -11,19 +11,28 @@ namespace Aquila.Helpers
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values.Length < 4
-                || values[0] is not double value
-                || values[1] is not double min
-                || values[2] is not double max
-                || values[3] is not double totalWidth)
+            if (values.Length < 4)
                 return 0d;
+
+            var value      = ToDouble(values[0]);
+            var min        = ToDouble(values[1]);
+            var max        = ToDouble(values[2]);
+            var totalWidth = ToDouble(values[3]);
 
             if (max <= min || totalWidth <= 0)
                 return 0d;
 
-            double ratio = Math.Clamp((value - min) / (max - min), 0, 1);
+            var ratio = Math.Clamp((value - min) / (max - min), 0, 1);
             return Math.Max(0d, ratio * totalWidth);
         }
+
+        private static double ToDouble(object v) => v switch
+        {
+            double d => d,
+            float  f => f,
+            int    i => i,
+            _        => 0d
+        };
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
             => throw new NotSupportedException();

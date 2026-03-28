@@ -895,17 +895,23 @@
                     <StackPanel>
                         <TextBlock Text="FANS" Style="{StaticResource SectionLabel}"/>
                         <ItemsControl ItemsSource="{Binding ViewModel.SystemFans}">
-                            <ItemsControl.ItemTemplate>
+                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,0,0,7">
+                                    <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="72"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="{Binding Name}"
                                                    Style="{StaticResource RowLabel}"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold">
+                                        <ProgressBar Grid.Column="1" Style="{StaticResource ThinBar}"
+                                                     VerticalAlignment="Center"
+                                                     Value="{Binding Value, FallbackValue=0}"
+                                                     Maximum="3000"
+                                                     Foreground="{Binding CpuAccent, Source={StaticResource AccentBrushes}}"/>
+                                        <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
                                                     <Binding Path="Value"/>
