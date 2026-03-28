@@ -162,69 +162,44 @@
                         </Border>
                     </UniformGrid>
 
-                    <!-- GPU LOAD histogram + VRAM bar side by side -->
-                    <Grid Margin="0,4,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="14"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Left: GPU Load sparkline -->
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="GPU LOAD — 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                            <lvc:CartesianChart
-                                Height="72"
-                                Series="{Binding SparkSeries}"
-                                XAxes="{Binding SparkXAxes}"
-                                YAxes="{Binding SparkYAxes}"
-                                TooltipPosition="Hidden"
-                                LegendPosition="Hidden"
-                                ZoomMode="None"
-                                AnimationsSpeed="00:00:00.200"
-                                Background="Transparent"/>
+                    <!-- VRAM -->
+                    <StackPanel Margin="0,4,0,0">
+                        <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock FontSize="20" FontWeight="Normal"
+                                       Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
+                                       Text="{Binding VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
+                            <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="/ -- ">
+                                        <Binding Path="VramTotalSensor.Value"/>
+                                        <Binding Path="VramUsedSensor.Unit"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
                         </StackPanel>
-
-                        <!-- Right: VRAM -->
-                        <StackPanel Grid.Column="2" VerticalAlignment="Top">
-                            <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                            <!-- value + total inline, above the bar -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock FontSize="20" FontWeight="Normal"
-                                           Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
-                                           Text="{Binding VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
-                                <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="/ -- ">
-                                            <Binding Path="VramTotalSensor.Value"/>
-                                            <Binding Path="VramUsedSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <ProgressBar Style="{StaticResource ThinBar}" Height="8"
-                                         Value="{Binding VramPercent, Mode=OneWay, FallbackValue=0}"
-                                         Maximum="100"
-                                         Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
-                            <Grid Margin="0,5,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
-                                           Text="{Binding VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
-                                <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
-                                            <Binding Path="VramTotalSensor.Value"/>
-                                            <Binding Path="VramUsedSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </Grid>
-                        </StackPanel>
-                    </Grid>
+                        <ProgressBar Style="{StaticResource ThinBar}" Height="8"
+                                     Value="{Binding VramPercent, Mode=OneWay, FallbackValue=0}"
+                                     Maximum="100"
+                                     Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
+                        <Grid Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
+                                       Text="{Binding VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
+                            <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
+                                        <Binding Path="VramTotalSensor.Value"/>
+                                        <Binding Path="VramUsedSensor.Unit"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </Grid>
+                    </StackPanel>
 
                     <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}"
                             Opacity="0.14" Margin="0,10"/>
@@ -356,7 +331,6 @@
                             TooltipPosition="Hidden"
                             LegendPosition="Hidden"
                             ZoomMode="None"
-                            AnimationsSpeed="00:00:00.200"
                             Background="Transparent"/>
 
                         <Border Style="{StaticResource Divider}"/>
@@ -442,60 +416,44 @@
                             </Border>
                         </UniformGrid>
 
-                        <Grid Margin="0,4,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="14"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="GPU LOAD — 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                                <lvc:CartesianChart Height="72"
-                                    Series="{Binding ViewModel.Gpu1SparkSeries}"
-                                    XAxes="{Binding ViewModel.SparklineXAxes}"
-                                    YAxes="{Binding ViewModel.GpuSparkYAxes}"
-                                    TooltipPosition="Hidden" LegendPosition="Hidden"
-                                    ZoomMode="None" AnimationsSpeed="00:00:00.200"
-                                    Background="Transparent"/>
+                        <!-- VRAM -->
+                        <StackPanel Margin="0,4,0,0">
+                            <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock FontSize="20" FontWeight="Normal"
+                                           Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
+                                           Text="{Binding ViewModel.Gpu1.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
+                                <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="">
+                                            <Binding Path="ViewModel.Gpu1.VramTotalSensor.Value"/>
+                                            <Binding Path="ViewModel.Gpu1.VramUsedSensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Top">
-                                <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock FontSize="20" FontWeight="Normal"
-                                               Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
-                                               Text="{Binding ViewModel.Gpu1.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
-                                    <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="">
-                                                <Binding Path="ViewModel.Gpu1.VramTotalSensor.Value"/>
-                                                <Binding Path="ViewModel.Gpu1.VramUsedSensor.Unit"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </StackPanel>
-                                <ProgressBar Style="{StaticResource ThinBar}" Height="8"
-                                             Value="{Binding ViewModel.Gpu1.VramPercent, Mode=OneWay, FallbackValue=0}"
-                                             Maximum="100"
-                                             Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
-                                <Grid Margin="0,5,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
-                                               Text="{Binding ViewModel.Gpu1.VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
-                                    <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
-                                                <Binding Path="ViewModel.Gpu1.VramTotalSensor.Value"/>
-                                                <Binding Path="ViewModel.Gpu1.VramUsedSensor.Unit"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </Grid>
-                            </StackPanel>
-                        </Grid>
+                            <ProgressBar Style="{StaticResource ThinBar}" Height="8"
+                                         Value="{Binding ViewModel.Gpu1.VramPercent, Mode=OneWay, FallbackValue=0}"
+                                         Maximum="100"
+                                         Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
+                            <Grid Margin="0,5,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
+                                           Text="{Binding ViewModel.Gpu1.VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
+                                <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
+                                            <Binding Path="ViewModel.Gpu1.VramTotalSensor.Value"/>
+                                            <Binding Path="ViewModel.Gpu1.VramUsedSensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Grid>
+                        </StackPanel>
 
                         <Border Style="{StaticResource Divider}"/>
                         <Grid>
@@ -578,60 +536,44 @@
                             </Border>
                         </UniformGrid>
 
-                        <Grid Margin="0,4,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="14"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="GPU LOAD — 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                                <lvc:CartesianChart Height="72"
-                                    Series="{Binding ViewModel.Gpu2SparkSeries}"
-                                    XAxes="{Binding ViewModel.SparklineXAxes}"
-                                    YAxes="{Binding ViewModel.GpuSparkYAxes}"
-                                    TooltipPosition="Hidden" LegendPosition="Hidden"
-                                    ZoomMode="None" AnimationsSpeed="00:00:00.200"
-                                    Background="Transparent"/>
+                        <!-- VRAM -->
+                        <StackPanel Margin="0,4,0,0">
+                            <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock FontSize="20" FontWeight="Normal"
+                                           Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
+                                           Text="{Binding ViewModel.Gpu2.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
+                                <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="">
+                                            <Binding Path="ViewModel.Gpu2.VramTotalSensor.Value"/>
+                                            <Binding Path="ViewModel.Gpu2.VramUsedSensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
                             </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Top">
-                                <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock FontSize="20" FontWeight="Normal"
-                                               Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"
-                                               Text="{Binding ViewModel.Gpu2.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
-                                    <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="">
-                                                <Binding Path="ViewModel.Gpu2.VramTotalSensor.Value"/>
-                                                <Binding Path="ViewModel.Gpu2.VramUsedSensor.Unit"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </StackPanel>
-                                <ProgressBar Style="{StaticResource ThinBar}" Height="8"
-                                             Value="{Binding ViewModel.Gpu2.VramPercent, Mode=OneWay, FallbackValue=0}"
-                                             Maximum="100"
-                                             Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
-                                <Grid Margin="0,5,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
-                                               Text="{Binding ViewModel.Gpu2.VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
-                                    <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
-                                                <Binding Path="ViewModel.Gpu2.VramTotalSensor.Value"/>
-                                                <Binding Path="ViewModel.Gpu2.VramUsedSensor.Unit"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                </Grid>
-                            </StackPanel>
-                        </Grid>
+                            <ProgressBar Style="{StaticResource ThinBar}" Height="8"
+                                         Value="{Binding ViewModel.Gpu2.VramPercent, Mode=OneWay, FallbackValue=0}"
+                                         Maximum="100"
+                                         Foreground="{Binding GpuAccent, Source={StaticResource AccentBrushes}}"/>
+                            <Grid Margin="0,5,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
+                                           Text="{Binding ViewModel.Gpu2.VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
+                                <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
+                                            <Binding Path="ViewModel.Gpu2.VramTotalSensor.Value"/>
+                                            <Binding Path="ViewModel.Gpu2.VramUsedSensor.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Grid>
+                        </StackPanel>
 
                         <Border Style="{StaticResource Divider}"/>
                         <Grid>

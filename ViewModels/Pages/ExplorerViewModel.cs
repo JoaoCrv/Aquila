@@ -31,42 +31,26 @@ namespace Aquila.ViewModels.Pages
 
         public async Task InitializeAsync()
         {
-            _uiService.IsLoading = true;
-            try
-            {
-                var delayTask = Task.Delay(500);
+            var snapshot = _monitorService.ComputerData.HardwareList.ToList();
 
-                // Snapshot the list on the UI thread to avoid race with DispatcherTimer
-                var snapshot = _monitorService.ComputerData.HardwareList.ToList();
-
-                var processingTask = Task.Run(() =>
-                {
-                    return snapshot
-                        .Select(hw => new ExplorerGroupedHardware
-                        {
-                            HardwareName = hw.Name,
-                            HardwareType = hw.HardwareType,
-                            SensorGroups = hw.Sensors
-                                .ToList()
-                                .GroupBy(sensor => sensor.SensorType)
-                                .Select(group => new ExplorerGroupedSensor
-                                {
-                                    CategoryName = group.Key.ToString(),
-                                    Sensors = group.OrderBy(s => s.Name).ToList()
-                                })
-                                .OrderBy(g => g.CategoryName)
-                                .ToList()
-                        })
-                        .ToList();
-                });
-
-                await Task.WhenAll(processingTask, delayTask);
-                GroupedHardware = await processingTask;
-            }
-            finally
-            {
-                _uiService.IsLoading = false;
-            }
+            GroupedHardware = await Task.Run(() =>
+                snapshot
+                    .Select(hw => new ExplorerGroupedHardware
+                    {
+                        HardwareName = hw.Name,
+                        HardwareType = hw.HardwareType,
+                        SensorGroups = hw.Sensors
+                            .ToList()
+                            .GroupBy(sensor => sensor.SensorType)
+                            .Select(group => new ExplorerGroupedSensor
+                            {
+                                CategoryName = group.Key.ToString(),
+                                Sensors = group.OrderBy(s => s.Name).ToList()
+                            })
+                            .OrderBy(g => g.CategoryName)
+                            .ToList()
+                    })
+                    .ToList());
         }
     }
 }

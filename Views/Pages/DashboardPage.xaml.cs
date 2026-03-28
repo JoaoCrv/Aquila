@@ -1,9 +1,10 @@
 ﻿using Aquila.ViewModels.Pages;
+using System.Threading.Tasks;
 using Wpf.Ui.Abstractions.Controls;
 
 namespace Aquila.Views.Pages
 {
-    public partial class DashboardPage : INavigableView<DashboardViewModel>
+    public partial class DashboardPage : INavigableView<DashboardViewModel>, INavigationAware
     {
         public DashboardViewModel ViewModel { get; }
 
@@ -13,6 +14,18 @@ namespace Aquila.Views.Pages
             DataContext = this;
 
             InitializeComponent();
+        }
+
+        public Task OnNavigatedToAsync()
+        {
+            ViewModel.Resume();
+            return Task.CompletedTask;
+        }
+
+        public Task OnNavigatedFromAsync()
+        {
+            ViewModel.Suspend();
+            return Task.CompletedTask;
         }
     }
 }

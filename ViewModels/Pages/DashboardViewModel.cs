@@ -22,21 +22,14 @@ namespace Aquila.ViewModels.Pages
 
         [ObservableProperty] private float  _effectiveCpuClock;
         [ObservableProperty] private double _cpuGaugeValue;
-        [ObservableProperty] private double _gpuGaugeValue;
         [ObservableProperty] private double _ramGaugeValue;
         [ObservableProperty] private float  _totalPower;
 
         // ── History ring buffers ─────────────────────────────────────────
         public ObservableCollection<double> CpuUsageHistory  { get; } = new(Enumerable.Repeat(0.0, HistorySize));
-        public ObservableCollection<double> Gpu1LoadHistory  { get; } = new(Enumerable.Repeat(0.0, HistorySize));
-        public ObservableCollection<double> Gpu2LoadHistory  { get; } = new(Enumerable.Repeat(0.0, HistorySize));
-        public ObservableCollection<double> GpuUsageHistory  { get; } = new(Enumerable.Repeat(0.0, HistorySize));
 
         // ── Chart series & axes ──────────────────────────────────────────
         public ISeries[] CpuHistorySeries  { get; }
-        public ISeries[] Gpu1SparkSeries   { get; }
-        public ISeries[] Gpu2SparkSeries   { get; }
-        public ISeries[] GpuHistorySeries  { get; }
 
         // ── RAM gauge label paint (theme-aware) ─────────────────────────
         [ObservableProperty]
@@ -44,8 +37,6 @@ namespace Aquila.ViewModels.Pages
 
         public Axis[] SparklineXAxes  { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = HistorySize - 1 }];
         public Axis[] CpuHistoryYAxes { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 }];
-        public Axis[] GpuHistoryYAxes { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 }];
-        public Axis[] GpuSparkYAxes   { get; } = [new Axis { IsVisible = false, MinLimit = 0 }];
 
         // ── Dynamic lists (refreshed every tick) ─────────────────────────
         [ObservableProperty] private List<CoreBarItem>    _cpuCoreItems       = [];
@@ -94,6 +85,11 @@ namespace Aquila.ViewModels.Pages
         public DataSensor?   NetworkDataUploadedSensor     => SensorLocator.NetworkDataUploaded(Computer);
         public DataSensor?   NetworkDataDownloadedSensor   => SensorLocator.NetworkDataDownloaded(Computer);
 
+        private bool _suspended;
+
+        public void Suspend() => _suspended = true;
+        public void Resume()  => _suspended = false;
+
         public DashboardViewModel(HardwareMonitorService monitorService)
         {
             _monitorService = monitorService;
@@ -109,55 +105,7 @@ namespace Aquila.ViewModels.Pages
                     GeometryStroke  = null,
                     GeometrySize    = 0,
                     LineSmoothness  = 0.5,
-                    AnimationsSpeed = TimeSpan.FromMilliseconds(200),
-                    IsHoverable     = false
-                }
-            ];
-
-            GpuHistorySeries =
-            [
-                new LineSeries<double>
-                {
-                    Values          = GpuUsageHistory,
-                    Fill            = new SolidColorPaint(GpuColor.WithAlpha(35)),
-                    Stroke          = new SolidColorPaint(GpuColor) { StrokeThickness = 1.5f },
-                    GeometryFill    = null,
-                    GeometryStroke  = null,
-                    GeometrySize    = 0,
-                    LineSmoothness  = 0.5,
-                    AnimationsSpeed = TimeSpan.FromMilliseconds(200),
-                    IsHoverable     = false
-                }
-            ];
-
-            Gpu1SparkSeries =
-            [
-                new LineSeries<double>
-                {
-                    Values          = Gpu1LoadHistory,
-                    Fill            = new SolidColorPaint(GpuColor.WithAlpha(35)),
-                    Stroke          = new SolidColorPaint(GpuColor) { StrokeThickness = 1.5f },
-                    GeometryFill    = null,
-                    GeometryStroke  = null,
-                    GeometrySize    = 0,
-                    LineSmoothness  = 0.5,
-                    AnimationsSpeed = TimeSpan.FromMilliseconds(200),
-                    IsHoverable     = false
-                }
-            ];
-
-            Gpu2SparkSeries =
-            [
-                new LineSeries<double>
-                {
-                    Values          = Gpu2LoadHistory,
-                    Fill            = new SolidColorPaint(GpuColor.WithAlpha(35)),
-                    Stroke          = new SolidColorPaint(GpuColor) { StrokeThickness = 1.5f },
-                    GeometryFill    = null,
-                    GeometryStroke  = null,
-                    GeometrySize    = 0,
-                    LineSmoothness  = 0.5,
-                    AnimationsSpeed = TimeSpan.FromMilliseconds(200),
+                    AnimationsSpeed = TimeSpan.Zero,
                     IsHoverable     = false
                 }
             ];
@@ -182,23 +130,11 @@ namespace Aquila.ViewModels.Pages
         {
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                void UpdateLine(ISeries[] series)
-                {
-                    if (series[0] is LineSeries<double> line)
-                    {
-                        line.Fill   = new SolidColorPaint(GpuColor.WithAlpha(35));
-                        line.Stroke = new SolidColorPaint(GpuColor) { StrokeThickness = 1.5f };
-                    }
-                }
-
                 if (CpuHistorySeries[0] is LineSeries<double> cpuLine)
                 {
                     cpuLine.Fill   = new SolidColorPaint(CpuColor.WithAlpha(35));
                     cpuLine.Stroke = new SolidColorPaint(CpuColor) { StrokeThickness = 1.5f };
                 }
-                UpdateLine(GpuHistorySeries);
-                UpdateLine(Gpu1SparkSeries);
-                UpdateLine(Gpu2SparkSeries);
 
                 // Update gauge label paint
                 RamGaugeLabelPaint = CreateLabelPaint();
@@ -207,6 +143,8 @@ namespace Aquila.ViewModels.Pages
 
         private void OnDataUpdated()
         {
+            if (_suspended) return;
+
             CalculateEffectiveCpuClock();
 
             var cpuLoad = CpuUsageSensor?.Value ?? 0;
@@ -224,26 +162,11 @@ namespace Aquila.ViewModels.Pages
                 OnPropertyChanged(nameof(Gpu2));
             }
 
-            // Push load history — same pattern as CPU
-            var gpu1Load = _gpuCards.Count > 0 ? (_gpuCards[0].LoadSensor?.Value ?? 0) : 0f;
-            var gpu2Load = _gpuCards.Count > 1 ? (_gpuCards[1].LoadSensor?.Value ?? 0) : 0f;
-
-            Gpu1LoadHistory.RemoveAt(0);
-            Gpu1LoadHistory.Add(gpu1Load);
-            Gpu2LoadHistory.RemoveAt(0);
-            Gpu2LoadHistory.Add(gpu2Load);
-
-            var gpuLoad = gpu1Load;
-
             CpuGaugeValue = cpuLoad;
-            GpuGaugeValue = gpuLoad;
             RamGaugeValue = Math.Round(MemoryUsageSensor?.Value ?? 0);
 
             CpuUsageHistory.RemoveAt(0);
             CpuUsageHistory.Add(cpuLoad);
-
-            GpuUsageHistory.RemoveAt(0);
-            GpuUsageHistory.Add(gpuLoad);
 
             // Per-core CPU loads
             var cores = SensorLocator.CpuCoreSensors(Computer);
