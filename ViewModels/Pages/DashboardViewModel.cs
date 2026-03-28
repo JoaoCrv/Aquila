@@ -9,6 +9,7 @@ using SkiaSharp;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows.Threading;
 using Wpf.Ui.Appearance;
 
 namespace Aquila.ViewModels.Pages
@@ -85,6 +86,22 @@ namespace Aquila.ViewModels.Pages
         public DataSensor?   NetworkDataUploadedSensor     => SensorLocator.NetworkDataUploaded(Computer);
         public DataSensor?   NetworkDataDownloadedSensor   => SensorLocator.NetworkDataDownloaded(Computer);
 
+        // ── Header — uptime & clock ───────────────────────────────────────────
+        private readonly DispatcherTimer _clockTimer;
+
+        public string SystemUptime
+        {
+            get
+            {
+                var t = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                return t.Days > 0
+                    ? $"{t.Days}d {t.Hours:D2}h {t.Minutes:D2}m"
+                    : $"{t.Hours:D2}h {t.Minutes:D2}m";
+            }
+        }
+
+        public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
+
         private bool _suspended;
 
         // ── Sensor reference cache — notify XAML only when reference changes ────────
@@ -130,6 +147,17 @@ namespace Aquila.ViewModels.Pages
 
             _monitorService.DataUpdated += OnDataUpdated;
             ApplicationThemeManager.Changed += OnThemeChanged;
+
+            _clockTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _clockTimer.Tick += (_, _) =>
+            {
+                OnPropertyChanged(nameof(SystemUptime));
+                OnPropertyChanged(nameof(CurrentDateTime));
+            };
+            _clockTimer.Start();
         }
 
         // ── Theme-aware SkiaSharp colors ─────────────────────────────────
@@ -274,6 +302,7 @@ namespace Aquila.ViewModels.Pages
 
         public void Dispose()
         {
+            _clockTimer.Stop();
             _monitorService.DataUpdated -= OnDataUpdated;
             ApplicationThemeManager.Changed -= OnThemeChanged;
         }

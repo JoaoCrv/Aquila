@@ -165,15 +165,35 @@
 
     </Page.Resources>
 
-    <!-- ════════════════════════════════════════════════════════════════
-         3-COLUMN GRID
-         Col 0  (2*) — CPU + GPU(s)
-         Col 1  (1.3*) — RAM + Network
-         Col 2  (1.3*) — Power + Temperatures + Fans
-         ════════════════════════════════════════════════════════════════ -->
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   Padding="18,6,18,18">
-        <Grid>
+        <StackPanel>
+
+            <!-- ── Header: uptime + date/time ─────────────────────────────────── -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,6">
+                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="5" Padding="10,4" Margin="0,0,6,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="Timer24" FontSize="13" Margin="0,0,5,0" Opacity="0.45"/>
+                        <TextBlock Text="{Binding ViewModel.SystemUptime}" FontSize="12" Opacity="0.65"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="5" Padding="10,4">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="CalendarLtr24" FontSize="13" Margin="0,0,5,0" Opacity="0.45"/>
+                        <TextBlock Text="{Binding ViewModel.CurrentDateTime}" FontSize="12" Opacity="0.65"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- ════════════════════════════════════════════════════════════════
+                 3-COLUMN GRID
+                 Col 0  (2*) — CPU + GPU(s)
+                 Col 1  (1.3*) — RAM + Network
+                 Col 2  (1.3*) — Power + Temperatures + Fans
+                 ════════════════════════════════════════════════════════════════ -->
+            <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="1.3*"/>
@@ -851,6 +871,8 @@
 
             </StackPanel>
         </Grid>
+
+        </StackPanel>
     </ScrollViewer>
 
 </Page>
