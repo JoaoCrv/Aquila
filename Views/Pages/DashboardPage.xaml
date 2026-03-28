@@ -17,6 +17,7 @@
         <helpers:ThroughputConverter x:Key="ThroughputConverter"/>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
         <helpers:ProgressBarWidthConverter x:Key="ProgressBarWidthConverter"/>
+        <helpers:ZeroToCollapsedConverter x:Key="ZeroToCollapsedConverter"/>
 
         <Style x:Key="SectionLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10"/>
@@ -897,7 +898,8 @@
                         <ItemsControl ItemsSource="{Binding ViewModel.SystemFans}">
                              <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,0,0,8">
+                                    <Grid Margin="0,0,0,8"
+                                          Visibility="{Binding Value, Converter={StaticResource ZeroToCollapsedConverter}}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="*"/>
