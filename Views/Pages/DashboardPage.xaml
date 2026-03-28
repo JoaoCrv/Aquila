@@ -19,6 +19,7 @@
         <helpers:ProgressBarWidthConverter x:Key="ProgressBarWidthConverter"/>
         <helpers:ZeroToCollapsedConverter x:Key="ZeroToCollapsedConverter"/>
         <helpers:ThermalBrushConverter x:Key="ThermalBrushConverter"/>
+        <helpers:FanMaxConverter x:Key="FanMaxConverter"/>
 
         <!-- ── Core bar DataTemplate ── -->
         <DataTemplate x:Key="CoreBarTemplate" DataType="{x:Type vm:CoreBarItem}">
@@ -829,7 +830,7 @@
                                         <ProgressBar Grid.Column="1" Style="{StaticResource FanBar}"
                                                      VerticalAlignment="Center"
                                                      Value="{Binding Value, FallbackValue=0}"
-                                                     Maximum="3000"/>
+                                                     Maximum="{Binding Max, Converter={StaticResource FanMaxConverter}}"/>
                                         <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
