@@ -59,7 +59,7 @@
             <DataTemplate>
                 <ui:CardExpander
                     Margin="0,0,0,4"
-                    IsExpanded="False"
+                    IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
                     CornerRadius="8"
                     Icon="{Binding HardwareType, Converter={StaticResource HardwareTypeToIconConverter}}">
 
@@ -104,6 +104,7 @@
                                 <TextBlock Grid.Column="1" Text="VALUE"  FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" Text="MIN"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="3" Text="MAX"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="COPY"   FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
@@ -189,7 +190,19 @@
                                                                     </MultiBinding>
                                                                 </TextBlock.Text>
                                                             </TextBlock>
-                                                            <!-- col 4: future "Add Widget" button -->
+                                                            <!-- col 4: Copy Identifier (#5) -->
+                                                            <ui:Button
+                                                                Grid.Column="4"
+                                                                Appearance="Secondary"
+                                                                FontSize="11"
+                                                                Padding="8,3"
+                                                                VerticalAlignment="Center"
+                                                                HorizontalAlignment="Right"
+                                                                Content="Copy"
+                                                                ToolTip="{Binding Identifier}"
+                                                                Command="{Binding DataContext.ViewModel.CopyIdentifierCommand,
+                                                                          RelativeSource={RelativeSource AncestorType=Page}}"
+                                                                CommandParameter="{Binding Identifier}"/>
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>

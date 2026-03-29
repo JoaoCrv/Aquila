@@ -130,6 +130,14 @@
 
                                 <!-- Temperature -->
                                 <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
+                                    <Border.ToolTip>
+                                        <ToolTip>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding TempSensor.Min, StringFormat='Min: {0:F0} °C', FallbackValue='Min: --'}"/>
+                                                <TextBlock Text="{Binding TempSensor.Max, StringFormat='Max: {0:F0} °C', FallbackValue='Max: --'}"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
                                                    Foreground="{Binding TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
@@ -142,6 +150,14 @@
 
                                 <!-- Total data read -->
                                 <Border Style="{StaticResource StatBox}" Margin="3,0">
+                                    <Border.ToolTip>
+                                        <ToolTip>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DataReadSensor.Min, Converter={StaticResource DataGbConverter}, StringFormat='Min: {0}', FallbackValue='Min: --'}"/>
+                                                <TextBlock Text="{Binding DataReadSensor.Max, Converter={StaticResource DataGbConverter}, StringFormat='Max: {0}', FallbackValue='Max: --'}"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
                                                    Foreground="{DynamicResource Aquila.Ram}"
@@ -152,6 +168,14 @@
 
                                 <!-- Total data written (TBW) -->
                                 <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
+                                    <Border.ToolTip>
+                                        <ToolTip>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DataWrittenSensor.Min, Converter={StaticResource DataGbConverter}, StringFormat='Min: {0}', FallbackValue='Min: --'}"/>
+                                                <TextBlock Text="{Binding DataWrittenSensor.Max, Converter={StaticResource DataGbConverter}, StringFormat='Max: {0}', FallbackValue='Max: --'}"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
                                                    Foreground="{DynamicResource Aquila.Ram}"

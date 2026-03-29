@@ -13,11 +13,13 @@ using System.Threading.Tasks;
 namespace Aquila.ViewModels.Pages
 {
     // ViewModel para a página Explorer
-    public class ExplorerGroupedHardware
+    public partial class ExplorerGroupedHardware : ObservableObject
     {
         public string HardwareName { get; set; } = string.Empty;
         public HardwareType HardwareType { get; set; }
         public List<ExplorerGroupedSensor> SensorGroups { get; set; } = [];
+
+        [ObservableProperty] private bool _isExpanded;
     }
 
     public class ExplorerGroupedSensor
@@ -47,12 +49,19 @@ namespace Aquila.ViewModels.Pages
 
             _hwSignature = signature;
 
+            // Preserve expand/collapse state across rebuilds (4.12)
+            var prevExpanded = GroupedHardware
+                .Where(h => h.IsExpanded)
+                .Select(h => h.HardwareName)
+                .ToHashSet();
+
             GroupedHardware = await Task.Run(() =>
                 snapshot
                     .Select(hw => new ExplorerGroupedHardware
                     {
                         HardwareName = hw.Name,
                         HardwareType = hw.HardwareType,
+                        IsExpanded   = prevExpanded.Contains(hw.Name),
                         SensorGroups = hw.Sensors
                             .ToList()
                             .GroupBy(sensor => sensor.SensorType)
@@ -66,6 +75,9 @@ namespace Aquila.ViewModels.Pages
                     })
                     .ToList());
         }
+
+        [RelayCommand]
+        private static void CopyIdentifier(string identifier) => Clipboard.SetText(identifier);
 
         [RelayCommand]
         private async Task ExportToHtmlAsync()
