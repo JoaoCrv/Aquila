@@ -34,7 +34,40 @@ namespace Aquila.ViewModels.Pages
         private readonly UiService _uiService = uiService;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(FilteredHardware))]
         private List<ExplorerGroupedHardware> _groupedHardware = [];
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(FilteredHardware))]
+        private string _searchText = string.Empty;
+
+        public IEnumerable<ExplorerGroupedHardware> FilteredHardware
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(SearchText))
+                    return GroupedHardware;
+
+                return GroupedHardware
+                    .Select(hw => new ExplorerGroupedHardware
+                    {
+                        HardwareName = hw.HardwareName,
+                        HardwareType = hw.HardwareType,
+                        IsExpanded = true,
+                        SensorGroups = hw.SensorGroups
+                            .Select(g => new ExplorerGroupedSensor
+                            {
+                                CategoryName = g.CategoryName,
+                                Sensors = g.Sensors
+                                    .Where(s => s.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                                    .ToList()
+                            })
+                            .Where(g => g.Sensors.Count > 0)
+                            .ToList()
+                    })
+                    .Where(hw => hw.SensorGroups.Count > 0);
+            }
+        }
 
         private IReadOnlyList<(string Name, HardwareType Type)> _hwSignature = [];
 

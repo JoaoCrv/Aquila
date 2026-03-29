@@ -21,6 +21,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Toolbar -->
@@ -50,11 +51,23 @@
             </Grid>
         </Border>
 
+        <!-- Search bar -->
+        <ui:TextBox
+            Grid.Row="1"
+            Margin="20,4,20,8"
+            PlaceholderText="Search sensors…"
+            ClearButtonEnabled="True"
+            Text="{Binding ViewModel.SearchText, UpdateSourceTrigger=PropertyChanged}">
+            <ui:TextBox.Icon>
+                <ui:SymbolIcon Symbol="Search24"/>
+            </ui:TextBox.Icon>
+        </ui:TextBox>
+
         <!-- Sensor list -->
         <ItemsControl
-            Grid.Row="1"
-            ItemsSource="{Binding ViewModel.GroupedHardware}"
-            Margin="20,8,20,20">
+            Grid.Row="2"
+            ItemsSource="{Binding ViewModel.FilteredHardware}"
+            Margin="20,0,20,20">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
                 <ui:CardExpander
