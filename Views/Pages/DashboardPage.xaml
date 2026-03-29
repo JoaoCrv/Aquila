@@ -82,15 +82,27 @@
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
                                            Foreground="{DynamicResource Aquila.Power}">
-                                    <Run Text="{Binding PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                    <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                </TextBlock>
-                                <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
-                            </StackPanel>
-                        </Border>
-                    </UniformGrid>
+                                            <Run Text="{Binding PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                    <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                </TextBlock>
+                                                <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </UniformGrid>
 
-                    <!-- VRAM -->
+                                    <!-- GPU usage sparkline -->
+                                    <TextBlock Text="USAGE — 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"/>
+                                    <lvc:CartesianChart
+                                        Height="64"
+                                        Series="{Binding UsageSeries}"
+                                        XAxes="{Binding SparklineXAxes}"
+                                        YAxes="{Binding SparklineYAxes}"
+                                        TooltipPosition="Hidden"
+                                        LegendPosition="Hidden"
+                                        ZoomMode="None"
+                                        Background="Transparent"/>
+
+                                    <!-- VRAM -->
                     <StackPanel Margin="0,4,0,0">
                         <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -314,243 +326,9 @@
                     </StackPanel>
                 </ui:Card>
 
-                <!-- GPU cards — explicit Gpu1 and Gpu2 so sparkline can bind to ViewModel -->
-                <ui:Card Margin="0,0,0,8" Padding="16,14"
-                         Visibility="{Binding ViewModel.Gpu1, Converter={StaticResource NullToCollapsedConverter}}">
-                    <StackPanel>
-                        <TextBlock Text="GPU" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding ViewModel.Gpu1.Name}" Style="{StaticResource ChipName}" Margin="0,0,0,12"/>
-
-                        <UniformGrid Columns="4" Margin="0,0,0,14">
-                            <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}">
-                                        <Run Text="{Binding ViewModel.Gpu1.LoadSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Usage" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding ViewModel.Gpu1.TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                        <Run Text="{Binding ViewModel.Gpu1.TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Gpu}">
-                                        <Run Text="{Binding ViewModel.Gpu1.ClockSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Clock" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Power}">
-                                        <Run Text="{Binding ViewModel.Gpu1.PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-
-                        <!-- VRAM -->
-                        <StackPanel Margin="0,4,0,0">
-                            <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock FontSize="20" FontWeight="Normal"
-                                           Foreground="{DynamicResource Aquila.Gpu}"
-                                           Text="{Binding ViewModel.Gpu1.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
-                                <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="">
-                                            <Binding Path="ViewModel.Gpu1.VramTotalSensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu1.VramUsedSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <ProgressBar Style="{StaticResource GpuBar}" Height="8"
-                                         Value="{Binding ViewModel.Gpu1.VramPercent, Mode=OneWay, FallbackValue=0}"
-                                         Maximum="100"/>
-                            <Grid Margin="0,5,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
-                                           Text="{Binding ViewModel.Gpu1.VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
-                                <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
-                                            <Binding Path="ViewModel.Gpu1.VramTotalSensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu1.VramUsedSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </Grid>
-                        </StackPanel>
-
-                        <Border Style="{StaticResource Divider}"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Fan 1" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Gpu1.Fan1Sensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu1.Fan1Sensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="Fan 2" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Gpu1.Fan2Sensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu1.Fan2Sensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                </ui:Card>
-
-                <!-- GPU 2 -->
-                <ui:Card Margin="0,0,0,8" Padding="16,14"
-                         Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}">
-                    <StackPanel>
-                        <TextBlock Text="GPU" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding ViewModel.Gpu2.Name}" Style="{StaticResource ChipName}" Margin="0,0,0,12"/>
-
-                        <UniformGrid Columns="4" Margin="0,0,0,14">
-                            <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}">
-                                        <Run Text="{Binding ViewModel.Gpu2.LoadSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Usage" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding ViewModel.Gpu2.TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                        <Run Text="{Binding ViewModel.Gpu2.TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Gpu}">
-                                        <Run Text="{Binding ViewModel.Gpu2.ClockSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Clock" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Power}">
-                                        <Run Text="{Binding ViewModel.Gpu2.PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-
-                        <!-- VRAM -->
-                        <StackPanel Margin="0,4,0,0">
-                            <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock FontSize="20" FontWeight="Normal"
-                                           Foreground="{DynamicResource Aquila.Gpu}"
-                                           Text="{Binding ViewModel.Gpu2.VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
-                                <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="">
-                                            <Binding Path="ViewModel.Gpu2.VramTotalSensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu2.VramUsedSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <ProgressBar Style="{StaticResource GpuBar}" Height="8"
-                                         Value="{Binding ViewModel.Gpu2.VramPercent, Mode=OneWay, FallbackValue=0}"
-                                         Maximum="100"/>
-                            <Grid Margin="0,5,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
-                                           Text="{Binding ViewModel.Gpu2.VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
-                                <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
-                                            <Binding Path="ViewModel.Gpu2.VramTotalSensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu2.VramUsedSensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </Grid>
-                        </StackPanel>
-
-                        <Border Style="{StaticResource Divider}"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Fan 1" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Gpu2.Fan1Sensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu2.Fan1Sensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="Fan 2" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Gpu2.Fan2Sensor.Value"/>
-                                            <Binding Path="ViewModel.Gpu2.Fan2Sensor.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                </ui:Card>
+                <!-- GPU cards -->
+                <ItemsControl ItemsSource="{Binding ViewModel.GpuCards}"
+                              ItemTemplate="{StaticResource GpuCardTemplate}"/>
 
             </StackPanel>
 
@@ -703,10 +481,6 @@
                                        Foreground="{DynamicResource Aquila.Cpu}"
                                        Text="{Binding ViewModel.NetworkDownloadSpeedSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                         </Grid>
-                        <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,8"
-                                     Value="{Binding ViewModel.NetworkDownloadSpeedSensor.Value, FallbackValue=0}"
-                                     Maximum="125000000"/>
-
                         <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="↑ Upload" Style="{StaticResource RowLabel}"/>
@@ -714,9 +488,16 @@
                                        Foreground="{DynamicResource Aquila.Ram}"
                                        Text="{Binding ViewModel.NetworkUploadSpeedSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                         </Grid>
-                        <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,0"
-                                     Value="{Binding ViewModel.NetworkUploadSpeedSensor.Value, FallbackValue=0}"
-                                     Maximum="125000000"/>
+                        <lvc:CartesianChart
+                            Height="64"
+                            Margin="0,6,0,0"
+                            Series="{Binding ViewModel.NetworkHistorySeries}"
+                            XAxes="{Binding ViewModel.SparklineXAxes}"
+                            YAxes="{Binding ViewModel.NetworkHistoryYAxes}"
+                            TooltipPosition="Hidden"
+                            LegendPosition="Hidden"
+                            ZoomMode="None"
+                            Background="Transparent"/>
 
                         <Border Style="{StaticResource Divider}"/>
 

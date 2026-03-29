@@ -27,17 +27,21 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty] private float  _totalPower;
 
         // ── History ring buffers ─────────────────────────────────────────
-        public ObservableCollection<double> CpuUsageHistory  { get; } = new(Enumerable.Repeat(0.0, HistorySize));
+        public ObservableCollection<double> CpuUsageHistory       { get; } = new(Enumerable.Repeat(0.0, HistorySize));
+        public ObservableCollection<double> NetworkDownloadHistory { get; } = new(Enumerable.Repeat(0.0, HistorySize));
+        public ObservableCollection<double> NetworkUploadHistory   { get; } = new(Enumerable.Repeat(0.0, HistorySize));
 
         // ── Chart series & axes ──────────────────────────────────────────
-        public ISeries[] CpuHistorySeries  { get; }
+        public ISeries[] CpuHistorySeries     { get; }
+        public ISeries[] NetworkHistorySeries { get; }
 
         // ── RAM gauge label paint (theme-aware) ─────────────────────────
         [ObservableProperty]
         private SolidColorPaint _ramGaugeLabelPaint = CreateLabelPaint();
 
-        public Axis[] SparklineXAxes  { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = HistorySize - 1 }];
-        public Axis[] CpuHistoryYAxes { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 }];
+        public Axis[] SparklineXAxes      { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = HistorySize - 1 }];
+        public Axis[] CpuHistoryYAxes     { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 }];
+        public Axis[] NetworkHistoryYAxes { get; } = [new Axis { IsVisible = false, MinLimit = 0 }];
 
         // ── Dynamic lists (refreshed every tick) ─────────────────────────
         [ObservableProperty] private List<CoreBarItem>    _cpuCoreItems       = [];
@@ -146,6 +150,34 @@ namespace Aquila.ViewModels.Pages
                 }
             ];
 
+            NetworkHistorySeries =
+            [
+                new LineSeries<double>
+                {
+                    Values          = NetworkDownloadHistory,
+                    Fill            = new SolidColorPaint(NetworkDownColor.WithAlpha(35)),
+                    Stroke          = new SolidColorPaint(NetworkDownColor) { StrokeThickness = 1.5f },
+                    GeometryFill    = null,
+                    GeometryStroke  = null,
+                    GeometrySize    = 0,
+                    LineSmoothness  = 0.5,
+                    AnimationsSpeed = TimeSpan.Zero,
+                    IsHoverable     = false
+                },
+                new LineSeries<double>
+                {
+                    Values          = NetworkUploadHistory,
+                    Fill            = new SolidColorPaint(NetworkUpColor.WithAlpha(25)),
+                    Stroke          = new SolidColorPaint(NetworkUpColor) { StrokeThickness = 1.5f },
+                    GeometryFill    = null,
+                    GeometryStroke  = null,
+                    GeometrySize    = 0,
+                    LineSmoothness  = 0.5,
+                    AnimationsSpeed = TimeSpan.Zero,
+                    IsHoverable     = false
+                }
+            ];
+
             _monitorService.DataUpdated += OnDataUpdated;
             ApplicationThemeManager.Changed += OnThemeChanged;
 
@@ -164,8 +196,10 @@ namespace Aquila.ViewModels.Pages
         // ── Theme-aware SkiaSharp colors ─────────────────────────────────
 
         private static bool IsLight => ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Light;
-        internal static SKColor CpuColor => IsLight ? new SKColor(0xCA, 0x50, 0x10) : new SKColor(0xF5, 0xA6, 0x23);
-        internal static SKColor GpuColor => IsLight ? new SKColor(0x7B, 0x4F, 0xBF) : new SKColor(0x9D, 0x6E, 0xF5);
+        internal static SKColor CpuColor        => IsLight ? new SKColor(0xCA, 0x50, 0x10) : new SKColor(0xF5, 0xA6, 0x23);
+        internal static SKColor GpuColor        => IsLight ? new SKColor(0x7B, 0x4F, 0xBF) : new SKColor(0x9D, 0x6E, 0xF5);
+        private  static SKColor NetworkDownColor => IsLight ? new SKColor(0x00, 0x78, 0xD4) : new SKColor(0x60, 0xCD, 0xFF);
+        private  static SKColor NetworkUpColor   => IsLight ? new SKColor(0x10, 0x7C, 0x10) : new SKColor(0x6B, 0xCB, 0x77);
 
         private static SolidColorPaint CreateLabelPaint()
         {
@@ -181,6 +215,20 @@ namespace Aquila.ViewModels.Pages
                 {
                     cpuLine.Fill   = new SolidColorPaint(CpuColor.WithAlpha(35));
                     cpuLine.Stroke = new SolidColorPaint(CpuColor) { StrokeThickness = 1.5f };
+                }
+
+                foreach (var card in _gpuCards)
+                    card.UpdateSeriesColors();
+
+                if (NetworkHistorySeries[0] is LineSeries<double> downLine)
+                {
+                    downLine.Fill   = new SolidColorPaint(NetworkDownColor.WithAlpha(35));
+                    downLine.Stroke = new SolidColorPaint(NetworkDownColor) { StrokeThickness = 1.5f };
+                }
+                if (NetworkHistorySeries[1] is LineSeries<double> upLine)
+                {
+                    upLine.Fill   = new SolidColorPaint(NetworkUpColor.WithAlpha(25));
+                    upLine.Stroke = new SolidColorPaint(NetworkUpColor) { StrokeThickness = 1.5f };
                 }
 
                 // Update gauge label paint
@@ -209,11 +257,20 @@ namespace Aquila.ViewModels.Pages
                 OnPropertyChanged(nameof(Gpu2));
             }
 
+            foreach (var card in _gpuCards)
+                card.PushHistory(card.LoadSensor?.Value ?? 0);
+
             CpuGaugeValue = cpuLoad;
             RamGaugeValue = Math.Round(MemoryUsageSensor?.Value ?? 0);
 
             CpuUsageHistory.RemoveAt(0);
             CpuUsageHistory.Add(cpuLoad);
+
+            // Network throughput history
+            NetworkDownloadHistory.RemoveAt(0);
+            NetworkDownloadHistory.Add(NetworkDownloadSpeedSensor?.Value ?? 0);
+            NetworkUploadHistory.RemoveAt(0);
+            NetworkUploadHistory.Add(NetworkUploadSpeedSensor?.Value ?? 0);
 
             // Per-core CPU loads
             var cores = SensorLocator.CpuCoreSensors(Computer);
@@ -331,23 +388,67 @@ namespace Aquila.ViewModels.Pages
         }
     }
 
-    // ── Per-GPU card data (sensors only — sparkline lives in DashboardViewModel) ──
-    public class GpuCardData(DataHardware gpu)
+    // ── Per-GPU card data (sensors + own sparkline history) ──
+    public class GpuCardData
     {
-        public string      Name           => gpu.Name;
-        public DataSensor? TempSensor     => SensorLocator.GpuTemperatureFor(gpu);
-        public DataSensor? LoadSensor     => SensorLocator.GpuLoadFor(gpu);
-        public DataSensor? ClockSensor    => SensorLocator.GpuClockFor(gpu);
-        public DataSensor? PowerSensor    => SensorLocator.GpuPowerFor(gpu);
-        public DataSensor? Fan1Sensor     => SensorLocator.GpuFanFor(gpu, 0);
-        public DataSensor? Fan2Sensor     => SensorLocator.GpuFanFor(gpu, 1);
-        public DataSensor? VramUsedSensor  => SensorLocator.GpuVramUsedFor(gpu);
-        public DataSensor? VramTotalSensor => SensorLocator.GpuVramTotalFor(gpu);
+        private const int HistorySize = 60;
+        private readonly DataHardware _gpu;
+
+        public GpuCardData(DataHardware gpu)
+        {
+            _gpu = gpu;
+            UsageHistory = new ObservableCollection<double>(Enumerable.Repeat(0.0, HistorySize));
+            UsageSeries =
+            [
+                new LineSeries<double>
+                {
+                    Values          = UsageHistory,
+                    Fill            = new SolidColorPaint(DashboardViewModel.GpuColor.WithAlpha(35)),
+                    Stroke          = new SolidColorPaint(DashboardViewModel.GpuColor) { StrokeThickness = 1.5f },
+                    GeometryFill    = null,
+                    GeometryStroke  = null,
+                    GeometrySize    = 0,
+                    LineSmoothness  = 0.5,
+                    AnimationsSpeed = TimeSpan.Zero,
+                    IsHoverable     = false
+                }
+            ];
+        }
+
+        public string      Name            => _gpu.Name;
+        public DataSensor? TempSensor      => SensorLocator.GpuTemperatureFor(_gpu);
+        public DataSensor? LoadSensor      => SensorLocator.GpuLoadFor(_gpu);
+        public DataSensor? ClockSensor     => SensorLocator.GpuClockFor(_gpu);
+        public DataSensor? PowerSensor     => SensorLocator.GpuPowerFor(_gpu);
+        public DataSensor? Fan1Sensor      => SensorLocator.GpuFanFor(_gpu, 0);
+        public DataSensor? Fan2Sensor      => SensorLocator.GpuFanFor(_gpu, 1);
+        public DataSensor? VramUsedSensor  => SensorLocator.GpuVramUsedFor(_gpu);
+        public DataSensor? VramTotalSensor => SensorLocator.GpuVramTotalFor(_gpu);
 
         public float VramPercent =>
             VramTotalSensor?.Value > 0
                 ? Math.Clamp((VramUsedSensor?.Value ?? 0) / VramTotalSensor!.Value * 100f, 0f, 100f)
                 : 0f;
+
+        public ObservableCollection<double> UsageHistory  { get; }
+        public ISeries[]                    UsageSeries   { get; }
+        public Axis[] SparklineXAxes { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = HistorySize - 1 }];
+        public Axis[] SparklineYAxes { get; } = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 }];
+
+        public void PushHistory(double value)
+        {
+            UsageHistory.RemoveAt(0);
+            UsageHistory.Add(value);
+        }
+
+        public void UpdateSeriesColors()
+        {
+            if (UsageSeries[0] is LineSeries<double> line)
+            {
+                line.Fill   = new SolidColorPaint(DashboardViewModel.GpuColor.WithAlpha(35));
+                line.Stroke = new SolidColorPaint(DashboardViewModel.GpuColor) { StrokeThickness = 1.5f };
+            }
+        }
     }
 
     // ── CPU core bar ─────────────────────────────────────────────────────────
