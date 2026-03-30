@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.3.0"></a>
+## [1.3.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.3.0) (2026-03-30)
+
+### Features
+
+* 4.3 responsive dashboard layout — WrapPanel + ColumnWidthConverter (3→2→1 col) ([079d70b](https://www.github.com/JoaoCrv/Aquila/commit/079d70b595dd2e5edd5bc53aeb390cd465ed546f))
+* complete dashboard cards — Storage card, RAM/Power polish, SensorLocator storage helpers ([0c6c5cb](https://www.github.com/JoaoCrv/Aquila/commit/0c6c5cb9625e17fca065abddc9a35c20f2388d6d))
+* Explorer Copy Identifier ([#5](https://www.github.com/JoaoCrv/Aquila/issues/5)/4.7), expand state memory (4.12), StoragePage tooltips (4.4) ([ab82001](https://www.github.com/JoaoCrv/Aquila/commit/ab820013751a6ff58269e55b559f1ac506220e2c))
+* Explorer search/filter (4.5) ([2134350](https://www.github.com/JoaoCrv/Aquila/commit/2134350064338d84028b2841f2c494eee94cded4))
+* GPU sparklines (4.1), network throughput chart (4.1), GPU card refactor (4.8) ([9c65d9e](https://www.github.com/JoaoCrv/Aquila/commit/9c65d9eed029bfe103eaf8b948c9a7706eb077d7))
+* implement StoragePage with DriveInfo + LHM sensor support ([b1d854a](https://www.github.com/JoaoCrv/Aquila/commit/b1d854a63e5cdfeafb7815a865b7076a923dc9fc))
+* RAM sparkline, 2-col layout, responsive NavView padding (4.18, 4.19) ([09d3478](https://www.github.com/JoaoCrv/Aquila/commit/09d347886ccdf9d7281b5821799aaaccb8872a94))
+* redesign StoragePage with Radiograph-inspired CardExpander layout ([47a32f2](https://www.github.com/JoaoCrv/Aquila/commit/47a32f2e92383070f64504fab77e3c8dc9d71976))
+* **dashboard:** add header with system uptime and date/time (ROADM ([92c8cad](https://www.github.com/JoaoCrv/Aquila/commit/92c8cad3ce3db3df9683e76ba2c3f641261e94fc))
+* **dashboard:** hide zero-RPM fan rows with ZeroToCollapsedConverter ([3666b08](https://www.github.com/JoaoCrv/Aquila/commit/3666b080ad6e9cf0502d2d8d62cd59ac23ae5007))
+* **explorer:** add HTML sensor export button ([0fef64e](https://www.github.com/JoaoCrv/Aquila/commit/0fef64eb536f5be07827dad0b5e8aba88703d61c))
+* **fans:** dynamic Maximum via FanMaxConverter (ROADMAP 4.13 partial) ([97d8861](https://www.github.com/JoaoCrv/Aquila/commit/97d886152f16911ea53257bffb302de74580ffdc))
+* **theme:** 3-layer theming system + semantic colour ([1e70800](https://www.github.com/JoaoCrv/Aquila/commit/1e7080002464f488fbcb743b973effdd63e197fc))
+* **ui:** remove NavigationView BreadcrumbBar header ([60a22e5](https://www.github.com/JoaoCrv/Aquila/commit/60a22e58811cbcbbe6904550a546b2281e5d0cb3))
+
+### Bug Fixes
+
+* remove duplicate CPU temp chip and zero-value sensors from temperatures card ([c9bd246](https://www.github.com/JoaoCrv/Aquila/commit/c9bd2465b94b810261b3b253d69f8cf99b800cc0))
+* replace PerformanceCounter with PDH native API for page-fault counters ([c2081b5](https://www.github.com/JoaoCrv/Aquila/commit/c2081b5cb5a2fa665e491065378754c9b6286e12))
+* **cleanup:** implement IDisposable on DashboardViewModel and AccentBrush ([f9feeee](https://www.github.com/JoaoCrv/Aquila/commit/f9feeee966c80080fb97ec483f63a90c32d3d051))
+* **cpu:** revert DashboardViewModel to LHM 0.9.4-safe sensor logic ([1b6c8ea](https://www.github.com/JoaoCrv/Aquila/commit/1b6c8ea9f335ed21c08c04d911fe9c4d8f32a1c7))
+* **explorer:** restore Frame scroll, replace ListBox with ItemsControl ([0a9531e](https://www.github.com/JoaoCrv/Aquila/commit/0a9531ebad729a06e8a46045fac073910d89b12a))
+* **explorer:** skip GroupedHardware rebuild on re-navigation if hardware unchanged ( ([0b5d956](https://www.github.com/JoaoCrv/Aquila/commit/0b5d95657a0429bc239ab4e3019228c24c979ca4))
+
 <a name="1.2.0"></a>
 ## [1.2.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.2.0) (2026-03-28)
 
