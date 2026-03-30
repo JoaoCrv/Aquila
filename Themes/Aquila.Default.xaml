@@ -65,6 +65,18 @@
     <SolidColorBrush x:Key="Aquila.Gauge.Background.Dark"  Color="#1A6BCB77"/>
     <SolidColorBrush x:Key="Aquila.Gauge.Background.Light" Color="#33107C10"/>
 
+    <!-- Chart series (sparklines) -->
+    <SolidColorBrush x:Key="Aquila.Chart.Cpu.Dark"         Color="{StaticResource Aquila.Palette.Orange.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.Cpu.Light"        Color="{StaticResource Aquila.Palette.Orange.Deep}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.Gpu.Dark"         Color="{StaticResource Aquila.Palette.Purple.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.Gpu.Light"        Color="{StaticResource Aquila.Palette.Purple.Deep}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.NetDown.Dark"     Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.NetDown.Light"    Color="{StaticResource Aquila.Palette.Blue.Deep}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.Ram.Dark"         Color="{StaticResource Aquila.Palette.Green.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.Ram.Light"        Color="{StaticResource Aquila.Palette.Green.Deep}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.NetUp.Dark"       Color="{StaticResource Aquila.Palette.Green.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.NetUp.Light"      Color="{StaticResource Aquila.Palette.Green.Deep}"/>
+
     <!-- ═══════════════════════════════════════════════════════════════════
          LAYER 3 — Runtime keys  (no Dark/Light suffix)
          These are the keys consumed by {DynamicResource Aquila.*} in XAML
@@ -83,5 +95,12 @@
     <SolidColorBrush x:Key="Aquila.Power"            Color="{StaticResource Aquila.Palette.Purple.Bright}"/>
     <SolidColorBrush x:Key="Aquila.Critical"         Color="{StaticResource Aquila.Palette.Red.Bright}"/>
     <SolidColorBrush x:Key="Aquila.Gauge.Background" Color="#1A6BCB77"/>
+
+    <!-- Chart series defaults -->
+    <SolidColorBrush x:Key="Aquila.Chart.Cpu"        Color="{StaticResource Aquila.Palette.Orange.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.Ram"        Color="{StaticResource Aquila.Palette.Green.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.Gpu"        Color="{StaticResource Aquila.Palette.Purple.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.NetDown"    Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
+    <SolidColorBrush x:Key="Aquila.Chart.NetUp"      Color="{StaticResource Aquila.Palette.Green.Bright}"/>
 
 </ResourceDictionary>

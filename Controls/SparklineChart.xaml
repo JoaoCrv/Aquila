@@ -1,0 +1,10 @@
+<UserControl x:Class="Aquila.Controls.SparklineChart"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF">
+    <lvc:CartesianChart x:Name="Chart"
+                        TooltipPosition="Hidden"
+                        LegendPosition="Hidden"
+                        ZoomMode="None"
+                        Background="Transparent"/>
+</UserControl>
