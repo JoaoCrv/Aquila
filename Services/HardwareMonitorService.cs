@@ -1,7 +1,6 @@
 ﻿using Aquila.Models;
 using LibreHardwareMonitor.Hardware;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
@@ -29,9 +28,9 @@ namespace Aquila.Services
         private DispatcherTimer? _timer;
         private bool _disposed;
 
-        private PerformanceCounter? _pageReadCounter;
-        private PerformanceCounter? _pageWriteCounter;
-        private PerformanceCounter? _cacheCounter;
+        private IntPtr _pdhQuery;
+        private IntPtr _pdhPageReads;
+        private IntPtr _pdhPageWrites;
 
         public event Action? DataUpdated;
         public ComputerData ComputerData { get; } = new();
@@ -44,6 +43,8 @@ namespace Aquila.Services
         /// <summary>System file cache size in bytes.</summary>
         public long  CacheBytes       { get; private set; }
 
+        // ── Native interop ───────────────────────────────────────────────
+
         [StructLayout(LayoutKind.Sequential)]
         private struct PERFORMANCE_INFORMATION
         {
@@ -55,6 +56,30 @@ namespace Aquila.Services
 
         [DllImport("psapi.dll", SetLastError = true)]
         private static extern bool GetPerformanceInfo(out PERFORMANCE_INFORMATION pPerformanceInformation, uint cb);
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct PDH_FMT_COUNTERVALUE
+        {
+            [FieldOffset(0)] public uint CStatus;
+            [FieldOffset(8)] public double doubleValue;
+        }
+
+        private const uint PDH_FMT_DOUBLE = 0x00000200;
+
+        [DllImport("pdh.dll")]
+        private static extern int PdhOpenQuery(IntPtr dataSource, IntPtr userData, out IntPtr query);
+
+        [DllImport("pdh.dll", CharSet = CharSet.Unicode)]
+        private static extern int PdhAddEnglishCounter(IntPtr query, string fullCounterPath, IntPtr userData, out IntPtr counter);
+
+        [DllImport("pdh.dll")]
+        private static extern int PdhCollectQueryData(IntPtr query);
+
+        [DllImport("pdh.dll")]
+        private static extern int PdhGetFormattedCounterValue(IntPtr counter, uint format, out uint counterType, out PDH_FMT_COUNTERVALUE value);
+
+        [DllImport("pdh.dll")]
+        private static extern int PdhCloseQuery(IntPtr query);
 
         public void StartMonitoring()
         {
@@ -78,13 +103,12 @@ namespace Aquila.Services
                 _computer.Open();
                 _timer.Start();
 
-                _pageReadCounter  = new PerformanceCounter("Memory", "Page Reads/sec",  readOnly: true);
-                _pageWriteCounter = new PerformanceCounter("Memory", "Page Writes/sec", readOnly: true);
-                _cacheCounter     = new PerformanceCounter("Memory", "Cache Bytes",     readOnly: true);
-                // First call returns 0 — discard it
-                _pageReadCounter.NextValue();
-                _pageWriteCounter.NextValue();
-                _cacheCounter.NextValue();
+                if (PdhOpenQuery(IntPtr.Zero, IntPtr.Zero, out _pdhQuery) == 0)
+                {
+                    PdhAddEnglishCounter(_pdhQuery, @"\Memory\Page Reads/sec",  IntPtr.Zero, out _pdhPageReads);
+                    PdhAddEnglishCounter(_pdhQuery, @"\Memory\Page Writes/sec", IntPtr.Zero, out _pdhPageWrites);
+                    PdhCollectQueryData(_pdhQuery); // baseline collection (first value is discarded for rate counters)
+                }
             }
             catch (Exception ex)
             {
@@ -103,9 +127,11 @@ namespace Aquila.Services
             _computer?.Close();
             _computer = null;
 
-            _pageReadCounter?.Dispose();
-            _pageWriteCounter?.Dispose();
-            _cacheCounter?.Dispose();
+            if (_pdhQuery != IntPtr.Zero)
+            {
+                PdhCloseQuery(_pdhQuery);
+                _pdhQuery = IntPtr.Zero;
+            }
         }
 
         private void UpdateDataModel(object? sender, EventArgs e)
@@ -150,8 +176,13 @@ namespace Aquila.Services
                 if (GetPerformanceInfo(out var pi, (uint)Marshal.SizeOf<PERFORMANCE_INFORMATION>()))
                     CacheBytes = (long)pi.SystemCache * (long)pi.PageSize;
 
-                PageReadsPerSec  = _pageReadCounter?.NextValue()  ?? 0;
-                PageWritesPerSec = _pageWriteCounter?.NextValue() ?? 0;
+                if (_pdhQuery != IntPtr.Zero && PdhCollectQueryData(_pdhQuery) == 0)
+                {
+                    if (PdhGetFormattedCounterValue(_pdhPageReads,  PDH_FMT_DOUBLE, out _, out var reads)  == 0)
+                        PageReadsPerSec = (float)reads.doubleValue;
+                    if (PdhGetFormattedCounterValue(_pdhPageWrites, PDH_FMT_DOUBLE, out _, out var writes) == 0)
+                        PageWritesPerSec = (float)writes.doubleValue;
+                }
             }
             catch { }
 
