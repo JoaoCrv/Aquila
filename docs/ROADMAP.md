@@ -219,7 +219,93 @@
 - [ ] **9.7** **Validate prerequisites** � script should check that `dotnet`, `vpk`, `versionize`, and `gh` are available before running.
 
 ---
+## Phase X — Hardware API Refactor (Anti-Corruption Layer)
 
+> **Context:** Currently all ViewModels depend directly on `HardwareMonitorService`, `ComputerData`, and `SensorLocator`. This creates a tight coupling to LibreHardwareMonitor — any LHM version bump (e.g. 0.9.4 → 0.9.6) may break sensor name patterns or sensor types throughout the app. Additionally, LHM 0.9.4 has known bugs on recent hardware: missing fan readings, incorrect CPU clock on AMD Zen 5, and limited RAM sensor coverage.
+>
+> The solution is an **Anti-Corruption Layer**: a domain-owned `IHardwareReader` interface that the app always binds to, backed by an `LhmHardwareAdapter` that is the only class that knows LHM exists. Future SDKs (OpenHardwareMonitor, mock for tests, remote sources) can be added by implementing the same interface with zero changes to the app layer.
+>
+> **Branch:** dedicated — do not mix with `Home_Explorer` page work.
+
+### Architecture
+
+```
+ViewModels  →  IHardwareReader (domain interface)
+                     ↑
+              LhmHardwareAdapter   ← only class that imports LHM
+                     ↑
+            LibreHardwareMonitorLib 0.9.6
+```
+
+### Domain Snapshots (immutable records, published each tick)
+
+```csharp
+record CpuSnapshot(string Name, string Summary, float Load, float TempC,
+    float PowerW, float EffectiveClockMhz,
+    IReadOnlyList<CoreReading> Cores);
+
+record CoreReading(int Index, float LoadPercent);
+
+record GpuSnapshot(string Name, float Load, float TempC, float PowerW,
+    float ClockMhz, float VramUsedMb, float VramTotalMb,
+    IReadOnlyList<FanReading> Fans, IReadOnlyList<double> UsageHistory);
+
+record RamSnapshot(float UsedGb, float TotalGb, float CacheGb,
+    float PageReadsPerSec, float PageWritesPerSec);
+
+record FanReading(string Name, float Rpm, float? ControlPercent, float MaxRpm);
+    // ControlPercent = null when LHM does not expose it (resolves 4.13 automatically)
+
+record NetworkSnapshot(string Name, float DownloadBps, float UploadBps,
+    float TotalReceivedGb, float TotalSentGb);
+
+record StorageSnapshot(string Name, float? TempC, float? ReadBps, float? WriteBps,
+    float UsedPercent, IReadOnlyList<double> ReadHistory, IReadOnlyList<double> WriteHistory);
+
+record TemperatureReading(string Label, float TempC);
+```
+
+### `IHardwareReader` interface
+
+```csharp
+public interface IHardwareReader
+{
+    CpuSnapshot?                    Cpu          { get; }
+    IReadOnlyList<GpuSnapshot>      Gpus         { get; }
+    RamSnapshot?                    Ram          { get; }
+    NetworkSnapshot?                Network      { get; }
+    IReadOnlyList<StorageSnapshot>  Drives       { get; }
+    IReadOnlyList<FanReading>       Fans         { get; }
+    IReadOnlyList<TemperatureReading> Temperatures { get; }
+
+    // Raw tree for ExplorerPage — preserved as-is
+    IReadOnlyList<DataHardware>     RawTree      { get; }
+
+    event Action DataUpdated;
+    void Start();
+    void Dispose();
+}
+```
+
+### Tasks
+
+- [ ] **X.1** Update `LibreHardwareMonitorLib` → **0.9.6** in `Aquila.csproj`.
+- [ ] **X.2** Create domain snapshot records in `Models/HardwareSnapshots.cs` (all records above, no LHM imports).
+- [ ] **X.3** Create `IHardwareReader` interface in `Services/IHardwareReader.cs`.
+- [ ] **X.4** Create `LhmHardwareAdapter : IHardwareReader, IDisposable` in `Services/LhmHardwareAdapter.cs`.
+  - Absorbs all logic from `HardwareMonitorService` + `SensorLocator` + `CalculateEffectiveCpuClock`.
+  - Publishes immutable snapshots each tick; retains 60-point ring buffers internally for GPU/Storage sparklines.
+  - Pairs `(FanSensor, ControlSensor)` by index — resolves **4.13**.
+  - Handles LHM 0.9.6 fan and clock changes.
+- [ ] **X.5** Register `LhmHardwareAdapter` as `IHardwareReader` singleton in `App.xaml.cs`. Remove `HardwareMonitorService` registration.
+- [ ] **X.6** Rewrite `DashboardViewModel` to consume `IHardwareReader` snapshots. Remove `SensorLocator`, `ComputerData`, sensor-reference cache (`_prev*` fields), `NotifySensorReferences()`, `CalculateEffectiveCpuClock()`. ViewModels become dramatically simpler — most properties become one-liners reading from the current snapshot.
+- [ ] **X.7** Update `DashboardPage.xaml` bindings to match new snapshot-based property names.
+- [ ] **X.8** Update `ExplorerViewModel` to consume `IHardwareReader.RawTree` instead of `HardwareMonitorService.ComputerData.HardwareList`.
+- [ ] **X.9** Delete `Services/HardwareMonitorService.cs`, `Helpers/SensorLocator.cs`.
+- [ ] **X.10** Update `ApplicationHostService` to call `IHardwareReader.Start()` / `Dispose()`.
+- [ ] **X.11** Update ROADMAP — mark **3.5** (StoragePage sparklines) as unblocked, revisit **4.13** (resolved by X.4).
+
+---
 ## Phase 10 � Advanced Features (Future)
 
 - [ ] **10.1** **Export data** � CSV/JSON export of sensor readings.
