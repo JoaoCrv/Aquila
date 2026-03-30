@@ -1,21 +1,21 @@
-# Aquila — Project Context
+# Aquila ï¿½ Project Context
 
 > Auto-generated context file for AI-assisted development.
-> Last updated based on branch `Home_Explorer`, version **1.0.2**.
+> Last updated based on branch `feat/ui-phase1`, version **1.3.0**.
 
 ---
 
-## 0. AI Assistant — Session Rules
+## 0. AI Assistant ï¿½ Session Rules
 
 > Rules established to avoid terminal lockups and wasted context budget.
 
-- **No `run_build`** — builds are done manually with `Ctrl+Shift+B` in Visual Studio. If there are errors, the user pastes them into the chat.
-- **No `git diff`** without a specific file path — generates excessive output that blocks the terminal.
-- **No long-output terminal commands** — anything that may produce more than ~20 lines of output should be avoided.
-- **No `&&` in PowerShell** — it is not a valid statement separator. Use separate commands or `git -C <path> <command>`.
+- **No `run_build`** ï¿½ builds are done manually with `Ctrl+Shift+B` in Visual Studio. If there are errors, the user pastes them into the chat.
+- **No `git diff`** without a specific file path ï¿½ generates excessive output that blocks the terminal.
+- **No long-output terminal commands** ï¿½ anything that may produce more than ~20 lines of output should be avoided.
+- **No `&&` in PowerShell** ï¿½ it is not a valid statement separator. Use separate commands or `git -C <path> <command>`.
 - **Commits** are done via the user's external PowerShell or Visual Studio Source Control panel, not through the Copilot terminal.
-- **Build verification** — after code changes, ask the user to build with `Ctrl+Shift+B` and report any errors.
-- **Chat length** — long chats accumulate context and cause the terminal to hang on permission prompts. Start a new chat when the conversation becomes long, and re-read this file and `docs/ROADMAP.md` to restore context.
+- **Build verification** ï¿½ after code changes, ask the user to build with `Ctrl+Shift+B` and report any errors.
+- **Chat length** ï¿½ long chats accumulate context and cause the terminal to hang on permission prompts. Start a new chat when the conversation becomes long, and re-read this file and `docs/ROADMAP.md` to restore context.
 
 ---
 
@@ -27,9 +27,9 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
 - **License:** MPL 2.0
 - **Author:** [@JoaoCrv](https://github.com/JoaoCrv)
 - **Repository:** <https://github.com/JoaoCrv/Aquila>
-- **Branch:** `Home_Explorer`
-- **GitHub CLI:** ? Available — use `gh` commands for issue management
-- **Open Issues:** 4 ([view all](https://github.com/JoaoCrv/Aquila/issues))
+- **Branch:** `feat/ui-phase1`
+- **GitHub CLI:** âœ… Available â€” use `gh` commands for issue management
+- **Open Issues:** 2 ([view all](https://github.com/JoaoCrv/Aquila/issues))
 - **Labels:** `bug`, `enhancement`, `documentation`, `good first issue`, `help wanted`, `question`
 
 ---
@@ -39,15 +39,18 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
 | Layer            | Technology                                                                              | Version  |
 | ---------------- | --------------------------------------------------------------------------------------- | -------- |
 | Runtime          | .NET 9 (Windows Desktop)                                                                | net9.0   |
-| UI Framework     | WPF                                                                                     | —        |
+| UI Framework     | WPF                                                                                     | ï¿½        |
 | UI Component Kit | [WPF-UI (Lepo.co)](https://github.com/lepoco/wpfui)                                    | 4.0.2    |
 | MVVM Toolkit     | CommunityToolkit.Mvvm                                                                   | 8.4.0    |
 | DI / Hosting     | Microsoft.Extensions.Hosting                                                            | 9.0.1    |
 | DI (WPF-UI)      | WPF-UI.DependencyInjection (page provider)                                              | 4.0.2    |
-| Hardware Data    | [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | 0.9.4    |
-| Charts           | LiveChartsCore.SkiaSharpView.WPF                                                        | —        |
+| Hardware Data    | [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | 0.9.4 Â¹  |
+| Charts           | LiveChartsCore.SkiaSharpView.WPF                                                        | â€”        |
+| Chart Controls   | `Controls/SparklineChart` (custom UserControl wrapping LiveCharts2)                     | internal |
 | Auto-Update      | [Velopack](https://velopack.io/)                                                        | 0.0.1298 |
 | Versioning       | [Versionize](https://github.com/versionize/versionize) (global .NET tool)              | 2.4.0    |
+
+> Â¹ LHM 0.9.4 is the current pinned version. Upgrade to 0.9.6 and introduction of the Anti-Corruption Layer (ACL) is planned in **Phase X** â€” see `docs/ROADMAP.md`.
 
 ---
 
@@ -107,23 +110,23 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
 
 ---
 
-### Future Architecture — Phase 13 (Provider System)
+### Future Architecture â€” Phase X (Anti-Corruption Layer)
 
-The current tight coupling to LibreHardwareMonitor will be replaced by a clean provider abstraction.
-See `docs/ROADMAP.md` Phase 13 for the full implementation plan.
+The current tight coupling to LibreHardwareMonitor will be replaced by an Anti-Corruption Layer.
+See `docs/ROADMAP.md` Phase X for the full implementation plan and domain record definitions.
 
 ```
 ????????????????????????????????????????????????????????????
 ?              DataAggregatorService                       ?
-?  Owns polling timer — merges all providers into one      ?
-?  SystemSnapshot — fires DataUpdated(SystemSnapshot)      ?
+?  Owns polling timer ï¿½ merges all providers into one      ?
+?  SystemSnapshot ï¿½ fires DataUpdated(SystemSnapshot)      ?
 ????????????????????????????????????????????????????????????
                        ? IDataProvider
       ????????????????????????????????????????????????????
       ?                ?                  ?              ?
  LhmProvider     WinApiProvider     AmdAdlProvider    MockProvider
- (LibreHardware  (Windows OS APIs   (future — AMD     (testing /
+ (LibreHardware  (Windows OS APIs   (future ï¿½ AMD     (testing /
   Monitor)        no admin needed)   SDK / NVAPI)      UI dev)
 ```
 
-**Design patterns in the provider system:**
+**Key principle:** `LhmHardwareAdapter` is the single translation boundary â€” the only class that may import LibreHardwareMonitor types. All ViewModels and Services depend only on `IHardwareReader` and immutable domain `record` snapshots (`SystemSnapshot`, `CpuSnapshot`, `GpuSnapshot`, etc.).
