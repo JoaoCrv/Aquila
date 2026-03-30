@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:Aquila.Views.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helpers="clr-namespace:Aquila.Helpers"
     Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
     Width="1600"
     Height="1200"
@@ -21,6 +22,7 @@
     <ui:FluentWindow.Resources>
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <helpers:ResponsivePaddingConverter x:Key="ResponsivePaddingConverter" />
         </ResourceDictionary>
     </ui:FluentWindow.Resources>
     <Grid>
@@ -31,7 +33,7 @@
         <ui:NavigationView
             x:Name="RootNavigation"
             Grid.Row="1"
-            Padding="42,0,42,0"
+            Padding="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource ResponsivePaddingConverter}, ConverterParameter=nav}"
             FooterMenuItemsSource="{Binding ViewModel.FooterMenuItems, Mode=OneWay}"
             FrameMargin="0"
             IsBackButtonVisible="Visible"

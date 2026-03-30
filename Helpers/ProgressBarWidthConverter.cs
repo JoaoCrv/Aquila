@@ -31,6 +31,8 @@ namespace Aquila.Helpers
             double d => d,
             float  f => f,
             int    i => i,
+            string s when double.TryParse(s, System.Globalization.NumberStyles.Any,
+                              System.Globalization.CultureInfo.InvariantCulture, out var p) => p,
             _        => 0d
         };
 
