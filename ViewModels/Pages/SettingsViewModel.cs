@@ -7,8 +7,7 @@ namespace Aquila.ViewModels.Pages
     {
         private bool _isInitialized = false;
 
-        [ObservableProperty]
-        private string _appVersion = String.Empty;
+        
 
         [ObservableProperty]
         private ApplicationTheme _currentTheme = ApplicationTheme.Unknown;
@@ -26,16 +25,12 @@ namespace Aquila.ViewModels.Pages
         private void InitializeViewModel()
         {
             CurrentTheme = ApplicationThemeManager.GetAppTheme();
-            AppVersion = $"Aquila - {GetAssemblyVersion()}";
+            //AppVersion = $"Aquila - {GetAssemblyVersion()}";
 
             _isInitialized = true;
         }
 
-        private string GetAssemblyVersion()
-        {
-            return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString()
-                ?? String.Empty;
-        }
+       
 
         [RelayCommand]
         private void OnChangeTheme(string parameter)

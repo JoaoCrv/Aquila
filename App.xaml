@@ -3,15 +3,20 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helpers="clr-namespace:Aquila.Helpers"
     DispatcherUnhandledException="OnDispatcherUnhandledException"
     Exit="OnExit"
     Startup="OnStartup">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ui:ThemesDictionary Theme="Light" />
+                <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+                <ResourceDictionary Source="Themes/Aquila.Default.xaml" />
+                <ResourceDictionary Source="Styles/SensorStyles.xaml" />
+                <ResourceDictionary Source="Styles/PageStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <helpers:AccentBrushProvider x:Key="AccentBrushes"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -13,8 +13,7 @@ namespace Aquila.Views.Windows
         public MainWindow(
             MainWindowViewModel viewModel,
             INavigationViewPageProvider navigationViewPageProvider,
-            INavigationService navigationService
-        )
+            INavigationService navigationService)
         {
             ViewModel = viewModel;
             DataContext = this;
@@ -23,43 +22,26 @@ namespace Aquila.Views.Windows
 
             InitializeComponent();
             SetPageService(navigationViewPageProvider);
-
             navigationService.SetNavigationControl(RootNavigation);
         }
 
         #region INavigationWindow methods
 
         public INavigationView GetNavigation() => RootNavigation;
-
         public bool Navigate(Type pageType) => RootNavigation.Navigate(pageType);
-
         public void SetPageService(INavigationViewPageProvider navigationViewPageProvider) => RootNavigation.SetPageProviderService(navigationViewPageProvider);
-
         public void ShowWindow() => Show();
-
         public void CloseWindow() => Close();
 
-        #endregion INavigationWindow methods
+        #endregion
 
-        /// <summary>
-        /// Raises the closed event.
-        /// </summary>
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-
-            // Make sure that closing this window will begin the process of closing the application.
             Application.Current.Shutdown();
         }
 
-        INavigationView INavigationWindow.GetNavigation()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SetServiceProvider(IServiceProvider serviceProvider)
-        {
-            throw new NotImplementedException();
-        }
+        // Required by INavigationWindow but not used — DI is managed by App.xaml.cs
+        void INavigationWindow.SetServiceProvider(IServiceProvider serviceProvider) { }
     }
 }

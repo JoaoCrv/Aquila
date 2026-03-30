@@ -13,6 +13,12 @@ build.ps1
 aquila-cert.pfx
 commit-types.md
 
+drafts/
+repos/
+# Continue.dev instructions
+.continue/
+
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

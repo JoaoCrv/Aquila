@@ -3,15 +3,14 @@ using Wpf.Ui.Abstractions.Controls;
 
 namespace Aquila.Views.Pages
 {
-    public partial class DataPage : INavigableView<DataViewModel>
+    public partial class StoragePage : INavigableView<StorageViewModel>
     {
-        public DataViewModel ViewModel { get; }
+        public StorageViewModel ViewModel { get; }
 
-        public DataPage(DataViewModel viewModel)
+        public StoragePage(StorageViewModel viewModel)
         {
             ViewModel = viewModel;
             DataContext = this;
-
             InitializeComponent();
         }
     }
