@@ -16,6 +16,7 @@
     Style="{StaticResource BasePageStyle}">
     <Page.Resources>
         <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </Page.Resources>
 
     <StackPanel>
@@ -39,6 +40,33 @@
             GroupName="themeSelect"
             IsChecked="{Binding ViewModel.CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=OneWay}" />
 
-        
+        <ui:Card Margin="0,24,0,0" Padding="16,14">
+            <StackPanel>
+                <TextBlock Text="Updates" Style="{StaticResource SectionLabel}" />
+                <TextBlock Text="{Binding ViewModel.AppVersion, Mode=OneWay}"
+                           Style="{StaticResource ChipName}"
+                           Margin="0,0,0,6" />
+                <TextBlock Margin="0,0,0,8"
+                           Opacity="0.60"
+                           Text="Aquila can check silently on startup and will notify you before any download or restart."
+                           TextWrapping="Wrap" />
+                <TextBlock Margin="0,0,0,12"
+                           Opacity="0.80"
+                           Text="{Binding ViewModel.UpdateStatusMessage, Mode=OneWay}"
+                           TextWrapping="Wrap" />
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Command="{Binding ViewModel.CheckForUpdatesCommand, Mode=OneWay}"
+                            Content="Check for Updates"
+                            Padding="12,6" />
+                    <ui:ProgressRing Width="18"
+                                     Height="18"
+                                     Margin="10,0,0,0"
+                                     VerticalAlignment="Center"
+                                     IsIndeterminate="True"
+                                     Visibility="{Binding ViewModel.IsCheckingForUpdates, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}" />
+                </StackPanel>
+            </StackPanel>
+        </ui:Card>
     </StackPanel>
 </Page>

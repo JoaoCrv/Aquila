@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
-using System.Reflection;
 using System.Windows.Threading;
 using Aquila.Services;
 using Aquila.ViewModels.Pages;
@@ -10,7 +9,6 @@ using Aquila.ViewModels.Windows;
 using Aquila.Views.Pages;
 using Aquila.Views.Windows;
 using Velopack;
-using Velopack.Sources;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
 
@@ -28,7 +26,7 @@ namespace Aquila
         // https://docs.microsoft.com/dotnet/core/extensions/logging
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
-            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(AppContext.BaseDirectory)); })
+            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(AppContext.BaseDirectory) ?? AppContext.BaseDirectory); })
             .ConfigureServices((context, services) =>
             {
                 services.AddNavigationViewPageProvider();
@@ -38,9 +36,11 @@ namespace Aquila
                 // Hardware monitoring service
                 services.AddSingleton<HardwareMonitorService>();
                 services.AddSingleton<UiService>();
+                services.AddSingleton<UpdateService>();
 
                 // Theme manipulation
                 services.AddSingleton<IThemeService, ThemeService>();
+                services.AddSingleton<ISnackbarService, SnackbarService>();
 
                 // TaskBar manipulation
                 services.AddSingleton<ITaskBarService, TaskBarService>();
@@ -92,9 +92,7 @@ namespace Aquila
         private async void OnStartup(object sender, StartupEventArgs e)
         {
             await _host.StartAsync();
-
-            StartUpdateCheckInBackground();
-
+            _ = CheckForUpdatesInBackgroundAsync();
         }
 
         /// <summary>
@@ -117,43 +115,29 @@ namespace Aquila
             // For more info see https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.dispatcherunhandledexception?view=windowsdesktop-6.0
         }
 
-        private async void StartUpdateCheckInBackground()
+        private async Task CheckForUpdatesInBackgroundAsync()
         {
             try
             {
-                // Executes the update method and WAITS for it INSIDE this thread.
-                await UpdateMyApp();
-            }
-            catch (Exception ex)
-            {
-                // If UpdateMyApp fails, the exception is caught here
-                // and the application DOES NOT CRASH.
-                // In the future, you can replace this with a logging system.
-                Console.WriteLine($"ERROR: Update check failed. {ex.Message}");
-            }
-        }
-        private static async Task UpdateMyApp()
-        {
-            try
-            {
-                var mgr = new UpdateManager(new GithubSource("https://github.com/JoaoCrv/Aquila", null, false));
-                var newVersion = await mgr.CheckForUpdatesAsync();
+                await Task.Delay(TimeSpan.FromSeconds(2));
 
-                if (newVersion == null)
+                var updateService = Services.GetRequiredService<UpdateService>();
+                var snackbarService = Services.GetService<ISnackbarService>();
+                var checkResult = await updateService.CheckForUpdatesAsync(silent: true);
+
+                if (!checkResult.IsSuccess || !checkResult.IsUpdateAvailable || snackbarService is null)
                     return;
 
-                await mgr.DownloadUpdatesAsync(newVersion);
-
-                mgr.ApplyUpdatesAndRestart(newVersion);
+                snackbarService.Show(
+                    "Update available",
+                    "A new Aquila version is ready. Open Settings to install it.",
+                    Wpf.Ui.Controls.ControlAppearance.Info,
+                    new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Info24 },
+                    TimeSpan.FromSeconds(8));
             }
             catch (Exception ex)
             {
-                // This catch handles expected errors from Velopack (e.g., no internet).
-                // The catch in the method above handles unexpected errors.
-                Console.WriteLine("Update check failed: " + ex.ToString());
-
-                // Rethrows the exception so that the calling method (StartUpdateCheckInBackground) knows that something went wrong.
-                throw;
+                Console.WriteLine($"Silent update check failed: {ex.Message}");
             }
         }
     }

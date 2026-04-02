@@ -100,7 +100,7 @@
 - [x] **2.2** Handle the case where a sensor is not yet available (first few ticks) � `SensorLocator` returns null, XAML `FallbackValue="--"` handles the display.
 - [x] **2.3** GPU vendor detection � `SensorLocator.DetectGpuType()` checks AMD ? NVIDIA ? Intel in order.
 - [x] **2.4** `SensorLocator` static helper created in `Helpers/SensorLocator.cs` � centralizes all sensor discovery logic with name-pattern fallbacks.
-- [ ] **2.5** ?? [#2](https://github.com/JoaoCrv/Aquila/issues/2) � Velopack: replace auto-update on startup with a manual "Check for Updates" button in Settings. Avoid silent restarts and handle errors gracefully.
+- [x] **2.5** ?? [#2](https://github.com/JoaoCrv/Aquila/issues/2) � Velopack: startup auto-install removed. App now performs a silent background check only, shows an in-app notification when an update is available, and exposes a manual "Check for Updates" flow in Settings with confirmation before download/restart.
 - [ ] **2.6** Multi-network adapter support � `SensorLocator` currently returns the first network adapter only. When multiple adapters exist (e.g. Wi-Fi + Ethernet), the Dashboard should show the active one or allow selection. `AllNetworkAdapters()` helper needed.
 - [ ] **2.7** Handle hot-plug hardware � if a USB device or external GPU is connected after app launch, the `HardwareMonitorService` won't pick it up without a restart. Evaluate whether LHM supports re-opening or if a periodic re-scan is needed.
 

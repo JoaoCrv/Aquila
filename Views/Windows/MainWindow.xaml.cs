@@ -13,7 +13,8 @@ namespace Aquila.Views.Windows
         public MainWindow(
             MainWindowViewModel viewModel,
             INavigationViewPageProvider navigationViewPageProvider,
-            INavigationService navigationService)
+            INavigationService navigationService,
+            ISnackbarService snackbarService)
         {
             ViewModel = viewModel;
             DataContext = this;
@@ -23,6 +24,7 @@ namespace Aquila.Views.Windows
             InitializeComponent();
             SetPageService(navigationViewPageProvider);
             navigationService.SetNavigationControl(RootNavigation);
+            snackbarService.SetSnackbarPresenter(SnackbarPresenter);
         }
 
         #region INavigationWindow methods
