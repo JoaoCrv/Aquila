@@ -58,12 +58,12 @@ namespace Aquila.Helpers
                 ? ".Light"
                 : ".Dark";
 
-            CpuAccent       = Resolve("Aquila.Cpu"             + suffix);
-            GpuAccent       = Resolve("Aquila.Gpu"             + suffix);
-            RamAccent       = Resolve("Aquila.Ram"             + suffix);
-            TempAccent      = Resolve("Aquila.Temp"            + suffix);
-            GpuTempAccent   = Resolve("Aquila.GpuTemp"         + suffix);
-            PowerAccent     = Resolve("Aquila.Power"           + suffix);
+            CpuAccent = Resolve("Aquila.Cpu" + suffix);
+            GpuAccent = Resolve("Aquila.Gpu" + suffix);
+            RamAccent = Resolve("Aquila.Ram" + suffix);
+            TempAccent = Resolve("Aquila.Temp" + suffix);
+            GpuTempAccent = Resolve("Aquila.GpuTemp" + suffix);
+            PowerAccent = Resolve("Aquila.Power" + suffix);
             GaugeBackground = Resolve("Aquila.Gauge.Background" + suffix);
 
             // If CpuAccent fell back to Gray the source resources are not yet
@@ -74,21 +74,21 @@ namespace Aquila.Helpers
             var res = Application.Current?.Resources;
             if (res == null) return;
 
-            res["Aquila.Cpu"]              = CpuAccent;
-            res["Aquila.Gpu"]              = GpuAccent;
-            res["Aquila.Ram"]              = RamAccent;
-            res["Aquila.Temp"]             = TempAccent;
-            res["Aquila.GpuTemp"]          = GpuTempAccent;
-            res["Aquila.Power"]            = PowerAccent;
+            res["Aquila.Cpu"] = CpuAccent;
+            res["Aquila.Gpu"] = GpuAccent;
+            res["Aquila.Ram"] = RamAccent;
+            res["Aquila.Temp"] = TempAccent;
+            res["Aquila.GpuTemp"] = GpuTempAccent;
+            res["Aquila.Power"] = PowerAccent;
             res["Aquila.Gauge.Background"] = GaugeBackground;
-            res["Aquila.Critical"]         = Resolve("Aquila.Critical" + suffix);
+            res["Aquila.Critical"] = Resolve("Aquila.Critical" + suffix);
 
             // Chart series
-            res["Aquila.Chart.Cpu"]     = Resolve("Aquila.Chart.Cpu"     + suffix);
-            res["Aquila.Chart.Ram"]     = Resolve("Aquila.Chart.Ram"     + suffix);
-            res["Aquila.Chart.Gpu"]     = Resolve("Aquila.Chart.Gpu"     + suffix);
+            res["Aquila.Chart.Cpu"] = Resolve("Aquila.Chart.Cpu" + suffix);
+            res["Aquila.Chart.Ram"] = Resolve("Aquila.Chart.Ram" + suffix);
+            res["Aquila.Chart.Gpu"] = Resolve("Aquila.Chart.Gpu" + suffix);
             res["Aquila.Chart.NetDown"] = Resolve("Aquila.Chart.NetDown" + suffix);
-            res["Aquila.Chart.NetUp"]   = Resolve("Aquila.Chart.NetUp"   + suffix);
+            res["Aquila.Chart.NetUp"] = Resolve("Aquila.Chart.NetUp" + suffix);
         }
 
         private static Brush Resolve(string key)

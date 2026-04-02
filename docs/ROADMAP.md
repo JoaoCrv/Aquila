@@ -7,12 +7,12 @@
 
 ## GitHub Issues Tracker
 
-| Issue | Title | Phase | Status |
-| ----- | ----- | ----- | ------ |
-| [#2](https://github.com/JoaoCrv/Aquila/issues/2) | Velopack Update � verifica��o manual de atualiza��es | Phase 2 (2.5) | ?? Open |
-| [#3](https://github.com/JoaoCrv/Aquila/issues/3) | Adicionar SystemTray e AutoLaunch | Phase 7 (7.1�7.5) | ?? Open |
-| [#4](https://github.com/JoaoCrv/Aquila/issues/4) | HardwareMonitorService deve arrancar na abertura da aplica��o | Phase 1 (1.8) | ?? Open |
-| [#5](https://github.com/JoaoCrv/Aquila/issues/5) | Dar possibilidade de copiar o identifier a partir do explorer | Phase 4 (4.7) | ?? Open |
+| Issue                                            | Title                                                         | Phase             | Status  |
+| ------------------------------------------------ | ------------------------------------------------------------- | ----------------- | ------- |
+| [#2](https://github.com/JoaoCrv/Aquila/issues/2) | Velopack Update � verifica��o manual de atualiza��es          | Phase 2 (2.5)     | ?? Open |
+| [#3](https://github.com/JoaoCrv/Aquila/issues/3) | Adicionar SystemTray e AutoLaunch                             | Phase 7 (7.1�7.5) | ?? Open |
+| [#4](https://github.com/JoaoCrv/Aquila/issues/4) | HardwareMonitorService deve arrancar na abertura da aplica��o | Phase 1 (1.8)     | ?? Open |
+| [#5](https://github.com/JoaoCrv/Aquila/issues/5) | Dar possibilidade de copiar o identifier a partir do explorer | Phase 4 (4.7)     | ?? Open |
 
 ---
 
@@ -219,6 +219,7 @@
 - [ ] **9.7** **Validate prerequisites** � script should check that `dotnet`, `vpk`, `versionize`, and `gh` are available before running.
 
 ---
+
 ## Phase X — Hardware API Refactor (Anti-Corruption Layer)
 
 > **Context:** Currently all ViewModels depend directly on `HardwareMonitorService`, `ComputerData`, and `SensorLocator`. This creates a tight coupling to LibreHardwareMonitor — any LHM version bump (e.g. 0.9.4 → 0.9.6) may break sensor name patterns or sensor types throughout the app. Additionally, LHM 0.9.4 has known bugs on recent hardware: missing fan readings, incorrect CPU clock on AMD Zen 5, and limited RAM sensor coverage.
@@ -306,6 +307,7 @@ public interface IHardwareReader
 - [ ] **X.11** Update ROADMAP — mark **3.5** (StoragePage sparklines) as unblocked, revisit **4.13** (resolved by X.4).
 
 ---
+
 ## Phase 10 � Advanced Features (Future)
 
 - [ ] **10.1** **Export data** � CSV/JSON export of sensor readings.
@@ -323,11 +325,13 @@ public interface IHardwareReader
 > The Explorer page is the natural starting point � every sensor is already listed and one click should be enough to create a widget.
 
 ### Concept
+
 - Each `DataSensor` can be "pinned" as a transparent, always-on-top `Window` that floats over the desktop (like Rainmeter skins).
 - Widgets are fully configurable: position, size, style, update rate.
 - The Explorer page acts as the **widget catalogue** � the user browses sensors and clicks "Add Widget" on any row.
 
 ### Tasks
+
 - [ ] **11.1** Design `WidgetDefinition` model � stores sensor identifier, widget type (text, bar, graph), position, size, theme.
 - [ ] **11.2** Persist widget definitions to a JSON file in `AppData` (reuse Settings infrastructure from Phase 5).
 - [ ] **11.3** Create `WidgetWindow` � a transparent, borderless, always-on-top `Window` that binds to a `DataSensor` via `HardwareMonitorService`.
@@ -366,14 +370,14 @@ public interface IHardwareReader
 
 This phase implements a combination of well-established patterns:
 
-| Pattern | Role |
-|---|---|
-| **Adapter** (GoF) | Each `IDataProvider` adapts an external API (LHM, AMD ADL, NVAPI) to the app's internal model |
-| **Aggregator** | `DataAggregatorService` merges multiple independent sources into one `SystemSnapshot` |
-| **Strategy** | Active providers are swappable at runtime via Settings without changing consumers |
-| **Chain of Responsibility** | Providers ordered by priority � first valid value for a field wins |
-| **Null Object** | `MockProvider` � inert implementation for testing and UI development without hardware |
-| **Plugin / Open-Closed** | `IEnumerable<IDataProvider>` via .NET DI � new providers added without touching existing code |
+| Pattern                     | Role                                                                                          |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| **Adapter** (GoF)           | Each `IDataProvider` adapts an external API (LHM, AMD ADL, NVAPI) to the app's internal model |
+| **Aggregator**              | `DataAggregatorService` merges multiple independent sources into one `SystemSnapshot`         |
+| **Strategy**                | Active providers are swappable at runtime via Settings without changing consumers             |
+| **Chain of Responsibility** | Providers ordered by priority � first valid value for a field wins                            |
+| **Null Object**             | `MockProvider` � inert implementation for testing and UI development without hardware         |
+| **Plugin / Open-Closed**    | `IEnumerable<IDataProvider>` via .NET DI � new providers added without touching existing code |
 
 The .NET DI container supports multiple registrations of the same interface natively �
 `services.AddSingleton<IDataProvider, LhmProvider>()` repeated per provider,
@@ -382,6 +386,7 @@ resolved automatically via `IEnumerable<IDataProvider>` in the aggregator constr
 ### Motivation
 
 The current architecture has `HardwareMonitorService` serving two distinct roles:
+
 1. **LHM translator** � polls LibreHardwareMonitor and maps raw sensors to `ComputerData`.
 2. **OS metrics collector** � reads Windows `PerformanceCounter` APIs directly.
 
@@ -463,6 +468,7 @@ public interface IDataProvider : IDisposable
 ```
 
 Rules:
+
 - Each provider **fills only the fields it owns** � it does not clear fields set by other providers.
 - If a provider cannot read a value, it leaves the snapshot field unchanged (previous tick value stays).
 - **Priority** resolves conflicts: if both LHM and AMD ADL report GPU temperature, the lower priority number wins.
@@ -523,17 +529,17 @@ This is a breaking refactor. Recommended approach to avoid destabilising the app
 
 ## Versioning Plan
 
-| Version | Milestone                                         |
-| ------- | ------------------------------------------------- |
-| 1.0.x   | Current state � basic monitoring                  |
-| 1.1.0   | Phase 0 bugs + Phase 1 cleanup                    |
-| 1.2.0   | Phase 2 complete (portable sensor discovery)      |
-| 1.3.0   | Phase 3 (Storage page)                            |
-| 1.4.0   | Phase 4 (UI polish)                               |
-| 1.5.0   | Phase 5 (Settings persistence)                    |
-| 1.6.0   | Phase 6 (Logging & error handling)                |
-| 1.7.0   | Phase 9 (Release pipeline)                        |
-| 2.0.0   | Phase 7 + 8 (Tray, i18n)                         |
-| 2.1.0   | Phase 12 (Performance & memory)                   |
-| 3.0.0   | Phase 13 (Provider architecture � breaking refactor) |
+| Version | Milestone                                             |
+| ------- | ----------------------------------------------------- |
+| 1.0.x   | Current state � basic monitoring                      |
+| 1.1.0   | Phase 0 bugs + Phase 1 cleanup                        |
+| 1.2.0   | Phase 2 complete (portable sensor discovery)          |
+| 1.3.0   | Phase 3 (Storage page)                                |
+| 1.4.0   | Phase 4 (UI polish)                                   |
+| 1.5.0   | Phase 5 (Settings persistence)                        |
+| 1.6.0   | Phase 6 (Logging & error handling)                    |
+| 1.7.0   | Phase 9 (Release pipeline)                            |
+| 2.0.0   | Phase 7 + 8 (Tray, i18n)                              |
+| 2.1.0   | Phase 12 (Performance & memory)                       |
+| 3.0.0   | Phase 13 (Provider architecture � breaking refactor)  |
 | 3.1.0   | Phase 11 (Desktop Widgets � built on top of Phase 13) |

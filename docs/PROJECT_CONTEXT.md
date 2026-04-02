@@ -40,7 +40,7 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
 | ---------------- | --------------------------------------------------------------------------------------- | -------- |
 | Runtime          | .NET 9 (Windows Desktop)                                                                | net9.0   |
 | UI Framework     | WPF                                                                                     | �        |
-| UI Component Kit | [WPF-UI (Lepo.co)](https://github.com/lepoco/wpfui)                                    | 4.0.2    |
+| UI Component Kit | [WPF-UI (Lepo.co)](https://github.com/lepoco/wpfui)                                     | 4.0.2    |
 | MVVM Toolkit     | CommunityToolkit.Mvvm                                                                   | 8.4.0    |
 | DI / Hosting     | Microsoft.Extensions.Hosting                                                            | 9.0.1    |
 | DI (WPF-UI)      | WPF-UI.DependencyInjection (page provider)                                              | 4.0.2    |
@@ -48,7 +48,7 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
 | Charts           | LiveChartsCore.SkiaSharpView.WPF                                                        | —        |
 | Chart Controls   | `Controls/SparklineChart` (custom UserControl wrapping LiveCharts2)                     | internal |
 | Auto-Update      | [Velopack](https://velopack.io/)                                                        | 0.0.1298 |
-| Versioning       | [Versionize](https://github.com/versionize/versionize) (global .NET tool)              | 2.4.0    |
+| Versioning       | [Versionize](https://github.com/versionize/versionize) (global .NET tool)               | 2.4.0    |
 
 > ¹ LHM 0.9.4 is the current pinned version. Upgrade to 0.9.6 and introduction of the Anti-Corruption Layer (ACL) is planned in **Phase X** — see `docs/ROADMAP.md`.
 
@@ -99,14 +99,14 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
 
 ### Design Patterns in Use
 
-| Pattern | Where | Purpose |
-|---|---|---|
-| **MVVM** | Views + ViewModels | Separation of UI from logic |
-| **Dependency Injection** | `App.xaml.cs` ? all services and VMs | Loose coupling, testability |
-| **Observer** | `HardwareMonitorService.DataUpdated` event | VMs react to data changes without polling |
-| **Visitor** | `UpdateVisitor` (LHM) | Traverse hardware tree without modifying LHM classes |
-| **Repository** (lightweight) | `SensorLocator` | Centralises all sensor lookup logic away from VMs |
-| **Singleton** | All services and VMs via DI | Single instance shared across the app lifetime |
+| Pattern                      | Where                                      | Purpose                                              |
+| ---------------------------- | ------------------------------------------ | ---------------------------------------------------- |
+| **MVVM**                     | Views + ViewModels                         | Separation of UI from logic                          |
+| **Dependency Injection**     | `App.xaml.cs` ? all services and VMs       | Loose coupling, testability                          |
+| **Observer**                 | `HardwareMonitorService.DataUpdated` event | VMs react to data changes without polling            |
+| **Visitor**                  | `UpdateVisitor` (LHM)                      | Traverse hardware tree without modifying LHM classes |
+| **Repository** (lightweight) | `SensorLocator`                            | Centralises all sensor lookup logic away from VMs    |
+| **Singleton**                | All services and VMs via DI                | Single instance shared across the app lifetime       |
 
 ---
 
