@@ -92,7 +92,8 @@ namespace Aquila
         private async void OnStartup(object sender, StartupEventArgs e)
         {
             await _host.StartAsync();
-            _ = CheckForUpdatesInBackgroundAsync();
+            _ = Services.GetRequiredService<UpdateService>()
+                .CheckForUpdatesSilentlyAndNotifyAsync(Services.GetService<ISnackbarService>(), TimeSpan.FromSeconds(2));
         }
 
         /// <summary>
@@ -113,32 +114,6 @@ namespace Aquila
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             // For more info see https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.dispatcherunhandledexception?view=windowsdesktop-6.0
-        }
-
-        private async Task CheckForUpdatesInBackgroundAsync()
-        {
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(2));
-
-                var updateService = Services.GetRequiredService<UpdateService>();
-                var snackbarService = Services.GetService<ISnackbarService>();
-                var checkResult = await updateService.CheckForUpdatesAsync(silent: true);
-
-                if (!checkResult.IsSuccess || !checkResult.IsUpdateAvailable || snackbarService is null)
-                    return;
-
-                snackbarService.Show(
-                    "Update available",
-                    "A new Aquila version is ready. Open Settings to install it.",
-                    Wpf.Ui.Controls.ControlAppearance.Info,
-                    new Wpf.Ui.Controls.SymbolIcon { Symbol = Wpf.Ui.Controls.SymbolRegular.Info24 },
-                    TimeSpan.FromSeconds(8));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Silent update check failed: {ex.Message}");
-            }
         }
     }
 }

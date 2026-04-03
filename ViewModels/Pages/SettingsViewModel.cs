@@ -5,10 +5,16 @@ using Wpf.Ui.Appearance;
 
 namespace Aquila.ViewModels.Pages
 {
-    public partial class SettingsViewModel(UpdateService updateService) : ObservableObject, INavigationAware
+    public partial class SettingsViewModel : ObservableObject, INavigationAware, IDisposable
     {
-        private readonly UpdateService _updateService = updateService;
+        private readonly UpdateService _updateService;
         private bool _isInitialized = false;
+
+        public SettingsViewModel(UpdateService updateService)
+        {
+            _updateService = updateService;
+            _updateService.StatusChanged += OnUpdateStatusChanged;
+        }
 
         [ObservableProperty]
         private ApplicationTheme _currentTheme = ApplicationTheme.Unknown;
@@ -32,6 +38,11 @@ namespace Aquila.ViewModels.Pages
 
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
 
+        public void Dispose()
+        {
+            _updateService.StatusChanged -= OnUpdateStatusChanged;
+        }
+
         private void InitializeViewModel()
         {
             CurrentTheme = ApplicationThemeManager.GetAppTheme();
@@ -43,6 +54,11 @@ namespace Aquila.ViewModels.Pages
 
         private static string GetAssemblyVersion() =>
             Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? string.Empty;
+
+        private void OnUpdateStatusChanged()
+        {
+            UpdateStatusMessage = _updateService.StatusMessage;
+        }
 
         [RelayCommand]
         private void OnChangeTheme(string parameter)
@@ -76,67 +92,30 @@ namespace Aquila.ViewModels.Pages
                 return;
 
             IsCheckingForUpdates = true;
-            UpdateStatusMessage = "Checking for updates...";
 
             try
             {
-                var checkResult = await _updateService.CheckForUpdatesAsync();
-
-                if (!checkResult.IsSuccess)
-                {
-                    UpdateStatusMessage = checkResult.Message;
-                    MessageBox.Show(checkResult.Message, "Aquila Update", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                if (!checkResult.IsUpdateAvailable || checkResult.UpdateInfo is null)
-                {
-                    UpdateStatusMessage = checkResult.Message;
-                    return;
-                }
-
-                var installNow = MessageBox.Show(
-                    "A new Aquila update is available. Download and restart now?",
-                    "Aquila Update",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (installNow != MessageBoxResult.Yes)
-                {
-                    UpdateStatusMessage = "Update available, but installation was cancelled.";
-                    return;
-                }
-
-                UpdateStatusMessage = "Downloading update...";
-
-                var downloadResult = await _updateService.DownloadUpdateAsync(checkResult.UpdateInfo);
-
-                if (!downloadResult.IsSuccess || downloadResult.UpdateInfo is null)
-                {
-                    UpdateStatusMessage = downloadResult.Message;
-                    MessageBox.Show(downloadResult.Message, "Aquila Update", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                var restartNow = MessageBox.Show(
-                    "The update has been downloaded successfully. Restart Aquila now to apply it?",
-                    "Aquila Update",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-
-                if (restartNow != MessageBoxResult.Yes)
-                {
-                    UpdateStatusMessage = "Update downloaded. Restart the app later to apply it.";
-                    return;
-                }
-
-                UpdateStatusMessage = "Restarting to apply the update...";
-                _updateService.ApplyUpdatesAndRestart(downloadResult.UpdateInfo);
+                await _updateService.RunUserInitiatedUpdateAsync(ConfirmUpdateAction, ShowUpdateNotification);
             }
             finally
             {
                 IsCheckingForUpdates = false;
             }
+        }
+
+        private static bool ConfirmUpdateAction(UpdatePromptRequest request) =>
+            MessageBox.Show(request.Message, request.Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+
+        private static void ShowUpdateNotification(UpdatePromptRequest request)
+        {
+            var image = request.Kind switch
+            {
+                UpdatePromptKind.Warning => MessageBoxImage.Warning,
+                UpdatePromptKind.Error => MessageBoxImage.Error,
+                _ => MessageBoxImage.Information
+            };
+
+            MessageBox.Show(request.Message, request.Title, MessageBoxButton.OK, image);
         }
     }
 }
