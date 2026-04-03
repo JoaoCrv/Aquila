@@ -9,7 +9,9 @@
     xmlns:helpers="clr-namespace:Aquila.Helpers"
     Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
     Width="1600"
-    Height="1200"
+    Height="900"
+    MinWidth="1180"
+    MinHeight="760"
     d:DataContext="{d:DesignInstance local:MainWindow,
                                      IsDesignTimeCreatable=True}"
     

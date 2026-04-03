@@ -25,17 +25,30 @@ namespace Aquila.Helpers
 
         // ?? GPU detection ?????????????????????????????????????????????????
 
-        public static HardwareType? DetectGpuType(ComputerData data)
-        {
-            HardwareType[] gpuTypes = [HardwareType.GpuNvidia, HardwareType.GpuAmd, HardwareType.GpuIntel];
-            return gpuTypes.Cast<HardwareType?>().FirstOrDefault(t => data.HardwareList.Any(h => h.HardwareType == t));
-        }
+        public static HardwareType? DetectGpuType(ComputerData data) =>
+            PrimaryGpu(data)?.HardwareType;
 
         public static IEnumerable<DataHardware> AllGpus(ComputerData data)
         {
             HardwareType[] gpuTypes = [HardwareType.GpuNvidia, HardwareType.GpuAmd, HardwareType.GpuIntel];
             return data.HardwareList.Where(h => gpuTypes.Contains(h.HardwareType));
         }
+
+        public static DataHardware? PrimaryGpu(ComputerData data) =>
+            AllGpus(data)
+                .OrderByDescending(gpu => GpuVramTotalFor(gpu)?.Value ?? 0)
+                .ThenByDescending(gpu => GpuTypePriority(gpu.HardwareType))
+                .ThenByDescending(gpu => GpuPowerFor(gpu)?.Value ?? 0)
+                .ThenByDescending(gpu => GpuLoadFor(gpu)?.Value ?? 0)
+                .FirstOrDefault();
+
+        private static int GpuTypePriority(HardwareType hardwareType) => hardwareType switch
+        {
+            HardwareType.GpuNvidia => 3,
+            HardwareType.GpuAmd => 2,
+            HardwareType.GpuIntel => 1,
+            _ => 0
+        };
 
         // ?? CPU ???????????????????????????????????????????????????????????
 
@@ -73,13 +86,10 @@ namespace Aquila.Helpers
 
         // ?? GPU (primary, by type) ????????????????????????????????????????
 
-        public static DataSensor? GpuLoad(ComputerData data)
-        {
-            var gpuType = DetectGpuType(data);
-            return gpuType is null ? null :
-                Find(data, gpuType.Value, SensorType.Load, "GPU Core") ??
-                FindFirst(data, gpuType.Value, SensorType.Load);
-        }
+        public static DataSensor? GpuLoad(ComputerData data) =>
+            PrimaryGpu(data) is { } gpu
+                ? GpuLoadFor(gpu)
+                : null;
 
         // ?? GPU helpers for a specific hardware node ??????????????????????
 
@@ -170,11 +180,8 @@ namespace Aquila.Helpers
             if (CpuTemperature(data) is { } cpuTemp)
                 results.Add(("CPU", cpuTemp));
 
-            foreach (var gpu in AllGpus(data))
-            {
-                if (GpuTemperatureFor(gpu) is { } gpuTemp)
-                    results.Add(("GPU", gpuTemp));
-            }
+            if (PrimaryGpu(data) is { } gpu && GpuTemperatureFor(gpu) is { } gpuTemp)
+                results.Add(("GPU", gpuTemp));
 
             var mb = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Motherboard);
             if (mb != null)

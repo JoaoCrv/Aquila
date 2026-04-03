@@ -26,30 +26,30 @@
         <!-- Core bar DataTemplate -->
         <DataTemplate x:Key="CoreBarTemplate" DataType="{x:Type vm:CoreBarItem}">
             <StackPanel Margin="0,0">
-                <TextBlock Text="{Binding Label}" FontSize="11" Opacity="0.45"
-                           HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding Label}" FontSize="10" Opacity="0.45"
+                           HorizontalAlignment="Center" Margin="0,0,0,2"/>
                 <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                        CornerRadius="4" Height="120" Margin="6,0"
+                        CornerRadius="4" Height="92" Margin="4,0"
                         HorizontalAlignment="Stretch">
                     <Border VerticalAlignment="Bottom" CornerRadius="4"
                             Background="{DynamicResource Aquila.Cpu}" Opacity="0.85"
                             Height="{Binding BarHeight}"
                             HorizontalAlignment="Stretch"/>
                 </Border>
-                <TextBlock Text="{Binding ValueText}" FontSize="10" Opacity="0.50"
-                           HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                <TextBlock Text="{Binding ValueText}" FontSize="9" Opacity="0.50"
+                           HorizontalAlignment="Center" Margin="0,2,0,0"/>
             </StackPanel>
         </DataTemplate>
 
         <!-- GPU card DataTemplate (GPU1 and GPU2 share this) -->
         <DataTemplate x:Key="GpuCardTemplate" DataType="{x:Type vm:GpuCardData}">
-            <ui:Card Margin="0,0,0,8" Padding="14,12">
+            <ui:Card Margin="0,0,0,8" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="GPU" Style="{StaticResource SectionLabel}"/>
-                    <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,0,0,12"/>
+                    <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,0,0,8"/>
 
                     <!-- 4 stat boxes -->
-                    <UniformGrid Columns="4" Margin="0,0,0,14">
+                    <UniformGrid Columns="4" Margin="0,0,0,10">
                         <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}">
@@ -138,7 +138,7 @@
                     </StackPanel>
 
                     <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}"
-                            Opacity="0.14" Margin="0,10"/>
+                            Opacity="0.14" Margin="0,8"/>
 
                     <!-- Fans -->
                     <Grid>
@@ -210,17 +210,17 @@
                         Width="{Binding ActualWidth, ElementName=DashboardRoot, Converter={StaticResource ColumnWidthConverter}}">
 
                 <!-- CPU card -->
-                <ui:Card Margin="0,0,0,8" Padding="14,12">
+                <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="CPU" Style="{StaticResource SectionLabel}"/>
                         <TextBlock Text="{Binding ViewModel.CpuName, FallbackValue='Processor'}"
                                    Style="{StaticResource ChipName}" Margin="0,0,0,2"/>
                         <TextBlock Text="{Binding ViewModel.CpuSummary}"
-                                   FontSize="11" Opacity="0.45" Margin="0,0,0,12"
+                                   FontSize="10" Opacity="0.45" Margin="0,0,0,8"
                                    Visibility="{Binding ViewModel.CpuSummary, Converter={StaticResource NullToCollapsedConverter}}"/>
 
                         <!-- 4 stat boxes -->
-                        <UniformGrid Columns="4" Margin="0,0,0,14">
+                        <UniformGrid Columns="4" Margin="0,0,0,10">
                             <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}">
@@ -329,7 +329,7 @@
                         Width="{Binding ActualWidth, ElementName=DashboardRoot, Converter={StaticResource ColumnWidthConverter}}">
 
                 <!-- RAM card -->
-                <ui:Card Margin="0,0,0,8" Padding="14,12">
+                <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="RAM" Style="{StaticResource SectionLabel}"/>
 
@@ -467,7 +467,7 @@
                 </ui:Card>
 
                 <!-- Network card -->
-                <ui:Card Margin="0,0,0,8" Padding="14,12">
+                <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="NETWORK" Style="{StaticResource SectionLabel}"/>
                         <TextBlock Text="{Binding ViewModel.NetworkName, FallbackValue='Adapter'}"
@@ -538,7 +538,7 @@
                 </ui:Card>
 
                 <!-- Storage card -->
-                <ui:Card Margin="0,0,0,8" Padding="14,12"
+                <ui:Card Margin="0,0,0,8" Padding="12,10"
                          Visibility="{Binding ViewModel.StorageCards.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
                     <StackPanel>
                         <TextBlock Text="STORAGE" Style="{StaticResource SectionLabel}"/>
@@ -607,7 +607,7 @@
 
                 <!-- Temperatures + Fans + Power = -->
                 <!-- Temperatures card -->
-                <ui:Card Margin="0,0,0,8" Padding="14,12">
+                <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="TEMPERATURES" Style="{StaticResource SectionLabel}"/>
                         <ItemsControl ItemsSource="{Binding ViewModel.SystemTemperatures}">
@@ -636,7 +636,7 @@
                 </ui:Card>
 
                 <!-- Fans card -->
-                <ui:Card Margin="0,0,0,8" Padding="14,12">
+                <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="FANS" Style="{StaticResource SectionLabel}"/>
                         <ItemsControl ItemsSource="{Binding ViewModel.SystemFans}">
@@ -672,7 +672,7 @@
                 </ui:Card>
 
                 <!-- Power card -->
-                <ui:Card Margin="0,0,0,8" Padding="14,12">
+                <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="POWER" Style="{StaticResource SectionLabel}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">

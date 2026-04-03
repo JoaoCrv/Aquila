@@ -19,68 +19,68 @@ namespace Aquila.ViewModels.Pages
 
         public ComputerData Computer => _monitorService.ComputerData;
 
-        [ObservableProperty] private float  _effectiveCpuClock;
+        [ObservableProperty] private float _effectiveCpuClock;
         [ObservableProperty] private double _cpuGaugeValue;
         [ObservableProperty] private double _ramGaugeValue;
-        [ObservableProperty] private float  _totalPower;
+        [ObservableProperty] private float _totalPower;
 
         // ── History ring buffers ─────────────────────────────────────────
-        public ObservableCollection<double> CpuUsageHistory       { get; } = new(Enumerable.Repeat(0.0, HistorySize));
-        public ObservableCollection<double> RamUsageHistory       { get; } = new(Enumerable.Repeat(0.0, HistorySize));
+        public ObservableCollection<double> CpuUsageHistory { get; } = new(Enumerable.Repeat(0.0, HistorySize));
+        public ObservableCollection<double> RamUsageHistory { get; } = new(Enumerable.Repeat(0.0, HistorySize));
         public ObservableCollection<double> NetworkDownloadHistory { get; } = new(Enumerable.Repeat(0.0, HistorySize));
-        public ObservableCollection<double> NetworkUploadHistory   { get; } = new(Enumerable.Repeat(0.0, HistorySize));
+        public ObservableCollection<double> NetworkUploadHistory { get; } = new(Enumerable.Repeat(0.0, HistorySize));
 
         // ── RAM gauge label paint (theme-aware) ─────────────────────────
         [ObservableProperty]
         private SolidColorPaint _ramGaugeLabelPaint = CreateLabelPaint();
 
         // ── Dynamic lists (refreshed every tick) ─────────────────────────
-        [ObservableProperty] private List<CoreBarItem>    _cpuCoreItems       = [];
-        [ObservableProperty] private List<GpuCardData>    _gpuCards           = [];
+        [ObservableProperty] private List<CoreBarItem> _cpuCoreItems = [];
+        [ObservableProperty] private List<GpuCardData> _gpuCards = [];
         [ObservableProperty] private List<LabelledSensor> _systemTemperatures = [];
-        [ObservableProperty] private List<DataSensor>     _systemFans         = [];
-        [ObservableProperty] private List<StorageDriveData> _storageCards     = [];
+        [ObservableProperty] private List<DataSensor> _systemFans = [];
+        [ObservableProperty] private List<StorageDriveData> _storageCards = [];
 
         // ── Gpu1 / Gpu2 convenience ──────────────────────────────────────
         public GpuCardData? Gpu1 => _gpuCards.Count > 0 ? _gpuCards[0] : null;
         public GpuCardData? Gpu2 => _gpuCards.Count > 1 ? _gpuCards[1] : null;
 
         // ── CPU sensors ──────────────────────────────────────────────────
-        public string?       CpuName              => Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?.Name;
-        public string?       CpuSummary           => BuildCpuSummary();
-        public DataSensor?   CpuTemperatureSensor => SensorLocator.CpuTemperature(Computer);
-        public DataSensor?   CpuUsageSensor       => SensorLocator.CpuLoad(Computer);
-        public DataSensor?   CpuEnergySensor      => SensorLocator.CpuPower(Computer);
-        public DataSensor?   CpuFanSpeed1Sensor   => SensorLocator.CpuFan(Computer, 0);
-        public DataSensor?   CpuFanSpeed2Sensor   => SensorLocator.CpuFan(Computer, 1);
+        public string? CpuName => Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?.Name;
+        public string? CpuSummary => BuildCpuSummary();
+        public DataSensor? CpuTemperatureSensor => SensorLocator.CpuTemperature(Computer);
+        public DataSensor? CpuUsageSensor => SensorLocator.CpuLoad(Computer);
+        public DataSensor? CpuEnergySensor => SensorLocator.CpuPower(Computer);
+        public DataSensor? CpuFanSpeed1Sensor => SensorLocator.CpuFan(Computer, 0);
+        public DataSensor? CpuFanSpeed2Sensor => SensorLocator.CpuFan(Computer, 1);
 
         // ── RAM sensors ──────────────────────────────────────────────────
-        public DataSensor?   MemoryUsageSensor            => SensorLocator.MemoryLoad(Computer);
-        public DataSensor?   MemoryUsedSensor             => SensorLocator.MemoryUsed(Computer);
-        public DataSensor?   MemoryAvailableSensor        => SensorLocator.MemoryAvailable(Computer);
-        public DataSensor?   MemoryPowerSensor            => SensorLocator.MemoryPower(Computer);
-        public DataSensor?   VirtualMemoryUsedSensor      => SensorLocator.VirtualMemoryUsed(Computer);
-        public DataSensor?   VirtualMemoryAvailableSensor => SensorLocator.VirtualMemoryAvailable(Computer);
+        public DataSensor? MemoryUsageSensor => SensorLocator.MemoryLoad(Computer);
+        public DataSensor? MemoryUsedSensor => SensorLocator.MemoryUsed(Computer);
+        public DataSensor? MemoryAvailableSensor => SensorLocator.MemoryAvailable(Computer);
+        public DataSensor? MemoryPowerSensor => SensorLocator.MemoryPower(Computer);
+        public DataSensor? VirtualMemoryUsedSensor => SensorLocator.VirtualMemoryUsed(Computer);
+        public DataSensor? VirtualMemoryAvailableSensor => SensorLocator.VirtualMemoryAvailable(Computer);
 
-        public float RamTotalGb  =>
+        public float RamTotalGb =>
             (MemoryUsedSensor?.Value ?? 0) + (MemoryAvailableSensor?.Value ?? 0);
 
         // ── RAM Windows extras ───────────────────────────────────────────
-        public float PageReadsPerSec  => _monitorService.PageReadsPerSec;
+        public float PageReadsPerSec => _monitorService.PageReadsPerSec;
         public float PageWritesPerSec => _monitorService.PageWritesPerSec;
-        public float CacheGb          => _monitorService.CacheBytes / 1_073_741_824f;
+        public float CacheGb => _monitorService.CacheBytes / 1_073_741_824f;
 
         /// <summary>Cache weight for the segmented bar (as % of total RAM).</summary>
         public double CacheBarWeight => RamTotalGb > 0 ? CacheGb / RamTotalGb * 100.0 : 0;
         /// <summary>Free weight for the segmented bar (as % of total RAM).</summary>
-        public double FreeBarWeight  => Math.Max(0, 100.0 - _ramGaugeValue - CacheBarWeight);
+        public double FreeBarWeight => Math.Max(0, 100.0 - _ramGaugeValue - CacheBarWeight);
 
         // ── Network sensors ──────────────────────────────────────────────
-        public string?       NetworkName                   => Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network)?.Name;
-        public DataSensor?   NetworkUploadSpeedSensor      => SensorLocator.NetworkUploadSpeed(Computer);
-        public DataSensor?   NetworkDownloadSpeedSensor    => SensorLocator.NetworkDownloadSpeed(Computer);
-        public DataSensor?   NetworkDataUploadedSensor     => SensorLocator.NetworkDataUploaded(Computer);
-        public DataSensor?   NetworkDataDownloadedSensor   => SensorLocator.NetworkDataDownloaded(Computer);
+        public string? NetworkName => Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network)?.Name;
+        public DataSensor? NetworkUploadSpeedSensor => SensorLocator.NetworkUploadSpeed(Computer);
+        public DataSensor? NetworkDownloadSpeedSensor => SensorLocator.NetworkDownloadSpeed(Computer);
+        public DataSensor? NetworkDataUploadedSensor => SensorLocator.NetworkDataUploaded(Computer);
+        public DataSensor? NetworkDataDownloadedSensor => SensorLocator.NetworkDataDownloaded(Computer);
 
         // ── Header — uptime & clock ───────────────────────────────────────────
         private readonly DispatcherTimer _clockTimer;
@@ -114,12 +114,12 @@ namespace Aquila.ViewModels.Pages
         private DataSensor? _prevNetworkDownloadSensor;
         private DataSensor? _prevNetworkDataUploadedSensor;
         private DataSensor? _prevNetworkDataDownloadedSensor;
-        private string?     _prevCpuName;
-        private string?     _prevCpuSummary;
-        private string?     _prevNetworkName;
+        private string? _prevCpuName;
+        private string? _prevCpuSummary;
+        private string? _prevNetworkName;
 
         public void Suspend() => _suspended = true;
-        public void Resume()  => _suspended = false;
+        public void Resume() => _suspended = false;
 
         public DashboardViewModel(HardwareMonitorService monitorService)
         {
@@ -166,15 +166,23 @@ namespace Aquila.ViewModels.Pages
 
             var cpuLoad = CpuUsageSensor?.Value ?? 0;
 
-            // Update GPU cards — reuse existing instances to preserve history,
-            // only create new ones for GPUs that weren't present before.
-            var allGpus = SensorLocator.AllGpus(Computer).ToList();
-            if (allGpus.Count != _gpuCards.Count)
+            // Dashboard shows only the primary GPU card.
+            var primaryGpu = SensorLocator.PrimaryGpu(Computer);
+            if (primaryGpu is null)
             {
-                var updated = allGpus
-                    .Select((hw, i) => i < _gpuCards.Count ? _gpuCards[i] : new GpuCardData(hw))
-                    .ToList();
-                GpuCards = updated;
+                if (_gpuCards.Count > 0)
+                {
+                    GpuCards = [];
+                    OnPropertyChanged(nameof(Gpu1));
+                    OnPropertyChanged(nameof(Gpu2));
+                }
+            }
+            else if (_gpuCards.Count != 1 || !string.Equals(_gpuCards[0].Identifier, primaryGpu.Identifier, StringComparison.Ordinal))
+            {
+                var existingCard = _gpuCards.FirstOrDefault(card =>
+                    string.Equals(card.Identifier, primaryGpu.Identifier, StringComparison.Ordinal));
+
+                GpuCards = [existingCard ?? new GpuCardData(primaryGpu)];
                 OnPropertyChanged(nameof(Gpu1));
                 OnPropertyChanged(nameof(Gpu2));
             }
@@ -217,7 +225,7 @@ namespace Aquila.ViewModels.Pages
                 StorageCards = allDrives.Select(d => new StorageDriveData(d)).ToList();
 
             // Total power
-            var cpuW = CpuEnergySensor?.Value  ?? 0;
+            var cpuW = CpuEnergySensor?.Value ?? 0;
             var ramW = MemoryPowerSensor?.Value ?? 0;
             var gpuW = _gpuCards.Count > 0 ? (_gpuCards[0].PowerSensor?.Value ?? 0) : 0;
             TotalPower = cpuW + ramW + gpuW;
@@ -262,22 +270,22 @@ namespace Aquila.ViewModels.Pages
 
         private void NotifySensorReferences()
         {
-            NotifyIfChanged(ref _prevCpuName,       CpuName,       nameof(CpuName));
-            NotifyIfChanged(ref _prevCpuSummary,    CpuSummary,    nameof(CpuSummary));
-            NotifyIfChanged(ref _prevNetworkName,   NetworkName,   nameof(NetworkName));
+            NotifyIfChanged(ref _prevCpuName, CpuName, nameof(CpuName));
+            NotifyIfChanged(ref _prevCpuSummary, CpuSummary, nameof(CpuSummary));
+            NotifyIfChanged(ref _prevNetworkName, NetworkName, nameof(NetworkName));
 
-            NotifyIfChanged(ref _prevCpuTemperatureSensor,        CpuTemperatureSensor,        nameof(CpuTemperatureSensor));
-            NotifyIfChanged(ref _prevCpuUsageSensor,              CpuUsageSensor,              nameof(CpuUsageSensor));
-            NotifyIfChanged(ref _prevCpuEnergySensor,             CpuEnergySensor,             nameof(CpuEnergySensor));
-            NotifyIfChanged(ref _prevCpuFanSpeed1Sensor,          CpuFanSpeed1Sensor,          nameof(CpuFanSpeed1Sensor));
-            NotifyIfChanged(ref _prevCpuFanSpeed2Sensor,          CpuFanSpeed2Sensor,          nameof(CpuFanSpeed2Sensor));
-            NotifyIfChanged(ref _prevMemoryUsageSensor,           MemoryUsageSensor,           nameof(MemoryUsageSensor));
-            NotifyIfChanged(ref _prevMemoryUsedSensor,            MemoryUsedSensor,            nameof(MemoryUsedSensor));
-            NotifyIfChanged(ref _prevMemoryAvailableSensor,       MemoryAvailableSensor,       nameof(MemoryAvailableSensor));
-            NotifyIfChanged(ref _prevMemoryPowerSensor,           MemoryPowerSensor,           nameof(MemoryPowerSensor));
-            NotifyIfChanged(ref _prevNetworkUploadSensor,         NetworkUploadSpeedSensor,    nameof(NetworkUploadSpeedSensor));
-            NotifyIfChanged(ref _prevNetworkDownloadSensor,       NetworkDownloadSpeedSensor,  nameof(NetworkDownloadSpeedSensor));
-            NotifyIfChanged(ref _prevNetworkDataUploadedSensor,   NetworkDataUploadedSensor,   nameof(NetworkDataUploadedSensor));
+            NotifyIfChanged(ref _prevCpuTemperatureSensor, CpuTemperatureSensor, nameof(CpuTemperatureSensor));
+            NotifyIfChanged(ref _prevCpuUsageSensor, CpuUsageSensor, nameof(CpuUsageSensor));
+            NotifyIfChanged(ref _prevCpuEnergySensor, CpuEnergySensor, nameof(CpuEnergySensor));
+            NotifyIfChanged(ref _prevCpuFanSpeed1Sensor, CpuFanSpeed1Sensor, nameof(CpuFanSpeed1Sensor));
+            NotifyIfChanged(ref _prevCpuFanSpeed2Sensor, CpuFanSpeed2Sensor, nameof(CpuFanSpeed2Sensor));
+            NotifyIfChanged(ref _prevMemoryUsageSensor, MemoryUsageSensor, nameof(MemoryUsageSensor));
+            NotifyIfChanged(ref _prevMemoryUsedSensor, MemoryUsedSensor, nameof(MemoryUsedSensor));
+            NotifyIfChanged(ref _prevMemoryAvailableSensor, MemoryAvailableSensor, nameof(MemoryAvailableSensor));
+            NotifyIfChanged(ref _prevMemoryPowerSensor, MemoryPowerSensor, nameof(MemoryPowerSensor));
+            NotifyIfChanged(ref _prevNetworkUploadSensor, NetworkUploadSpeedSensor, nameof(NetworkUploadSpeedSensor));
+            NotifyIfChanged(ref _prevNetworkDownloadSensor, NetworkDownloadSpeedSensor, nameof(NetworkDownloadSpeedSensor));
+            NotifyIfChanged(ref _prevNetworkDataUploadedSensor, NetworkDataUploadedSensor, nameof(NetworkDataUploadedSensor));
             NotifyIfChanged(ref _prevNetworkDataDownloadedSensor, NetworkDataDownloadedSensor, nameof(NetworkDataDownloadedSensor));
         }
 
@@ -325,14 +333,15 @@ namespace Aquila.ViewModels.Pages
             UsageHistory = new ObservableCollection<double>(Enumerable.Repeat(0.0, HistorySize));
         }
 
-        public string      Name            => _gpu.Name;
-        public DataSensor? TempSensor      => SensorLocator.GpuTemperatureFor(_gpu);
-        public DataSensor? LoadSensor      => SensorLocator.GpuLoadFor(_gpu);
-        public DataSensor? ClockSensor     => SensorLocator.GpuClockFor(_gpu);
-        public DataSensor? PowerSensor     => SensorLocator.GpuPowerFor(_gpu);
-        public DataSensor? Fan1Sensor      => SensorLocator.GpuFanFor(_gpu, 0);
-        public DataSensor? Fan2Sensor      => SensorLocator.GpuFanFor(_gpu, 1);
-        public DataSensor? VramUsedSensor  => SensorLocator.GpuVramUsedFor(_gpu);
+        public string Identifier => _gpu.Identifier;
+        public string Name => _gpu.Name;
+        public DataSensor? TempSensor => SensorLocator.GpuTemperatureFor(_gpu);
+        public DataSensor? LoadSensor => SensorLocator.GpuLoadFor(_gpu);
+        public DataSensor? ClockSensor => SensorLocator.GpuClockFor(_gpu);
+        public DataSensor? PowerSensor => SensorLocator.GpuPowerFor(_gpu);
+        public DataSensor? Fan1Sensor => SensorLocator.GpuFanFor(_gpu, 0);
+        public DataSensor? Fan2Sensor => SensorLocator.GpuFanFor(_gpu, 1);
+        public DataSensor? VramUsedSensor => SensorLocator.GpuVramUsedFor(_gpu);
         public DataSensor? VramTotalSensor => SensorLocator.GpuVramTotalFor(_gpu);
 
         public float VramPercent =>
@@ -352,36 +361,36 @@ namespace Aquila.ViewModels.Pages
     // ── CPU core bar ─────────────────────────────────────────────────────────
     public class CoreBarItem(string label, DataSensor sensor)
     {
-        private const double MaxHeight = 120.0;
-        public string     Label     => label;
-        public DataSensor Sensor    => sensor;
-        public double     BarHeight => MaxHeight * (sensor.Value / 100.0);
-        public string     ValueText => $"{sensor.Value:F0}%";
+        private const double MaxHeight = 92.0;
+        public string Label => label;
+        public DataSensor Sensor => sensor;
+        public double BarHeight => MaxHeight * (sensor.Value / 100.0);
+        public string ValueText => $"{sensor.Value:F0}%";
     }
 
     // ── GPU core bar ──────────────────────────────────────────────────────────
     public class GpuCoreBarItem(string label, DataSensor sensor)
     {
         private const double MaxHeight = 80.0;
-        public string     Label     => label;
-        public DataSensor Sensor    => sensor;
-        public double     BarHeight => MaxHeight * (sensor.Value / 100.0);
-        public string     ValueText => $"{sensor.Value:F0}%";
+        public string Label => label;
+        public DataSensor Sensor => sensor;
+        public double BarHeight => MaxHeight * (sensor.Value / 100.0);
+        public string ValueText => $"{sensor.Value:F0}%";
     }
 
     // ── Labelled sensor (temperatures list) ──────────────────────────────────
     public class LabelledSensor(string label, DataSensor sensor)
     {
-        public string     Label  => label;
+        public string Label => label;
         public DataSensor Sensor => sensor;
     }
 
     // ── Per-storage drive data ────────────────────────────────────────────────
     public class StorageDriveData(DataHardware drive)
     {
-        public string      Name            => drive.Name;
-        public DataSensor? TempSensor      => SensorLocator.StorageTemperatureFor(drive);
-        public DataSensor? ReadRateSensor  => SensorLocator.StorageReadRateFor(drive);
+        public string Name => drive.Name;
+        public DataSensor? TempSensor => SensorLocator.StorageTemperatureFor(drive);
+        public DataSensor? ReadRateSensor => SensorLocator.StorageReadRateFor(drive);
         public DataSensor? WriteRateSensor => SensorLocator.StorageWriteRateFor(drive);
         public DataSensor? UsedSpaceSensor => SensorLocator.StorageUsedSpaceFor(drive);
     }
