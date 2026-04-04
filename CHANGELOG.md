@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.4.0"></a>
+## [1.4.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.4.0) (2026-04-04)
+
+### Features
+
+* add manual update notifications ([f5a9d55](https://www.github.com/JoaoCrv/Aquila/commit/f5a9d5558495b18b9d0947554b01e3eef18995e4))
+* improve dashboard layout for 1080p ([18a27b7](https://www.github.com/JoaoCrv/Aquila/commit/18a27b793466ddd35e3b923f1f330540849d903a))
+* merge ui-phase1 — Dashboard/Explorer/StoragePage + SparklineChart ([624d3fa](https://www.github.com/JoaoCrv/Aquila/commit/624d3fa5345943f165d04129e5e653aa336c0bda))
+
 <a name="1.3.0"></a>
 ## [1.3.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.3.0) (2026-03-30)
 
