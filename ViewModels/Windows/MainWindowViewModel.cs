@@ -32,7 +32,7 @@ namespace Aquila.ViewModels.Windows
         [
             new NavigationViewItem()
             {
-                Content = "Dashboard",
+                Content = "Home",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
                 TargetPageType = typeof(DashboardPage)
             },
