@@ -13,15 +13,58 @@
                                      IsDesignTimeCreatable=False}"
     d:DesignHeight="450"
     d:DesignWidth="800"
-
     mc:Ignorable="d">
 
-    <Grid>
-        <TextBlock
-    Margin="0,24,0,0"
-    FontSize="20"
-    FontWeight="Medium"
-    Text="About Aquila" />
-        <TextBlock Margin="0,12,0,0" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
-    </Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <ui:Card Margin="0,0,0,8" Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="ABOUT" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="Aquila" FontSize="24" FontWeight="SemiBold" />
+                    <TextBlock Margin="0,2,0,10"
+                               Opacity="0.65"
+                               Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+                    <TextBlock Text="{Binding ViewModel.ProjectSummary, Mode=OneWay}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,0,0,8" Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="PROJECT" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="{Binding ViewModel.Maintainer, Mode=OneWay}"
+                               Style="{StaticResource ChipName}" />
+                    <TextBlock Margin="0,4,0,8"
+                               Opacity="0.70"
+                               Text="{Binding ViewModel.RepositoryUrl, Mode=OneWay}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ViewModel.SupportSummary, Mode=OneWay}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Margin="0,10,0,0"
+                               Opacity="0.78"
+                               Text="{Binding ViewModel.DependenciesSummary, Mode=OneWay}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,0,0,8" Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="LICENSE" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="{Binding ViewModel.LicenseName, Mode=OneWay}"
+                               Style="{StaticResource ChipName}"
+                               Margin="0,0,0,6" />
+                    <TextBlock Text="{Binding ViewModel.LicenseSummary, Mode=OneWay}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="PRIVACY &amp; UPDATES" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="{Binding ViewModel.PrivacySummary, Mode=OneWay}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
 </Page>
