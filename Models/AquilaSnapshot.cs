@@ -14,11 +14,16 @@ namespace Aquila.Models
         public MemorySnapshot Memory { get; init; } = new();
         public PowerSnapshot Power { get; init; } = new();
         public NetworkSnapshot Network { get; init; } = new();
+        public IReadOnlyList<StorageDeviceSnapshot> Storage { get; init; } = [];
+        public IReadOnlyList<TemperatureSnapshot> Temperatures { get; init; } = [];
+        public IReadOnlyList<FanSnapshot> Fans { get; init; } = [];
     }
 
     public sealed record MetricValue
     {
         public double? Value { get; init; }
+        public double? Min { get; init; }
+        public double? Max { get; init; }
         public string Unit { get; init; } = string.Empty;
         public string? SourceName { get; init; }
         public string? SourceIdentifier { get; init; }
@@ -28,6 +33,8 @@ namespace Aquila.Models
             : new MetricValue
             {
                 Value = sensor.Value,
+                Min = sensor.Min,
+                Max = sensor.Max,
                 Unit = sensor.Unit ?? string.Empty,
                 SourceName = sensor.Name,
                 SourceIdentifier = sensor.Identifier
@@ -51,6 +58,13 @@ namespace Aquila.Models
         public MetricValue Power { get; init; } = new();
         public MetricValue FanRpm { get; init; } = new();
         public MetricValue Fan2Rpm { get; init; } = new();
+        public IReadOnlyList<CpuCoreSnapshot> Cores { get; init; } = [];
+    }
+
+    public sealed record CpuCoreSnapshot
+    {
+        public string Label { get; init; } = string.Empty;
+        public MetricValue Load { get; init; } = new();
     }
 
     public sealed record GpuCollectionSnapshot
@@ -67,8 +81,13 @@ namespace Aquila.Models
         public MetricValue Clock { get; init; } = new();
         public MetricValue Power { get; init; } = new();
         public MetricValue FanRpm { get; init; } = new();
+        public MetricValue Fan2Rpm { get; init; } = new();
         public MetricValue VramUsed { get; init; } = new();
         public MetricValue VramTotal { get; init; } = new();
+
+        public double VramPercent => (VramTotal.Value ?? 0) > 0
+            ? Math.Clamp(((VramUsed.Value ?? 0) / (VramTotal.Value ?? 1)) * 100.0, 0.0, 100.0)
+            : 0.0;
     }
 
     public sealed record MemorySnapshot
@@ -102,5 +121,26 @@ namespace Aquila.Models
         public MetricValue DownloadSpeed { get; init; } = new();
         public MetricValue DataUploaded { get; init; } = new();
         public MetricValue DataDownloaded { get; init; } = new();
+    }
+
+    public sealed record StorageDeviceSnapshot
+    {
+        public string? Name { get; init; }
+        public MetricValue Temperature { get; init; } = new();
+        public MetricValue UsedSpace { get; init; } = new();
+        public MetricValue ReadRate { get; init; } = new();
+        public MetricValue WriteRate { get; init; } = new();
+    }
+
+    public sealed record TemperatureSnapshot
+    {
+        public string Label { get; init; } = string.Empty;
+        public MetricValue Value { get; init; } = new();
+    }
+
+    public sealed record FanSnapshot
+    {
+        public string Name { get; init; } = string.Empty;
+        public MetricValue Speed { get; init; } = new();
     }
 }

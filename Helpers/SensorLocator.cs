@@ -318,7 +318,14 @@ namespace Aquila.Helpers
                     EffectiveClock = MetricValue.FromValue(CpuEffectiveClock(data), "MHz", "Aquila effective clock"),
                     Power = MetricValue.FromSensor(cpuPower),
                     FanRpm = MetricValue.FromSensor(CpuFan(data, 0)),
-                    Fan2Rpm = MetricValue.FromSensor(CpuFan(data, 1))
+                    Fan2Rpm = MetricValue.FromSensor(CpuFan(data, 1)),
+                    Cores = CpuCoreSensors(data)
+                        .Select((sensor, index) => new CpuCoreSnapshot
+                        {
+                            Label = $"C{index + 1}",
+                            Load = MetricValue.FromSensor(sensor)
+                        })
+                        .ToList()
                 },
                 Gpu = new GpuCollectionSnapshot
                 {
@@ -332,7 +339,8 @@ namespace Aquila.Helpers
                             Load = MetricValue.FromSensor(GpuLoadFor(primaryGpu)),
                             Clock = MetricValue.FromSensor(GpuClockFor(primaryGpu)),
                             Power = MetricValue.FromSensor(gpuPower),
-                            FanRpm = MetricValue.FromSensor(GpuFanFor(primaryGpu)),
+                            FanRpm = MetricValue.FromSensor(GpuFanFor(primaryGpu, 0)),
+                            Fan2Rpm = MetricValue.FromSensor(GpuFanFor(primaryGpu, 1)),
                             VramUsed = MetricValue.FromSensor(GpuVramUsedFor(primaryGpu)),
                             VramTotal = MetricValue.FromSensor(GpuVramTotalFor(primaryGpu))
                         }
@@ -363,7 +371,31 @@ namespace Aquila.Helpers
                     DownloadSpeed = MetricValue.FromSensor(NetworkDownloadSpeed(data)),
                     DataUploaded = MetricValue.FromSensor(NetworkDataUploaded(data)),
                     DataDownloaded = MetricValue.FromSensor(NetworkDataDownloaded(data))
-                }
+                },
+                Storage = AllStorageDrives(data)
+                    .Select(drive => new StorageDeviceSnapshot
+                    {
+                        Name = drive.Name,
+                        Temperature = MetricValue.FromSensor(StorageTemperatureFor(drive)),
+                        UsedSpace = MetricValue.FromSensor(StorageUsedSpaceFor(drive)),
+                        ReadRate = MetricValue.FromSensor(StorageReadRateFor(drive)),
+                        WriteRate = MetricValue.FromSensor(StorageWriteRateFor(drive))
+                    })
+                    .ToList(),
+                Temperatures = SystemTemperatures(data)
+                    .Select(item => new TemperatureSnapshot
+                    {
+                        Label = item.Label,
+                        Value = MetricValue.FromSensor(item.Sensor)
+                    })
+                    .ToList(),
+                Fans = MotherboardFans(data)
+                    .Select(sensor => new FanSnapshot
+                    {
+                        Name = sensor.Name,
+                        Speed = MetricValue.FromSensor(sensor)
+                    })
+                    .ToList()
             };
         }
     }

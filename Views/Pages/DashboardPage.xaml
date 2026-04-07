@@ -53,7 +53,7 @@
                         <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}">
-                                    <Run Text="{Binding LoadSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <Run Text="{Binding Load.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                     <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                 </TextBlock>
                                 <TextBlock Text="Usage" Style="{StaticResource StatBoxLabel}"/>
@@ -62,8 +62,8 @@
                         <Border Style="{StaticResource StatBox}" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
-                                           Foreground="{Binding TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                    <Run Text="{Binding TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                           Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                    <Run Text="{Binding Temperature.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                     <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                 </TextBlock>
                                 <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
@@ -73,7 +73,7 @@
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
                                            Foreground="{DynamicResource Aquila.Gpu}">
-                                    <Run Text="{Binding ClockSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <Run Text="{Binding Clock.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                     <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                 </TextBlock>
                                 <TextBlock Text="Clock" Style="{StaticResource StatBoxLabel}"/>
@@ -83,7 +83,7 @@
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
                                            Foreground="{DynamicResource Aquila.Power}">
-                                            <Run Text="{Binding PowerSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                            <Run Text="{Binding Power.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                                     <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                 </TextBlock>
                                                 <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
@@ -105,13 +105,13 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock FontSize="20" FontWeight="Normal"
                                        Foreground="{DynamicResource Aquila.Gpu}"
-                                       Text="{Binding VramUsedSensor.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
+                                       Text="{Binding VramUsed.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
                             <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="/ -- ">
-                                        <Binding Path="VramTotalSensor.Value"/>
-                                        <Binding Path="VramUsedSensor.Unit"/>
+                                        <Binding Path="VramTotal.Value"/>
+                                        <Binding Path="VramUsed.Unit"/>
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
@@ -125,12 +125,12 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
-                                       Text="{Binding VramUsedSensor.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
+                                       Text="{Binding VramUsed.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
                             <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
-                                        <Binding Path="VramTotalSensor.Value"/>
-                                        <Binding Path="VramUsedSensor.Unit"/>
+                                        <Binding Path="VramTotal.Value"/>
+                                        <Binding Path="VramUsed.Unit"/>
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
@@ -151,8 +151,8 @@
                             <TextBlock FontSize="13" FontWeight="SemiBold">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                        <Binding Path="Fan1Sensor.Value"/>
-                                        <Binding Path="Fan1Sensor.Unit"/>
+                                        <Binding Path="Fan1.Value"/>
+                                        <Binding Path="Fan1.Unit"/>
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
@@ -162,8 +162,8 @@
                             <TextBlock FontSize="13" FontWeight="SemiBold">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                        <Binding Path="Fan2Sensor.Value"/>
-                                        <Binding Path="Fan2Sensor.Unit"/>
+                                        <Binding Path="Fan2.Value"/>
+                                        <Binding Path="Fan2.Unit"/>
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
@@ -553,8 +553,8 @@
                                             <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                                               Foreground="{Binding TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                                        <Run Text="{Binding TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                               Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                                        <Run Text="{Binding Temperature.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                                         <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                     </TextBlock>
                                                     <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
@@ -563,7 +563,7 @@
                                             <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource StatBoxValue}">
-                                                        <Run Text="{Binding UsedSpaceSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                        <Run Text="{Binding UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                                         <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                     </TextBlock>
                                                     <TextBlock Text="Used" Style="{StaticResource StatBoxLabel}"/>
@@ -579,10 +579,10 @@
                                             <TextBlock Grid.Column="0" Text="? Read" Style="{StaticResource RowLabel}"/>
                                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource Aquila.Cpu}"
-                                                       Text="{Binding ReadRateSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                                       Text="{Binding ReadRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                                         </Grid>
                                         <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,6"
-                                                     Value="{Binding ReadRateSensor.Value, FallbackValue=0}"
+                                                     Value="{Binding ReadRate.Value, FallbackValue=0}"
                                                      Maximum="600000000"/>
 
                                         <Grid Margin="0,0,0,4">
@@ -593,10 +593,10 @@
                                             <TextBlock Grid.Column="0" Text="? Write" Style="{StaticResource RowLabel}"/>
                                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource Aquila.Ram}"
-                                                       Text="{Binding WriteRateSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                                       Text="{Binding WriteRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                                         </Grid>
                                         <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,0"
-                                                     Value="{Binding WriteRateSensor.Value, FallbackValue=0}"
+                                                     Value="{Binding WriteRate.Value, FallbackValue=0}"
                                                      Maximum="600000000"/>
                                     </StackPanel>
                                 </DataTemplate>
@@ -621,8 +621,8 @@
                                     <Border Style="{StaticResource StatBox}" Margin="0,0,6,6">
                                         <StackPanel>
                                             <TextBlock Style="{StaticResource StatBoxValue}"
-                                                       Foreground="{Binding Sensor.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                                <Run Text="{Binding Sensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                       Foreground="{Binding Metric.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                                <Run Text="{Binding Metric.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                                 <Run Text="°C" FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                             </TextBlock>
                                             <TextBlock Text="{Binding Label}" Style="{StaticResource StatBoxLabel}"
@@ -643,7 +643,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,0,0,8"
-                                          Visibility="{Binding Value, Converter={StaticResource ZeroToCollapsedConverter}}">
+                                          Visibility="{Binding Metric.Value, Converter={StaticResource ZeroToCollapsedConverter}}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="*"/>
@@ -654,13 +654,13 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                         <ProgressBar Grid.Column="1" Style="{StaticResource FanBar}"
                                                      VerticalAlignment="Center"
-                                                     Value="{Binding Value, FallbackValue=0}"
-                                                     Maximum="{Binding Max, Converter={StaticResource FanMaxConverter}}"/>
+                                                     Value="{Binding Metric.Value, FallbackValue=0}"
+                                                     Maximum="{Binding Metric.Max, Converter={StaticResource FanMaxConverter}}"/>
                                         <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                                    <Binding Path="Value"/>
-                                                    <Binding Path="Unit"/>
+                                                    <Binding Path="Metric.Value"/>
+                                                    <Binding Path="Metric.Unit"/>
                                                 </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>
@@ -717,10 +717,10 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="GPU 2" Style="{StaticResource RowLabel}"/>
                             <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
-                                         Value="{Binding ViewModel.Gpu2.PowerSensor.Value, FallbackValue=0}"
+                                         Value="{Binding ViewModel.Gpu2.Power.Value, FallbackValue=0}"
                                          Maximum="450"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                                       Text="{Binding ViewModel.Gpu2.PowerSensor.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                                       Text="{Binding ViewModel.Gpu2.Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions>

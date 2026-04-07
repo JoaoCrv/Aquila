@@ -1,7 +1,5 @@
-﻿using Aquila.Helpers;
-using Aquila.Models;
+﻿using Aquila.Models;
 using Aquila.Services;
-using LibreHardwareMonitor.Hardware;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using System.Collections.Generic;
@@ -17,7 +15,6 @@ namespace Aquila.ViewModels.Pages
         private readonly HardwareMonitorService _monitorService;
         private const int HistorySize = 60;
 
-        public ComputerData Computer => _monitorService.ComputerData;
         public AquilaSnapshot Aquila => _monitorService.CurrentSnapshot;
 
         [ObservableProperty] private float _effectiveCpuClock;
@@ -37,8 +34,8 @@ namespace Aquila.ViewModels.Pages
         // ── Dynamic lists (refreshed every tick) ─────────────────────────
         [ObservableProperty] private List<CoreBarItem> _cpuCoreItems = [];
         [ObservableProperty] private List<GpuCardData> _gpuCards = [];
-        [ObservableProperty] private List<LabelledSensor> _systemTemperatures = [];
-        [ObservableProperty] private List<DataSensor> _systemFans = [];
+        [ObservableProperty] private List<LabelledMetric> _systemTemperatures = [];
+        [ObservableProperty] private List<FanMetricItem> _systemFans = [];
         [ObservableProperty] private List<StorageDriveData> _storageCards = [];
 
         // ── Gpu1 / Gpu2 convenience ──────────────────────────────────────
@@ -119,7 +116,7 @@ namespace Aquila.ViewModels.Pages
             var cpuLoad = (float)(Aquila.Cpu.Load.Value ?? 0);
 
             // Dashboard shows only the primary GPU card.
-            var primaryGpu = SensorLocator.PrimaryGpu(Computer);
+            var primaryGpu = Aquila.Gpu.Primary;
             if (primaryGpu is null)
             {
                 if (GpuCards.Count > 0)
@@ -134,13 +131,20 @@ namespace Aquila.ViewModels.Pages
                 var existingCard = GpuCards.FirstOrDefault(card =>
                     string.Equals(card.Identifier, primaryGpu.Identifier, StringComparison.Ordinal));
 
+                if (existingCard is not null)
+                    existingCard.Update(primaryGpu);
+
                 GpuCards = [existingCard ?? new GpuCardData(primaryGpu)];
                 OnPropertyChanged(nameof(Gpu1));
                 OnPropertyChanged(nameof(Gpu2));
             }
+            else
+            {
+                GpuCards[0].Update(primaryGpu);
+            }
 
             foreach (var card in GpuCards)
-                card.PushHistory(card.LoadSensor?.Value ?? 0);
+                card.PushHistory();
 
             CpuGaugeValue = cpuLoad;
             RamGaugeValue = Math.Round(Aquila.Memory.LoadPercent.Value ?? 0);
@@ -158,23 +162,22 @@ namespace Aquila.ViewModels.Pages
             NetworkUploadHistory.Add(Aquila.Network.UploadSpeed.Value ?? 0);
 
             // Per-core CPU loads
-            var cores = SensorLocator.CpuCoreSensors(Computer);
-            CpuCoreItems = cores
-                .Select((s, i) => new CoreBarItem($"C{i + 1}", s))
+            CpuCoreItems = Aquila.Cpu.Cores
+                .Select(core => new CoreBarItem(core.Label, core.Load.Value ?? 0))
                 .ToList();
 
             // System temperatures
-            SystemTemperatures = SensorLocator.SystemTemperatures(Computer)
-                .Select(t => new LabelledSensor(t.Label, t.Sensor))
+            SystemTemperatures = Aquila.Temperatures
+                .Select(item => new LabelledMetric(item.Label, item.Value))
                 .ToList();
 
             // System fans
-            SystemFans = SensorLocator.MotherboardFans(Computer);
+            SystemFans = Aquila.Fans
+                .Select(item => new FanMetricItem(item.Name, item.Speed))
+                .ToList();
 
-            // Storage cards — rebuild only when drive count changes
-            var allDrives = SensorLocator.AllStorageDrives(Computer).ToList();
-            if (allDrives.Count != StorageCards.Count)
-                StorageCards = allDrives.Select(d => new StorageDriveData(d)).ToList();
+            // Storage cards
+            StorageCards = Aquila.Storage.Select(drive => new StorageDriveData(drive)).ToList();
 
             // Derived values that depend on non-observable sources — notify every tick
             OnPropertyChanged(nameof(CacheBarWeight));
@@ -200,73 +203,71 @@ namespace Aquila.ViewModels.Pages
     public class GpuCardData
     {
         private const int HistorySize = 60;
-        private readonly DataHardware _gpu;
+        private GpuSnapshot _gpu;
 
-        public GpuCardData(DataHardware gpu)
+        public GpuCardData(GpuSnapshot gpu)
         {
             _gpu = gpu;
             UsageHistory = new ObservableCollection<double>(Enumerable.Repeat(0.0, HistorySize));
         }
 
-        public string Identifier => _gpu.Identifier;
-        public string Name => _gpu.Name;
-        public DataSensor? TempSensor => SensorLocator.GpuTemperatureFor(_gpu);
-        public DataSensor? LoadSensor => SensorLocator.GpuLoadFor(_gpu);
-        public DataSensor? ClockSensor => SensorLocator.GpuClockFor(_gpu);
-        public DataSensor? PowerSensor => SensorLocator.GpuPowerFor(_gpu);
-        public DataSensor? Fan1Sensor => SensorLocator.GpuFanFor(_gpu, 0);
-        public DataSensor? Fan2Sensor => SensorLocator.GpuFanFor(_gpu, 1);
-        public DataSensor? VramUsedSensor => SensorLocator.GpuVramUsedFor(_gpu);
-        public DataSensor? VramTotalSensor => SensorLocator.GpuVramTotalFor(_gpu);
-
-        public float VramPercent =>
-            VramTotalSensor?.Value > 0
-                ? Math.Clamp((VramUsedSensor?.Value ?? 0) / VramTotalSensor!.Value * 100f, 0f, 100f)
-                : 0f;
+        public string Identifier => _gpu.Identifier ?? string.Empty;
+        public string Name => _gpu.Name ?? "GPU";
+        public MetricValue Temperature => _gpu.Temperature;
+        public MetricValue Load => _gpu.Load;
+        public MetricValue Clock => _gpu.Clock;
+        public MetricValue Power => _gpu.Power;
+        public MetricValue Fan1 => _gpu.FanRpm;
+        public MetricValue Fan2 => _gpu.Fan2Rpm;
+        public MetricValue VramUsed => _gpu.VramUsed;
+        public MetricValue VramTotal => _gpu.VramTotal;
+        public double VramPercent => _gpu.VramPercent;
 
         public ObservableCollection<double> UsageHistory { get; }
 
-        public void PushHistory(double value)
+        public void Update(GpuSnapshot gpu)
+        {
+            _gpu = gpu;
+        }
+
+        public void PushHistory()
         {
             UsageHistory.RemoveAt(0);
-            UsageHistory.Add(value);
+            UsageHistory.Add(_gpu.Load.Value ?? 0);
         }
     }
 
     // ── CPU core bar ─────────────────────────────────────────────────────────
-    public class CoreBarItem(string label, DataSensor sensor)
+    public class CoreBarItem(string label, double value)
     {
         private const double MaxHeight = 92.0;
         public string Label => label;
-        public DataSensor Sensor => sensor;
-        public double BarHeight => MaxHeight * (sensor.Value / 100.0);
-        public string ValueText => $"{sensor.Value:F0}%";
+        public double Value => value;
+        public double BarHeight => MaxHeight * (value / 100.0);
+        public string ValueText => $"{value:F0}%";
     }
 
-    // ── GPU core bar ──────────────────────────────────────────────────────────
-    public class GpuCoreBarItem(string label, DataSensor sensor)
+    // ── Labelled metric (temperatures list) ──────────────────────────────────
+    public class LabelledMetric(string label, MetricValue metric)
     {
-        private const double MaxHeight = 80.0;
         public string Label => label;
-        public DataSensor Sensor => sensor;
-        public double BarHeight => MaxHeight * (sensor.Value / 100.0);
-        public string ValueText => $"{sensor.Value:F0}%";
+        public MetricValue Metric => metric;
     }
 
-    // ── Labelled sensor (temperatures list) ──────────────────────────────────
-    public class LabelledSensor(string label, DataSensor sensor)
+    // ── Fan metric row ───────────────────────────────────────────────────────
+    public class FanMetricItem(string name, MetricValue metric)
     {
-        public string Label => label;
-        public DataSensor Sensor => sensor;
+        public string Name => name;
+        public MetricValue Metric => metric;
     }
 
     // ── Per-storage drive data ────────────────────────────────────────────────
-    public class StorageDriveData(DataHardware drive)
+    public class StorageDriveData(StorageDeviceSnapshot drive)
     {
-        public string Name => drive.Name;
-        public DataSensor? TempSensor => SensorLocator.StorageTemperatureFor(drive);
-        public DataSensor? ReadRateSensor => SensorLocator.StorageReadRateFor(drive);
-        public DataSensor? WriteRateSensor => SensorLocator.StorageWriteRateFor(drive);
-        public DataSensor? UsedSpaceSensor => SensorLocator.StorageUsedSpaceFor(drive);
+        public string Name => drive.Name ?? "Drive";
+        public MetricValue Temperature => drive.Temperature;
+        public MetricValue ReadRate => drive.ReadRate;
+        public MetricValue WriteRate => drive.WriteRate;
+        public MetricValue UsedSpace => drive.UsedSpace;
     }
 }
