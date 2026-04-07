@@ -23,7 +23,6 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty] private float _effectiveCpuClock;
         [ObservableProperty] private double _cpuGaugeValue;
         [ObservableProperty] private double _ramGaugeValue;
-        [ObservableProperty] private float _totalPower;
 
         // ── History ring buffers ─────────────────────────────────────────
         public ObservableCollection<double> CpuUsageHistory { get; } = new(Enumerable.Repeat(0.0, HistorySize));
@@ -43,45 +42,14 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty] private List<StorageDriveData> _storageCards = [];
 
         // ── Gpu1 / Gpu2 convenience ──────────────────────────────────────
-        public GpuCardData? Gpu1 => _gpuCards.Count > 0 ? _gpuCards[0] : null;
-        public GpuCardData? Gpu2 => _gpuCards.Count > 1 ? _gpuCards[1] : null;
-
-        // ── CPU sensors ──────────────────────────────────────────────────
-        public string? CpuName => Aquila.Cpu.Name;
-        public string? CpuSummary => Aquila.Cpu.Summary;
-        public DataSensor? CpuTemperatureSensor => SensorLocator.CpuTemperature(Computer);
-        public DataSensor? CpuUsageSensor => SensorLocator.CpuLoad(Computer);
-        public DataSensor? CpuEnergySensor => SensorLocator.CpuPower(Computer);
-        public DataSensor? CpuFanSpeed1Sensor => SensorLocator.CpuFan(Computer, 0);
-        public DataSensor? CpuFanSpeed2Sensor => SensorLocator.CpuFan(Computer, 1);
-
-        // ── RAM sensors ──────────────────────────────────────────────────
-        public DataSensor? MemoryUsageSensor => SensorLocator.MemoryLoad(Computer);
-        public DataSensor? MemoryUsedSensor => SensorLocator.MemoryUsed(Computer);
-        public DataSensor? MemoryAvailableSensor => SensorLocator.MemoryAvailable(Computer);
-        public DataSensor? MemoryPowerSensor => SensorLocator.MemoryPower(Computer);
-        public DataSensor? VirtualMemoryUsedSensor => SensorLocator.VirtualMemoryUsed(Computer);
-        public DataSensor? VirtualMemoryAvailableSensor => SensorLocator.VirtualMemoryAvailable(Computer);
-
-        public float RamTotalGb =>
-            (MemoryUsedSensor?.Value ?? 0) + (MemoryAvailableSensor?.Value ?? 0);
-
-        // ── RAM Windows extras ───────────────────────────────────────────
-        public float PageReadsPerSec => (float)(Aquila.Memory.PageReadsPerSec.Value ?? 0);
-        public float PageWritesPerSec => (float)(Aquila.Memory.PageWritesPerSec.Value ?? 0);
-        public float CacheGb => (float)Aquila.Memory.CacheGb;
+        public GpuCardData? Gpu1 => GpuCards.Count > 0 ? GpuCards[0] : null;
+        public GpuCardData? Gpu2 => GpuCards.Count > 1 ? GpuCards[1] : null;
 
         /// <summary>Cache weight for the segmented bar (as % of total RAM).</summary>
-        public double CacheBarWeight => RamTotalGb > 0 ? CacheGb / RamTotalGb * 100.0 : 0;
-        /// <summary>Free weight for the segmented bar (as % of total RAM).</summary>
-        public double FreeBarWeight => Math.Max(0, 100.0 - _ramGaugeValue - CacheBarWeight);
+        public double CacheBarWeight => Aquila.Memory.TotalVisibleGb > 0 ? Aquila.Memory.CacheGb / Aquila.Memory.TotalVisibleGb * 100.0 : 0;
 
-        // ── Network sensors ──────────────────────────────────────────────
-        public string? NetworkName => Aquila.Network.Name;
-        public DataSensor? NetworkUploadSpeedSensor => SensorLocator.NetworkUploadSpeed(Computer);
-        public DataSensor? NetworkDownloadSpeedSensor => SensorLocator.NetworkDownloadSpeed(Computer);
-        public DataSensor? NetworkDataUploadedSensor => SensorLocator.NetworkDataUploaded(Computer);
-        public DataSensor? NetworkDataDownloadedSensor => SensorLocator.NetworkDataDownloaded(Computer);
+        /// <summary>Free weight for the segmented bar (as % of total RAM).</summary>
+        public double FreeBarWeight => Math.Max(0, 100.0 - RamGaugeValue - CacheBarWeight);
 
         // ── Header — uptime & clock ───────────────────────────────────────────
         private readonly DispatcherTimer _clockTimer;
@@ -100,24 +68,6 @@ namespace Aquila.ViewModels.Pages
         public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
 
         private bool _suspended;
-
-        // ── Sensor reference cache — notify XAML only when reference changes ────────
-        private DataSensor? _prevCpuTemperatureSensor;
-        private DataSensor? _prevCpuUsageSensor;
-        private DataSensor? _prevCpuEnergySensor;
-        private DataSensor? _prevCpuFanSpeed1Sensor;
-        private DataSensor? _prevCpuFanSpeed2Sensor;
-        private DataSensor? _prevMemoryUsageSensor;
-        private DataSensor? _prevMemoryUsedSensor;
-        private DataSensor? _prevMemoryAvailableSensor;
-        private DataSensor? _prevMemoryPowerSensor;
-        private DataSensor? _prevNetworkUploadSensor;
-        private DataSensor? _prevNetworkDownloadSensor;
-        private DataSensor? _prevNetworkDataUploadedSensor;
-        private DataSensor? _prevNetworkDataDownloadedSensor;
-        private string? _prevCpuName;
-        private string? _prevCpuSummary;
-        private string? _prevNetworkName;
 
         public void Suspend() => _suspended = true;
         public void Resume() => _suspended = false;
@@ -164,23 +114,24 @@ namespace Aquila.ViewModels.Pages
             if (_suspended) return;
 
             CalculateEffectiveCpuClock();
+            OnPropertyChanged(nameof(Aquila));
 
-            var cpuLoad = CpuUsageSensor?.Value ?? 0;
+            var cpuLoad = (float)(Aquila.Cpu.Load.Value ?? 0);
 
             // Dashboard shows only the primary GPU card.
             var primaryGpu = SensorLocator.PrimaryGpu(Computer);
             if (primaryGpu is null)
             {
-                if (_gpuCards.Count > 0)
+                if (GpuCards.Count > 0)
                 {
                     GpuCards = [];
                     OnPropertyChanged(nameof(Gpu1));
                     OnPropertyChanged(nameof(Gpu2));
                 }
             }
-            else if (_gpuCards.Count != 1 || !string.Equals(_gpuCards[0].Identifier, primaryGpu.Identifier, StringComparison.Ordinal))
+            else if (GpuCards.Count != 1 || !string.Equals(GpuCards[0].Identifier, primaryGpu.Identifier, StringComparison.Ordinal))
             {
-                var existingCard = _gpuCards.FirstOrDefault(card =>
+                var existingCard = GpuCards.FirstOrDefault(card =>
                     string.Equals(card.Identifier, primaryGpu.Identifier, StringComparison.Ordinal));
 
                 GpuCards = [existingCard ?? new GpuCardData(primaryGpu)];
@@ -188,23 +139,23 @@ namespace Aquila.ViewModels.Pages
                 OnPropertyChanged(nameof(Gpu2));
             }
 
-            foreach (var card in _gpuCards)
+            foreach (var card in GpuCards)
                 card.PushHistory(card.LoadSensor?.Value ?? 0);
 
             CpuGaugeValue = cpuLoad;
-            RamGaugeValue = Math.Round(MemoryUsageSensor?.Value ?? 0);
+            RamGaugeValue = Math.Round(Aquila.Memory.LoadPercent.Value ?? 0);
 
             CpuUsageHistory.RemoveAt(0);
             CpuUsageHistory.Add(cpuLoad);
 
             RamUsageHistory.RemoveAt(0);
-            RamUsageHistory.Add(MemoryUsageSensor?.Value ?? 0);
+            RamUsageHistory.Add(Aquila.Memory.LoadPercent.Value ?? 0);
 
             // Network throughput history
             NetworkDownloadHistory.RemoveAt(0);
-            NetworkDownloadHistory.Add(NetworkDownloadSpeedSensor?.Value ?? 0);
+            NetworkDownloadHistory.Add(Aquila.Network.DownloadSpeed.Value ?? 0);
             NetworkUploadHistory.RemoveAt(0);
-            NetworkUploadHistory.Add(NetworkUploadSpeedSensor?.Value ?? 0);
+            NetworkUploadHistory.Add(Aquila.Network.UploadSpeed.Value ?? 0);
 
             // Per-core CPU loads
             var cores = SensorLocator.CpuCoreSensors(Computer);
@@ -222,76 +173,18 @@ namespace Aquila.ViewModels.Pages
 
             // Storage cards — rebuild only when drive count changes
             var allDrives = SensorLocator.AllStorageDrives(Computer).ToList();
-            if (allDrives.Count != _storageCards.Count)
+            if (allDrives.Count != StorageCards.Count)
                 StorageCards = allDrives.Select(d => new StorageDriveData(d)).ToList();
 
-            // Total power
-            TotalPower = (float)(Aquila.Power.Total.Value ?? 0);
-
             // Derived values that depend on non-observable sources — notify every tick
-            OnPropertyChanged(nameof(RamTotalGb));
-            OnPropertyChanged(nameof(PageReadsPerSec));
-            OnPropertyChanged(nameof(PageWritesPerSec));
-            OnPropertyChanged(nameof(CacheGb));
             OnPropertyChanged(nameof(CacheBarWeight));
             OnPropertyChanged(nameof(FreeBarWeight));
-
-            // Sensor references and computed strings — notify only when the value changes
-            NotifySensorReferences();
         }
 
         // ── Effective CPU clock (maximum weighted by core load) ─────────────────────────────────
         private void CalculateEffectiveCpuClock()
         {
-            var cpu = Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
-            if (cpu == null) { EffectiveCpuClock = 0; return; }
-
-            var clockSensors = cpu.Sensors
-                .Where(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core #"))
-                .ToList();
-            var loadSensors = cpu.Sensors
-                .Where(s => s.SensorType == SensorType.Load && s.Name.Contains("CPU Core #"))
-                .ToList();
-
-            float maxEffectiveClock = 0;
-            foreach (var clockSensor in clockSensors)
-            {
-                var coreNum = clockSensor.Name.Replace("Core #", "").Trim();
-                var loadSensor = loadSensors.FirstOrDefault(s => s.Name.EndsWith(coreNum, StringComparison.Ordinal));
-                float ec = loadSensor != null
-                    ? clockSensor.Value * (loadSensor.Value / 100f)
-                    : clockSensor.Value;
-                if (ec > maxEffectiveClock) maxEffectiveClock = ec;
-            }
-            EffectiveCpuClock = maxEffectiveClock;
-        }
-
-        private void NotifySensorReferences()
-        {
-            NotifyIfChanged(ref _prevCpuName, CpuName, nameof(CpuName));
-            NotifyIfChanged(ref _prevCpuSummary, CpuSummary, nameof(CpuSummary));
-            NotifyIfChanged(ref _prevNetworkName, NetworkName, nameof(NetworkName));
-
-            NotifyIfChanged(ref _prevCpuTemperatureSensor, CpuTemperatureSensor, nameof(CpuTemperatureSensor));
-            NotifyIfChanged(ref _prevCpuUsageSensor, CpuUsageSensor, nameof(CpuUsageSensor));
-            NotifyIfChanged(ref _prevCpuEnergySensor, CpuEnergySensor, nameof(CpuEnergySensor));
-            NotifyIfChanged(ref _prevCpuFanSpeed1Sensor, CpuFanSpeed1Sensor, nameof(CpuFanSpeed1Sensor));
-            NotifyIfChanged(ref _prevCpuFanSpeed2Sensor, CpuFanSpeed2Sensor, nameof(CpuFanSpeed2Sensor));
-            NotifyIfChanged(ref _prevMemoryUsageSensor, MemoryUsageSensor, nameof(MemoryUsageSensor));
-            NotifyIfChanged(ref _prevMemoryUsedSensor, MemoryUsedSensor, nameof(MemoryUsedSensor));
-            NotifyIfChanged(ref _prevMemoryAvailableSensor, MemoryAvailableSensor, nameof(MemoryAvailableSensor));
-            NotifyIfChanged(ref _prevMemoryPowerSensor, MemoryPowerSensor, nameof(MemoryPowerSensor));
-            NotifyIfChanged(ref _prevNetworkUploadSensor, NetworkUploadSpeedSensor, nameof(NetworkUploadSpeedSensor));
-            NotifyIfChanged(ref _prevNetworkDownloadSensor, NetworkDownloadSpeedSensor, nameof(NetworkDownloadSpeedSensor));
-            NotifyIfChanged(ref _prevNetworkDataUploadedSensor, NetworkDataUploadedSensor, nameof(NetworkDataUploadedSensor));
-            NotifyIfChanged(ref _prevNetworkDataDownloadedSensor, NetworkDataDownloadedSensor, nameof(NetworkDataDownloadedSensor));
-        }
-
-        private void NotifyIfChanged<T>(ref T? last, T? current, string name) where T : class
-        {
-            if (Equals(last, current)) return;
-            last = current;
-            OnPropertyChanged(name);
+            EffectiveCpuClock = (float)(Aquila.Cpu.EffectiveClock.Value ?? 0);
         }
 
         public void Dispose()

@@ -83,6 +83,35 @@ namespace Aquila.Helpers
             return threads > 0 ? $"{cores}C / {threads}T" : $"{cores} Cores";
         }
 
+        public static float CpuEffectiveClock(ComputerData data)
+        {
+            var cpu = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
+            if (cpu == null)
+                return 0;
+
+            var clockSensors = cpu.Sensors
+                .Where(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core #"))
+                .ToList();
+            var loadSensors = cpu.Sensors
+                .Where(s => s.SensorType == SensorType.Load && s.Name.Contains("CPU Core #"))
+                .ToList();
+
+            float maxEffectiveClock = 0;
+            foreach (var clockSensor in clockSensors)
+            {
+                var coreNum = clockSensor.Name.Replace("Core #", string.Empty).Trim();
+                var loadSensor = loadSensors.FirstOrDefault(s => s.Name.EndsWith(coreNum, StringComparison.Ordinal));
+                float effectiveClock = loadSensor != null
+                    ? clockSensor.Value * (loadSensor.Value / 100f)
+                    : clockSensor.Value;
+
+                if (effectiveClock > maxEffectiveClock)
+                    maxEffectiveClock = effectiveClock;
+            }
+
+            return maxEffectiveClock;
+        }
+
         public static List<DataSensor> CpuCoreSensors(ComputerData data)
         {
             var hw = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
@@ -286,8 +315,10 @@ namespace Aquila.Helpers
                     Summary = CpuSummary(data),
                     Temperature = MetricValue.FromSensor(CpuTemperature(data)),
                     Load = MetricValue.FromSensor(CpuLoad(data)),
+                    EffectiveClock = MetricValue.FromValue(CpuEffectiveClock(data), "MHz", "Aquila effective clock"),
                     Power = MetricValue.FromSensor(cpuPower),
-                    FanRpm = MetricValue.FromSensor(CpuFan(data))
+                    FanRpm = MetricValue.FromSensor(CpuFan(data, 0)),
+                    Fan2Rpm = MetricValue.FromSensor(CpuFan(data, 1))
                 },
                 Gpu = new GpuCollectionSnapshot
                 {
