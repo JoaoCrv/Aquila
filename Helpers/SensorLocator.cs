@@ -66,6 +66,23 @@ namespace Aquila.Helpers
             ?? Find(data, HardwareType.Cpu, SensorType.Power, "Total")
             ?? FindFirst(data, HardwareType.Cpu, SensorType.Power);
 
+        public static string? CpuSummary(ComputerData data)
+        {
+            var cpu = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
+            if (cpu == null) return null;
+
+            int cores = cpu.Sensors
+                .Count(s => s.SensorType == SensorType.Clock
+                         && s.Name.Contains("Core #")
+                         && !s.Name.Contains("("));
+            if (cores == 0) return null;
+
+            int threads = cpu.Sensors
+                .Count(s => s.SensorType == SensorType.Load && s.Name.Contains("Thread #"));
+
+            return threads > 0 ? $"{cores}C / {threads}T" : $"{cores} Cores";
+        }
+
         public static List<DataSensor> CpuCoreSensors(ComputerData data)
         {
             var hw = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
@@ -249,5 +266,74 @@ namespace Aquila.Helpers
         public static DataSensor? StorageDataWrittenFor(DataHardware drive) =>
             drive.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data
                 && s.Name.Contains("Data Written", StringComparison.OrdinalIgnoreCase));
+
+        public static AquilaSnapshot BuildSnapshot(ComputerData data, float pageReadsPerSec = 0, float pageWritesPerSec = 0, long cacheBytes = 0)
+        {
+            var cpu = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
+            var primaryGpu = PrimaryGpu(data);
+            var cpuPower = CpuPower(data);
+            var memoryPower = MemoryPower(data);
+            var gpuPower = primaryGpu is not null ? GpuPowerFor(primaryGpu) : null;
+            var totalPower = (cpuPower?.Value ?? 0) + (memoryPower?.Value ?? 0) + (gpuPower?.Value ?? 0);
+
+            var network = data.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network);
+
+            return new AquilaSnapshot
+            {
+                Cpu = new CpuSnapshot
+                {
+                    Name = cpu?.Name,
+                    Summary = CpuSummary(data),
+                    Temperature = MetricValue.FromSensor(CpuTemperature(data)),
+                    Load = MetricValue.FromSensor(CpuLoad(data)),
+                    Power = MetricValue.FromSensor(cpuPower),
+                    FanRpm = MetricValue.FromSensor(CpuFan(data))
+                },
+                Gpu = new GpuCollectionSnapshot
+                {
+                    Primary = primaryGpu is null
+                        ? null
+                        : new GpuSnapshot
+                        {
+                            Identifier = primaryGpu.Identifier,
+                            Name = primaryGpu.Name,
+                            Temperature = MetricValue.FromSensor(GpuTemperatureFor(primaryGpu)),
+                            Load = MetricValue.FromSensor(GpuLoadFor(primaryGpu)),
+                            Clock = MetricValue.FromSensor(GpuClockFor(primaryGpu)),
+                            Power = MetricValue.FromSensor(gpuPower),
+                            FanRpm = MetricValue.FromSensor(GpuFanFor(primaryGpu)),
+                            VramUsed = MetricValue.FromSensor(GpuVramUsedFor(primaryGpu)),
+                            VramTotal = MetricValue.FromSensor(GpuVramTotalFor(primaryGpu))
+                        }
+                },
+                Memory = new MemorySnapshot
+                {
+                    LoadPercent = MetricValue.FromSensor(MemoryLoad(data)),
+                    UsedGb = MetricValue.FromSensor(MemoryUsed(data)),
+                    AvailableGb = MetricValue.FromSensor(MemoryAvailable(data)),
+                    Power = MetricValue.FromSensor(memoryPower),
+                    VirtualUsedGb = MetricValue.FromSensor(VirtualMemoryUsed(data)),
+                    VirtualAvailableGb = MetricValue.FromSensor(VirtualMemoryAvailable(data)),
+                    PageReadsPerSec = MetricValue.FromValue(pageReadsPerSec, "reads/s", "Windows PDH"),
+                    PageWritesPerSec = MetricValue.FromValue(pageWritesPerSec, "writes/s", "Windows PDH"),
+                    CacheBytes = MetricValue.FromValue(cacheBytes, "B", "Windows Performance Info")
+                },
+                Power = new PowerSnapshot
+                {
+                    Cpu = MetricValue.FromSensor(cpuPower),
+                    Memory = MetricValue.FromSensor(memoryPower),
+                    Gpu = MetricValue.FromSensor(gpuPower),
+                    Total = MetricValue.FromValue(totalPower, "W", "Aquila total")
+                },
+                Network = new NetworkSnapshot
+                {
+                    Name = network?.Name,
+                    UploadSpeed = MetricValue.FromSensor(NetworkUploadSpeed(data)),
+                    DownloadSpeed = MetricValue.FromSensor(NetworkDownloadSpeed(data)),
+                    DataUploaded = MetricValue.FromSensor(NetworkDataUploaded(data)),
+                    DataDownloaded = MetricValue.FromSensor(NetworkDataDownloaded(data))
+                }
+            };
+        }
     }
 }

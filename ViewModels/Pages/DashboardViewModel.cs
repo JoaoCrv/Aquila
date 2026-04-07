@@ -18,6 +18,7 @@ namespace Aquila.ViewModels.Pages
         private const int HistorySize = 60;
 
         public ComputerData Computer => _monitorService.ComputerData;
+        public AquilaSnapshot Aquila => _monitorService.CurrentSnapshot;
 
         [ObservableProperty] private float _effectiveCpuClock;
         [ObservableProperty] private double _cpuGaugeValue;
@@ -46,8 +47,8 @@ namespace Aquila.ViewModels.Pages
         public GpuCardData? Gpu2 => _gpuCards.Count > 1 ? _gpuCards[1] : null;
 
         // ── CPU sensors ──────────────────────────────────────────────────
-        public string? CpuName => Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?.Name;
-        public string? CpuSummary => BuildCpuSummary();
+        public string? CpuName => Aquila.Cpu.Name;
+        public string? CpuSummary => Aquila.Cpu.Summary;
         public DataSensor? CpuTemperatureSensor => SensorLocator.CpuTemperature(Computer);
         public DataSensor? CpuUsageSensor => SensorLocator.CpuLoad(Computer);
         public DataSensor? CpuEnergySensor => SensorLocator.CpuPower(Computer);
@@ -66,9 +67,9 @@ namespace Aquila.ViewModels.Pages
             (MemoryUsedSensor?.Value ?? 0) + (MemoryAvailableSensor?.Value ?? 0);
 
         // ── RAM Windows extras ───────────────────────────────────────────
-        public float PageReadsPerSec => _monitorService.PageReadsPerSec;
-        public float PageWritesPerSec => _monitorService.PageWritesPerSec;
-        public float CacheGb => _monitorService.CacheBytes / 1_073_741_824f;
+        public float PageReadsPerSec => (float)(Aquila.Memory.PageReadsPerSec.Value ?? 0);
+        public float PageWritesPerSec => (float)(Aquila.Memory.PageWritesPerSec.Value ?? 0);
+        public float CacheGb => (float)Aquila.Memory.CacheGb;
 
         /// <summary>Cache weight for the segmented bar (as % of total RAM).</summary>
         public double CacheBarWeight => RamTotalGb > 0 ? CacheGb / RamTotalGb * 100.0 : 0;
@@ -76,7 +77,7 @@ namespace Aquila.ViewModels.Pages
         public double FreeBarWeight => Math.Max(0, 100.0 - _ramGaugeValue - CacheBarWeight);
 
         // ── Network sensors ──────────────────────────────────────────────
-        public string? NetworkName => Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Network)?.Name;
+        public string? NetworkName => Aquila.Network.Name;
         public DataSensor? NetworkUploadSpeedSensor => SensorLocator.NetworkUploadSpeed(Computer);
         public DataSensor? NetworkDownloadSpeedSensor => SensorLocator.NetworkDownloadSpeed(Computer);
         public DataSensor? NetworkDataUploadedSensor => SensorLocator.NetworkDataUploaded(Computer);
@@ -225,10 +226,7 @@ namespace Aquila.ViewModels.Pages
                 StorageCards = allDrives.Select(d => new StorageDriveData(d)).ToList();
 
             // Total power
-            var cpuW = CpuEnergySensor?.Value ?? 0;
-            var ramW = MemoryPowerSensor?.Value ?? 0;
-            var gpuW = _gpuCards.Count > 0 ? (_gpuCards[0].PowerSensor?.Value ?? 0) : 0;
-            TotalPower = cpuW + ramW + gpuW;
+            TotalPower = (float)(Aquila.Power.Total.Value ?? 0);
 
             // Derived values that depend on non-observable sources — notify every tick
             OnPropertyChanged(nameof(RamTotalGb));
@@ -303,22 +301,6 @@ namespace Aquila.ViewModels.Pages
             ApplicationThemeManager.Changed -= OnThemeChanged;
         }
 
-        private string? BuildCpuSummary()
-        {
-            var cpu = Computer.HardwareList.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu);
-            if (cpu == null) return null;
-
-            int cores = cpu.Sensors
-                .Count(s => s.SensorType == SensorType.Clock
-                         && s.Name.Contains("Core #")
-                         && !s.Name.Contains("("));
-            if (cores == 0) return null;
-
-            int threads = cpu.Sensors
-                .Count(s => s.SensorType == SensorType.Load && s.Name.Contains("Thread #"));
-
-            return threads > 0 ? $"{cores}C / {threads}T" : $"{cores} Cores";
-        }
     }
 
     // ── Per-GPU card data (sensors + own sparkline history) ──

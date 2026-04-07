@@ -1,4 +1,5 @@
-﻿using Aquila.Models;
+﻿using Aquila.Helpers;
+using Aquila.Models;
 using LibreHardwareMonitor.Hardware;
 using System;
 using System.Linq;
@@ -18,6 +19,7 @@ namespace Aquila.Services
 
         public event Action? DataUpdated;
         public ComputerData ComputerData { get; } = new();
+        public AquilaSnapshot CurrentSnapshot { get; private set; } = new();
 
         // ── Windows memory extras ────────────────────────────────────────
         /// <summary>Page reads per second (paging file read activity).</summary>
@@ -109,6 +111,7 @@ namespace Aquila.Services
                 PageWritesPerSec = metricsSnapshot.PageWritesPerSec;
             }
 
+            CurrentSnapshot = SensorLocator.BuildSnapshot(ComputerData, PageReadsPerSec, PageWritesPerSec, CacheBytes);
             DataUpdated?.Invoke();
         }
 
