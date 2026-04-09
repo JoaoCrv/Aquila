@@ -4,9 +4,9 @@ using System.Runtime.InteropServices;
 namespace Aquila.Services
 {
     /// <summary>
-    /// Reads Windows-specific memory and paging metrics that are not provided directly by LibreHardwareMonitor.
+    /// Reads Windows-specific memory and paging metrics that complement the hardware provider data.
     /// </summary>
-    public sealed class WindowsMetricsReader : IDisposable
+    public sealed class WindowsMemoryMetricsReader : IDisposable
     {
         private IntPtr _pdhQuery;
         private IntPtr _pdhPageReads;
@@ -31,7 +31,7 @@ namespace Aquila.Services
             }
         }
 
-        public WindowsMetricsSnapshot ReadSnapshot()
+        public WindowsMemoryMetricsSnapshot ReadSnapshot()
         {
             ThrowIfDisposed();
             Open();
@@ -59,7 +59,7 @@ namespace Aquila.Services
                 // Keep metric reading resilient; failures here should not stop hardware polling.
             }
 
-            return new WindowsMetricsSnapshot(pageReadsPerSec, pageWritesPerSec, cacheBytes);
+            return new WindowsMemoryMetricsSnapshot(pageReadsPerSec, pageWritesPerSec, cacheBytes);
         }
 
         public void Dispose()
@@ -118,5 +118,5 @@ namespace Aquila.Services
         private static extern int PdhCloseQuery(IntPtr query);
     }
 
-    public readonly record struct WindowsMetricsSnapshot(float PageReadsPerSec, float PageWritesPerSec, long CacheBytes);
+    public readonly record struct WindowsMemoryMetricsSnapshot(float PageReadsPerSec, float PageWritesPerSec, long CacheBytes);
 }

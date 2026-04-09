@@ -1,20 +1,19 @@
 ﻿using Aquila.Helpers;
 using Aquila.Models;
-using LibreHardwareMonitor.Hardware;
 using System;
-using System.Linq;
 using System.Windows.Threading;
 
 namespace Aquila.Services
 {
     /// <summary>
-    /// The ONE and ONLY hardware service. Reads raw data and transforms it.
+    /// Orchestrates hardware polling, raw-model synchronization, and semantic snapshot creation for the app.
     /// </summary>
     public class HardwareMonitorService : IDisposable
     {
-        private LibreHardwareReader? _hardwareReader;
-        private WindowsMetricsReader? _windowsMetricsReader;
-        private DispatcherTimer? _timer;
+        private readonly LibreHardwareDataMapper _libreHardwareDataMapper = new();
+        private LibreHardwareMonitorReader? _libreHardwareReader;
+        private WindowsMemoryMetricsReader? _windowsMemoryReader;
+        private DispatcherTimer? _pollingTimer;
         private bool _disposed;
 
         public event Action? DataUpdated;
@@ -31,18 +30,19 @@ namespace Aquila.Services
 
         public void StartMonitoring()
         {
-            if (_hardwareReader != null) return;
+            if (_libreHardwareReader != null) return;
 
-            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _timer.Tick += UpdateDataModel;
-            _hardwareReader = new LibreHardwareReader();
-            _windowsMetricsReader = new WindowsMetricsReader();
+            _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _pollingTimer.Tick += RefreshState;
+            _libreHardwareReader = new LibreHardwareMonitorReader();
+            _windowsMemoryReader = new WindowsMemoryMetricsReader();
 
             try
             {
-                _hardwareReader.Open();
-                _windowsMetricsReader.Open();
-                _timer.Start();
+                _libreHardwareReader.Open();
+                _windowsMemoryReader.Open();
+                RefreshState(this, EventArgs.Empty);
+                _pollingTimer.Start();
             }
             catch (Exception ex)
             {
@@ -55,80 +55,37 @@ namespace Aquila.Services
             if (_disposed) return;
             _disposed = true;
 
-            if (_timer != null)
+            if (_pollingTimer != null)
             {
-                _timer.Stop();
-                _timer.Tick -= UpdateDataModel;
-                _timer = null;
+                _pollingTimer.Stop();
+                _pollingTimer.Tick -= RefreshState;
+                _pollingTimer = null;
             }
 
-            _hardwareReader?.Dispose();
-            _hardwareReader = null;
+            _libreHardwareReader?.Dispose();
+            _libreHardwareReader = null;
 
-            _windowsMetricsReader?.Dispose();
-            _windowsMetricsReader = null;
+            _windowsMemoryReader?.Dispose();
+            _windowsMemoryReader = null;
         }
 
-        private void UpdateDataModel(object? sender, EventArgs e)
+        private void RefreshState(object? sender, EventArgs e)
         {
-            if (_hardwareReader == null) return;
+            if (_libreHardwareReader == null) return;
 
-            foreach (var rawHardware in _hardwareReader.ReadAllHardware())
+            _libreHardwareDataMapper.UpdateFromHardware(ComputerData, _libreHardwareReader.ReadAllHardware());
+
+            if (_windowsMemoryReader is { } memoryMetricsReader)
             {
-                var hardwareNode = ComputerData.HardwareList.FirstOrDefault(h => h.Identifier == rawHardware.Identifier.ToString());
-                if (hardwareNode == null)
-                {
-                    hardwareNode = new DataHardware(rawHardware.Identifier.ToString(), rawHardware.Name, rawHardware.HardwareType);
-                    ComputerData.HardwareList.Add(hardwareNode);
-                }
-
-                var allSensors = rawHardware.Sensors.Concat(rawHardware.SubHardware.SelectMany(s => s.Sensors));
-                foreach (var rawSensor in allSensors)
-                {
-                    var sensorId = rawSensor.Identifier.ToString();
-                    if (!ComputerData.SensorIndex.TryGetValue(sensorId, out var dataSensor))
-                    {
-                        dataSensor = new DataSensor(
-                            rawSensor.Index,
-                            sensorId,
-                            rawSensor.Name,
-                            rawSensor.SensorType,
-                            GetSensorUnit(rawSensor.SensorType));
-                        ComputerData.SensorIndex[sensorId] = dataSensor;
-                        hardwareNode.Sensors.Add(dataSensor);
-                    }
-                    dataSensor.Value = rawSensor.Value ?? 0;
-                    dataSensor.Min = rawSensor.Min ?? 0;
-                    dataSensor.Max = rawSensor.Max ?? 0;
-                }
-            }
-
-            if (_windowsMetricsReader is { } windowsMetricsReader)
-            {
-                var metricsSnapshot = windowsMetricsReader.ReadSnapshot();
+                var metricsSnapshot = memoryMetricsReader.ReadSnapshot();
                 CacheBytes = metricsSnapshot.CacheBytes;
                 PageReadsPerSec = metricsSnapshot.PageReadsPerSec;
                 PageWritesPerSec = metricsSnapshot.PageWritesPerSec;
             }
 
-            CurrentSnapshot = SensorLocator.BuildSnapshot(ComputerData, PageReadsPerSec, PageWritesPerSec, CacheBytes);
+            CurrentSnapshot = AquilaSnapshotBuilder.Build(ComputerData, PageReadsPerSec, PageWritesPerSec, CacheBytes);
             DataUpdated?.Invoke();
         }
 
-        private static string GetSensorUnit(SensorType type) => type switch
-        {
-            SensorType.Temperature => "°C",
-            SensorType.Load => "%",
-            SensorType.Clock => "MHz",
-            SensorType.Power => "W",
-            SensorType.Fan => "RPM",
-            SensorType.Data => "GB",
-            SensorType.SmallData => "MB",
-            SensorType.Throughput => "B/s",
-            SensorType.Voltage => "V",
-            SensorType.Frequency => "Hz",
-            SensorType.Control => "%",
-            _ => string.Empty
-        };
     }
 }

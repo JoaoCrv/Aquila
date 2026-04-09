@@ -85,14 +85,14 @@
 
                                 <!-- Current read / write rates -->
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center"
-                                            Visibility="{Binding LhmName, Converter={StaticResource NullToCollapsedConverter}}">
+                                            Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}">
                                     <TextBlock FontSize="11" HorizontalAlignment="Right" Margin="0,0,0,3">
                                         <Run Text="↓ " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                        <Run Text="{Binding ReadSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                        <Run Text="{Binding ReadRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                                     </TextBlock>
                                     <TextBlock FontSize="11" HorizontalAlignment="Right">
                                         <Run Text="↑ " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                        <Run Text="{Binding WriteSensor.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                        <Run Text="{Binding WriteRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                                     </TextBlock>
                                 </StackPanel>
 
@@ -126,22 +126,22 @@
 
                             <!-- LHM sensor chips — Temp · Data Read · Data Written -->
                             <UniformGrid Columns="3"
-                                         Visibility="{Binding LhmName, Converter={StaticResource NullToCollapsedConverter}}">
+                                         Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}">
 
                                 <!-- Temperature -->
                                 <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                     <Border.ToolTip>
                                         <ToolTip>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding TempSensor.Min, StringFormat='Min: {0:F0} °C', FallbackValue='Min: --'}"/>
-                                                <TextBlock Text="{Binding TempSensor.Max, StringFormat='Max: {0:F0} °C', FallbackValue='Max: --'}"/>
+                                                <TextBlock Text="{Binding Temperature.Min, StringFormat='Min: {0:F0} °C', FallbackValue='Min: --'}"/>
+                                                <TextBlock Text="{Binding Temperature.Max, StringFormat='Max: {0:F0} °C', FallbackValue='Max: --'}"/>
                                             </StackPanel>
                                         </ToolTip>
                                     </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
-                                                   Foreground="{Binding TempSensor.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                            <Run Text="{Binding TempSensor.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                   Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                            <Run Text="{Binding Temperature.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                             <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                         </TextBlock>
                                         <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
@@ -153,15 +153,15 @@
                                     <Border.ToolTip>
                                         <ToolTip>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding DataReadSensor.Min, Converter={StaticResource DataGbConverter}, StringFormat='Min: {0}', FallbackValue='Min: --'}"/>
-                                                <TextBlock Text="{Binding DataReadSensor.Max, Converter={StaticResource DataGbConverter}, StringFormat='Max: {0}', FallbackValue='Max: --'}"/>
+                                                <TextBlock Text="{Binding DataRead.Min, Converter={StaticResource DataGbConverter}, StringFormat='Min: {0}', FallbackValue='Min: --'}"/>
+                                                <TextBlock Text="{Binding DataRead.Max, Converter={StaticResource DataGbConverter}, StringFormat='Max: {0}', FallbackValue='Max: --'}"/>
                                             </StackPanel>
                                         </ToolTip>
                                     </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
                                                    Foreground="{DynamicResource Aquila.Ram}"
-                                                   Text="{Binding DataReadSensor.Value, Converter={StaticResource DataGbConverter}, FallbackValue='--'}"/>
+                                                   Text="{Binding DataRead.Value, Converter={StaticResource DataGbConverter}, FallbackValue='--'}"/>
                                         <TextBlock Text="Data Read" Style="{StaticResource StatBoxLabel}"/>
                                     </StackPanel>
                                 </Border>
@@ -171,15 +171,15 @@
                                     <Border.ToolTip>
                                         <ToolTip>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding DataWrittenSensor.Min, Converter={StaticResource DataGbConverter}, StringFormat='Min: {0}', FallbackValue='Min: --'}"/>
-                                                <TextBlock Text="{Binding DataWrittenSensor.Max, Converter={StaticResource DataGbConverter}, StringFormat='Max: {0}', FallbackValue='Max: --'}"/>
+                                                <TextBlock Text="{Binding DataWritten.Min, Converter={StaticResource DataGbConverter}, StringFormat='Min: {0}', FallbackValue='Min: --'}"/>
+                                                <TextBlock Text="{Binding DataWritten.Max, Converter={StaticResource DataGbConverter}, StringFormat='Max: {0}', FallbackValue='Max: --'}"/>
                                             </StackPanel>
                                         </ToolTip>
                                     </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
                                                    Foreground="{DynamicResource Aquila.Ram}"
-                                                   Text="{Binding DataWrittenSensor.Value, Converter={StaticResource DataGbConverter}, FallbackValue='--'}"/>
+                                                   Text="{Binding DataWritten.Value, Converter={StaticResource DataGbConverter}, FallbackValue='--'}"/>
                                         <TextBlock Text="Data Written" Style="{StaticResource StatBoxLabel}"/>
                                     </StackPanel>
                                 </Border>

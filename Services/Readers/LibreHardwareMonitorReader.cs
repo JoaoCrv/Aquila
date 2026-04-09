@@ -5,17 +5,16 @@ using System.Collections.Generic;
 namespace Aquila.Services
 {
     /// <summary>
-    /// Small raw reader around LibreHardwareMonitor.
-    /// Keeps the official Computer + UpdateVisitor polling pattern isolated from the rest of the app.
+    /// Wraps LibreHardwareMonitor's raw polling pipeline and exposes hardware nodes to the app.
     /// </summary>
-    public sealed class LibreHardwareReader : IDisposable
+    public sealed class LibreHardwareMonitorReader : IDisposable
     {
         private readonly Computer _computer;
         private readonly UpdateVisitor _updateVisitor = new();
         private bool _isOpen;
         private bool _disposed;
 
-        public LibreHardwareReader()
+        public LibreHardwareMonitorReader()
         {
             _computer = new Computer
             {
