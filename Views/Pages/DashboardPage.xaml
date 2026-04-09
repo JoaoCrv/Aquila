@@ -703,10 +703,10 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="GPU" Style="{StaticResource RowLabel}"/>
                             <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
-                                         Value="{Binding ViewModel.Aquila.Gpu.Primary.Power.Value, FallbackValue=0}"
+                                         Value="{Binding ViewModel.Gpu1.Power.Value, FallbackValue=0}"
                                          Maximum="450"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                                       Text="{Binding ViewModel.Aquila.Gpu.Primary.Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                                       Text="{Binding ViewModel.Gpu1.Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
                         <Grid Margin="0,0,0,5"
                               Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}">

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
@@ -34,7 +34,7 @@ namespace Aquila
                 services.AddHostedService<ApplicationHostService>();
 
                 // Hardware monitoring service
-                services.AddSingleton<HardwareMonitorService>();
+                services.AddSingleton<AquilaService>();
                 services.AddSingleton<UiService>();
                 services.AddSingleton<UpdateService>();
 

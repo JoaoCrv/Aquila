@@ -1,28 +1,30 @@
-using Aquila.Models;
+using Aquila.Models.Api;
 using Aquila.Services;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Aquila.ViewModels.Pages
 {
     public partial class StorageViewModel : ObservableObject, IDisposable
     {
-        private readonly HardwareMonitorService _monitor;
+        private readonly AquilaService _aquila;
 
         [ObservableProperty]
         private List<StoragePageDriveItem> _drives = [];
 
-        public StorageViewModel(HardwareMonitorService monitor)
+        public StorageViewModel(AquilaService aquila)
         {
-            _monitor = monitor;
-            _monitor.DataUpdated += OnDataUpdated;
+            _aquila = aquila;
+            _aquila.DataUpdated += OnDataUpdated;
             OnDataUpdated();
         }
 
         private void OnDataUpdated()
         {
-            var storageSnapshots = _monitor.CurrentSnapshot.Storage.ToList();
+            var storageSnapshots = _aquila.State.Hardware.Drives.ToList();
             var fixedDrives = DriveInfo.GetDrives()
                 .Where(drive => drive.IsReady && drive.DriveType == DriveType.Fixed)
                 .OrderBy(drive => drive.Name)
@@ -45,7 +47,7 @@ namespace Aquila.ViewModels.Pages
             }
         }
 
-        public void Dispose() => _monitor.DataUpdated -= OnDataUpdated;
+        public void Dispose() => _aquila.DataUpdated -= OnDataUpdated;
     }
 
     public partial class StoragePageDriveItem : ObservableObject
@@ -66,22 +68,21 @@ namespace Aquila.ViewModels.Pages
         [NotifyPropertyChangedFor(nameof(DisplayName))]
         private string? _hardwareName;
 
-        [ObservableProperty] private string? _driveTypeTag;
-        [ObservableProperty] private MetricValue _temperature = new();
-        [ObservableProperty] private MetricValue _readRate = new();
-        [ObservableProperty] private MetricValue _writeRate = new();
-        [ObservableProperty] private MetricValue _dataRead = new();
-        [ObservableProperty] private MetricValue _dataWritten = new();
+        [ObservableProperty] private SensorNode? _temperature;
+        [ObservableProperty] private SensorNode? _readRate;
+        [ObservableProperty] private SensorNode? _writeRate;
+        [ObservableProperty] private SensorNode? _dataRead;
+        [ObservableProperty] private SensorNode? _dataWritten;
 
         public string DisplayName => HardwareName ?? Label;
 
-        public StoragePageDriveItem(DriveInfo drive, StorageDeviceSnapshot? snapshot) => Refresh(drive, snapshot);
+        public StoragePageDriveItem(DriveInfo drive, StorageNode? snapshot) => Refresh(drive, snapshot);
 
-        public void Refresh(DriveInfo drive, StorageDeviceSnapshot? snapshot)
+        public void Refresh(DriveInfo drive, StorageNode? snapshot)
         {
-            DriveLetter = drive.Name.TrimEnd('\\', '/');
+            DriveLetter = string.IsNullOrEmpty(drive.Name) ? "" : drive.Name.TrimEnd('\\', '/');
             Label = string.IsNullOrWhiteSpace(drive.VolumeLabel)
-                ? drive.Name.TrimEnd('\\', '/')
+                ? DriveLetter
                 : drive.VolumeLabel;
             FileSystem = drive.DriveFormat;
 
@@ -95,12 +96,11 @@ namespace Aquila.ViewModels.Pages
             UsedPercent = total > 0 ? (double)used / total * 100.0 : 0;
 
             HardwareName = snapshot?.Name;
-            DriveTypeTag = snapshot?.TypeTag;
-            Temperature = snapshot?.Temperature ?? new MetricValue();
-            ReadRate = snapshot?.ReadRate ?? new MetricValue();
-            WriteRate = snapshot?.WriteRate ?? new MetricValue();
-            DataRead = snapshot?.DataRead ?? new MetricValue();
-            DataWritten = snapshot?.DataWritten ?? new MetricValue();
+            Temperature = snapshot?.Temperature;
+            ReadRate = snapshot?.ReadRate;
+            WriteRate = snapshot?.WriteRate;
+            DataRead = snapshot?.DataRead;
+            DataWritten = snapshot?.DataWritten;
         }
 
         private static string FormatBytes(long bytes)
@@ -109,6 +109,5 @@ namespace Aquila.ViewModels.Pages
             if (bytes >= 1_000_000_000L) return $"{bytes / 1_000_000_000.0:F0} GB";
             return $"{bytes / 1_000_000.0:F0} MB";
         }
-
     }
 }
