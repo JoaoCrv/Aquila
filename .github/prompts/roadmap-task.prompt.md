@@ -22,7 +22,7 @@ Use these project references first:
    - keep UI state and commands in `ViewModels/`
    - keep views/pages focused on XAML binding and injected `ViewModel`
    - reuse existing helpers, converters, controls, styles, and themes where possible
-4. Avoid hardcoded machine-specific sensor identifiers in UI code; prefer `Helpers/SensorLocator.cs` and null-safe behavior.
+4. Avoid hardcoded machine-specific sensor identifiers in UI code; prefer `Helpers/AquilaSnapshotBuilder*.cs` and null-safe behavior.
 5. If the request is ambiguous, ask one focused clarifying question. Otherwise, proceed with the smallest complete implementation or plan that fits the roadmap item.
 6. Do not use long/noisy terminal commands in this repo, and never use `&&` in PowerShell. Prefer manual validation steps with `Ctrl+Shift+B` in Visual Studio.
 

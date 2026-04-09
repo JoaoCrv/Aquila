@@ -1,6 +1,6 @@
 ---
-applyTo: "Services/**/*.cs,Helpers/SensorLocator.cs,Models/**/*.cs,App.xaml.cs"
-description: "Use when editing Aquila services, sensor lookup helpers, hardware models, or DI registration. Keep LibreHardwareMonitor and OS polling logic inside the service layer."
+applyTo: "Services/**/*.cs,Helpers/AquilaSnapshotBuilder*.cs,Models/**/*.cs,App.xaml.cs"
+description: "Use when editing Aquila services, semantic snapshot helpers, hardware models, or DI registration. Keep LibreHardwareMonitor and OS polling logic inside the service layer."
 ---
 
 # Aquila Service Boundaries Instructions
@@ -14,7 +14,7 @@ description: "Use when editing Aquila services, sensor lookup helpers, hardware 
 ## Sensor access rules
 
 - Do not hardcode machine-specific sensor identifiers in UI code.
-- Prefer extending `Helpers/SensorLocator.cs` for reusable sensor discovery and fallback logic.
+- Prefer extending `Helpers/AquilaSnapshotBuilder*.cs` for reusable semantic mapping and fallback logic.
 - Keep sensor lookup null-safe because hardware availability varies by machine, vendor, and startup timing.
 
 ## Service and model patterns
@@ -26,7 +26,7 @@ description: "Use when editing Aquila services, sensor lookup helpers, hardware 
 ## Scope changes carefully
 
 - Reuse existing helpers and models before adding a new abstraction.
-- For incremental work, prefer small extensions to `HardwareMonitorService`, `SensorLocator`, or the relevant model instead of introducing a parallel data path.
+- For incremental work, prefer small extensions to `HardwareMonitorService`, `AquilaSnapshotBuilder`, or the relevant raw/snapshot model instead of introducing a parallel data path.
 - Large architecture changes related to the Anti-Corruption Layer or `IHardwareReader` should only be made when the task explicitly targets the Phase X refactor in `docs/ROADMAP.md`.
 
 ## Validation and workflow

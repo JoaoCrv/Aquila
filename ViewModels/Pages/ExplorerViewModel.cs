@@ -25,7 +25,7 @@ namespace Aquila.ViewModels.Pages
     public class ExplorerGroupedSensor
     {
         public string CategoryName { get; set; } = string.Empty;
-        public List<DataSensor> Sensors { get; set; } = [];
+        public List<SensorReading> Sensors { get; set; } = [];
     }
 
     public partial class ExplorerViewModel(HardwareMonitorService monitorService, UiService uiService) : ObservableObject
@@ -73,7 +73,7 @@ namespace Aquila.ViewModels.Pages
 
         public async Task InitializeAsync()
         {
-            var snapshot = _monitorService.ComputerData.HardwareList.ToList();
+            var snapshot = _monitorService.RawHardwareState.Devices.ToList();
 
             // Skip rebuild if hardware composition hasn't changed — prevents flicker on re-navigation
             var signature = snapshot.Select(hw => (hw.Name, hw.HardwareType)).ToList();

@@ -81,10 +81,10 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
             ?                   ????????????????
             ?                           ?
    ???????????????????          ????????????????
-   ?  ComputerData   ?          ?    Views     ?
-   ?  (Model root)   ?          ? (XAML Pages) ?
-   ?  ? HardwareList ?          ? DataContext =?
-   ?  ? SensorIndex  ?          ?   this       ?
+   ? HardwareState  ?          ?    Views     ?
+   ?  (raw model)   ?          ? (XAML Pages) ?
+   ?  ?  Devices    ?          ? DataContext =?
+   ?  ? SensorsById ?          ?   this       ?
    ???????????????????          ? ViewModel =  ?
                                 ?   injected   ?
                                 ????????????????
@@ -105,7 +105,7 @@ Its primary use case is displaying real-time system metrics (CPU, GPU, RAM, Netw
 | **Dependency Injection**     | `App.xaml.cs` ? all services and VMs       | Loose coupling, testability                          |
 | **Observer**                 | `HardwareMonitorService.DataUpdated` event | VMs react to data changes without polling            |
 | **Visitor**                  | `UpdateVisitor` (LHM)                      | Traverse hardware tree without modifying LHM classes |
-| **Repository** (lightweight) | `SensorLocator`                            | Centralises all sensor lookup logic away from VMs    |
+| **Builder / Translator**     | `AquilaSnapshotBuilder`                    | Maps raw hardware state into semantic UI snapshots   |
 | **Singleton**                | All services and VMs via DI                | Single instance shared across the app lifetime       |
 
 ---

@@ -7,31 +7,31 @@ namespace Aquila.Helpers
     {
         // Memory
 
-        private static DataSensor? MemoryLoad(ComputerData data) =>
+        private static SensorReading? MemoryLoad(HardwareState data) =>
             Find(data, HardwareType.Memory, SensorType.Load, "Memory")
             ?? FindFirst(data, HardwareType.Memory, SensorType.Load);
 
-        private static DataSensor? MemoryUsed(ComputerData data) =>
+        private static SensorReading? MemoryUsed(HardwareState data) =>
             Find(data, HardwareType.Memory, SensorType.Data, "Memory Used")
             ?? FindFirst(data, HardwareType.Memory, SensorType.Data);
 
-        private static DataSensor? MemoryAvailable(ComputerData data) =>
+        private static SensorReading? MemoryAvailable(HardwareState data) =>
             Find(data, HardwareType.Memory, SensorType.Data, "Memory Available");
 
-        private static DataSensor? MemoryPower(ComputerData data) =>
+        private static SensorReading? MemoryPower(HardwareState data) =>
             FindFirst(data, HardwareType.Memory, SensorType.Power);
 
-        private static DataSensor? VirtualMemoryLoad(ComputerData data) =>
+        private static SensorReading? VirtualMemoryLoad(HardwareState data) =>
             Find(data, HardwareType.Memory, SensorType.Load, "Virtual Memory")
             ?? IndexedSensor(FirstHardware(data, HardwareType.Memory), SensorType.Load, 1);
 
-        private static DataSensor? VirtualMemoryUsed(ComputerData data) =>
+        private static SensorReading? VirtualMemoryUsed(HardwareState data) =>
             Find(data, HardwareType.Memory, SensorType.Data, "Virtual Memory Used");
 
-        private static DataSensor? VirtualMemoryAvailable(ComputerData data) =>
+        private static SensorReading? VirtualMemoryAvailable(HardwareState data) =>
             Find(data, HardwareType.Memory, SensorType.Data, "Virtual Memory Available");
 
-        private static MemorySnapshot BuildMemorySnapshot(ComputerData data, float pageReadsPerSec, float pageWritesPerSec, long cacheBytes) =>
+        private static MemorySnapshot BuildMemorySnapshot(HardwareState data, float pageReadsPerSec, float pageWritesPerSec, long cacheBytes) =>
             new()
             {
                 LoadPercent = MetricValue.FromSensor(MemoryLoad(data)),

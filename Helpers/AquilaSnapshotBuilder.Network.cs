@@ -7,23 +7,23 @@ namespace Aquila.Helpers
     {
         // Network
 
-        private static DataSensor? NetworkUploadSpeed(ComputerData data) =>
+        private static SensorReading? NetworkUploadSpeed(HardwareState data) =>
             Find(data, HardwareType.Network, SensorType.Throughput, "Upload")
             ?? FindFirst(data, HardwareType.Network, SensorType.Throughput);
 
-        private static DataSensor? NetworkDownloadSpeed(ComputerData data) =>
+        private static SensorReading? NetworkDownloadSpeed(HardwareState data) =>
             Find(data, HardwareType.Network, SensorType.Throughput, "Download")
             ?? IndexedSensor(FirstHardware(data, HardwareType.Network), SensorType.Throughput, 1);
 
-        private static DataSensor? NetworkDataUploaded(ComputerData data) =>
+        private static SensorReading? NetworkDataUploaded(HardwareState data) =>
             Find(data, HardwareType.Network, SensorType.Data, "Data Uploaded")
             ?? FindFirst(data, HardwareType.Network, SensorType.Data);
 
-        private static DataSensor? NetworkDataDownloaded(ComputerData data) =>
+        private static SensorReading? NetworkDataDownloaded(HardwareState data) =>
             Find(data, HardwareType.Network, SensorType.Data, "Data Downloaded")
             ?? IndexedSensor(FirstHardware(data, HardwareType.Network), SensorType.Data, 1);
 
-        private static NetworkSnapshot BuildNetworkSnapshot(ComputerData data)
+        private static NetworkSnapshot BuildNetworkSnapshot(HardwareState data)
         {
             var network = FirstHardware(data, HardwareType.Network);
 

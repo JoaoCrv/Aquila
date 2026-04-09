@@ -4,7 +4,7 @@ using System.Windows.Data;
 namespace Aquila.Helpers;
 
 /// <summary>
-/// Returns <see cref="DataSensor.Max"/> as a ProgressBar Maximum.
+/// Returns the current sensor maximum as a ProgressBar maximum.
 /// Falls back to <see cref="Fallback"/> when Max is zero or negative
 /// (sensor not yet polled) to avoid a Maximum=0 invalid state.
 /// </summary>

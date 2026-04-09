@@ -9,13 +9,13 @@ namespace Aquila.Helpers
     {
         // GPU detection
 
-        private static HardwareType? DetectGpuType(ComputerData data) =>
+        private static HardwareType? DetectGpuType(HardwareState data) =>
             PrimaryGpu(data)?.HardwareType;
 
-        private static IEnumerable<DataHardware> AllGpus(ComputerData data) =>
-            data.HardwareList.Where(hardware => GpuHardwareTypes.Contains(hardware.HardwareType));
+        private static IEnumerable<HardwareDevice> AllGpus(HardwareState data) =>
+            data.Devices.Where(hardware => GpuHardwareTypes.Contains(hardware.HardwareType));
 
-        private static DataHardware? PrimaryGpu(ComputerData data) =>
+        private static HardwareDevice? PrimaryGpu(HardwareState data) =>
             AllGpus(data)
                 .OrderByDescending(gpu => GpuVramTotalFor(gpu)?.Value ?? 0)
                 .ThenByDescending(gpu => GpuTypePriority(gpu.HardwareType))
@@ -31,46 +31,46 @@ namespace Aquila.Helpers
             _ => 0
         };
 
-        private static DataSensor? GpuLoad(ComputerData data) =>
+        private static SensorReading? GpuLoad(HardwareState data) =>
             PrimaryGpu(data) is { } gpu
                 ? GpuLoadFor(gpu)
                 : null;
 
-        private static DataSensor? GpuTemperatureFor(DataHardware gpu) =>
+        private static SensorReading? GpuTemperatureFor(HardwareDevice gpu) =>
             FindSensor(gpu, SensorType.Temperature, "GPU Core")
             ?? FirstSensor(gpu, SensorType.Temperature);
 
-        private static DataSensor? GpuLoadFor(DataHardware gpu) =>
+        private static SensorReading? GpuLoadFor(HardwareDevice gpu) =>
             FindSensor(gpu, SensorType.Load, "GPU Core")
             ?? FirstSensor(gpu, SensorType.Load);
 
-        private static DataSensor? GpuClockFor(DataHardware gpu) =>
+        private static SensorReading? GpuClockFor(HardwareDevice gpu) =>
             FindSensor(gpu, SensorType.Clock, "GPU Core")
             ?? FirstSensor(gpu, SensorType.Clock);
 
-        private static DataSensor? GpuPowerFor(DataHardware gpu) =>
+        private static SensorReading? GpuPowerFor(HardwareDevice gpu) =>
             FindSensor(gpu, SensorType.Power, "GPU Package", "GPU Total")
             ?? FirstSensor(gpu, SensorType.Power);
 
-        private static DataSensor? GpuFanFor(DataHardware gpu, int index = 0) =>
+        private static SensorReading? GpuFanFor(HardwareDevice gpu, int index = 0) =>
             IndexedSensor(gpu, SensorType.Fan, index);
 
-        private static DataSensor? GpuVramUsedFor(DataHardware gpu) =>
+        private static SensorReading? GpuVramUsedFor(HardwareDevice gpu) =>
             FindSensor(gpu, SensorType.SmallData, "GPU Memory Used")
             ?? FindSensor(gpu, SensorType.Data, "GPU Memory Used");
 
-        private static DataSensor? GpuVramTotalFor(DataHardware gpu) =>
+        private static SensorReading? GpuVramTotalFor(HardwareDevice gpu) =>
             FindSensor(gpu, SensorType.SmallData, "GPU Memory Total")
             ?? FindSensor(gpu, SensorType.Data, "GPU Memory Total");
 
-        private static List<DataSensor> GpuCoreSensors(DataHardware gpu) =>
+        private static List<SensorReading> GpuCoreSensors(HardwareDevice gpu) =>
             gpu.Sensors
                 .Where(sensor => sensor.SensorType == SensorType.Load &&
                     ContainsAny(sensor, "GPU Core", "3D", "Video", "Bus", "Memory Controller"))
                 .OrderBy(sensor => sensor.Index)
                 .ToList();
 
-        private static GpuSnapshot? BuildPrimaryGpuSnapshot(ComputerData data)
+        private static GpuSnapshot? BuildPrimaryGpuSnapshot(HardwareState data)
         {
             var primaryGpu = PrimaryGpu(data);
             if (primaryGpu is null)

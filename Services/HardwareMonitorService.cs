@@ -17,7 +17,7 @@ namespace Aquila.Services
         private bool _disposed;
 
         public event Action? DataUpdated;
-        public ComputerData ComputerData { get; } = new();
+        public HardwareState RawHardwareState { get; } = new();
         public AquilaSnapshot CurrentSnapshot { get; private set; } = new();
 
         // ── Windows memory extras ────────────────────────────────────────
@@ -73,7 +73,7 @@ namespace Aquila.Services
         {
             if (_libreHardwareReader == null) return;
 
-            _libreHardwareDataMapper.UpdateFromHardware(ComputerData, _libreHardwareReader.ReadAllHardware());
+            _libreHardwareDataMapper.UpdateFromHardware(RawHardwareState, _libreHardwareReader.ReadAllHardware());
 
             if (_windowsMemoryReader is { } memoryMetricsReader)
             {
@@ -83,7 +83,7 @@ namespace Aquila.Services
                 PageWritesPerSec = metricsSnapshot.PageWritesPerSec;
             }
 
-            CurrentSnapshot = AquilaSnapshotBuilder.Build(ComputerData, PageReadsPerSec, PageWritesPerSec, CacheBytes);
+            CurrentSnapshot = AquilaSnapshotBuilder.Build(RawHardwareState, PageReadsPerSec, PageWritesPerSec, CacheBytes);
             DataUpdated?.Invoke();
         }
 

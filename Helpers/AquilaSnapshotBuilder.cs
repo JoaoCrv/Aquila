@@ -21,16 +21,16 @@ namespace Aquila.Helpers
 
         // Internal lookup helpers
 
-        private static DataSensor? Find(ComputerData data, HardwareType hardwareType, SensorType sensorType, string nameFragment) =>
+        private static SensorReading? Find(HardwareState data, HardwareType hardwareType, SensorType sensorType, string nameFragment) =>
             FindSensor(FirstHardware(data, hardwareType), sensorType, nameFragment);
 
-        private static DataSensor? FindFirst(ComputerData data, HardwareType hardwareType, SensorType sensorType) =>
+        private static SensorReading? FindFirst(HardwareState data, HardwareType hardwareType, SensorType sensorType) =>
             FirstSensor(FirstHardware(data, hardwareType), sensorType);
 
-        private static DataHardware? FirstHardware(ComputerData data, HardwareType hardwareType) =>
-            data.HardwareList.FirstOrDefault(h => h.HardwareType == hardwareType);
+        private static HardwareDevice? FirstHardware(HardwareState data, HardwareType hardwareType) =>
+            data.Devices.FirstOrDefault(h => h.HardwareType == hardwareType);
 
-        private static DataSensor? FindSensor(DataHardware? hardware, SensorType sensorType, params string[] nameFragments)
+        private static SensorReading? FindSensor(HardwareDevice? hardware, SensorType sensorType, params string[] nameFragments)
         {
             if (hardware is null)
                 return null;
@@ -40,22 +40,22 @@ namespace Aquila.Helpers
                 nameFragments.Any(fragment => sensor.Name.Contains(fragment, StringComparison.OrdinalIgnoreCase)));
         }
 
-        private static DataSensor? FirstSensor(DataHardware? hardware, SensorType sensorType) =>
+        private static SensorReading? FirstSensor(HardwareDevice? hardware, SensorType sensorType) =>
             hardware?.Sensors
                 .Where(sensor => sensor.SensorType == sensorType)
                 .OrderBy(sensor => sensor.Index)
                 .FirstOrDefault();
 
-        private static DataSensor? IndexedSensor(DataHardware? hardware, SensorType sensorType, int index) =>
+        private static SensorReading? IndexedSensor(HardwareDevice? hardware, SensorType sensorType, int index) =>
             hardware?.Sensors
                 .Where(sensor => sensor.SensorType == sensorType)
                 .OrderBy(sensor => sensor.Index)
                 .ElementAtOrDefault(index);
 
-        private static bool ContainsAny(DataSensor sensor, params string[] nameFragments) =>
+        private static bool ContainsAny(SensorReading sensor, params string[] nameFragments) =>
             nameFragments.Any(fragment => sensor.Name.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 
-        public static AquilaSnapshot Build(ComputerData data, float pageReadsPerSec = 0, float pageWritesPerSec = 0, long cacheBytes = 0) =>
+        public static AquilaSnapshot Build(HardwareState data, float pageReadsPerSec = 0, float pageWritesPerSec = 0, long cacheBytes = 0) =>
             new()
             {
                 Cpu = BuildCpuSnapshot(data),

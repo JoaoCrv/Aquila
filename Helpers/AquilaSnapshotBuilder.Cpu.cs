@@ -10,21 +10,21 @@ namespace Aquila.Helpers
     {
         // CPU
 
-        private static DataSensor? CpuTemperature(ComputerData data) =>
+        private static SensorReading? CpuTemperature(HardwareState data) =>
             Find(data, HardwareType.Cpu, SensorType.Temperature, "Package")
             ?? FindFirst(data, HardwareType.Cpu, SensorType.Temperature);
 
-        private static DataSensor? CpuLoad(ComputerData data) =>
+        private static SensorReading? CpuLoad(HardwareState data) =>
             Find(data, HardwareType.Cpu, SensorType.Load, "CPU Total")
             ?? Find(data, HardwareType.Cpu, SensorType.Load, "Total")
             ?? FindFirst(data, HardwareType.Cpu, SensorType.Load);
 
-        private static DataSensor? CpuPower(ComputerData data) =>
+        private static SensorReading? CpuPower(HardwareState data) =>
             Find(data, HardwareType.Cpu, SensorType.Power, "Package")
             ?? Find(data, HardwareType.Cpu, SensorType.Power, "Total")
             ?? FindFirst(data, HardwareType.Cpu, SensorType.Power);
 
-        private static string? CpuSummary(ComputerData data)
+        private static string? CpuSummary(HardwareState data)
         {
             var cpu = FirstHardware(data, HardwareType.Cpu);
             if (cpu == null) return null;
@@ -41,7 +41,7 @@ namespace Aquila.Helpers
             return threads > 0 ? $"{cores}C / {threads}T" : $"{cores} Cores";
         }
 
-        private static float CpuEffectiveClock(ComputerData data)
+        private static float CpuEffectiveClock(HardwareState data)
         {
             var cpu = FirstHardware(data, HardwareType.Cpu);
             if (cpu == null)
@@ -70,7 +70,7 @@ namespace Aquila.Helpers
             return maxEffectiveClock;
         }
 
-        private static List<DataSensor> CpuCoreSensors(ComputerData data)
+        private static List<SensorReading> CpuCoreSensors(HardwareState data)
         {
             var hw = FirstHardware(data, HardwareType.Cpu);
             if (hw == null) return [];
@@ -80,10 +80,10 @@ namespace Aquila.Helpers
                 .ToList();
         }
 
-        private static DataSensor? CpuFan(ComputerData data, int index = 0) =>
+        private static SensorReading? CpuFan(HardwareState data, int index = 0) =>
             IndexedSensor(FirstHardware(data, HardwareType.Motherboard), SensorType.Fan, index);
 
-        private static CpuSnapshot BuildCpuSnapshot(ComputerData data)
+        private static CpuSnapshot BuildCpuSnapshot(HardwareState data)
         {
             var cpu = FirstHardware(data, HardwareType.Cpu);
 

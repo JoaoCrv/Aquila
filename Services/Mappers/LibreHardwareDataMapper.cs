@@ -6,58 +6,58 @@ using System.Linq;
 namespace Aquila.Services
 {
     /// <summary>
-    /// Maps raw LibreHardwareMonitor objects into Aquila's provider-neutral raw `ComputerData` store.
+    /// Maps raw LibreHardwareMonitor objects into Aquila's provider-neutral raw `HardwareState` store.
     /// This keeps provider-specific translation isolated from the rest of the app.
     /// </summary>
     public sealed class LibreHardwareDataMapper
     {
-        public void UpdateFromHardware(ComputerData computerData, IEnumerable<IHardware> hardwareItems)
+        public void UpdateFromHardware(HardwareState hardwareState, IEnumerable<IHardware> hardwareItems)
         {
             foreach (var rawHardware in hardwareItems)
             {
-                var hardwareNode = GetOrCreateHardware(computerData, rawHardware);
+                var hardwareDevice = GetOrCreateHardware(hardwareState, rawHardware);
                 var allSensors = rawHardware.Sensors.Concat(rawHardware.SubHardware.SelectMany(s => s.Sensors));
 
                 foreach (var rawSensor in allSensors)
                 {
-                    var dataSensor = GetOrCreateSensor(computerData, hardwareNode, rawSensor);
-                    dataSensor.Value = rawSensor.Value ?? 0;
-                    dataSensor.Min = rawSensor.Min ?? 0;
-                    dataSensor.Max = rawSensor.Max ?? 0;
+                    var sensorReading = GetOrCreateSensor(hardwareState, hardwareDevice, rawSensor);
+                    sensorReading.Value = rawSensor.Value ?? 0;
+                    sensorReading.Min = rawSensor.Min ?? 0;
+                    sensorReading.Max = rawSensor.Max ?? 0;
                 }
             }
         }
 
-        private static DataHardware GetOrCreateHardware(ComputerData computerData, IHardware rawHardware)
+        private static HardwareDevice GetOrCreateHardware(HardwareState hardwareState, IHardware rawHardware)
         {
             var identifier = rawHardware.Identifier.ToString();
-            var hardwareNode = computerData.HardwareList.FirstOrDefault(h => h.Identifier == identifier);
+            var hardwareDevice = hardwareState.Devices.FirstOrDefault(h => h.Identifier == identifier);
 
-            if (hardwareNode is null)
+            if (hardwareDevice is null)
             {
-                hardwareNode = new DataHardware(identifier, rawHardware.Name, rawHardware.HardwareType);
-                computerData.HardwareList.Add(hardwareNode);
+                hardwareDevice = new HardwareDevice(identifier, rawHardware.Name, rawHardware.HardwareType);
+                hardwareState.Devices.Add(hardwareDevice);
             }
 
-            return hardwareNode;
+            return hardwareDevice;
         }
 
-        private static DataSensor GetOrCreateSensor(ComputerData computerData, DataHardware hardwareNode, ISensor rawSensor)
+        private static SensorReading GetOrCreateSensor(HardwareState hardwareState, HardwareDevice hardwareDevice, ISensor rawSensor)
         {
             var sensorId = rawSensor.Identifier.ToString();
-            if (computerData.SensorIndex.TryGetValue(sensorId, out var existingSensor))
+            if (hardwareState.SensorsById.TryGetValue(sensorId, out var existingSensor))
                 return existingSensor;
 
-            var dataSensor = new DataSensor(
+            var sensorReading = new SensorReading(
                 rawSensor.Index,
                 sensorId,
                 rawSensor.Name,
                 rawSensor.SensorType,
                 GetSensorUnit(rawSensor.SensorType));
 
-            computerData.SensorIndex[sensorId] = dataSensor;
-            hardwareNode.Sensors.Add(dataSensor);
-            return dataSensor;
+            hardwareState.SensorsById[sensorId] = sensorReading;
+            hardwareDevice.Sensors.Add(sensorReading);
+            return sensorReading;
         }
 
         private static string GetSensorUnit(SensorType type) => type switch

@@ -10,17 +10,17 @@ namespace Aquila.Helpers
     {
         // Fans and temperatures
 
-        private static List<DataSensor> MotherboardFans(ComputerData data) =>
-            data.HardwareList
+        private static List<SensorReading> MotherboardFans(HardwareState data) =>
+            data.Devices
                 .Where(hardware => hardware.HardwareType == HardwareType.Motherboard)
                 .SelectMany(hardware => hardware.Sensors)
                 .Where(sensor => sensor.SensorType == SensorType.Fan)
                 .OrderBy(sensor => sensor.Index)
                 .ToList();
 
-        private static List<(string Label, DataSensor Sensor)> SystemTemperatures(ComputerData data)
+        private static List<(string Label, SensorReading Sensor)> SystemTemperatures(HardwareState data)
         {
-            var results = new List<(string Label, DataSensor Sensor)>();
+            var results = new List<(string Label, SensorReading Sensor)>();
 
             if (CpuTemperature(data) is { } cpuTemp)
                 results.Add(("CPU", cpuTemp));
@@ -46,7 +46,7 @@ namespace Aquila.Helpers
             return results;
         }
 
-        private static IReadOnlyList<TemperatureSnapshot> BuildTemperatureSnapshots(ComputerData data) =>
+        private static IReadOnlyList<TemperatureSnapshot> BuildTemperatureSnapshots(HardwareState data) =>
             SystemTemperatures(data)
                 .Select(item => new TemperatureSnapshot
                 {
@@ -55,7 +55,7 @@ namespace Aquila.Helpers
                 })
                 .ToList();
 
-        private static IReadOnlyList<FanSnapshot> BuildFanSnapshots(ComputerData data) =>
+        private static IReadOnlyList<FanSnapshot> BuildFanSnapshots(HardwareState data) =>
             MotherboardFans(data)
                 .Select(sensor => new FanSnapshot
                 {

@@ -15,7 +15,7 @@
 ## Repo-Specific Conventions
 
 - In ViewModels, prefer `partial` classes with `[ObservableProperty]` and `[RelayCommand]` from `CommunityToolkit.Mvvm`.
-- Avoid hardcoding machine-specific sensor identifiers in UI code. Prefer extending `Helpers/SensorLocator.cs` and keep missing-sensor behavior null-safe.
+- Avoid hardcoding machine-specific sensor identifiers in UI code. Prefer extending `Helpers/AquilaSnapshotBuilder*.cs` and keep missing-sensor behavior null-safe.
 - Follow the existing naming/folder patterns: `*ViewModel`, `*Page`, `*Converter`, plus `Services/`, `Helpers/`, and `Models/`.
 - If a class subscribes to events, timers, or theme changes, add cleanup via `IDisposable` to match the current lifecycle pattern.
 

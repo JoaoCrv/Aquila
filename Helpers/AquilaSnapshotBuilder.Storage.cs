@@ -10,28 +10,28 @@ namespace Aquila.Helpers
     {
         // Storage
 
-        private static IEnumerable<DataHardware> AllStorageDrives(ComputerData data) =>
-            data.HardwareList.Where(hardware => hardware.HardwareType == HardwareType.Storage);
+        private static IEnumerable<HardwareDevice> AllStorageDrives(HardwareState data) =>
+            data.Devices.Where(hardware => hardware.HardwareType == HardwareType.Storage);
 
-        private static DataSensor? StorageTemperatureFor(DataHardware drive) =>
+        private static SensorReading? StorageTemperatureFor(HardwareDevice drive) =>
             FirstSensor(drive, SensorType.Temperature);
 
-        private static DataSensor? StorageReadRateFor(DataHardware drive) =>
+        private static SensorReading? StorageReadRateFor(HardwareDevice drive) =>
             FindSensor(drive, SensorType.Throughput, "Read");
 
-        private static DataSensor? StorageWriteRateFor(DataHardware drive) =>
+        private static SensorReading? StorageWriteRateFor(HardwareDevice drive) =>
             FindSensor(drive, SensorType.Throughput, "Write");
 
-        private static DataSensor? StorageUsedSpaceFor(DataHardware drive) =>
+        private static SensorReading? StorageUsedSpaceFor(HardwareDevice drive) =>
             FindSensor(drive, SensorType.Load, "Used Space");
 
-        private static DataSensor? StorageDataReadFor(DataHardware drive) =>
+        private static SensorReading? StorageDataReadFor(HardwareDevice drive) =>
             FindSensor(drive, SensorType.Data, "Data Read");
 
-        private static DataSensor? StorageDataWrittenFor(DataHardware drive) =>
+        private static SensorReading? StorageDataWrittenFor(HardwareDevice drive) =>
             FindSensor(drive, SensorType.Data, "Data Written");
 
-        private static IReadOnlyList<StorageDeviceSnapshot> BuildStorageSnapshots(ComputerData data) =>
+        private static IReadOnlyList<StorageDeviceSnapshot> BuildStorageSnapshots(HardwareState data) =>
             AllStorageDrives(data)
                 .Select(drive => new StorageDeviceSnapshot
                 {

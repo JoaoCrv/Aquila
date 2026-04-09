@@ -4,7 +4,7 @@ namespace Aquila.Helpers
 {
     public static partial class AquilaSnapshotBuilder
     {
-        private static PowerSnapshot BuildPowerSnapshot(ComputerData data)
+        private static PowerSnapshot BuildPowerSnapshot(HardwareState data)
         {
             var cpuPower = CpuPower(data);
             var memoryPower = MemoryPower(data);
