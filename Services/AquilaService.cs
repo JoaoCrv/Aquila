@@ -14,6 +14,8 @@ namespace Aquila.Services
 
         public AquilaState State { get; } = new();
 
+        public IReadOnlyList<IDataProvider> Providers => _providers;
+
         public event Action? DataUpdated;
 
         public void StartMonitoring()

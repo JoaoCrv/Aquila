@@ -1,15 +1,20 @@
+using Aquila.Helpers;
 using Aquila.Models.Api;
 using Aquila.Services;
 using LiveChartsCore.SkiaSharpView.Painting;
+using Microsoft.Win32;
 using SkiaSharp;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Windows.Threading;
-using Wpf.Ui.Appearance;
+using System.Threading.Tasks;
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Aquila.ViewModels.Pages
 {
@@ -60,6 +65,33 @@ namespace Aquila.ViewModels.Pages
 
         public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
 
+        public string? CpuSummary => CpuTemperature?.Value is float temp && CpuPower?.Value is float power
+            ? $"{temp:F0}°C • {power:F0} W"
+            : null;
+
+        public SensorNode? CpuTemperature => AquilaSensorSelector.FindCpuTemperature(Aquila.Cpu);
+        public SensorNode? CpuPower => AquilaSensorSelector.FindCpuPower(Aquila.Cpu);
+        public SensorNode? CpuFan1 => AquilaSensorSelector.FindCpuPrimaryFan(Aquila.Motherboard);
+        public SensorNode? CpuFan2 => AquilaSensorSelector.FindCpuSecondaryFan(Aquila.Motherboard);
+
+        public SensorNode? MemoryUsed => AquilaSensorSelector.FindMemoryUsed(Aquila.Memory);
+        public SensorNode? MemoryAvailable => AquilaSensorSelector.FindMemoryAvailable(Aquila.Memory);
+        public SensorNode? MemoryTotal => AquilaSensorSelector.FindMemoryTotal(Aquila.Memory);
+        public double MemoryTotalVisibleGb => MemoryTotal?.Value ?? ((MemoryUsed?.Value ?? 0) + (MemoryAvailable?.Value ?? 0));
+        public double MemoryCacheGb => AquilaSensorSelector.FindMemoryCache(Aquila.Memory)?.Value ?? 0;
+        public SensorNode? MemoryPageReadsPerSec => AquilaSensorSelector.FindMemoryPageReads(Aquila.Memory);
+        public SensorNode? MemoryPageWritesPerSec => AquilaSensorSelector.FindMemoryPageWrites(Aquila.Memory);
+        public SensorNode? MemoryPower => AquilaSensorSelector.FindMemoryPower(Aquila.Memory);
+
+        public NetworkNode? PrimaryNetwork => Aquila.NetworkAdapters.FirstOrDefault();
+        public string PrimaryNetworkName => PrimaryNetwork?.Name ?? "Adapter";
+        public SensorNode? NetworkDownloadSpeed => PrimaryNetwork is null ? null : AquilaSensorSelector.FindNetworkDownload(PrimaryNetwork);
+        public SensorNode? NetworkUploadSpeed => PrimaryNetwork is null ? null : AquilaSensorSelector.FindNetworkUpload(PrimaryNetwork);
+        public SensorNode? NetworkDataDownloaded => PrimaryNetwork is null ? null : AquilaSensorSelector.FindNetworkDataDownloaded(PrimaryNetwork);
+        public SensorNode? NetworkDataUploaded => PrimaryNetwork is null ? null : AquilaSensorSelector.FindNetworkDataUploaded(PrimaryNetwork);
+
+        public double TotalPowerValue => (CpuPower?.Value ?? 0) + (MemoryPower?.Value ?? 0) + GpuCards.Sum(card => card.Power?.Value ?? 0);
+
         public void Suspend() => _suspended = true;
         public void Resume() => _suspended = false;
 
@@ -68,9 +100,9 @@ namespace Aquila.ViewModels.Pages
             _aquila = aquila;
 
             _aquila.DataUpdated += OnDataUpdated;
-            ApplicationThemeManager.Changed += OnThemeChanged;
+            Wpf.Ui.Appearance.ApplicationThemeManager.Changed += OnThemeChanged;
 
-            _clockTimer = new DispatcherTimer(DispatcherPriority.Background)
+            _clockTimer = new DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
             {
                 Interval = TimeSpan.FromMinutes(1)
             };
@@ -84,7 +116,7 @@ namespace Aquila.ViewModels.Pages
             OnDataUpdated();
         }
 
-        private static bool IsLight => ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Light;
+        private static bool IsLight => Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme() == Wpf.Ui.Appearance.ApplicationTheme.Light;
 
         private static SolidColorPaint CreateLabelPaint()
         {
@@ -92,7 +124,7 @@ namespace Aquila.ViewModels.Pages
             return new SolidColorPaint(color) { SKTypeface = SKTypeface.FromFamilyName("Segoe UI") };
         }
 
-        private void OnThemeChanged(ApplicationTheme currentTheme, System.Windows.Media.Color _)
+        private void OnThemeChanged(Wpf.Ui.Appearance.ApplicationTheme currentTheme, System.Windows.Media.Color _)
         {
             Application.Current?.Dispatcher.Invoke(() =>
             {
@@ -116,11 +148,16 @@ namespace Aquila.ViewModels.Pages
 
         private void UpdateCpuSection()
         {
-            CpuGaugeValue = Aquila.Cpu.Load.Value ?? 0;
-            EffectiveCpuClock = Aquila.Cpu.Clock.Value ?? 0;
-            RamGaugeValue = Math.Round(Aquila.Memory.Load.Value ?? 0);
+            var totalLoad = AquilaSensorSelector.FindCpuTotalLoad(Aquila.Cpu);
+            CpuGaugeValue = totalLoad?.Value ?? 0;
 
-            CpuCoreItems = Aquila.Cpu.Cores
+            var avgClock = AquilaSensorSelector.FindCpuEffectiveClock(Aquila.Cpu);
+            EffectiveCpuClock = avgClock?.Value ?? 0;
+
+            var ramLoad = AquilaSensorSelector.FindMemoryLoad(Aquila.Memory);
+            RamGaugeValue = Math.Round(ramLoad?.Value ?? 0);
+
+            CpuCoreItems = AquilaSensorSelector.FindCpuCoreLoads(Aquila.Cpu)
                 .Select(core => new CoreBarItem(core.Name, core.Value ?? 0))
                 .ToList();
         }
@@ -151,28 +188,29 @@ namespace Aquila.ViewModels.Pages
             foreach (var card in GpuCards)
                 card.PushHistory();
 
-            PushHistorySample(CpuUsageHistory, Aquila.Cpu.Load.Value ?? 0);
-            PushHistorySample(RamUsageHistory, Aquila.Memory.Load.Value ?? 0);
-            
+            var totalLoad = AquilaSensorSelector.FindCpuTotalLoad(Aquila.Cpu);
+            PushHistorySample(CpuUsageHistory, totalLoad?.Value ?? 0);
+
+            var ramLoad = AquilaSensorSelector.FindMemoryLoad(Aquila.Memory);
+            PushHistorySample(RamUsageHistory, ramLoad?.Value ?? 0);
+
             var primaryNet = Aquila.NetworkAdapters.FirstOrDefault();
-            PushHistorySample(NetworkDownloadHistory, primaryNet?.DownloadSpeed.Value ?? 0);
-            PushHistorySample(NetworkUploadHistory, primaryNet?.UploadSpeed.Value ?? 0);
+            var netDown = primaryNet is null ? null : AquilaSensorSelector.FindNetworkDownload(primaryNet);
+            var netUp = primaryNet is null ? null : AquilaSensorSelector.FindNetworkUpload(primaryNet);
+
+            PushHistorySample(NetworkDownloadHistory, netDown?.Value ?? 0);
+            PushHistorySample(NetworkUploadHistory, netUp?.Value ?? 0);
         }
 
         private void RefreshMetricLists()
         {
-            var temps = new List<LabelledMetric>();
-            if (Aquila.Motherboard.SystemTemperature.Value.HasValue) temps.Add(new LabelledMetric("System", Aquila.Motherboard.SystemTemperature));
-            if (Aquila.Motherboard.VrmTemperature.Value.HasValue) temps.Add(new LabelledMetric("VRM", Aquila.Motherboard.VrmTemperature));
-            if (Aquila.Motherboard.ChipsetTemperature.Value.HasValue) temps.Add(new LabelledMetric("Chipset", Aquila.Motherboard.ChipsetTemperature));
-            SystemTemperatures = temps;
+            SystemTemperatures = AquilaSensorSelector.GetMotherboardTemperatures(Aquila.Motherboard)
+                .Select(sensor => new LabelledMetric(sensor.Name, sensor))
+                .ToList();
 
-            var fans = new List<FanMetricItem>();
-            foreach (var fan in Aquila.Motherboard.Fans)
-            {
-                fans.Add(new FanMetricItem(fan.Name, fan));
-            }
-            SystemFans = fans;
+            SystemFans = AquilaSensorSelector.GetMotherboardFans(Aquila.Motherboard)
+                .Select(sensor => new FanMetricItem(sensor.Name, sensor))
+                .ToList();
 
             StorageCards = Aquila.Drives
                 .Select(drive => new StorageDriveData(drive))
@@ -183,6 +221,26 @@ namespace Aquila.ViewModels.Pages
         {
             OnPropertyChanged(nameof(CacheBarWeight));
             OnPropertyChanged(nameof(FreeBarWeight));
+            OnPropertyChanged(nameof(CpuSummary));
+            OnPropertyChanged(nameof(CpuTemperature));
+            OnPropertyChanged(nameof(CpuPower));
+            OnPropertyChanged(nameof(CpuFan1));
+            OnPropertyChanged(nameof(CpuFan2));
+            OnPropertyChanged(nameof(MemoryUsed));
+            OnPropertyChanged(nameof(MemoryAvailable));
+            OnPropertyChanged(nameof(MemoryTotal));
+            OnPropertyChanged(nameof(MemoryTotalVisibleGb));
+            OnPropertyChanged(nameof(MemoryCacheGb));
+            OnPropertyChanged(nameof(MemoryPageReadsPerSec));
+            OnPropertyChanged(nameof(MemoryPageWritesPerSec));
+            OnPropertyChanged(nameof(MemoryPower));
+            OnPropertyChanged(nameof(PrimaryNetwork));
+            OnPropertyChanged(nameof(PrimaryNetworkName));
+            OnPropertyChanged(nameof(NetworkDownloadSpeed));
+            OnPropertyChanged(nameof(NetworkUploadSpeed));
+            OnPropertyChanged(nameof(NetworkDataDownloaded));
+            OnPropertyChanged(nameof(NetworkDataUploaded));
+            OnPropertyChanged(nameof(TotalPowerValue));
         }
 
         private static void PushHistorySample(ObservableCollection<double> history, double value)
@@ -197,7 +255,7 @@ namespace Aquila.ViewModels.Pages
         {
             _clockTimer.Stop();
             _aquila.DataUpdated -= OnDataUpdated;
-            ApplicationThemeManager.Changed -= OnThemeChanged;
+            Wpf.Ui.Appearance.ApplicationThemeManager.Changed -= OnThemeChanged;
         }
     }
 
@@ -213,16 +271,19 @@ namespace Aquila.ViewModels.Pages
         }
 
         public string Name => _gpu.Name;
-        public SensorNode Temperature => _gpu.Temperature;
-        public SensorNode Load => _gpu.Load;
-        public SensorNode Clock => _gpu.Clock;
-        public SensorNode Power => _gpu.Power;
+        public SensorNode? Temperature => AquilaSensorSelector.FindGpuTemperature(_gpu);
+        public SensorNode? Load => AquilaSensorSelector.FindGpuLoad(_gpu);
+        public SensorNode? Clock => AquilaSensorSelector.FindGpuCoreClock(_gpu);
+        public SensorNode? Power => AquilaSensorSelector.FindGpuPower(_gpu);
         public FanNode? Fan1 => _gpu.Fans.Count > 0 ? _gpu.Fans[0] : null;
         public FanNode? Fan2 => _gpu.Fans.Count > 1 ? _gpu.Fans[1] : null;
-        
-        public SensorNode VramUsed => _gpu.VramUsed;
-        public SensorNode VramTotal => _gpu.VramTotal;
-        public double VramPercent => (_gpu.VramTotal.Value > 0) ? ((_gpu.VramUsed.Value ?? 0) / _gpu.VramTotal.Value.Value) * 100.0 : 0;
+
+        public SensorNode? VramUsed => AquilaSensorSelector.FindGpuVramUsed(_gpu);
+        public SensorNode? VramTotal => AquilaSensorSelector.FindGpuVramTotal(_gpu);
+        public SensorNode? HotspotTemperature => AquilaSensorSelector.FindGpuHotspotTemperature(_gpu);
+
+        public double VramPercent => (VramTotal != null && VramTotal.Value > 0 && VramUsed != null && VramUsed.Value.HasValue)
+                                     ? ((VramUsed.Value.Value) / VramTotal.Value.Value) * 100.0 : 0;
 
         public ObservableCollection<double> UsageHistory { get; }
 
@@ -239,12 +300,14 @@ namespace Aquila.ViewModels.Pages
             OnPropertyChanged(nameof(VramUsed));
             OnPropertyChanged(nameof(VramTotal));
             OnPropertyChanged(nameof(VramPercent));
+            OnPropertyChanged(nameof(HotspotTemperature));
         }
 
         public void PushHistory()
         {
             UsageHistory.RemoveAt(0);
-            UsageHistory.Add(_gpu.Load.Value ?? 0);
+            var l = Load?.Value ?? 0;
+            UsageHistory.Add(l);
         }
     }
 
@@ -272,9 +335,9 @@ namespace Aquila.ViewModels.Pages
     public sealed class StorageDriveData(StorageNode drive)
     {
         public string Name => drive.Name;
-        public SensorNode Temperature => drive.Temperature;
-        public SensorNode ReadRate => drive.ReadRate;
-        public SensorNode WriteRate => drive.WriteRate;
-        public SensorNode UsedSpace => drive.UsedPercent;
+        public SensorNode? Temperature => AquilaSensorSelector.FindStorageTemperature(drive);
+        public SensorNode? ReadRate => AquilaSensorSelector.FindStorageReadRate(drive);
+        public SensorNode? WriteRate => AquilaSensorSelector.FindStorageWriteRate(drive);
+        public SensorNode? UsedSpace => AquilaSensorSelector.FindStorageUsedSpace(drive);
     }
 }

@@ -8,8 +8,14 @@ namespace Aquila.Models.Api
         private string _name;
 
         [ObservableProperty]
+        private string _identifier = string.Empty;
+
+        [ObservableProperty]
+        private string _unit = string.Empty;
+
+        [ObservableProperty]
         private float? _value;
-        
+
         [ObservableProperty]
         private float? _min;
 

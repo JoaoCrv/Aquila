@@ -13,78 +13,48 @@ namespace Aquila.Models.Api
         public ObservableCollection<NetworkNode> NetworkAdapters { get; } = [];
     }
 
-    public partial class MotherboardNode : ObservableObject
+    public abstract class BaseHardwareNode : ObservableObject
     {
-        [ObservableProperty] private string _name = string.Empty;
-        
-        public SensorNode CpuTemperature { get; } = new("CPU");
-        public SensorNode SystemTemperature { get; } = new("System");
-        public SensorNode VrmTemperature { get; } = new("VRM");
-        public SensorNode ChipsetTemperature { get; } = new("Chipset");
-
+        public ObservableCollection<SensorNode> Temperatures { get; } = [];
+        public ObservableCollection<SensorNode> Loads { get; } = [];
+        public ObservableCollection<SensorNode> Clocks { get; } = [];
+        public ObservableCollection<SensorNode> Powers { get; } = [];
+        public ObservableCollection<SensorNode> Voltages { get; } = [];
+        public ObservableCollection<SensorNode> Data { get; } = [];
+        public ObservableCollection<SensorNode> Throughput { get; } = [];
+        public ObservableCollection<SensorNode> Timings { get; } = []; 
+        public ObservableCollection<SensorNode> Controls { get; } = [];
         public ObservableCollection<FanNode> Fans { get; } = [];
     }
 
-    public partial class CpuNode : ObservableObject
+    public partial class MotherboardNode : BaseHardwareNode
     {
         [ObservableProperty] private string _name = string.Empty;
-        
-        public SensorNode Load { get; } = new("Core (Avg)");
-        public SensorNode Temperature { get; } = new("Package");
-        public SensorNode Power { get; } = new("Package Power");
-        public SensorNode Clock { get; } = new("Core (Avg) Clock");
-        
-        public ObservableCollection<SensorNode> Cores { get; } = [];
     }
 
-    public partial class GpuNode : ObservableObject
+    public partial class CpuNode : BaseHardwareNode
+    {
+        [ObservableProperty] private string _name = string.Empty;
+    }
+
+    public partial class GpuNode : BaseHardwareNode
     {
         [ObservableProperty] private string _name = string.Empty;
         [ObservableProperty] private string _vendor = string.Empty; 
-        
-        public SensorNode Load { get; } = new("Core");
-        public SensorNode Temperature { get; } = new("Core");
-        public SensorNode HotSpotTemperature { get; } = new("Hot Spot");
-        public SensorNode Power { get; } = new("Total Power");
-        public SensorNode Clock { get; } = new("Core Clock");
-        public SensorNode MemoryClock { get; } = new("Memory Clock");
-        
-        public SensorNode VramUsed { get; } = new("VRAM Used");
-        public SensorNode VramTotal { get; } = new("VRAM Total");
-
-        public ObservableCollection<FanNode> Fans { get; } = [];
     }
 
-    public partial class MemoryNode : ObservableObject
+    public partial class MemoryNode : BaseHardwareNode
     {
         [ObservableProperty] private string _name = "System Memory";
-
-        public SensorNode UsedGb { get; } = new("Used");
-        public SensorNode AvailableGb { get; } = new("Available");
-        public SensorNode TotalGb { get; } = new("Total");
-        public SensorNode Load { get; } = new("Load");
     }
 
-    public partial class StorageNode : ObservableObject
+    public partial class StorageNode : BaseHardwareNode
     {
         [ObservableProperty] private string _name = string.Empty;
-        
-        public SensorNode Temperature { get; } = new("Temperature");
-        public SensorNode UsedPercent { get; } = new("Used Space");
-        public SensorNode ReadRate { get; } = new("Read Rate");
-        public SensorNode WriteRate { get; } = new("Write Rate");
-        
-        public SensorNode DataRead { get; } = new("Data Read");
-        public SensorNode DataWritten { get; } = new("Data Written");
     }
 
-    public partial class NetworkNode : ObservableObject
+    public partial class NetworkNode : BaseHardwareNode
     {
         [ObservableProperty] private string _name = string.Empty;
-        
-        public SensorNode UploadSpeed { get; } = new("Upload Speed");
-        public SensorNode DownloadSpeed { get; } = new("Download Speed");
-        public SensorNode DataUploaded { get; } = new("Data Uploaded");
-        public SensorNode DataDownloaded { get; } = new("Data Downloaded");
     }
 }

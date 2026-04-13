@@ -1,6 +1,8 @@
 using Aquila.Models.Api;
 using LibreHardwareMonitor.Hardware;
 using System;
+using System.Collections;
+using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace Aquila.Services.Providers
@@ -10,6 +12,8 @@ namespace Aquila.Services.Providers
         private readonly Computer _computer;
         private readonly ProviderUpdateVisitor _visitor = new();
         private bool _disposed;
+
+        public IComputer Computer => _computer;
 
         public LhmProvider()
         {
@@ -21,7 +25,10 @@ namespace Aquila.Services.Providers
                 IsMotherboardEnabled = true,
                 IsNetworkEnabled = true,
                 IsStorageEnabled = true,
-                IsControllerEnabled = true
+                IsControllerEnabled = true,
+                IsBatteryEnabled = true,
+                IsPowerMonitorEnabled = true,
+                IsPsuEnabled = true
             };
         }
 
@@ -33,7 +40,7 @@ namespace Aquila.Services.Providers
         public void Populate(AquilaState apiState)
         {
             if (_disposed) return;
-            
+
             _computer.Accept(_visitor);
 
             foreach (var hw in _computer.Hardware)
@@ -47,154 +54,126 @@ namespace Aquila.Services.Providers
             switch (hw.HardwareType)
             {
                 case HardwareType.Motherboard:
-                    ProcessMotherboard(hw, nodes.Motherboard);
+                    nodes.Motherboard.Name = hw.Name;
+                    ExtractAndSortSensors(hw, nodes.Motherboard);
                     break;
                 case HardwareType.GpuNvidia:
                 case HardwareType.GpuAmd:
                 case HardwareType.GpuIntel:
-                    ProcessGpu(hw, nodes);
+                    var gpu = nodes.Gpus.FirstOrDefault(g => g.Name == hw.Name);
+                    if (gpu == null) { gpu = new GpuNode { Name = hw.Name, Vendor = hw.HardwareType.ToString() }; nodes.Gpus.Add(gpu); }
+                    ExtractAndSortSensors(hw, gpu);
                     break;
                 case HardwareType.Cpu:
-                    ProcessCpu(hw, nodes.Cpu);
+                    nodes.Cpu.Name = hw.Name;
+                    ExtractAndSortSensors(hw, nodes.Cpu);
                     break;
                 case HardwareType.Memory:
-                    ProcessMemory(hw, nodes.Memory);
+                    nodes.Memory.Name = hw.Name;
+                    ExtractAndSortSensors(hw, nodes.Memory);
                     break;
                 case HardwareType.Storage:
-                    ProcessStorage(hw, nodes);
+                    var drive = nodes.Drives.FirstOrDefault(d => d.Name == hw.Name);
+                    if (drive == null) { drive = new StorageNode { Name = hw.Name }; nodes.Drives.Add(drive); }
+                    ExtractAndSortSensors(hw, drive);
                     break;
                 case HardwareType.Network:
-                    ProcessNetwork(hw, nodes);
+                    var net = nodes.NetworkAdapters.FirstOrDefault(n => n.Name == hw.Name);
+                    if (net == null) { net = new NetworkNode { Name = hw.Name }; nodes.NetworkAdapters.Add(net); }
+                    ExtractAndSortSensors(hw, net);
                     break;
             }
 
+            // Não Processamos o SubHardware individualmente no loop base, porque o ExtractAndSortSensors já varre os SubHardwares de forma orgânica e os anexa à raiz desse componente (ex: SuperIO anexado à Motherboard)!
+        }
+
+        private void ExtractAndSortSensors(IHardware hw, BaseHardwareNode node)
+        {
+            foreach (var sensor in hw.Sensors)
+            {
+                AppendSensorToNode(sensor, node);
+            }
+
             foreach (var sub in hw.SubHardware)
             {
-                ProcessHardware(sub, nodes);
+                ExtractAndSortSensors(sub, node);
             }
         }
 
-        private void ProcessMotherboard(IHardware hw, MotherboardNode node)
+        private static void AppendSensorToNode(ISensor lhmSensor, BaseHardwareNode node)
         {
-            node.Name = hw.Name;
-            
-            foreach (var sub in hw.SubHardware)
+            IList? list = GetCollectionForSensorType(lhmSensor.SensorType, node);
+            if (list == null) return;
+
+            var identifier = lhmSensor.Identifier.ToString();
+
+            SensorNode? existing = null;
+            foreach (SensorNode sn in list)
             {
-                foreach (var sensor in sub.Sensors)
+                if (sn.Identifier == identifier)
                 {
-                    if (sensor.SensorType == SensorType.Temperature)
-                    {
-                        if (Contains(sensor, "CPU")) UpdateSensor(node.CpuTemperature, sensor);
-                        else if (Contains(sensor, "System")) UpdateSensor(node.SystemTemperature, sensor);
-                        else if (Contains(sensor, "VRM")) UpdateSensor(node.VrmTemperature, sensor);
-                        else if (Contains(sensor, "Chipset")) UpdateSensor(node.ChipsetTemperature, sensor);
-                    }
+                    existing = sn;
+                    break;
                 }
             }
-        }
 
-        private void ProcessCpu(IHardware hw, CpuNode node)
-        {
-            node.Name = hw.Name;
-            foreach (var sensor in hw.Sensors)
+            if (existing != null)
             {
-                if (sensor.SensorType == SensorType.Load && Contains(sensor, "Total"))
-                    UpdateSensor(node.Load, sensor);
-                else if (sensor.SensorType == SensorType.Temperature && Contains(sensor, "Package", "Tdie", "Tctl/Tdie"))
-                    UpdateSensor(node.Temperature, sensor);
-                else if (sensor.SensorType == SensorType.Power && Contains(sensor, "Package"))
-                    UpdateSensor(node.Power, sensor);
-                else if (sensor.SensorType == SensorType.Clock && Contains(sensor, "Effective"))
-                    UpdateSensor(node.Clock, sensor);
+                UpdateSensor(existing, lhmSensor);
+            }
+            else
+            {
+                var newNode = (lhmSensor.SensorType == SensorType.Fan) ? new FanNode(lhmSensor.Name) : new SensorNode(lhmSensor.Name);
+                newNode.Identifier = identifier;
+                UpdateSensor(newNode, lhmSensor);
+                list.Add(newNode);
             }
         }
 
-        private void ProcessGpu(IHardware hw, HardwareNodes nodes)
+        private static IList? GetCollectionForSensorType(SensorType type, BaseHardwareNode node)
         {
-            var node = nodes.Gpus.FirstOrDefault(g => g.Name == hw.Name);
-            if (node == null)
+            return type switch
             {
-                node = new GpuNode { Name = hw.Name };
-                nodes.Gpus.Add(node);
-            }
-            
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Load && Contains(sensor, "Core")) UpdateSensor(node.Load, sensor);
-                else if (sensor.SensorType == SensorType.Temperature && Contains(sensor, "Core")) UpdateSensor(node.Temperature, sensor);
-                else if (sensor.SensorType == SensorType.Temperature && Contains(sensor, "Hot Spot")) UpdateSensor(node.HotSpotTemperature, sensor);
-                else if (sensor.SensorType == SensorType.Power && Contains(sensor, "Total", "Package")) UpdateSensor(node.Power, sensor);
-                else if (sensor.SensorType == SensorType.Clock && Contains(sensor, "Core") && !Contains(sensor, "Memory")) UpdateSensor(node.Clock, sensor);
-                else if (sensor.SensorType == SensorType.Clock && Contains(sensor, "Memory")) UpdateSensor(node.MemoryClock, sensor);
-                else if (sensor.SensorType == SensorType.SmallData && Contains(sensor, "Memory Used")) UpdateSensor(node.VramUsed, sensor);
-                else if (sensor.SensorType == SensorType.SmallData && Contains(sensor, "Memory Total")) UpdateSensor(node.VramTotal, sensor);
-            }
-        }
-
-        private void ProcessMemory(IHardware hw, MemoryNode node)
-        {
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Data && Contains(sensor, "Used")) UpdateSensor(node.UsedGb, sensor);
-                else if (sensor.SensorType == SensorType.Data && Contains(sensor, "Available")) UpdateSensor(node.AvailableGb, sensor);
-                else if (sensor.SensorType == SensorType.Load && Contains(sensor, "Memory")) UpdateSensor(node.Load, sensor);
-            }
-            
-            if (node.UsedGb.Value.HasValue && node.AvailableGb.Value.HasValue && node.TotalGb.Value == null)
-            {
-                node.TotalGb.Value = node.UsedGb.Value + node.AvailableGb.Value;
-                // Min Max tracking can be ignored for static total
-            }
-        }
-
-        private void ProcessStorage(IHardware hw, HardwareNodes nodes)
-        {
-            var node = nodes.Drives.FirstOrDefault(d => d.Name == hw.Name);
-            if (node == null)
-            {
-                node = new StorageNode { Name = hw.Name };
-                nodes.Drives.Add(node);
-            }
-
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Temperature && Contains(sensor, "Temperature", "Composite")) UpdateSensor(node.Temperature, sensor);
-                else if (sensor.SensorType == SensorType.Load && Contains(sensor, "Used Space")) UpdateSensor(node.UsedPercent, sensor);
-                else if (sensor.SensorType == SensorType.Throughput && Contains(sensor, "Read Rate")) UpdateSensor(node.ReadRate, sensor);
-                else if (sensor.SensorType == SensorType.Throughput && Contains(sensor, "Write Rate")) UpdateSensor(node.WriteRate, sensor);
-                else if (sensor.SensorType == SensorType.Data && Contains(sensor, "Data Read")) UpdateSensor(node.DataRead, sensor);
-                else if (sensor.SensorType == SensorType.Data && Contains(sensor, "Data Written")) UpdateSensor(node.DataWritten, sensor);
-            }
-        }
-
-        private void ProcessNetwork(IHardware hw, HardwareNodes nodes)
-        {
-            var node = nodes.NetworkAdapters.FirstOrDefault(n => n.Name == hw.Name);
-            if (node == null)
-            {
-                node = new NetworkNode { Name = hw.Name };
-                nodes.NetworkAdapters.Add(node);
-            }
-
-            foreach (var sensor in hw.Sensors)
-            {
-                if (sensor.SensorType == SensorType.Throughput && Contains(sensor, "Upload Speed")) UpdateSensor(node.UploadSpeed, sensor);
-                else if (sensor.SensorType == SensorType.Throughput && Contains(sensor, "Download Speed")) UpdateSensor(node.DownloadSpeed, sensor);
-                else if (sensor.SensorType == SensorType.Data && Contains(sensor, "Uploaded")) UpdateSensor(node.DataUploaded, sensor);
-                else if (sensor.SensorType == SensorType.Data && Contains(sensor, "Downloaded")) UpdateSensor(node.DataDownloaded, sensor);
-            }
-        }
-
-        private static bool Contains(ISensor sensor, params string[] terms)
-        {
-            return terms.Any(t => sensor.Name.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0);
+                SensorType.Temperature => node.Temperatures,
+                SensorType.Load => node.Loads,
+                SensorType.Clock => node.Clocks,
+                SensorType.Power => node.Powers,
+                SensorType.Voltage => node.Voltages,
+                SensorType.Data or SensorType.SmallData => node.Data,
+                SensorType.Throughput => node.Throughput,
+                SensorType.Control => node.Controls,
+                SensorType.Fan => node.Fans,
+                _ => null, // Ex: Factor, Level (ignorados ou podes mapear se quiseres)
+            };
         }
 
         private static void UpdateSensor(SensorNode node, ISensor lhmSensor)
         {
+            node.Name = lhmSensor.Name;
+            node.Unit = GetUnit(lhmSensor.SensorType, lhmSensor.Name);
             node.Value = lhmSensor.Value;
             node.Min = lhmSensor.Min;
             node.Max = lhmSensor.Max;
+        }
+
+        private static string GetUnit(SensorType sensorType, string sensorName)
+        {
+            return sensorType switch
+            {
+                SensorType.Temperature => "°C",
+                SensorType.Load or SensorType.Control or SensorType.Level => "%",
+                SensorType.Clock => "MHz",
+                SensorType.Power => "W",
+                SensorType.Voltage => "V",
+                SensorType.Current => "A",
+                SensorType.Fan => "RPM",
+                SensorType.Throughput => "B/s",
+                SensorType.TimeSpan => "s",
+                SensorType.Energy => "mWh",
+                SensorType.Data => "GB",
+                SensorType.SmallData => "MB",
+                _ => string.Empty,
+            };
         }
 
         public void Dispose()

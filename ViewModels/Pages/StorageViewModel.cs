@@ -1,3 +1,4 @@
+using Aquila.Helpers;
 using Aquila.Models.Api;
 using Aquila.Services;
 using System.Collections.Generic;
@@ -96,11 +97,11 @@ namespace Aquila.ViewModels.Pages
             UsedPercent = total > 0 ? (double)used / total * 100.0 : 0;
 
             HardwareName = snapshot?.Name;
-            Temperature = snapshot?.Temperature;
-            ReadRate = snapshot?.ReadRate;
-            WriteRate = snapshot?.WriteRate;
-            DataRead = snapshot?.DataRead;
-            DataWritten = snapshot?.DataWritten;
+            Temperature = snapshot is null ? null : AquilaSensorSelector.FindStorageTemperature(snapshot);
+            ReadRate = snapshot is null ? null : AquilaSensorSelector.FindStorageReadRate(snapshot);
+            WriteRate = snapshot is null ? null : AquilaSensorSelector.FindStorageWriteRate(snapshot);
+            DataRead = snapshot is null ? null : AquilaSensorSelector.FindStorageDataRead(snapshot);
+            DataWritten = snapshot is null ? null : AquilaSensorSelector.FindStorageDataWritten(snapshot);
         }
 
         private static string FormatBytes(long bytes)
