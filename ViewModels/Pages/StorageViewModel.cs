@@ -1,4 +1,3 @@
-using Aquila.Helpers;
 using Aquila.Models.Api;
 using Aquila.Services;
 using System.Collections.Generic;
@@ -25,7 +24,7 @@ namespace Aquila.ViewModels.Pages
 
         private void OnDataUpdated()
         {
-            var storageSnapshots = _aquila.State.Hardware.Drives.ToList();
+            var storageSnapshots = _aquila.State.Semantic.Storage.ToList();
             var fixedDrives = DriveInfo.GetDrives()
                 .Where(drive => drive.IsReady && drive.DriveType == DriveType.Fixed)
                 .OrderBy(drive => drive.Name)
@@ -77,9 +76,9 @@ namespace Aquila.ViewModels.Pages
 
         public string DisplayName => HardwareName ?? Label;
 
-        public StoragePageDriveItem(DriveInfo drive, StorageNode? snapshot) => Refresh(drive, snapshot);
+        public StoragePageDriveItem(DriveInfo drive, StorageSemanticNode? snapshot) => Refresh(drive, snapshot);
 
-        public void Refresh(DriveInfo drive, StorageNode? snapshot)
+        public void Refresh(DriveInfo drive, StorageSemanticNode? snapshot)
         {
             DriveLetter = string.IsNullOrEmpty(drive.Name) ? "" : drive.Name.TrimEnd('\\', '/');
             Label = string.IsNullOrWhiteSpace(drive.VolumeLabel)
@@ -97,11 +96,11 @@ namespace Aquila.ViewModels.Pages
             UsedPercent = total > 0 ? (double)used / total * 100.0 : 0;
 
             HardwareName = snapshot?.Name;
-            Temperature = snapshot is null ? null : AquilaSensorSelector.FindStorageTemperature(snapshot);
-            ReadRate = snapshot is null ? null : AquilaSensorSelector.FindStorageReadRate(snapshot);
-            WriteRate = snapshot is null ? null : AquilaSensorSelector.FindStorageWriteRate(snapshot);
-            DataRead = snapshot is null ? null : AquilaSensorSelector.FindStorageDataRead(snapshot);
-            DataWritten = snapshot is null ? null : AquilaSensorSelector.FindStorageDataWritten(snapshot);
+            Temperature = snapshot?.Temperature.System;
+            ReadRate = snapshot?.Throughput.Read;
+            WriteRate = snapshot?.Throughput.Write;
+            DataRead = snapshot?.Data.Read;
+            DataWritten = snapshot?.Data.Written;
         }
 
         private static string FormatBytes(long bytes)

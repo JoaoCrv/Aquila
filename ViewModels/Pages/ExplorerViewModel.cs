@@ -1,5 +1,6 @@
-using Aquila.Models.Api;
+﻿using Aquila.Models.Api;
 using Aquila.Services;
+using LibreHardwareMonitor.Hardware;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -9,178 +10,124 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Aquila.ViewModels.Pages
 {
-    public partial class ExplorerTreeItem : ObservableObject
+    public partial class ExplorerGroupedHardware : ObservableObject
     {
-        public string Title { get; init; } = string.Empty;
-        public string Subtitle { get; init; } = string.Empty;
-        public string Identifier { get; init; } = string.Empty;
-        public bool IsSensor { get; init; }
-        public List<ExplorerTreeItem> Children { get; init; } = new();
+        public string HardwareName { get; set; } = string.Empty;
+        public HardwareType HardwareType { get; set; }
+        public List<ExplorerGroupedSensor> SensorGroups { get; set; } = [];
 
-        [ObservableProperty] private bool _isExpanded = true;
+        [ObservableProperty] private bool _isExpanded;
+    }
+
+    public class ExplorerGroupedSensor
+    {
+        public string CategoryName { get; set; } = "Sensors";
+        public List<SensorNode> Sensors { get; set; } = [];
     }
 
     public partial class ExplorerViewModel(UiService uiService, AquilaService aquilaService) : ObservableObject
     {
         private readonly UiService _uiService = uiService;
         private readonly AquilaService _aquilaService = aquilaService;
-        private Dictionary<string, string> _reportSections = new();
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(FilteredItems))]
-        private List<ExplorerTreeItem> _items = new();
+        [NotifyPropertyChangedFor(nameof(FilteredHardware))]
+        private List<ExplorerGroupedHardware> _groupedHardware = [];
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(FilteredItems))]
+        [NotifyPropertyChangedFor(nameof(FilteredHardware))]
         private string _searchText = string.Empty;
 
-        public IEnumerable<ExplorerTreeItem> FilteredItems =>
-            string.IsNullOrWhiteSpace(SearchText)
-                ? Items
-                : FilterItems(Items, SearchText.Trim());
-
-        [ObservableProperty] private List<string> _reportSectionKeys = new();
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(SelectedReportText))]
-        private string _selectedReportSection = string.Empty;
-
-        [ObservableProperty] private string _selectedReportText = string.Empty;
-
-
-
-
-
-        private static IEnumerable<ExplorerTreeItem> FilterItems(IEnumerable<ExplorerTreeItem> items, string term)
+        public IEnumerable<ExplorerGroupedHardware> FilteredHardware
         {
-            foreach (var item in items)
+            get
             {
-                var itemMatches = MatchesItem(item, term);
-                var matchingChildren = FilterItems(item.Children, term).ToList();
+                if (string.IsNullOrWhiteSpace(SearchText))
+                    return GroupedHardware;
 
-                if (!itemMatches && matchingChildren.Count == 0)
-                    continue;
-
-                yield return new ExplorerTreeItem
-                {
-                    Title = item.Title,
-                    Subtitle = item.Subtitle,
-                    Identifier = item.Identifier,
-                    IsSensor = item.IsSensor,
-                    Children = itemMatches ? item.Children : matchingChildren,
-                    IsExpanded = true
-                };
+                return GroupedHardware
+                    .Select(hw => new ExplorerGroupedHardware
+                    {
+                        HardwareName = hw.HardwareName,
+                        HardwareType = hw.HardwareType,
+                        IsExpanded = true,
+                        SensorGroups = hw.SensorGroups
+                            .Select(g => new ExplorerGroupedSensor
+                            {
+                                CategoryName = g.CategoryName,
+                                Sensors = g.Sensors
+                                    .Where(s => s.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                                    .ToList()
+                            })
+                            .Where(g => g.Sensors.Count > 0)
+                            .ToList()
+                    })
+                    .Where(hw => hw.SensorGroups.Count > 0);
             }
         }
 
-        private static bool MatchesItem(ExplorerTreeItem item, string term) =>
-            item.Title.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-            item.Subtitle.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-            item.Identifier.Contains(term, StringComparison.OrdinalIgnoreCase);
+        public Task InitializeAsync()
+        {
+            var hw = _aquilaService.State.Hardware;
+            var list = new List<ExplorerGroupedHardware>
+            {
+                MapNode(hw.Motherboard, hw.Motherboard.Name, HardwareType.Motherboard),
+                MapNode(hw.Cpu, hw.Cpu.Name, HardwareType.Cpu),
+                MapNode(hw.Memory, hw.Memory.Name, HardwareType.Memory),
+            };
+
+            foreach (var gpu in hw.Gpus)
+            {
+                var gpuType = Enum.TryParse<HardwareType>(gpu.Vendor, out var parsed) ? parsed : HardwareType.GpuNvidia;
+                list.Add(MapNode(gpu, gpu.Name, gpuType));
+            }
+
+            foreach (var drv in hw.Drives) list.Add(MapNode(drv, drv.Name, HardwareType.Storage));
+            foreach (var net in hw.NetworkAdapters) list.Add(MapNode(net, net.Name, HardwareType.Network));
+
+            GroupedHardware = list.Where(l => l.SensorGroups.Count > 0).ToList();
+            return Task.CompletedTask;
+        }
+
+        private static ExplorerGroupedHardware MapNode(BaseHardwareNode node, string name, HardwareType type)
+        {
+            var groups = new List<ExplorerGroupedSensor>();
+            AddGroup(groups, "Temperatures", node.Temperatures);
+            AddGroup(groups, "Loads", node.Loads);
+            AddGroup(groups, "Clocks", node.Clocks);
+            AddGroup(groups, "Powers", node.Powers);
+            AddGroup(groups, "Voltages", node.Voltages);
+            AddGroup(groups, "Data", node.Data);
+            AddGroup(groups, "Throughput", node.Throughput);
+            AddGroup(groups, "Controls", node.Controls);
+            AddGroup(groups, "Fans", node.Fans);
+
+            return new ExplorerGroupedHardware
+            {
+                HardwareName = string.IsNullOrEmpty(name) ? type.ToString() : name,
+                HardwareType = type,
+                SensorGroups = groups,
+                IsExpanded = false,
+            };
+        }
+
+        private static void AddGroup(List<ExplorerGroupedSensor> groups, string categoryName, IEnumerable<SensorNode> sensors)
+        {
+            var list = sensors.Where(s => s.Value.HasValue || s.Min.HasValue || s.Max.HasValue).ToList();
+            if (list.Count > 0)
+                groups.Add(new ExplorerGroupedSensor { CategoryName = categoryName, Sensors = list });
+        }
 
         [RelayCommand]
         private static void CopyIdentifier(string? identifier)
         {
             if (!string.IsNullOrWhiteSpace(identifier))
                 Clipboard.SetText(identifier);
-        }
-
-        partial void OnSelectedReportSectionChanged(string value)
-        {
-            SelectedReportText = string.IsNullOrEmpty(value) ? string.Empty : (_reportSections.TryGetValue(value, out var v) ? v : string.Empty);
-        }
-
-        public Task InitializeAsync()
-        {
-            Items = BuildItems();
-
-            _reportSections = new Dictionary<string, string>
-            {
-                ["Raw Tree Summary"] = BuildDebugReport()
-            };
-
-            ReportSectionKeys = _reportSections.Keys.ToList();
-            SelectedReportSection = ReportSectionKeys.FirstOrDefault() ?? string.Empty;
-
-            return Task.CompletedTask;
-        }
-
-        private List<ExplorerTreeItem> BuildItems()
-        {
-            var hardware = _aquilaService.State.Hardware;
-            var items = new List<ExplorerTreeItem>
-            {
-                CreateHardwareItem("Motherboard", hardware.Motherboard.Name, hardware.Motherboard),
-                CreateHardwareItem("CPU", hardware.Cpu.Name, hardware.Cpu),
-                CreateHardwareItem("Memory", hardware.Memory.Name, hardware.Memory)
-            };
-
-            items.AddRange(hardware.Gpus.Select(gpu => CreateHardwareItem("GPU", gpu.Name, gpu)));
-            items.AddRange(hardware.Drives.Select(drive => CreateHardwareItem("Storage", drive.Name, drive)));
-            items.AddRange(hardware.NetworkAdapters.Select(adapter => CreateHardwareItem("Network", adapter.Name, adapter)));
-
-            return items.Where(item => item.Children.Count > 0 || !string.IsNullOrWhiteSpace(item.Subtitle)).ToList();
-        }
-
-        private static ExplorerTreeItem CreateHardwareItem(string type, string name, BaseHardwareNode node)
-        {
-            var children = new List<ExplorerTreeItem>();
-
-            AddGroup(children, "Temperatures", node.Temperatures);
-            AddGroup(children, "Loads", node.Loads);
-            AddGroup(children, "Clocks", node.Clocks);
-            AddGroup(children, "Powers", node.Powers);
-            AddGroup(children, "Voltages", node.Voltages);
-            AddGroup(children, "Data", node.Data);
-            AddGroup(children, "Throughput", node.Throughput);
-            AddGroup(children, "Controls", node.Controls);
-            AddGroup(children, "Fans", node.Fans);
-
-            return new ExplorerTreeItem
-            {
-                Title = string.IsNullOrWhiteSpace(name) ? type : name,
-                Subtitle = type,
-                Children = children,
-                IsExpanded = true
-            };
-        }
-
-        private static void AddGroup(List<ExplorerTreeItem> items, string title, IEnumerable<SensorNode> sensors)
-        {
-            var sensorChildren = sensors
-                .Where(sensor => sensor.Value.HasValue || sensor.Min.HasValue || sensor.Max.HasValue)
-                .Select(sensor => new ExplorerTreeItem
-                {
-                    Title = sensor.Name,
-                    Subtitle = FormatSensorValue(sensor),
-                    Identifier = sensor.Identifier,
-                    IsSensor = true
-                })
-                .ToList();
-
-            if (sensorChildren.Count == 0)
-                return;
-
-            items.Add(new ExplorerTreeItem
-            {
-                Title = title,
-                Subtitle = $"{sensorChildren.Count} sensors",
-                Children = sensorChildren,
-                IsExpanded = true
-            });
-        }
-
-        private static string FormatSensorValue(SensorNode sensor)
-        {
-            var unit = string.IsNullOrWhiteSpace(sensor.Unit) ? "" : $" {sensor.Unit}";
-            var value = sensor.Value.HasValue ? $"{sensor.Value.Value:F1}{unit}" : "--";
-            var min = sensor.Min.HasValue ? $"{sensor.Min.Value:F1}{unit}" : "--";
-            var max = sensor.Max.HasValue ? $"{sensor.Max.Value:F1}{unit}" : "--";
-
-            return $"{value} | Min: {min} | Max: {max}";
         }
 
         [RelayCommand]
@@ -190,7 +137,7 @@ namespace Aquila.ViewModels.Pages
             {
                 _uiService.IsLoading = true;
 
-                var report = BuildDebugReport();
+                var report = BuildReport();
                 if (string.IsNullOrWhiteSpace(report))
                     return;
 
@@ -219,32 +166,29 @@ namespace Aquila.ViewModels.Pages
             }
         }
 
-        private string BuildDebugReport()
+        private string BuildReport()
         {
-            if (Items.Count == 0)
+            if (GroupedHardware.Count == 0)
                 return "No hardware items available.";
 
-            var builder = new StringBuilder();
-            foreach (var item in Items)
+            var sb = new StringBuilder();
+            foreach (var hw in GroupedHardware)
             {
-                AppendItemReport(builder, item, 0);
+                sb.AppendLine($"[{hw.HardwareType}] {hw.HardwareName}");
+                foreach (var group in hw.SensorGroups)
+                {
+                    sb.AppendLine($"  {group.CategoryName}:");
+                    foreach (var sensor in group.Sensors)
+                    {
+                        var val = sensor.Value.HasValue ? $"{sensor.Value.Value:F1} {sensor.Unit}" : "--";
+                        var min = sensor.Min.HasValue ? $"{sensor.Min.Value:F1}" : "--";
+                        var max = sensor.Max.HasValue ? $"{sensor.Max.Value:F1}" : "--";
+                        sb.AppendLine($"    {sensor.Name}: {val}  (min: {min}, max: {max})  [{sensor.Identifier}]");
+                    }
+                }
+                sb.AppendLine();
             }
-
-            return builder.ToString();
-        }
-
-        private static void AppendItemReport(StringBuilder builder, ExplorerTreeItem item, int depth)
-        {
-            var indent = new string(' ', depth * 2);
-            builder.AppendLine($"{indent}- {item.Title}" + (string.IsNullOrWhiteSpace(item.Subtitle) ? string.Empty : $" [{item.Subtitle}]"));
-
-            if (!string.IsNullOrWhiteSpace(item.Identifier))
-                builder.AppendLine($"{indent}  id: {item.Identifier}");
-
-            foreach (var child in item.Children)
-            {
-                AppendItemReport(builder, child, depth + 1);
-            }
+            return sb.ToString();
         }
 
         private static void TryOpenFile(string path)

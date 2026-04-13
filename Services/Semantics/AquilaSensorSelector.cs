@@ -3,8 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Aquila.Helpers
+namespace Aquila.Services.Semantics
 {
+    public sealed class SensorSelectionResult<T>(T? sensor, SemanticResolutionState state, int candidateCount, string reason)
+        where T : SensorNode
+    {
+        public T? Sensor { get; } = sensor;
+        public SemanticResolutionState State { get; } = state;
+        public int CandidateCount { get; } = candidateCount;
+        public string Reason { get; } = reason;
+    }
+
     /// <summary>
     /// First practical semantic layer over the raw provider state.
     /// Rules are based on hardware type + sensor type + sensor name.
@@ -42,25 +51,83 @@ namespace Aquila.Helpers
         public static SensorNode? FindCpuPower(CpuNode cpu) =>
             FindBest(cpu.Powers, prefer: ["Package", "Total", "CPU"], avoid: ["Limit"]);
 
-        public static SensorNode? FindCpuPrimaryFan(MotherboardNode motherboard) =>
-            FindBest(GetMotherboardFans(motherboard), prefer: ["CPU", "Processor", "Pump"], avoid: ["Chassis", "Case", "System"]);
+        public static SensorSelectionResult<FanNode> ResolveCpuFanRpm(MotherboardNode motherboard) =>
+            ResolveBest(motherboard.Fans, prefer: ["CPU", "Processor", "Pump"], avoid: ["Chassis", "Case", "System"], missingReason: "No CPU or pump RPM sensor exposed by the motherboard.");
 
-        public static SensorNode? FindCpuSecondaryFan(MotherboardNode motherboard)
+        public static SensorSelectionResult<SensorNode> ResolveCpuFanControl(MotherboardNode motherboard) =>
+            ResolveBest(motherboard.Controls.Where(c => ContainsAny(c.Name, "Fan", "Pump")),
+                        prefer: ["CPU", "Processor", "Pump"], avoid: ["Chassis", "Case", "System"], missingReason: "No CPU or pump duty-cycle control sensor exposed by the motherboard.");
+
+        public static SensorSelectionResult<FanNode> ResolveCpuSecondaryFanRpm(MotherboardNode motherboard)
         {
             var fans = GetMotherboardFans(motherboard).ToList();
-            var primary = FindCpuPrimaryFan(motherboard);
-            return fans.FirstOrDefault(fan => !ReferenceEquals(fan, primary)) ?? fans.Skip(1).FirstOrDefault();
+            var cpuFan = ResolveCpuFanRpm(motherboard).Sensor;
+
+            var candidates = fans
+                .Where(fan => !ReferenceEquals(fan, cpuFan))
+                .ToList();
+
+            if (candidates.Count == 0)
+            {
+                return new SensorSelectionResult<FanNode>(
+                    null,
+                    SemanticResolutionState.Missing,
+                    0,
+                    "No secondary CPU fan or pump RPM sensor is available.");
+            }
+
+            var pumpCandidates = candidates
+                .Where(fan => ContainsAny(fan.Name, "Pump", "AIO", "Water", "Liquid"))
+                .ToList();
+
+            var pumpFan = pumpCandidates.FirstOrDefault();
+
+            if (pumpFan is not null)
+            {
+                return new SensorSelectionResult<FanNode>(
+                    pumpFan,
+                    pumpCandidates.Skip(1).Any() ? SemanticResolutionState.Ambiguous : SemanticResolutionState.Matched,
+                    pumpCandidates.Count,
+                    pumpCandidates.Count > 1
+                        ? "Multiple pump-like RPM sensors matched; using the highest-ranked candidate."
+                        : "Resolved secondary CPU cooling sensor as pump RPM.");
+            }
+
+            return new SensorSelectionResult<FanNode>(
+                candidates[0],
+                candidates.Count > 1 ? SemanticResolutionState.Ambiguous : SemanticResolutionState.Matched,
+                candidates.Count,
+                candidates.Count > 1
+                    ? "Multiple secondary RPM candidates matched; using the highest-ranked fan after the CPU primary fan."
+                    : "Resolved secondary CPU cooling sensor as the remaining motherboard RPM fan.");
         }
 
         public static IEnumerable<SensorNode> GetMotherboardTemperatures(MotherboardNode motherboard) =>
             Rank(motherboard.Temperatures, prefer: ["CPU", "System", "VRM", "MOS", "Chipset", "PCH"]);
 
-        public static IEnumerable<SensorNode> GetMotherboardFans(MotherboardNode motherboard)
-        {
-            var sensors = motherboard.Fans.Cast<SensorNode>()
-                .Concat(motherboard.Controls.Where(control => ContainsAny(control.Name, "Fan", "Pump")));
+        public static IEnumerable<FanNode> GetMotherboardFans(MotherboardNode motherboard) =>
+            Rank(motherboard.Fans, prefer: ["CPU", "Pump", "System", "Chassis", "Case"]);
 
-            return Rank(sensors, prefer: ["CPU", "Pump", "System", "Chassis", "Case"]);
+        public static SensorNode? FindMotherboardFanControl(MotherboardNode motherboard, FanNode fan)
+        {
+            var controls = motherboard.Controls
+                .Where(control => ContainsAny(control.Name, "Fan", "Pump", "AIO", "Water", "Liquid"))
+                .ToList();
+
+            if (controls.Count == 0)
+                return null;
+
+            var fanName = fan.Name ?? string.Empty;
+
+            var preferred = new List<string> { fanName };
+            if (ContainsAny(fanName, "CPU", "Processor"))
+                preferred.AddRange(["CPU", "Processor"]);
+            if (ContainsAny(fanName, "Pump", "AIO", "Water", "Liquid"))
+                preferred.AddRange(["Pump", "AIO", "Water", "Liquid"]);
+            if (ContainsAny(fanName, "Chassis", "Case", "System", "VRM"))
+                preferred.AddRange(["Chassis", "Case", "System", "VRM"]);
+
+            return FindBest(controls, prefer: preferred.ToArray());
         }
 
         public static SensorNode? FindGpuLoad(GpuNode gpu) =>
@@ -75,8 +142,50 @@ namespace Aquila.Helpers
         public static SensorNode? FindGpuCoreClock(GpuNode gpu) =>
             FindBest(gpu.Clocks, prefer: ["Core", "Graphics"], avoid: ["Memory", "Shader", "Video"]);
 
+        public static SensorSelectionResult<SensorNode> ResolveGpuPower(GpuNode gpu) =>
+            ResolveBest(gpu.Powers, prefer: ["Total", "Board", "Package", "GPU"], avoid: ["Limit"], missingReason: "No GPU package power sensor exposed by this adapter.");
+
         public static SensorNode? FindGpuPower(GpuNode gpu) =>
             FindBest(gpu.Powers, prefer: ["Total", "Board", "Package", "GPU"], avoid: ["Limit"]);
+
+        public static SensorSelectionResult<FanNode> ResolveGpuPrimaryFan(GpuNode gpu)
+        {
+            var ranked = Rank(gpu.Fans, prefer: ["GPU", "Core", "Fan 1", "Left", "Primary"]).ToList();
+            if (ranked.Count == 0)
+            {
+                return new SensorSelectionResult<FanNode>(null, SemanticResolutionState.Missing, 0,
+                    "No GPU fan RPM sensor exposed by this adapter.");
+            }
+
+            return new SensorSelectionResult<FanNode>(
+                ranked[0],
+                ranked.Count > 1 ? SemanticResolutionState.Ambiguous : SemanticResolutionState.Matched,
+                ranked.Count,
+                ranked.Count > 1
+                    ? "Multiple GPU fan RPM sensors matched; using the highest-ranked primary fan."
+                    : "Resolved GPU primary fan RPM sensor.");
+        }
+
+        public static SensorSelectionResult<FanNode> ResolveGpuSecondaryFan(GpuNode gpu)
+        {
+            var ranked = Rank(gpu.Fans, prefer: ["GPU", "Core", "Fan 2", "Right", "Secondary"]).ToList();
+            var primary = ResolveGpuPrimaryFan(gpu).Sensor;
+            var candidates = ranked.Where(fan => !ReferenceEquals(fan, primary)).ToList();
+
+            if (candidates.Count == 0)
+            {
+                return new SensorSelectionResult<FanNode>(null, SemanticResolutionState.Missing, 0,
+                    "No secondary GPU fan RPM sensor is available.");
+            }
+
+            return new SensorSelectionResult<FanNode>(
+                candidates[0],
+                candidates.Count > 1 ? SemanticResolutionState.Ambiguous : SemanticResolutionState.Matched,
+                candidates.Count,
+                candidates.Count > 1
+                    ? "Multiple secondary GPU fan RPM sensors matched; using the highest-ranked remaining fan."
+                    : "Resolved GPU secondary fan RPM sensor.");
+        }
 
         public static SensorNode? FindGpuVramUsed(GpuNode gpu) =>
             FindBest(gpu.Data, prefer: ["Memory Used", "VRAM Used", "Memory Allocated"]);
@@ -95,22 +204,7 @@ namespace Aquila.Helpers
 
         public static SensorNode? FindMemoryTotal(MemoryNode memory)
         {
-            var explicitTotal = FindBest(memory.Data, prefer: ["Total"]);
-            if (explicitTotal != null)
-                return explicitTotal;
-
-            var used = FindMemoryUsed(memory);
-            var available = FindMemoryAvailable(memory);
-            if (used?.Value is float usedValue && available?.Value is float availableValue)
-            {
-                return new SensorNode("Total")
-                {
-                    Value = usedValue + availableValue,
-                    Unit = string.IsNullOrWhiteSpace(used.Unit) ? "GB" : used.Unit,
-                };
-            }
-
-            return null;
+            return FindBest(memory.Data, prefer: ["Total"]);
         }
 
         public static SensorNode? FindMemoryCache(MemoryNode memory) =>
@@ -161,6 +255,33 @@ namespace Aquila.Helpers
             var ranked = Rank(sensors, prefer, avoid).ToList();
             return ranked.FirstOrDefault(sensor => sensor.Value.HasValue)
                 ?? ranked.FirstOrDefault();
+        }
+
+        private static SensorSelectionResult<T> ResolveBest<T>(IEnumerable<T> sensors, string[] prefer, string[]? avoid = null, string? missingReason = null)
+            where T : SensorNode
+        {
+            var ranked = Rank(sensors, prefer, avoid).ToList();
+
+            if (ranked.Count == 0)
+            {
+                return new SensorSelectionResult<T>(
+                    null,
+                    SemanticResolutionState.Missing,
+                    0,
+                    missingReason ?? "No candidate sensor matched this semantic slot.");
+            }
+
+            var selected = ranked.FirstOrDefault(sensor => sensor.Value.HasValue)
+                ?? ranked[0];
+
+            var selectedScore = GetScore(selected.Name, prefer, avoid);
+            var competingCandidates = ranked.Count(sensor => GetScore(sensor.Name, prefer, avoid) == selectedScore);
+            var state = competingCandidates > 1 ? SemanticResolutionState.Ambiguous : SemanticResolutionState.Matched;
+            var reason = state == SemanticResolutionState.Ambiguous
+                ? "Multiple candidate sensors tied for this semantic slot; using the highest-ranked match."
+                : "Semantic slot resolved successfully.";
+
+            return new SensorSelectionResult<T>(selected, state, ranked.Count, reason);
         }
 
         private static IEnumerable<T> Rank<T>(IEnumerable<T> sensors, string[] prefer, string[]? avoid = null)

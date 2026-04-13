@@ -1,5 +1,6 @@
 using Aquila.Models.Api;
 using Aquila.Services.Providers;
+using Aquila.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Windows.Threading;
@@ -24,7 +25,7 @@ namespace Aquila.Services
 
             // In the future this might be driven by Dependency Injection
             _providers.Add(new LhmProvider());
-            
+
             foreach (var provider in _providers)
             {
                 provider.Initialize();
@@ -32,10 +33,10 @@ namespace Aquila.Services
 
             _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _pollingTimer.Tick += RefreshState;
-            
+
             // Synchronous initial poll
             RefreshState(this, EventArgs.Empty);
-            
+
             _pollingTimer.Start();
         }
 
@@ -45,7 +46,10 @@ namespace Aquila.Services
             {
                 provider.Populate(State);
             }
-            
+
+            // Build a stable semantic snapshot so pages can bind to one curated object.
+            AquilaSnapshotBuilder.PopulateSemantic(State);
+
             DataUpdated?.Invoke();
         }
 
