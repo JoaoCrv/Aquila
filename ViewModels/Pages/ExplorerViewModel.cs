@@ -1,5 +1,6 @@
 ﻿using Aquila.Models.Api;
 using Aquila.Services;
+using Aquila.Services.Providers;
 using LibreHardwareMonitor.Hardware;
 using Microsoft.Win32;
 using System;
@@ -73,54 +74,106 @@ namespace Aquila.ViewModels.Pages
 
         public Task InitializeAsync()
         {
-            var hw = _aquilaService.State.Hardware;
-            var list = new List<ExplorerGroupedHardware>
+            var lhmProvider = _aquilaService.Providers.OfType<LhmProvider>().FirstOrDefault();
+            if (lhmProvider?.Computer is null)
             {
-                MapNode(hw.Motherboard, hw.Motherboard.Name, HardwareType.Motherboard),
-                MapNode(hw.Cpu, hw.Cpu.Name, HardwareType.Cpu),
-                MapNode(hw.Memory, hw.Memory.Name, HardwareType.Memory),
-            };
-
-            foreach (var gpu in hw.Gpus)
-            {
-                var gpuType = Enum.TryParse<HardwareType>(gpu.Vendor, out var parsed) ? parsed : HardwareType.GpuNvidia;
-                list.Add(MapNode(gpu, gpu.Name, gpuType));
+                GroupedHardware = [];
+                return Task.CompletedTask;
             }
 
-            foreach (var drv in hw.Drives) list.Add(MapNode(drv, drv.Name, HardwareType.Storage));
-            foreach (var net in hw.NetworkAdapters) list.Add(MapNode(net, net.Name, HardwareType.Network));
+            var list = new List<ExplorerGroupedHardware>();
+            foreach (var hardware in lhmProvider.Computer.Hardware)
+            {
+                AddHardwareRecursive(list, hardware, parentPath: null);
+            }
 
-            GroupedHardware = list.Where(l => l.SensorGroups.Count > 0).ToList();
+            GroupedHardware = list.Where(item => item.SensorGroups.Count > 0).ToList();
             return Task.CompletedTask;
         }
 
-        private static ExplorerGroupedHardware MapNode(BaseHardwareNode node, string name, HardwareType type)
+        private static void AddHardwareRecursive(List<ExplorerGroupedHardware> target, IHardware hardware, string? parentPath)
         {
-            var groups = new List<ExplorerGroupedSensor>();
-            AddGroup(groups, "Temperatures", node.Temperatures);
-            AddGroup(groups, "Loads", node.Loads);
-            AddGroup(groups, "Clocks", node.Clocks);
-            AddGroup(groups, "Powers", node.Powers);
-            AddGroup(groups, "Voltages", node.Voltages);
-            AddGroup(groups, "Data", node.Data);
-            AddGroup(groups, "Throughput", node.Throughput);
-            AddGroup(groups, "Controls", node.Controls);
-            AddGroup(groups, "Fans", node.Fans);
+            var displayName = string.IsNullOrWhiteSpace(parentPath)
+                ? hardware.Name
+                : $"{parentPath} / {hardware.Name}";
 
-            return new ExplorerGroupedHardware
+            var groups = hardware.Sensors
+                .Where(sensor => sensor.Value.HasValue || sensor.Min.HasValue || sensor.Max.HasValue)
+                .GroupBy(sensor => sensor.SensorType)
+                .Select(group => new ExplorerGroupedSensor
+                {
+                    CategoryName = GetCategoryName(group.Key),
+                    Sensors = group.Select(MapSensor).OrderBy(sensor => sensor.Name).ToList(),
+                })
+                .OrderBy(group => group.CategoryName)
+                .ToList();
+
+            target.Add(new ExplorerGroupedHardware
             {
-                HardwareName = string.IsNullOrEmpty(name) ? type.ToString() : name,
-                HardwareType = type,
+                HardwareName = string.IsNullOrWhiteSpace(displayName) ? hardware.HardwareType.ToString() : displayName,
+                HardwareType = hardware.HardwareType,
                 SensorGroups = groups,
                 IsExpanded = false,
+            });
+
+            foreach (var subHardware in hardware.SubHardware)
+            {
+                AddHardwareRecursive(target, subHardware, displayName);
+            }
+        }
+
+        private static SensorNode MapSensor(ISensor sensor)
+        {
+            return new SensorNode(sensor.Name)
+            {
+                Identifier = sensor.Identifier.ToString(),
+                Unit = GetUnit(sensor.SensorType),
+                Value = sensor.Value,
+                Min = sensor.Min,
+                Max = sensor.Max,
             };
         }
 
-        private static void AddGroup(List<ExplorerGroupedSensor> groups, string categoryName, IEnumerable<SensorNode> sensors)
+        private static string GetCategoryName(SensorType sensorType)
         {
-            var list = sensors.Where(s => s.Value.HasValue || s.Min.HasValue || s.Max.HasValue).ToList();
-            if (list.Count > 0)
-                groups.Add(new ExplorerGroupedSensor { CategoryName = categoryName, Sensors = list });
+            return sensorType switch
+            {
+                SensorType.Temperature => "Temperatures",
+                SensorType.Load => "Loads",
+                SensorType.Clock => "Clocks",
+                SensorType.Power => "Powers",
+                SensorType.Voltage => "Voltages",
+                SensorType.Data or SensorType.SmallData => "Data",
+                SensorType.Throughput => "Throughput",
+                SensorType.Control => "Controls",
+                SensorType.Fan => "Fans",
+                SensorType.Current => "Current",
+                SensorType.Level => "Level",
+                SensorType.Factor => "Factor",
+                SensorType.TimeSpan => "TimeSpan",
+                SensorType.Energy => "Energy",
+                _ => sensorType.ToString(),
+            };
+        }
+
+        private static string GetUnit(SensorType sensorType)
+        {
+            return sensorType switch
+            {
+                SensorType.Temperature => "°C",
+                SensorType.Load or SensorType.Control or SensorType.Level => "%",
+                SensorType.Clock => "MHz",
+                SensorType.Power => "W",
+                SensorType.Voltage => "V",
+                SensorType.Current => "A",
+                SensorType.Fan => "RPM",
+                SensorType.Throughput => "B/s",
+                SensorType.TimeSpan => "s",
+                SensorType.Energy => "mWh",
+                SensorType.Data => "GB",
+                SensorType.SmallData => "MB",
+                _ => string.Empty,
+            };
         }
 
         [RelayCommand]
