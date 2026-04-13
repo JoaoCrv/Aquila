@@ -71,12 +71,38 @@ namespace Aquila.Helpers
             semantic.Memory.Data.PageWrites = AquilaSensorSelector.FindMemoryPageWrites(raw.Memory);
             semantic.Memory.Power.Total = AquilaSensorSelector.FindMemoryPower(raw.Memory);
 
-            var primaryNet = raw.NetworkAdapters.FirstOrDefault();
+            var primaryNetworkResolution = AquilaSensorSelector.ResolvePrimaryNetworkAdapter(raw.NetworkAdapters);
+            var primaryNet = primaryNetworkResolution.Value;
             semantic.Network.PrimaryAdapterName = primaryNet?.Name ?? string.Empty;
-            semantic.Network.Throughput.Download = primaryNet is null ? null : AquilaSensorSelector.FindNetworkDownload(primaryNet);
-            semantic.Network.Throughput.Upload = primaryNet is null ? null : AquilaSensorSelector.FindNetworkUpload(primaryNet);
-            semantic.Network.Data.Downloaded = primaryNet is null ? null : AquilaSensorSelector.FindNetworkDataDownloaded(primaryNet);
-            semantic.Network.Data.Uploaded = primaryNet is null ? null : AquilaSensorSelector.FindNetworkDataUploaded(primaryNet);
+            ApplyResolution(semantic.Network.PrimaryAdapterResolution, primaryNetworkResolution);
+
+            if (primaryNet is null)
+            {
+                semantic.Network.Throughput.Download = null;
+                semantic.Network.Throughput.Upload = null;
+                semantic.Network.Data.Downloaded = null;
+                semantic.Network.Data.Uploaded = null;
+                ApplyMissingResolution(semantic.Network.Throughput.DownloadResolution, "No primary network adapter was resolved.");
+                ApplyMissingResolution(semantic.Network.Throughput.UploadResolution, "No primary network adapter was resolved.");
+                ApplyMissingResolution(semantic.Network.Data.DownloadedResolution, "No primary network adapter was resolved.");
+                ApplyMissingResolution(semantic.Network.Data.UploadedResolution, "No primary network adapter was resolved.");
+            }
+            else
+            {
+                var networkDownloadResolution = AquilaSensorSelector.ResolveNetworkDownload(primaryNet);
+                var networkUploadResolution = AquilaSensorSelector.ResolveNetworkUpload(primaryNet);
+                var networkDownloadedResolution = AquilaSensorSelector.ResolveNetworkDataDownloaded(primaryNet);
+                var networkUploadedResolution = AquilaSensorSelector.ResolveNetworkDataUploaded(primaryNet);
+
+                semantic.Network.Throughput.Download = networkDownloadResolution.Sensor;
+                semantic.Network.Throughput.Upload = networkUploadResolution.Sensor;
+                semantic.Network.Data.Downloaded = networkDownloadedResolution.Sensor;
+                semantic.Network.Data.Uploaded = networkUploadedResolution.Sensor;
+                ApplyResolution(semantic.Network.Throughput.DownloadResolution, networkDownloadResolution);
+                ApplyResolution(semantic.Network.Throughput.UploadResolution, networkUploadResolution);
+                ApplyResolution(semantic.Network.Data.DownloadedResolution, networkDownloadedResolution);
+                ApplyResolution(semantic.Network.Data.UploadedResolution, networkUploadedResolution);
+            }
 
             semantic.Gpus.Clear();
             foreach (var gpu in raw.Gpus)
@@ -107,16 +133,29 @@ namespace Aquila.Helpers
             semantic.Storage.Clear();
             foreach (var drive in raw.Drives)
             {
+                var storageTemperatureResolution = AquilaSensorSelector.ResolveStorageTemperature(drive);
+                var storageReadResolution = AquilaSensorSelector.ResolveStorageReadRate(drive);
+                var storageWriteResolution = AquilaSensorSelector.ResolveStorageWriteRate(drive);
+                var storageUsedResolution = AquilaSensorSelector.ResolveStorageUsedSpace(drive);
+                var storageDataReadResolution = AquilaSensorSelector.ResolveStorageDataRead(drive);
+                var storageDataWrittenResolution = AquilaSensorSelector.ResolveStorageDataWritten(drive);
+
                 var semanticDrive = new StorageSemanticNode
                 {
                     Name = drive.Name,
                 };
-                semanticDrive.Temperature.System = AquilaSensorSelector.FindStorageTemperature(drive);
-                semanticDrive.Throughput.Read = AquilaSensorSelector.FindStorageReadRate(drive);
-                semanticDrive.Throughput.Write = AquilaSensorSelector.FindStorageWriteRate(drive);
-                semanticDrive.Load.Total = AquilaSensorSelector.FindStorageUsedSpace(drive);
-                semanticDrive.Data.Read = AquilaSensorSelector.FindStorageDataRead(drive);
-                semanticDrive.Data.Written = AquilaSensorSelector.FindStorageDataWritten(drive);
+                semanticDrive.Temperature.System = storageTemperatureResolution.Sensor;
+                semanticDrive.Throughput.Read = storageReadResolution.Sensor;
+                semanticDrive.Throughput.Write = storageWriteResolution.Sensor;
+                semanticDrive.Load.Total = storageUsedResolution.Sensor;
+                semanticDrive.Data.Read = storageDataReadResolution.Sensor;
+                semanticDrive.Data.Written = storageDataWrittenResolution.Sensor;
+                ApplyResolution(semanticDrive.Temperature.SystemResolution, storageTemperatureResolution);
+                ApplyResolution(semanticDrive.Throughput.ReadResolution, storageReadResolution);
+                ApplyResolution(semanticDrive.Throughput.WriteResolution, storageWriteResolution);
+                ApplyResolution(semanticDrive.Load.TotalResolution, storageUsedResolution);
+                ApplyResolution(semanticDrive.Data.ReadResolution, storageDataReadResolution);
+                ApplyResolution(semanticDrive.Data.WrittenResolution, storageDataWrittenResolution);
                 semantic.Storage.Add(semanticDrive);
             }
         }
@@ -127,6 +166,21 @@ namespace Aquila.Helpers
             target.State = result.State;
             target.CandidateCount = result.CandidateCount;
             target.Reason = result.Reason;
+        }
+
+        private static void ApplyResolution<T>(ResolutionNode target, SelectionResult<T> result)
+            where T : class
+        {
+            target.State = result.State;
+            target.CandidateCount = result.CandidateCount;
+            target.Reason = result.Reason;
+        }
+
+        private static void ApplyMissingResolution(SensorResolutionNode target, string reason)
+        {
+            target.State = SemanticResolutionState.Missing;
+            target.CandidateCount = 0;
+            target.Reason = reason;
         }
     }
 }

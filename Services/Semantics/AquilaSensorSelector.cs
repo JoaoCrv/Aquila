@@ -14,6 +14,15 @@ namespace Aquila.Services.Semantics
         public string Reason { get; } = reason;
     }
 
+    public sealed class SelectionResult<T>(T? value, SemanticResolutionState state, int candidateCount, string reason)
+        where T : class
+    {
+        public T? Value { get; } = value;
+        public SemanticResolutionState State { get; } = state;
+        public int CandidateCount { get; } = candidateCount;
+        public string Reason { get; } = reason;
+    }
+
     /// <summary>
     /// First practical semantic layer over the raw provider state.
     /// Rules are based on hardware type + sensor type + sensor name.
@@ -222,32 +231,88 @@ namespace Aquila.Services.Semantics
         public static SensorNode? FindNetworkDownload(NetworkNode network) =>
             FindBest(network.Throughput, prefer: ["Download", "Received", "Rx"], avoid: ["Upload", "Sent", "Tx"]);
 
+        public static SelectionResult<NetworkNode> ResolvePrimaryNetworkAdapter(IEnumerable<NetworkNode> adapters)
+        {
+            var ranked = adapters
+                .OrderByDescending(adapter => GetNetworkAdapterScore(adapter))
+                .ThenBy(adapter => adapter.Name)
+                .ToList();
+
+            if (ranked.Count == 0)
+            {
+                return new SelectionResult<NetworkNode>(null, SemanticResolutionState.Missing, 0,
+                    "No network adapters are available in the raw hardware snapshot.");
+            }
+
+            var selected = ranked.First();
+            var selectedScore = GetNetworkAdapterScore(selected);
+            var competingCandidates = ranked.Count(adapter => GetNetworkAdapterScore(adapter) == selectedScore);
+
+            return new SelectionResult<NetworkNode>(
+                selected,
+                competingCandidates > 1 ? SemanticResolutionState.Ambiguous : SemanticResolutionState.Matched,
+                ranked.Count,
+                competingCandidates > 1
+                    ? "Multiple network adapters tied for primary selection; using the highest-ranked candidate."
+                    : "Resolved primary network adapter successfully.");
+        }
+
+        public static SensorSelectionResult<SensorNode> ResolveNetworkDownload(NetworkNode network) =>
+            ResolveBest(network.Throughput, prefer: ["Download", "Received", "Rx"], avoid: ["Upload", "Sent", "Tx"], missingReason: "No network download throughput sensor exposed by the selected adapter.");
+
         public static SensorNode? FindNetworkUpload(NetworkNode network) =>
             FindBest(network.Throughput, prefer: ["Upload", "Sent", "Tx"], avoid: ["Download", "Received", "Rx"]);
+
+        public static SensorSelectionResult<SensorNode> ResolveNetworkUpload(NetworkNode network) =>
+            ResolveBest(network.Throughput, prefer: ["Upload", "Sent", "Tx"], avoid: ["Download", "Received", "Rx"], missingReason: "No network upload throughput sensor exposed by the selected adapter.");
 
         public static SensorNode? FindNetworkDataDownloaded(NetworkNode network) =>
             FindBest(network.Data, prefer: ["Downloaded", "Received", "Download"], avoid: ["Uploaded", "Sent", "Upload"]);
 
+        public static SensorSelectionResult<SensorNode> ResolveNetworkDataDownloaded(NetworkNode network) =>
+            ResolveBest(network.Data, prefer: ["Downloaded", "Received", "Download"], avoid: ["Uploaded", "Sent", "Upload"], missingReason: "No cumulative downloaded data sensor exposed by the selected adapter.");
+
         public static SensorNode? FindNetworkDataUploaded(NetworkNode network) =>
             FindBest(network.Data, prefer: ["Uploaded", "Sent", "Upload"], avoid: ["Downloaded", "Received", "Download"]);
+
+        public static SensorSelectionResult<SensorNode> ResolveNetworkDataUploaded(NetworkNode network) =>
+            ResolveBest(network.Data, prefer: ["Uploaded", "Sent", "Upload"], avoid: ["Downloaded", "Received", "Download"], missingReason: "No cumulative uploaded data sensor exposed by the selected adapter.");
 
         public static SensorNode? FindStorageTemperature(StorageNode drive) =>
             FindBest(drive.Temperatures, prefer: ["Composite", "Temperature"], avoid: ["Air Flow"]);
 
+        public static SensorSelectionResult<SensorNode> ResolveStorageTemperature(StorageNode drive) =>
+            ResolveBest(drive.Temperatures, prefer: ["Composite", "Temperature"], avoid: ["Air Flow"], missingReason: "No storage temperature sensor exposed by this drive.");
+
         public static SensorNode? FindStorageReadRate(StorageNode drive) =>
             FindBest(drive.Throughput, prefer: ["Read"], avoid: ["Write"]);
+
+        public static SensorSelectionResult<SensorNode> ResolveStorageReadRate(StorageNode drive) =>
+            ResolveBest(drive.Throughput, prefer: ["Read"], avoid: ["Write"], missingReason: "No storage read throughput sensor exposed by this drive.");
 
         public static SensorNode? FindStorageWriteRate(StorageNode drive) =>
             FindBest(drive.Throughput, prefer: ["Write"], avoid: ["Read"]);
 
+        public static SensorSelectionResult<SensorNode> ResolveStorageWriteRate(StorageNode drive) =>
+            ResolveBest(drive.Throughput, prefer: ["Write"], avoid: ["Read"], missingReason: "No storage write throughput sensor exposed by this drive.");
+
         public static SensorNode? FindStorageUsedSpace(StorageNode drive) =>
             FindBest(drive.Loads, prefer: ["Used", "Space"], avoid: ["Free"]);
+
+        public static SensorSelectionResult<SensorNode> ResolveStorageUsedSpace(StorageNode drive) =>
+            ResolveBest(drive.Loads, prefer: ["Used", "Space"], avoid: ["Free"], missingReason: "No storage usage/load sensor exposed by this drive.");
 
         public static SensorNode? FindStorageDataRead(StorageNode drive) =>
             FindBest(drive.Data, prefer: ["Data Read", "Read"], avoid: ["Written", "Write"]);
 
+        public static SensorSelectionResult<SensorNode> ResolveStorageDataRead(StorageNode drive) =>
+            ResolveBest(drive.Data, prefer: ["Data Read", "Read"], avoid: ["Written", "Write"], missingReason: "No cumulative storage data-read sensor exposed by this drive.");
+
         public static SensorNode? FindStorageDataWritten(StorageNode drive) =>
             FindBest(drive.Data, prefer: ["Data Written", "Written", "Write"], avoid: ["Read"]);
+
+        public static SensorSelectionResult<SensorNode> ResolveStorageDataWritten(StorageNode drive) =>
+            ResolveBest(drive.Data, prefer: ["Data Written", "Written", "Write"], avoid: ["Read"], missingReason: "No cumulative storage data-written sensor exposed by this drive.");
 
         private static T? FindBest<T>(IEnumerable<T> sensors, string[] prefer, string[]? avoid = null)
             where T : SensorNode
@@ -299,6 +364,16 @@ namespace Aquila.Services.Semantics
                 return false;
 
             return terms.Any(term => value.IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private static int GetNetworkAdapterScore(NetworkNode adapter)
+        {
+            var score = GetScore(adapter.Name, ["Ethernet", "Wi-Fi", "WiFi", "LAN", "Intel", "Realtek"], ["Bluetooth", "Virtual", "Loopback", "VMware", "Hyper-V", "vEthernet", "VPN", "Teredo"]);
+
+            if (adapter.Throughput.Any(sensor => sensor.Value.HasValue) || adapter.Data.Any(sensor => sensor.Value.HasValue))
+                score += 100;
+
+            return score;
         }
 
         private static int GetScore(string? sensorName, IEnumerable<string> preferredTerms, IEnumerable<string>? avoidTerms = null)

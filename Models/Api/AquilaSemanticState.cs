@@ -54,6 +54,7 @@ namespace Aquila.Models.Api
         [ObservableProperty] private string _primaryAdapterName = string.Empty;
         public ThroughputSemanticGroup Throughput { get; } = new();
         public DataSemanticGroup Data { get; } = new();
+        public ResolutionNode PrimaryAdapterResolution { get; } = new();
     }
 
     public partial class GpuSemanticNode : ObservableObject
@@ -80,6 +81,8 @@ namespace Aquila.Models.Api
     {
         [ObservableProperty] private SensorNode? _total;
         [ObservableProperty] private SensorNode? _system;
+        public SensorResolutionNode TotalResolution { get; } = new();
+        public SensorResolutionNode SystemResolution { get; } = new();
     }
 
     public partial class TemperatureSemanticGroup : ObservableObject
@@ -88,6 +91,10 @@ namespace Aquila.Models.Api
         [ObservableProperty] private SensorNode? _system;
         [ObservableProperty] private SensorNode? _core;
         [ObservableProperty] private SensorNode? _hotspot;
+        public SensorResolutionNode PackageResolution { get; } = new();
+        public SensorResolutionNode SystemResolution { get; } = new();
+        public SensorResolutionNode CoreResolution { get; } = new();
+        public SensorResolutionNode HotspotResolution { get; } = new();
     }
 
     public partial class ClockSemanticGroup : ObservableObject
@@ -132,6 +139,10 @@ namespace Aquila.Models.Api
         [ObservableProperty] private SensorNode? _upload;
         [ObservableProperty] private SensorNode? _read;
         [ObservableProperty] private SensorNode? _write;
+        public SensorResolutionNode DownloadResolution { get; } = new();
+        public SensorResolutionNode UploadResolution { get; } = new();
+        public SensorResolutionNode ReadResolution { get; } = new();
+        public SensorResolutionNode WriteResolution { get; } = new();
     }
 
     public partial class DataSemanticGroup : ObservableObject
@@ -146,5 +157,16 @@ namespace Aquila.Models.Api
         [ObservableProperty] private SensorNode? _uploaded;
         [ObservableProperty] private SensorNode? _read;
         [ObservableProperty] private SensorNode? _written;
+        public SensorResolutionNode DownloadedResolution { get; } = new();
+        public SensorResolutionNode UploadedResolution { get; } = new();
+        public SensorResolutionNode ReadResolution { get; } = new();
+        public SensorResolutionNode WrittenResolution { get; } = new();
+    }
+
+    public partial class ResolutionNode : ObservableObject
+    {
+        [ObservableProperty] private SemanticResolutionState _state = SemanticResolutionState.Missing;
+        [ObservableProperty] private int _candidateCount;
+        [ObservableProperty] private string _reason = string.Empty;
     }
 }
