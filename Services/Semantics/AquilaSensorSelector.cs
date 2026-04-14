@@ -203,13 +203,13 @@ namespace Aquila.Services.Semantics
             FindBest(gpu.Data, prefer: ["Memory Total", "VRAM Total"]);
 
         public static SensorNode? FindMemoryLoad(MemoryNode memory) =>
-            FindBest(memory.Loads, prefer: ["Memory", "Used", "Utilization", "Load"], avoid: ["Virtual"]);
+            FindBest(memory.Loads.Where(s => !IsVirtualMemorySensor(s)), prefer: ["Memory", "Used", "Utilization", "Load"]);
 
         public static SensorNode? FindMemoryUsed(MemoryNode memory) =>
-            FindBest(memory.Data, prefer: ["Used", "In Use"], avoid: ["Virtual"]);
+            FindBest(memory.Data.Where(s => !IsVirtualMemorySensor(s)), prefer: ["Used", "In Use"]);
 
         public static SensorNode? FindMemoryAvailable(MemoryNode memory) =>
-            FindBest(memory.Data, prefer: ["Available", "Free"], avoid: ["Virtual"]);
+            FindBest(memory.Data.Where(s => !IsVirtualMemorySensor(s)), prefer: ["Available", "Free"]);
 
         public static SensorNode? FindMemoryTotal(MemoryNode memory)
         {
@@ -227,6 +227,45 @@ namespace Aquila.Services.Semantics
 
         public static SensorNode? FindMemoryPower(MemoryNode memory) =>
             FindBest(memory.Powers, prefer: ["Total", "DRAM", "Memory"]);
+
+        public static SensorNode? FindVirtualMemoryLoad(MemoryNode memory) =>
+            FindBest(memory.Loads.Where(IsVirtualMemorySensor), prefer: ["Memory", "Load", "Used", "Virtual"]);
+
+        public static SensorNode? FindVirtualMemoryUsed(MemoryNode memory) =>
+            FindBest(memory.Data.Where(IsVirtualMemorySensor), prefer: ["Used", "In Use", "Virtual"]);
+
+        public static SensorNode? FindVirtualMemoryAvailable(MemoryNode memory) =>
+            FindBest(memory.Data.Where(IsVirtualMemorySensor), prefer: ["Available", "Free", "Virtual"]);
+
+        public static IEnumerable<MemoryDimmSemanticNode> BuildMemoryDimms(MemoryNode memory)
+        {
+            var dimmSensors = memory.Temperatures
+                .Concat(memory.Data)
+                .Where(sensor => TryGetDimmSlot(sensor.Identifier, out _))
+                .ToList();
+
+            return dimmSensors
+                .GroupBy(sensor => GetDimmSlot(sensor.Identifier))
+                .OrderBy(group => group.Key)
+                .Select(group =>
+                {
+                    var sensors = group.ToList();
+                    var nameSensor = FindBest(sensors, prefer: ["DIMM", $"#{group.Key}", "Memory"])
+                        ?? sensors.FirstOrDefault();
+
+                    return new MemoryDimmSemanticNode
+                    {
+                        Slot = group.Key,
+                        Name = nameSensor?.Name ?? $"DIMM {group.Key}",
+                        Capacity = FindBest(sensors, prefer: ["Capacity"]),
+                        Temperature = FindBest(sensors, prefer: ["DIMM", "Temperature"], avoid: ["Resolution", "Limit", "Critical"]),
+                        WarningTemperature = FindBest(sensors, prefer: ["High Limit", "Warning"], avoid: ["Critical"]),
+                        CriticalTemperature = FindBest(sensors, prefer: ["Critical High Limit", "Critical"]),
+                    };
+                })
+                .Where(dimm => dimm.Temperature is not null || dimm.Capacity is not null)
+                .ToList();
+        }
 
         public static SensorNode? FindNetworkDownload(NetworkNode network) =>
             FindBest(network.Throughput, prefer: ["Download", "Received", "Rx"], avoid: ["Upload", "Sent", "Tx"]);
@@ -365,6 +404,53 @@ namespace Aquila.Services.Semantics
 
             return terms.Any(term => value.IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0);
         }
+
+        private static bool IsVirtualMemorySensor(SensorNode sensor)
+        {
+            // Match by name (e.g. "Virtual Memory Used")
+            if (ContainsAny(sensor.Name, "Virtual"))
+                return true;
+
+            // Match by explicit /virtual/ path segment in identifier
+            if (ContainsAny(sensor.Identifier, "/virtual/"))
+                return true;
+
+            // LHM convention: virtual memory data sensors are always at indices 2 and 3,
+            // virtual memory load sensor is always at index 1.
+            // Some LHM versions name them identically to physical sensors (no "Virtual" prefix)
+            // and differentiate only via identifier index.
+            if (sensor.Identifier.EndsWith("/data/2", StringComparison.OrdinalIgnoreCase)
+                || sensor.Identifier.EndsWith("/data/3", StringComparison.OrdinalIgnoreCase)
+                || sensor.Identifier.EndsWith("/load/1", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return false;
+        }
+
+        private static bool TryGetDimmSlot(string? identifier, out int slot)
+        {
+            slot = 0;
+            if (string.IsNullOrWhiteSpace(identifier))
+                return false;
+
+            var marker = "/memory/dimm/";
+            var idx = identifier.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0)
+                return false;
+
+            var start = idx + marker.Length;
+            var end = start;
+            while (end < identifier.Length && char.IsDigit(identifier[end]))
+                end++;
+
+            if (end == start)
+                return false;
+
+            return int.TryParse(identifier[start..end], out slot);
+        }
+
+        private static int GetDimmSlot(string? identifier) =>
+            TryGetDimmSlot(identifier, out var slot) ? slot : int.MaxValue;
 
         private static int GetNetworkAdapterScore(NetworkNode adapter)
         {

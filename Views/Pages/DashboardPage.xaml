@@ -353,6 +353,11 @@
                 <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="RAM" Style="{StaticResource SectionLabel}"/>
+                        <TextBlock Text="{Binding ViewModel.Aquila.Memory.Name, FallbackValue='System Memory'}"
+                                   Style="{StaticResource ChipName}"
+                                   Margin="0,0,0,8"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis"/>
 
                         <!-- Big used value -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
@@ -365,13 +370,21 @@
                         </StackPanel>
 
                         <!-- de X GB -->
-                        <TextBlock FontSize="12" Opacity="0.60" Margin="0,0,0,6">
+                        <TextBlock FontSize="12" Opacity="0.60" Margin="0,0,0,2">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="de {0:F0} GB total" FallbackValue="--">
                                     <Binding Path="ViewModel.MemoryTotalVisibleGb"/>
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>
+                        <!-- Virtual memory info -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Opacity="0.75">
+                            <TextBlock Text="Virtual: " FontSize="11"/>
+                            <TextBlock Text="{Binding ViewModel.VirtualMemoryUsedGb, StringFormat='{}{0:F1}', FallbackValue='--'}" FontSize="11"/>
+                            <TextBlock Text=" GB usada, " FontSize="11"/>
+                            <TextBlock Text="{Binding ViewModel.VirtualMemoryAvailableGb, StringFormat='{}{0:F1}', FallbackValue='--'}" FontSize="11"/>
+                            <TextBlock Text=" GB livre" FontSize="11"/>
+                        </StackPanel>
 
                         <!-- Segmented bar: Used / Cache / Free -->
                         <Grid Height="8" Margin="0,6,0,4" x:Name="RamBar">
@@ -384,19 +397,6 @@
                                     <Border.Width>
                                         <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
                                             <Binding Path="ViewModel.RamGaugeValue"/>
-                                            <Binding Source="0"/>
-                                            <Binding Source="100"/>
-                                            <Binding ElementName="RamBar" Path="ActualWidth"/>
-                                        </MultiBinding>
-                                    </Border.Width>
-                                </Border>
-                                <!-- Cache (green) -->
-                                <Border DockPanel.Dock="Left"
-                                        Background="{DynamicResource Aquila.Ram}"
-                                        Opacity="0.8">
-                                    <Border.Width>
-                                        <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
-                                            <Binding Path="ViewModel.CacheBarWeight"/>
                                             <Binding Source="0"/>
                                             <Binding Source="100"/>
                                             <Binding ElementName="RamBar" Path="ActualWidth"/>
@@ -416,17 +416,6 @@
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="Usada {0:F1}" FallbackValue="--">
                                         <Binding Path="ViewModel.Aquila.Memory.Data.Used.Value"/>
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
-
-                            <!-- Cache -->
-                            <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
-                                    Background="{DynamicResource Aquila.Ram}"/>
-                            <TextBlock FontSize="11" Opacity="0.65" Margin="0,0,12,0">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="Cache {0:F1}" FallbackValue="--">
-                                        <Binding Path="ViewModel.MemoryCacheGb"/>
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
@@ -484,6 +473,61 @@
                                 </StackPanel>
                             </Border>
                         </Grid>
+
+                        <Border Style="{StaticResource Divider}"/>
+
+                        <TextBlock Text="DIMMS" Style="{StaticResource SectionLabel}"
+                                   Visibility="{Binding ViewModel.Aquila.Memory.Dimms.Count, Converter={StaticResource ZeroToCollapsedConverter}}"/>
+                        <ItemsControl ItemsSource="{Binding ViewModel.Aquila.Memory.Dimms}"
+                                      Visibility="{Binding ViewModel.Aquila.Memory.Dimms.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                            CornerRadius="6" Padding="8,6" Margin="0,0,0,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock FontSize="10" Opacity="0.55" Margin="0,1,0,0">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="Cap. {0:F1} {1}" FallbackValue="Cap. --">
+                                                            <Binding Path="Capacity.Value"/>
+                                                            <Binding Path="Capacity.Unit"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                                <TextBlock FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}"
+                                                           HorizontalAlignment="Right">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
+                                                            <Binding Path="Temperature.Value"/>
+                                                            <Binding Path="Temperature.Unit"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock FontSize="10" Opacity="0.55" HorizontalAlignment="Right">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="warn {0:F0}°C • crit {1:F0}°C" FallbackValue="warn -- • crit --">
+                                                            <Binding Path="WarningTemperature.Value"/>
+                                                            <Binding Path="CriticalTemperature.Value"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </ui:Card>
 

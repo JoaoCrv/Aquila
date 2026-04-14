@@ -36,7 +36,7 @@ namespace Aquila.Services
 
             // Synchronous initial poll
             RefreshState(this, EventArgs.Empty);
-
+            Console.WriteLine("LHM Data Populated");
             _pollingTimer.Start();
         }
 

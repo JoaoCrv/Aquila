@@ -47,6 +47,20 @@ namespace Aquila.Models.Api
         public LoadSemanticGroup Load { get; } = new();
         public DataSemanticGroup Data { get; } = new();
         public PowerSemanticGroup Power { get; } = new();
+        [ObservableProperty] private SensorNode? _virtualLoad;
+        [ObservableProperty] private SensorNode? _virtualUsed;
+        [ObservableProperty] private SensorNode? _virtualAvailable;
+        public ObservableCollection<MemoryDimmSemanticNode> Dimms { get; } = [];
+    }
+
+    public partial class MemoryDimmSemanticNode : ObservableObject
+    {
+        [ObservableProperty] private int _slot;
+        [ObservableProperty] private string _name = string.Empty;
+        [ObservableProperty] private SensorNode? _capacity;
+        [ObservableProperty] private SensorNode? _temperature;
+        [ObservableProperty] private SensorNode? _warningTemperature;
+        [ObservableProperty] private SensorNode? _criticalTemperature;
     }
 
     public partial class NetworkSemanticNode : ObservableObject

@@ -47,6 +47,7 @@ namespace Aquila.Services.Providers
             {
                 ProcessHardware(hw, apiState.Hardware);
             }
+            
         }
 
         private void ProcessHardware(IHardware hw, HardwareNodes nodes)
@@ -85,6 +86,7 @@ namespace Aquila.Services.Providers
             }
 
             // Não Processamos o SubHardware individualmente no loop base, porque o ExtractAndSortSensors já varre os SubHardwares de forma orgânica e os anexa à raiz desse componente (ex: SuperIO anexado à Motherboard)!
+
         }
 
         private void ExtractAndSortSensors(IHardware hw, BaseHardwareNode node)

@@ -62,6 +62,8 @@ namespace Aquila.ViewModels.Pages
 
         public double MemoryTotalVisibleGb => Aquila.Memory.Data.Total?.Value ?? 0;
         public double MemoryCacheGb => Aquila.Memory.Data.Cache?.Value ?? 0;
+        public double VirtualMemoryUsedGb => Aquila.Memory.VirtualUsed?.Value ?? 0;
+        public double VirtualMemoryAvailableGb => Aquila.Memory.VirtualAvailable?.Value ?? 0;
 
         public double TotalPowerValue => (Aquila.Cpu.Power.Package?.Value ?? 0) + (Aquila.Memory.Power.Total?.Value ?? 0) + GpuCards.Sum(card => card.Power?.Value ?? 0);
 
@@ -180,6 +182,8 @@ namespace Aquila.ViewModels.Pages
             OnPropertyChanged(nameof(CpuSummary));
             OnPropertyChanged(nameof(MemoryTotalVisibleGb));
             OnPropertyChanged(nameof(MemoryCacheGb));
+            OnPropertyChanged(nameof(VirtualMemoryUsedGb));
+            OnPropertyChanged(nameof(VirtualMemoryAvailableGb));
             OnPropertyChanged(nameof(TotalPowerValue));
         }
 

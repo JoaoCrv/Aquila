@@ -70,6 +70,15 @@ namespace Aquila.Helpers
             semantic.Memory.Data.PageReads = AquilaSensorSelector.FindMemoryPageReads(raw.Memory);
             semantic.Memory.Data.PageWrites = AquilaSensorSelector.FindMemoryPageWrites(raw.Memory);
             semantic.Memory.Power.Total = AquilaSensorSelector.FindMemoryPower(raw.Memory);
+            semantic.Memory.VirtualLoad = AquilaSensorSelector.FindVirtualMemoryLoad(raw.Memory);
+            semantic.Memory.VirtualUsed = AquilaSensorSelector.FindVirtualMemoryUsed(raw.Memory);
+            semantic.Memory.VirtualAvailable = AquilaSensorSelector.FindVirtualMemoryAvailable(raw.Memory);
+
+            semantic.Memory.Dimms.Clear();
+            foreach (var dimm in AquilaSensorSelector.BuildMemoryDimms(raw.Memory))
+            {
+                semantic.Memory.Dimms.Add(dimm);
+            }
 
             var primaryNetworkResolution = AquilaSensorSelector.ResolvePrimaryNetworkAdapter(raw.NetworkAdapters);
             var primaryNet = primaryNetworkResolution.Value;
