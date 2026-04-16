@@ -20,7 +20,7 @@ namespace Aquila.ViewModels.Pages
         private readonly DispatcherTimer _clockTimer;
         private bool _suspended;
 
-        public AquilaSemanticState Aquila => _aquila.State.Semantic;
+        public AquilaSemanticState Aquila => _aquila.State;
 
         [ObservableProperty] private double _cpuGaugeValue;
         [ObservableProperty] private double _ramGaugeValue;

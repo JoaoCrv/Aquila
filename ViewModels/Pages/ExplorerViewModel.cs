@@ -1,6 +1,5 @@
 ﻿using Aquila.Models.Api;
 using Aquila.Services;
-using Aquila.Services.Providers;
 using LibreHardwareMonitor.Hardware;
 using Microsoft.Win32;
 using System;
@@ -74,15 +73,14 @@ namespace Aquila.ViewModels.Pages
 
         public Task InitializeAsync()
         {
-            var lhmProvider = _aquilaService.Providers.OfType<LhmProvider>().FirstOrDefault();
-            if (lhmProvider?.Computer is null)
+            if (_aquilaService.Computer is not { } computer)
             {
                 GroupedHardware = [];
                 return Task.CompletedTask;
             }
 
             var list = new List<ExplorerGroupedHardware>();
-            foreach (var hardware in lhmProvider.Computer.Hardware)
+            foreach (var hardware in computer.Hardware)
             {
                 AddHardwareRecursive(list, hardware, parentPath: null);
             }

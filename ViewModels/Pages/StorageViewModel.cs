@@ -24,7 +24,7 @@ namespace Aquila.ViewModels.Pages
 
         private void OnDataUpdated()
         {
-            var storageSnapshots = _aquila.State.Semantic.Storage.ToList();
+            var storageSnapshots = _aquila.State.Storage.ToList();
             var fixedDrives = DriveInfo.GetDrives()
                 .Where(drive => drive.IsReady && drive.DriveType == DriveType.Fixed)
                 .OrderBy(drive => drive.Name)

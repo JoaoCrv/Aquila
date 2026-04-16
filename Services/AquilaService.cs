@@ -1,21 +1,22 @@
 using Aquila.Models.Api;
 using Aquila.Services.Providers;
-using Aquila.Helpers;
+using Aquila.Services.Translators;
+using LibreHardwareMonitor.Hardware;
 using System;
-using System.Collections.Generic;
 using System.Windows.Threading;
 
 namespace Aquila.Services
 {
     public class AquilaService : IDisposable
     {
-        private readonly List<IDataProvider> _providers = new();
+        private LhmProvider? _lhm;
+        private LhmSemanticTranslator? _translator;
         private DispatcherTimer? _pollingTimer;
         private bool _disposed;
 
-        public AquilaState State { get; } = new();
+        public AquilaSemanticState State { get; } = new();
 
-        public IReadOnlyList<IDataProvider> Providers => _providers;
+        public IComputer? Computer => _lhm?.Computer;
 
         public event Action? DataUpdated;
 
@@ -23,13 +24,10 @@ namespace Aquila.Services
         {
             if (_pollingTimer != null) return;
 
-            // In the future this might be driven by Dependency Injection
-            _providers.Add(new LhmProvider());
+            _lhm = new LhmProvider();
+            _lhm.Initialize();
 
-            foreach (var provider in _providers)
-            {
-                provider.Initialize();
-            }
+            _translator = new LhmSemanticTranslator(_lhm.Computer);
 
             _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _pollingTimer.Tick += RefreshState;
@@ -42,14 +40,7 @@ namespace Aquila.Services
 
         private void RefreshState(object? sender, EventArgs e)
         {
-            foreach (var provider in _providers)
-            {
-                provider.Populate(State);
-            }
-
-            // Build a stable semantic snapshot so pages can bind to one curated object.
-            AquilaSnapshotBuilder.PopulateSemantic(State);
-
+            _translator?.Update(State);
             DataUpdated?.Invoke();
         }
 
@@ -65,11 +56,8 @@ namespace Aquila.Services
                 _pollingTimer = null;
             }
 
-            foreach (var provider in _providers)
-            {
-                provider.Dispose();
-            }
-            _providers.Clear();
+            _lhm?.Dispose();
+            _lhm = null;
         }
     }
 }
