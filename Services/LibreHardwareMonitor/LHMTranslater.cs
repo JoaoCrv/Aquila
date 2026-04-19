@@ -67,7 +67,7 @@ public class LHMTranslater
                             Fill(node.Load.CoreMax, sensor, "%"); break;
                         default:
                             if (sensor.Name.Contains("Core"))
-                                Fill(node.Load.GetOrCreateCore(sensor.Index), sensor, "%");
+                                Fill(node.Load.Cores.GetOrCreate(sensor.Index), sensor, "%");
                             break;
                     }
                     break;
@@ -89,11 +89,6 @@ public class LHMTranslater
                     {
                         case "CPU Package":
                             Fill(node.Power.Package, sensor, "W"); break;
-                        case "CPU Cores":
-                            //Fill(node.Power.Cores, sensor, "W"); break;
-                            if (sensor.Name.Contains("Core"))
-                                Fill(node.Power.GetOrCreateCore(sensor.Index), sensor, "W");
-                            break;
                             //case "CPU Memory":
                             //  Fill(node.Power.Memory, sensor, "W"); break;
                     }
@@ -109,7 +104,7 @@ public class LHMTranslater
                             Fill(node.Clock.CoresAverage, sensor, "MHz"); break;
                         default:
                             if (sensor.Name.Contains("Core"))
-                                Fill(node.Clock.GetOrCreateCore(sensor.Index), sensor, "MHz");
+                                Fill(node.Clock.Cores.GetOrCreate(sensor.Index), sensor, "MHz");
                             break;
                     }
                     break;

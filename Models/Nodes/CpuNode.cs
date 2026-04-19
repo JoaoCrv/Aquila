@@ -10,22 +10,11 @@ public class CpuNode
     public CpuClockNode Clock { get; } = new();
 }
 
-public class CpuLoadNode
+public class CpuLoadNode 
 {
     public SensorNode Total { get; } = new();
     public SensorNode CoreMax { get; }= new();
-    private readonly Dictionary<int, SensorNode> _cores = new();
-
-    public SensorNode GetOrCreateCore(int coreIndex)
-    {
-        if (!_cores.TryGetValue(coreIndex, out var node))
-        {
-            node = new SensorNode();
-            _cores[coreIndex] = node;
-        }
-        return node;
-    }
-     public IReadOnlyDictionary<int, SensorNode> Cores => _cores;
+    public SensorCollection Cores { get; } = new();
 }
 
 public class CpuTemperatureNode
@@ -37,34 +26,11 @@ public class CpuTemperatureNode
 public class CpuPowerNode
 {
     public SensorNode Package { get; } = new();
-    private readonly Dictionary<int, SensorNode> _cores = new();
-
-    public SensorNode GetOrCreateCore(int coreIndex)
-    {
-        if (!_cores.TryGetValue(coreIndex, out var node))
-        {
-            node = new SensorNode();
-            _cores[coreIndex] = node;
-        }
-        return node;
-    }
-    public IReadOnlyDictionary<int, SensorNode> Cores => _cores;
-
 }
 
-public class CpuClockNode
+public class CpuClockNode 
 {
     public SensorNode BusSpeed { get; } = new();
     public SensorNode CoresAverage { get; } = new();
-    private readonly Dictionary<int, SensorNode> _cores = new();
-    public SensorNode GetOrCreateCore(int coreIndex)
-    {
-        if (!_cores.TryGetValue(coreIndex, out var node))
-        {
-            node = new SensorNode();
-            _cores[coreIndex] = node;
-        }
-        return node;
-    }
-    public IReadOnlyDictionary<int, SensorNode> Cores => _cores;
+    public SensorCollection Cores { get; } = new();
 }
