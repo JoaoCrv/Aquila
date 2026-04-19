@@ -1,63 +1,53 @@
-using Aquila.Models.Api;
-using Aquila.Services.Providers;
-using Aquila.Services.Translators;
-using LibreHardwareMonitor.Hardware;
+﻿using Aquila.Models;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
-namespace Aquila.Services
+namespace Aquila.Services;
+
+public class AquilaService(IHardwareDriver driver, AquilaState state) :IDisposable
 {
-    public class AquilaService : IDisposable
+    private readonly IHardwareDriver _driver = driver;
+    private readonly AquilaState _state = state;
+    private readonly DispatcherTimer _timer = new DispatcherTimer();
+    private bool _disposed;
+
+    public AquilaState State => _state;
+    public event Action? DataUpdated;
+
+    public void Start()
     {
-        private LhmProvider? _lhm;
-        private LhmSemanticTranslator? _translator;
-        private DispatcherTimer? _pollingTimer;
-        private bool _disposed;
+        _driver.Initialize();
+        _timer.Interval = TimeSpan.FromSeconds(1);
+        _timer.Tick += OnTick;
 
-        public AquilaSemanticState State { get; } = new();
+        // poll inicial imediato
+        OnTick(null, EventArgs.Empty);
+        _timer.Start();
+    }
 
-        public IComputer? Computer => _lhm?.Computer;
+    private void OnTick(object? sender, EventArgs e)
+    {
+        Console.WriteLine("Tick");
+        _driver.Populate(_state);
+        _state.Commit();
+        DataUpdated?.Invoke();
+    }
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
 
-        public event Action? DataUpdated;
-
-        public void StartMonitoring()
+        
+        if (_timer != null)
         {
-            if (_pollingTimer != null) return;
-
-            _lhm = new LhmProvider();
-            _lhm.Initialize();
-
-            _translator = new LhmSemanticTranslator(_lhm.Computer);
-
-            _pollingTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _pollingTimer.Tick += RefreshState;
-
-            // Synchronous initial poll
-            RefreshState(this, EventArgs.Empty);
-            Console.WriteLine("LHM Data Populated");
-            _pollingTimer.Start();
+            _timer.Stop();
+            _timer.Tick -= OnTick;
         }
 
-        private void RefreshState(object? sender, EventArgs e)
-        {
-            _translator?.Update(State);
-            DataUpdated?.Invoke();
-        }
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-
-            if (_pollingTimer != null)
-            {
-                _pollingTimer.Stop();
-                _pollingTimer.Tick -= RefreshState;
-                _pollingTimer = null;
-            }
-
-            _lhm?.Dispose();
-            _lhm = null;
-        }
+        _driver?.Shutdown();
     }
 }

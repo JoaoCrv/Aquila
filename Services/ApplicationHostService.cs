@@ -12,7 +12,6 @@ namespace Aquila.Services
     public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService) : IHostedService
     {
         private readonly IServiceProvider _serviceProvider = serviceProvider;
-        private readonly AquilaService _aquilaService = aquilaService;
 
         private INavigationWindow? _navigationWindow;
 
@@ -22,8 +21,7 @@ namespace Aquila.Services
         /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            // Start monitoring first so data is ready when the UI loads
-            _aquilaService.StartMonitoring();
+            aquilaService.Start();
             await HandleActivationAsync();
         }
 
@@ -33,7 +31,6 @@ namespace Aquila.Services
         /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _aquilaService.Dispose();
             await Task.CompletedTask;
         }
 

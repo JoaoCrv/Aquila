@@ -1,4 +1,3 @@
-using Aquila.Models.Api;
 using Aquila.Services;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
@@ -9,6 +8,7 @@ using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows;
 using System.Windows.Threading;
+using Aquila.Models;
 
 namespace Aquila.ViewModels.Pages
 {
@@ -17,10 +17,10 @@ namespace Aquila.ViewModels.Pages
         private const int HistorySize = 60;
 
         private readonly AquilaService _aquila;
-        private readonly DispatcherTimer _clockTimer;
+        //private readonly DispatcherTimer _clockTimer;
         private bool _suspended;
 
-        public AquilaSemanticState Aquila => _aquila.State;
+        //public AquilaSemanticState Aquila => _aquila.State;
 
         [ObservableProperty] private double _cpuGaugeValue;
         [ObservableProperty] private double _ramGaugeValue;
@@ -54,41 +54,41 @@ namespace Aquila.ViewModels.Pages
             }
         }
 
-        public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
+        //public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
 
-        public string? CpuSummary => Aquila.Cpu.Temperature.Package?.Value is float temp && Aquila.Cpu.Power.Package?.Value is float power
-            ? $"{temp:F0}°C • {power:F0} W"
-            : null;
+        //public string? CpuSummary => Aquila.Cpu.Temperature.Package?.Value is float temp && Aquila.Cpu.Power.Package?.Value is float power
+        //    ? $"{temp:F0}°C • {power:F0} W"
+        //    : null;
 
-        public double MemoryTotalVisibleGb => Aquila.Memory.Data.Total?.Value ?? 0;
-        public double MemoryCacheGb => Aquila.Memory.Data.Cache?.Value ?? 0;
-        public double VirtualMemoryUsedGb => Aquila.Memory.VirtualUsed?.Value ?? 0;
-        public double VirtualMemoryAvailableGb => Aquila.Memory.VirtualAvailable?.Value ?? 0;
+        //public double MemoryTotalVisibleGb => Aquila.Memory.Data.Total?.Value ?? 0;
+        //public double MemoryCacheGb => Aquila.Memory.Data.Cache?.Value ?? 0;
+        //public double VirtualMemoryUsedGb => Aquila.Memory.VirtualUsed?.Value ?? 0;
+        //public double VirtualMemoryAvailableGb => Aquila.Memory.VirtualAvailable?.Value ?? 0;
 
-        public double TotalPowerValue => (Aquila.Cpu.Power.Package?.Value ?? 0) + (Aquila.Memory.Power.Total?.Value ?? 0) + GpuCards.Sum(card => card.Power?.Value ?? 0);
+        //public double TotalPowerValue => (Aquila.Cpu.Power.Package?.Value ?? 0) + (Aquila.Memory.Power.Total?.Value ?? 0) + GpuCards.Sum(card => card.Power?.Value ?? 0);
 
-        public void Suspend() => _suspended = true;
-        public void Resume() => _suspended = false;
+        //public void Suspend() => _suspended = true;
+        //public void Resume() => _suspended = false;
 
         public DashboardViewModel(AquilaService aquila)
         {
             _aquila = aquila;
 
-            _aquila.DataUpdated += OnDataUpdated;
+            //_aquila.DataUpdated += OnDataUpdated;
             Wpf.Ui.Appearance.ApplicationThemeManager.Changed += OnThemeChanged;
 
-            _clockTimer = new DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
-            {
-                Interval = TimeSpan.FromMinutes(1)
-            };
-            _clockTimer.Tick += (_, _) =>
-            {
-                OnPropertyChanged(nameof(SystemUptime));
-                OnPropertyChanged(nameof(CurrentDateTime));
-            };
-            _clockTimer.Start();
+            //_clockTimer = new DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
+            //{
+            //    Interval = TimeSpan.FromMinutes(1)
+            //};
+            //_clockTimer.Tick += (_, _) =>
+            //{
+            //    OnPropertyChanged(nameof(SystemUptime));
+            //    OnPropertyChanged(nameof(CurrentDateTime));
+            //};
+            //_clockTimer.Start();
 
-            OnDataUpdated();
+            //OnDataUpdated();
         }
 
         private static bool IsLight => Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme() == Wpf.Ui.Appearance.ApplicationTheme.Light;
@@ -107,85 +107,85 @@ namespace Aquila.ViewModels.Pages
             });
         }
 
-        private void OnDataUpdated()
-        {
-            if (_suspended)
-                return;
+        //private void OnDataUpdated()
+        //{
+        //    if (_suspended)
+        //        return;
 
-            OnPropertyChanged(nameof(Aquila));
+        //    OnPropertyChanged(nameof(Aquila));
 
-            UpdateCpuSection();
-            UpdateGpuCards();
-            UpdateHistorySeries();
-            NotifyDerivedProperties();
-        }
+        //    UpdateCpuSection();
+        //    UpdateGpuCards();
+        //    UpdateHistorySeries();
+        //    NotifyDerivedProperties();
+        //}
 
-        private void UpdateCpuSection()
-        {
-            var totalLoad = Aquila.Cpu.Load.Total;
-            CpuGaugeValue = totalLoad?.Value ?? 0;
+        //private void UpdateCpuSection()
+        //{
+        //    var totalLoad = Aquila.Cpu.Load.Total;
+        //    CpuGaugeValue = totalLoad?.Value ?? 0;
 
-            var avgClock = Aquila.Cpu.Clock.Effective;
-            EffectiveCpuClock = avgClock?.Value ?? 0;
+        //    var avgClock = Aquila.Cpu.Clock.Effective;
+        //    EffectiveCpuClock = avgClock?.Value ?? 0;
 
-            var ramLoad = Aquila.Memory.Load.Total;
-            RamGaugeValue = Math.Round(ramLoad?.Value ?? 0);
+        //    var ramLoad = Aquila.Memory.Load.Total;
+        //    RamGaugeValue = Math.Round(ramLoad?.Value ?? 0);
 
-            CpuCoreItems = Aquila.Cpu.Cores
-                .Select(core => new CoreBarItem(core.Name, core.Value ?? 0))
-                .ToList();
-        }
+        //    CpuCoreItems = Aquila.Cpu.Cores
+        //        .Select(core => new CoreBarItem(core.Name, core.Value ?? 0))
+        //        .ToList();
+        //}
 
-        private void UpdateGpuCards()
-        {
-            var newCards = new List<GpuCardData>();
-            foreach (var gpu in Aquila.Gpus)
-            {
-                var existing = GpuCards.FirstOrDefault(c => c.Name == gpu.Name);
-                if (existing != null)
-                {
-                    existing.Update(gpu);
-                    newCards.Add(existing);
-                }
-                else
-                {
-                    newCards.Add(new GpuCardData(gpu));
-                }
-            }
-            GpuCards = newCards;
-            OnPropertyChanged(nameof(Gpu1));
-            OnPropertyChanged(nameof(Gpu2));
-        }
+        //private void UpdateGpuCards()
+        //{
+        //    var newCards = new List<GpuCardData>();
+        //    foreach (var gpu in Aquila.Gpus)
+        //    {
+        //        var existing = GpuCards.FirstOrDefault(c => c.Name == gpu.Name);
+        //        if (existing != null)
+        //        {
+        //            existing.Update(gpu);
+        //            newCards.Add(existing);
+        //        }
+        //        else
+        //        {
+        //            newCards.Add(new GpuCardData(gpu));
+        //        }
+        //    }
+        //    GpuCards = newCards;
+        //    OnPropertyChanged(nameof(Gpu1));
+        //    OnPropertyChanged(nameof(Gpu2));
+        //}
 
-        private void UpdateHistorySeries()
-        {
-            foreach (var card in GpuCards)
-                card.PushHistory();
+        //private void UpdateHistorySeries()
+        //{
+        //    foreach (var card in GpuCards)
+        //        card.PushHistory();
 
-            var totalLoad = Aquila.Cpu.Load.Total;
-            PushHistorySample(CpuUsageHistory, totalLoad?.Value ?? 0);
+        //    var totalLoad = Aquila.Cpu.Load.Total;
+        //    PushHistorySample(CpuUsageHistory, totalLoad?.Value ?? 0);
 
-            var ramLoad = Aquila.Memory.Load.Total;
-            PushHistorySample(RamUsageHistory, ramLoad?.Value ?? 0);
+        //    var ramLoad = Aquila.Memory.Load.Total;
+        //    PushHistorySample(RamUsageHistory, ramLoad?.Value ?? 0);
 
-            var netDown = Aquila.Network.Throughput.Download;
-            var netUp = Aquila.Network.Throughput.Upload;
+        //    var netDown = Aquila.Network.Throughput.Download;
+        //    var netUp = Aquila.Network.Throughput.Upload;
 
-            PushHistorySample(NetworkDownloadHistory, netDown?.Value ?? 0);
-            PushHistorySample(NetworkUploadHistory, netUp?.Value ?? 0);
-        }
+        //    PushHistorySample(NetworkDownloadHistory, netDown?.Value ?? 0);
+        //    PushHistorySample(NetworkUploadHistory, netUp?.Value ?? 0);
+        //}
 
-        private void NotifyDerivedProperties()
-        {
-            OnPropertyChanged(nameof(CacheBarWeight));
-            OnPropertyChanged(nameof(FreeBarWeight));
-            OnPropertyChanged(nameof(CpuSummary));
-            OnPropertyChanged(nameof(MemoryTotalVisibleGb));
-            OnPropertyChanged(nameof(MemoryCacheGb));
-            OnPropertyChanged(nameof(VirtualMemoryUsedGb));
-            OnPropertyChanged(nameof(VirtualMemoryAvailableGb));
-            OnPropertyChanged(nameof(TotalPowerValue));
-        }
+        //private void NotifyDerivedProperties()
+        //{
+        //    OnPropertyChanged(nameof(CacheBarWeight));
+        //    OnPropertyChanged(nameof(FreeBarWeight));
+        //    OnPropertyChanged(nameof(CpuSummary));
+        //    OnPropertyChanged(nameof(MemoryTotalVisibleGb));
+        //    OnPropertyChanged(nameof(MemoryCacheGb));
+        //    OnPropertyChanged(nameof(VirtualMemoryUsedGb));
+        //    OnPropertyChanged(nameof(VirtualMemoryAvailableGb));
+        //    OnPropertyChanged(nameof(TotalPowerValue));
+        //}
 
         private static void PushHistorySample(ObservableCollection<double> history, double value)
         {
@@ -197,62 +197,62 @@ namespace Aquila.ViewModels.Pages
 
         public void Dispose()
         {
-            _clockTimer.Stop();
-            _aquila.DataUpdated -= OnDataUpdated;
+            //_clockTimer.Stop();
+            //_aquila.DataUpdated -= OnDataUpdated;
             Wpf.Ui.Appearance.ApplicationThemeManager.Changed -= OnThemeChanged;
         }
     }
 
     public sealed class GpuCardData : ObservableObject
     {
-        private const int HistorySize = 60;
-        private GpuSemanticNode _gpu;
+    //    private const int HistorySize = 60;
+    //    private GpuSemanticNode _gpu;
 
-        public GpuCardData(GpuSemanticNode gpu)
-        {
-            _gpu = gpu;
-            UsageHistory = new ObservableCollection<double>(Enumerable.Repeat(0.0, HistorySize));
-        }
+    //    public GpuCardData(GpuSemanticNode gpu)
+    //    {
+    //        _gpu = gpu;
+    //        UsageHistory = new ObservableCollection<double>(Enumerable.Repeat(0.0, HistorySize));
+    //    }
 
-        public string Name => _gpu.Name;
-        public SensorNode? Temperature => _gpu.Temperature.Core;
-        public SensorNode? Load => _gpu.Load.Total;
-        public SensorNode? Clock => _gpu.Clock.Core;
-        public SensorNode? Power => _gpu.Power.Package;
-        public SensorNode? Fan1 => _gpu.Fan.Primary;
-        public SensorNode? Fan2 => _gpu.Fan.Secondary;
+    //    public string Name => _gpu.Name;
+    //    public SensorNode? Temperature => _gpu.Temperature.Core;
+    //    public SensorNode? Load => _gpu.Load.Total;
+    //    public SensorNode? Clock => _gpu.Clock.Core;
+    //    public SensorNode? Power => _gpu.Power.Package;
+    //    public SensorNode? Fan1 => _gpu.Fan.Primary;
+    //    public SensorNode? Fan2 => _gpu.Fan.Secondary;
 
-        public SensorNode? VramUsed => _gpu.Data.Used;
-        public SensorNode? VramTotal => _gpu.Data.Total;
-        public SensorNode? HotspotTemperature => _gpu.Temperature.Hotspot;
+    //    public SensorNode? VramUsed => _gpu.Data.Used;
+    //    public SensorNode? VramTotal => _gpu.Data.Total;
+    //    public SensorNode? HotspotTemperature => _gpu.Temperature.Hotspot;
 
-        public double VramPercent => (VramTotal != null && VramTotal.Value > 0 && VramUsed != null && VramUsed.Value.HasValue)
-                                     ? ((VramUsed.Value.Value) / VramTotal.Value.Value) * 100.0 : 0;
+    //    public double VramPercent => (VramTotal != null && VramTotal.Value > 0 && VramUsed != null && VramUsed.Value.HasValue)
+    //                                 ? ((VramUsed.Value.Value) / VramTotal.Value.Value) * 100.0 : 0;
 
-        public ObservableCollection<double> UsageHistory { get; }
+    //    public ObservableCollection<double> UsageHistory { get; }
 
-        public void Update(GpuSemanticNode gpu)
-        {
-            _gpu = gpu;
-            OnPropertyChanged(nameof(Name));
-            OnPropertyChanged(nameof(Temperature));
-            OnPropertyChanged(nameof(Load));
-            OnPropertyChanged(nameof(Clock));
-            OnPropertyChanged(nameof(Power));
-            OnPropertyChanged(nameof(Fan1));
-            OnPropertyChanged(nameof(Fan2));
-            OnPropertyChanged(nameof(VramUsed));
-            OnPropertyChanged(nameof(VramTotal));
-            OnPropertyChanged(nameof(VramPercent));
-            OnPropertyChanged(nameof(HotspotTemperature));
-        }
+    //    public void Update(GpuSemanticNode gpu)
+    //    {
+    //        _gpu = gpu;
+    //        OnPropertyChanged(nameof(Name));
+    //        OnPropertyChanged(nameof(Temperature));
+    //        OnPropertyChanged(nameof(Load));
+    //        OnPropertyChanged(nameof(Clock));
+    //        OnPropertyChanged(nameof(Power));
+    //        OnPropertyChanged(nameof(Fan1));
+    //        OnPropertyChanged(nameof(Fan2));
+    //        OnPropertyChanged(nameof(VramUsed));
+    //        OnPropertyChanged(nameof(VramTotal));
+    //        OnPropertyChanged(nameof(VramPercent));
+    //        OnPropertyChanged(nameof(HotspotTemperature));
+    //    }
 
-        public void PushHistory()
-        {
-            UsageHistory.RemoveAt(0);
-            var l = Load?.Value ?? 0;
-            UsageHistory.Add(l);
-        }
+    //    public void PushHistory()
+    //    {
+    //        UsageHistory.RemoveAt(0);
+    //        var l = Load?.Value ?? 0;
+    //        UsageHistory.Add(l);
+       //}
     }
 
     public sealed class CoreBarItem(string label, double value)

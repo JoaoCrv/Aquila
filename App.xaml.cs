@@ -1,13 +1,15 @@
+using Aquila.Models;
+using Aquila.Services;
+using Aquila.Services.LibreHardwareMonitor;
+using Aquila.ViewModels.Pages;
+using Aquila.ViewModels.Windows;
+using Aquila.Views.Pages;
+using Aquila.Views.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Windows.Threading;
-using Aquila.Services;
-using Aquila.ViewModels.Pages;
-using Aquila.ViewModels.Windows;
-using Aquila.Views.Pages;
-using Aquila.Views.Windows;
 using Velopack;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
@@ -33,10 +35,19 @@ namespace Aquila
 
                 services.AddHostedService<ApplicationHostService>();
 
-                // Hardware monitoring service
-                services.AddSingleton<AquilaService>();
+                // Models
+                services.AddSingleton<AquilaState>();
+
+                // Driver —
+                services.AddSingleton<IHardwareDriver, LHMDriver>();
+                //services.AddSingleton<IHardwareDriver, MockDriver>();
+
+                //Services
                 services.AddSingleton<UiService>();
                 services.AddSingleton<UpdateService>();
+                // Hardware monitoring service
+                //services.AddSingleton<AquilaService>();
+                services.AddSingleton<AquilaService>();
 
                 // Theme manipulation
                 services.AddSingleton<IThemeService, ThemeService>();
@@ -94,6 +105,7 @@ namespace Aquila
             await _host.StartAsync();
             _ = Services.GetRequiredService<UpdateService>()
                 .CheckForUpdatesSilentlyAndNotifyAsync(Services.GetService<ISnackbarService>(), TimeSpan.FromSeconds(2));
+            _host.Services.GetRequiredService<AquilaService>();
         }
 
         /// <summary>
