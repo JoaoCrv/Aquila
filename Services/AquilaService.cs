@@ -1,4 +1,6 @@
 ﻿using Aquila.Models;
+using Aquila.Services.LibreHardwareMonitor;
+using LibreHardwareMonitor.Hardware;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +19,7 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) :IDisposab
 
     public AquilaState State => _state;
     public event Action? DataUpdated;
-
+    public IComputer? Computer => (_driver as LHMDriver)?.Computer;
     public void Start()
     {
         _driver.Initialize();

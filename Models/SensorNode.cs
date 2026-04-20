@@ -15,6 +15,7 @@ public  class SensorNode : INotifyPropertyChanged
     private float? _max;
     private string? _unit;
     private string? _sensorName;
+    private string? _identifier;
 
     public float? Value
         {
@@ -76,6 +77,12 @@ public  class SensorNode : INotifyPropertyChanged
                 OnPropertyChanged();
             }
         }
+    }
+
+    public string? Identifier
+    {
+        get => _identifier;
+        set { _identifier = value; OnPropertyChanged(); }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

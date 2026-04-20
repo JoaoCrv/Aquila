@@ -14,6 +14,7 @@ namespace Aquila.Services.LibreHardwareMonitor
     {
         
         private Computer? _computer;
+        public IComputer? Computer => _computer;
         private LHMTranslater? _translater;
 
         public string Name => "Libre Hardware Monitor";

@@ -104,16 +104,18 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="300"/>
+                                        <ColumnDefinition Width="80"/>
                                         <ColumnDefinition Width="80"/>
                                         <ColumnDefinition Width="80"/>
                                         <ColumnDefinition Width="120"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="SENSOR" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="VALUE"  FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" Text="MIN"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="3" Text="MAX"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="4" Text="COPY"   FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="IDENTIFIER" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="VALUE"  FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="3" Text="MIN"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="4" Text="MAX"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="5" Text="COPY"   FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
 
@@ -146,18 +148,25 @@
                                                             <Grid MinHeight="32">
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="110"/>
+                                                                    <ColumnDefinition Width="300"/>
+                                                                    <ColumnDefinition Width="80"/>
                                                                     <ColumnDefinition Width="80"/>
                                                                     <ColumnDefinition Width="80"/>
                                                                     <ColumnDefinition Width="120"/>
                                                                 </Grid.ColumnDefinitions>
                                                                 <TextBlock
                                                                     Grid.Column="0"
-                                                                    Text="{Binding Name}"
+                                                                    Text="{Binding SensorName}"
                                                                     FontSize="13"
                                                                     VerticalAlignment="Center"/>
                                                                 <TextBlock
-                                                                    Grid.Column="1"
+    Grid.Column="1"
+    Text="{Binding Identifier}"
+    FontSize="13"
+                                                                    HorizontalAlignment="Left"
+    VerticalAlignment="Center"/>
+                                                                <TextBlock
+                                                                    Grid.Column="2"
                                                                     FontSize="13"
                                                                     FontWeight="SemiBold"
                                                                     HorizontalAlignment="Right"
@@ -170,7 +179,7 @@
                                                                     </TextBlock.Text>
                                                                 </TextBlock>
                                                                 <TextBlock
-                                                                    Grid.Column="2"
+                                                                    Grid.Column="3"
                                                                     FontSize="12"
                                                                     Opacity="0.55"
                                                                     HorizontalAlignment="Right"
@@ -183,7 +192,7 @@
                                                                     </TextBlock.Text>
                                                                 </TextBlock>
                                                                 <TextBlock
-                                                                    Grid.Column="3"
+                                                                    Grid.Column="4"
                                                                     FontSize="12"
                                                                     Opacity="0.55"
                                                                     HorizontalAlignment="Right"
@@ -196,7 +205,7 @@
                                                                     </TextBlock.Text>
                                                                 </TextBlock>
                                                                 <ui:Button
-                                                                    Grid.Column="4"
+                                                                    Grid.Column="5"
                                                                     Appearance="Secondary"
                                                                     FontSize="11"
                                                                     Padding="8,3"

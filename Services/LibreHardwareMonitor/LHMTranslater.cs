@@ -356,6 +356,7 @@ public class LHMTranslater
         node.Max = sensor.Max;
         node.Unit = unit;
         node.SensorName = sensor.Name;
+        node.Identifier = sensor.Identifier.ToString();
     }
 
     private static T GetOrCreate<T>(List<T> list, int index) where T : new()

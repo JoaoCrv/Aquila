@@ -1,7 +1,8 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Aquila.ViewModels.Pages;
 using Aquila.Views.Pages;
 using Aquila.Views.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Wpf.Ui;
 
 namespace Aquila.Services
@@ -22,6 +23,7 @@ namespace Aquila.Services
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             aquilaService.Start();
+            await _serviceProvider.GetRequiredService<ExplorerViewModel>().InitializeAsync();
             await HandleActivationAsync();
         }
 
