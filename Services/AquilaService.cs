@@ -35,7 +35,6 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) :IDisposab
     {
         Console.WriteLine("Tick");
         _driver.Populate(_state);
-        _state.Commit();
         DataUpdated?.Invoke();
     }
     public void Dispose()

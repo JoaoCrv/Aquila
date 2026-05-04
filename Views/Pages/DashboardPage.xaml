@@ -81,8 +81,8 @@
                         <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
-                                           Foreground="{DynamicResource Aquila.Power}">
-                                            <Run Text="{Binding Power.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                           Foreground="{DynamicResource Aquila.Gpu}">
+                                            <Run Text="{Binding Gpu.Power.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                                     <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                 </TextBlock>
                                                 <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
@@ -223,7 +223,7 @@
                 <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="CPU" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding ViewModel.Aquila.Cpu.Name, FallbackValue='Processor'}"
+                        <TextBlock Text="{Binding ViewModel.Hardware.Cpus[0].Name, FallbackValue='Processor'}"
                                    Style="{StaticResource ChipName}" Margin="0,0,0,2"/>
                         <TextBlock Text="{Binding ViewModel.CpuSummary}"
                                    FontSize="10" Opacity="0.45" Margin="0,0,0,8"
@@ -234,7 +234,7 @@
                             <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}">
-                                        <Run Text="{Binding ViewModel.CpuGaugeValue, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
                                     <TextBlock Text="Usage" Style="{StaticResource StatBoxLabel}"/>
@@ -243,8 +243,8 @@
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
                                      <TextBlock Style="{StaticResource StatBoxValue}"
-                                             Foreground="{Binding ViewModel.Aquila.Cpu.Temperature.Package.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                         <Run Text="{Binding ViewModel.Aquila.Cpu.Temperature.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                             Foreground="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                         <Run Text="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
                                     <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
@@ -254,7 +254,7 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource StatBoxValue}"
                                                Foreground="{DynamicResource Aquila.Cpu}">
-                                        <Run Text="{Binding ViewModel.EffectiveCpuClock, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Clock.CoresAverage.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
                                     <TextBlock Text="Eff. Clock" Style="{StaticResource StatBoxLabel}"/>
@@ -264,7 +264,7 @@
                                 <StackPanel>
                                      <TextBlock Style="{StaticResource StatBoxValue}"
                                              Foreground="{DynamicResource Aquila.Power}">
-                                         <Run Text="{Binding ViewModel.Aquila.Cpu.Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                         <Run Text="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
                                     <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
@@ -305,7 +305,7 @@
                                     <Style TargetType="StackPanel">
                                         <Setter Property="Grid.ColumnSpan" Value="1"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ViewModel.Aquila.Motherboard.Fan.Secondary}" Value="{x:Null}">
+                                            <DataTrigger Binding="{Binding ViewModel.Hardware.Motherboard.Fan[CPU FAN].Value}" Value="{x:Null}">
                                                 <Setter Property="Grid.ColumnSpan" Value="2"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -315,8 +315,8 @@
                                 <TextBlock FontSize="13" FontWeight="SemiBold">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Aquila.Motherboard.Fan.Cpu.Value"/>
-                                            <Binding Path="ViewModel.Aquila.Motherboard.Fan.Cpu.Unit"/>
+                                            <Binding Path="ViewModel.Hardware.Motherboard.Fan[CPU FAN].Value"/>
+                                            <Binding Path="ViewModel.Hardware.Motherboard.Fan[CPU FAN].Unit"/>
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>

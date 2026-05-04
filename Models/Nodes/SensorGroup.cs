@@ -2,7 +2,7 @@
 
 namespace Aquila.Models;
 
-public class SensorGroup : IEnumerable<KeyValuePair<string, SensorNode>>
+public class SensorGroup : IEnumerable<SensorNode>
 {
     private readonly Dictionary<string, SensorNode> _sensors = new();
 
@@ -10,7 +10,7 @@ public class SensorGroup : IEnumerable<KeyValuePair<string, SensorNode>>
     {
         if (!_sensors.TryGetValue(name, out var node))
         {
-            node = new SensorNode();
+            node = new SensorNode { Name = name };
             _sensors[name] = node;
         }
         return node;
@@ -21,7 +21,6 @@ public class SensorGroup : IEnumerable<KeyValuePair<string, SensorNode>>
 
     public int Count => _sensors.Count;
 
-    public IEnumerator<KeyValuePair<string, SensorNode>> GetEnumerator()
-        => _sensors.GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => _sensors.GetEnumerator();
+    public IEnumerator<SensorNode> GetEnumerator() => _sensors.Values.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => _sensors.Values.GetEnumerator();
 }

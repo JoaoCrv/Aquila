@@ -61,7 +61,7 @@ namespace Aquila.ViewModels.Pages
                             {
                                 CategoryName = g.CategoryName,
                                 Sensors = g.Sensors
-                                    .Where(s => s.SensorName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                                    .Where(s => s.Name?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) == true)
                                     .ToList()
                             })
                             .Where(g => g.Sensors.Count > 0)
@@ -102,7 +102,7 @@ namespace Aquila.ViewModels.Pages
                 .Select(group => new ExplorerGroupedSensor
                 {
                     CategoryName = GetCategoryName(group.Key),
-                    Sensors = group.Select(MapSensor).OrderBy(sensor => sensor.SensorName).ToList(),
+                    Sensors = group.Select(MapSensor).OrderBy(sensor => sensor.Name).ToList(),
                 })
                 .OrderBy(group => group.CategoryName)
                 .ToList();
@@ -125,7 +125,7 @@ namespace Aquila.ViewModels.Pages
         {
             return new SensorNode
             {
-                SensorName = sensor.Name,
+                Name = sensor.Name,
                 Identifier = sensor.Identifier.ToString(),
                 Unit = GetUnit(sensor.SensorType),
                 Value = sensor.Value,
@@ -236,7 +236,7 @@ namespace Aquila.ViewModels.Pages
                         var val = sensor.Value.HasValue ? $"{sensor.Value.Value:F1} {sensor.Unit}" : "--";
                         var min = sensor.Min.HasValue ? $"{sensor.Min.Value:F1}" : "--";
                         var max = sensor.Max.HasValue ? $"{sensor.Max.Value:F1}" : "--";
-                        sb.AppendLine($"    {sensor.SensorName}: {val}  (min: {min}, max: {max})  [{sensor.Identifier}]");
+                        sb.AppendLine($"    {sensor.Name}: {val}  (min: {min}, max: {max})  [{sensor.Identifier}]");
                     }
                 }
                 sb.AppendLine();

@@ -355,7 +355,7 @@ public class LHMTranslater
         node.Min = sensor.Min;
         node.Max = sensor.Max;
         node.Unit = unit;
-        node.SensorName = sensor.Name;
+        node.Name = sensor.Name;
         node.Identifier = sensor.Identifier.ToString();
     }
 

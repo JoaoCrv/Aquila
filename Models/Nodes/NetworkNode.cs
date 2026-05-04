@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Aquila.Models.Nodes;
 
 public class NetworkNode
 {
     public string? Name { get; set; }
-    public SensorNode Load { get; } = new();
+
     public NetworkThroughputNode Throughput { get; } = new();
     public NetworkDataNode Data { get; } = new();
 }

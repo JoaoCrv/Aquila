@@ -156,7 +156,7 @@
                                                                 </Grid.ColumnDefinitions>
                                                                 <TextBlock
                                                                     Grid.Column="0"
-                                                                    Text="{Binding SensorName}"
+                                                                    Text="{Binding Name}"
                                                                     FontSize="13"
                                                                     VerticalAlignment="Center"/>
                                                                 <TextBlock

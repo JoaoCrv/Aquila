@@ -1,5 +1,6 @@
 ﻿namespace Aquila.Models.Nodes;
 
+
 public class CpuNode
 {
     public string? Name { get; set; }

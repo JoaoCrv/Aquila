@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Aquila.Models.Nodes;
+﻿namespace Aquila.Models.Nodes;
 
 public class MemoryNode
 {
