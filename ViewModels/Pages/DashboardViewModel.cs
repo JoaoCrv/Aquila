@@ -73,10 +73,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         }
     }
 
-    public double TotalPowerValue
-        => (Hardware.Cpus.FirstOrDefault()?.Power.Package.Value ?? 0)
-         + GpuCards.Sum(g => g.Power.Value ?? 0);
-
     // ── Controlo de suspensão (navegação) ────────────────────────────
     public void Suspend() => _suspended = true;
     public void Resume() => _suspended = false;
@@ -114,7 +110,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
         OnPropertyChanged(nameof(FreeBarWeight));
         OnPropertyChanged(nameof(CpuSummary));
-        OnPropertyChanged(nameof(TotalPowerValue));
         OnPropertyChanged(nameof(Gpu1));
         OnPropertyChanged(nameof(Gpu2));
     }
@@ -129,7 +124,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         RamGaugeValue = Math.Round(Hardware.Memory.Load.Total.Value ?? 0);
 
         CpuCoreItems = cpu.Load.Cores
-            .Where(c => c.Value > 0)
+            .Where(c => c.Value.HasValue)
             .Select((c, i) => new CoreBarItem($"#{i + 1}", c.Value ?? 0))
             .ToList();
     }

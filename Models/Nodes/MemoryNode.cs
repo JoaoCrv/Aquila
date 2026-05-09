@@ -7,12 +7,18 @@ public class MemoryNode
     public MemoryVirtualNode Virtual { get; } = new();
     public List<DimmNode> Dimms { get; } = new();
 
+    private readonly SortedDictionary<int, DimmNode> _dimmsById = new();
+
     public DimmNode GetOrCreateDimm(int index)
     {
-        while (Dimms.Count <= index)
-            Dimms.Add(new DimmNode());
-
-        return Dimms[index];
+        if (!_dimmsById.TryGetValue(index, out var dimm))
+        {
+            dimm = new DimmNode();
+            _dimmsById[index] = dimm;
+            Dimms.Clear();
+            Dimms.AddRange(_dimmsById.Values);
+        }
+        return dimm;
     }
 }
 

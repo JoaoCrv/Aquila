@@ -40,14 +40,13 @@
             </StackPanel>
         </DataTemplate>
 
-        <!-- GPU card DataTemplate (GPU1 and GPU2 share this) -->
+        <!-- GPU card DataTemplate -->
         <DataTemplate x:Key="GpuCardTemplate" DataType="{x:Type vm:GpuCardData}">
             <ui:Card Margin="0,0,0,8" Padding="12,10">
                 <StackPanel>
                     <TextBlock Text="GPU" Style="{StaticResource SectionLabel}"/>
                     <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,0,0,8"/>
 
-                    <!-- 4 stat boxes -->
                     <UniformGrid Columns="4" Margin="0,0,0,10">
                         <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                             <StackPanel>
@@ -82,23 +81,21 @@
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatBoxValue}"
                                            Foreground="{DynamicResource Aquila.Gpu}">
-                                            <Run Text="{Binding Gpu.Power.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                                    <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                                </TextBlock>
-                                                <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </UniformGrid>
+                                    <Run Text="{Binding Power.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                </TextBlock>
+                                <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
 
-                                    <!-- GPU usage sparkline -->
-                                    <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"/>
-                                    <controls:SparklineChart
-                                        Height="52"
-                                        Values="{Binding UsageHistory}"
-                                        SeriesColor="{DynamicResource Aquila.Chart.Gpu}"
-                                        MaxY="100"/>
+                    <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"/>
+                    <controls:SparklineChart
+                        Height="52"
+                        Values="{Binding UsageHistory}"
+                        SeriesColor="{DynamicResource Aquila.Chart.Gpu}"
+                        MaxY="100"/>
 
-                                    <!-- VRAM -->
                     <StackPanel Margin="0,4,0,0">
                         <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -139,7 +136,6 @@
                     <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}"
                             Opacity="0.14" Margin="0,8"/>
 
-                    <!-- Fans -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -150,7 +146,7 @@
                                 <Style TargetType="StackPanel">
                                     <Setter Property="Grid.ColumnSpan" Value="1"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Fan2}" Value="{x:Null}">
+                                        <DataTrigger Binding="{Binding Fan2.Value}" Value="{x:Null}">
                                             <Setter Property="Grid.ColumnSpan" Value="2"/>
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -167,7 +163,7 @@
                             </TextBlock>
                         </StackPanel>
                         <StackPanel Grid.Column="1"
-                                    Visibility="{Binding Fan2, Converter={StaticResource NullToCollapsedConverter}}">
+                                    Visibility="{Binding Fan2.Value, Converter={StaticResource NullToCollapsedConverter}}">
                             <TextBlock Text="Fan 2" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
                             <TextBlock FontSize="13" FontWeight="SemiBold">
                                 <TextBlock.Text>
@@ -188,7 +184,7 @@
 
     <StackPanel x:Name="DashboardRoot">
 
-        <!-- Header: uptime + date/time = -->
+        <!-- Header -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,6">
             <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
                         CornerRadius="5" Padding="10,4" Margin="0,0,6,0">
@@ -206,16 +202,9 @@
             </Border>
         </StackPanel>
 
-        <!-- =
-                 RESPONSIVE CARD COLUMNS (2 ? 1 at 580 px breakpoint)
-                 Col 0 ° CPU + GPU(s)
-                 Col 1 ° RAM + Network + Storage + Power + Temperatures + Fans
-                 = -->
         <WrapPanel>
 
-            <!-- =
-                 COL 0 ° CPU card  +  GPU card(s) below
-                 = -->
+            <!-- COL 0: CPU + GPU(s) -->
             <StackPanel Margin="0,0,8,8"
                         Width="{Binding ActualWidth, ElementName=DashboardRoot, Converter={StaticResource ColumnWidthConverter}}">
 
@@ -229,7 +218,6 @@
                                    FontSize="10" Opacity="0.45" Margin="0,0,0,8"
                                    Visibility="{Binding ViewModel.CpuSummary, Converter={StaticResource NullToCollapsedConverter}}"/>
 
-                        <!-- 4 stat boxes -->
                         <UniformGrid Columns="4" Margin="0,0,0,10">
                             <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                 <StackPanel>
@@ -242,9 +230,9 @@
                             </Border>
                             <Border Style="{StaticResource StatBox}" Margin="3,0">
                                 <StackPanel>
-                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                             Foreground="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                         <Run Text="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <TextBlock Style="{StaticResource StatBoxValue}"
+                                               Foreground="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
                                     <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
@@ -262,9 +250,9 @@
                             </Border>
                             <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                                 <StackPanel>
-                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                             Foreground="{DynamicResource Aquila.Power}">
-                                         <Run Text="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                    <TextBlock Style="{StaticResource StatBoxValue}"
+                                               Foreground="{DynamicResource Aquila.Power}">
+                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                         <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                     </TextBlock>
                                     <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
@@ -272,7 +260,6 @@
                             </Border>
                         </UniformGrid>
 
-                        <!-- Per-core bar chart ° WrapPanel fills available width -->
                         <TextBlock Text="CORE LOAD" Style="{StaticResource SectionLabel}"/>
                         <ItemsControl ItemsSource="{Binding ViewModel.CpuCoreItems}"
                                       ItemTemplate="{StaticResource CoreBarTemplate}"
@@ -284,11 +271,10 @@
                             </ItemsControl.ItemsPanel>
                         </ItemsControl>
 
-                        <!-- CPU sparkline -->
                         <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"/>
                         <controls:SparklineChart
                             Height="52"
-                            Values="{Binding ViewModel.CpuUsageHistory}"
+                            Values="{Binding ViewModel.CpuHistory}"
                             SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
                             MaxY="100"/>
 
@@ -299,36 +285,43 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <StackPanel.Style>
-                                    <Style TargetType="StackPanel">
-                                        <Setter Property="Grid.ColumnSpan" Value="1"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ViewModel.Hardware.Motherboard.Fan[CPU FAN].Value}" Value="{x:Null}">
-                                                <Setter Property="Grid.ColumnSpan" Value="2"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </StackPanel.Style>
-                                <TextBlock Text="Fan 1" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
+                            <StackPanel Grid.Column="0"
+                                        Visibility="{Binding ViewModel.Hardware.Motherboard.CpuFan, Converter={StaticResource NullToCollapsedConverter}}">
+                                <TextBlock Text="{Binding ViewModel.Hardware.Motherboard.CpuFan.Name, FallbackValue='CPU Fan'}"
+                                           Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
                                 <TextBlock FontSize="13" FontWeight="SemiBold">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Hardware.Motherboard.Fan[CPU FAN].Value"/>
-                                            <Binding Path="ViewModel.Hardware.Motherboard.Fan[CPU FAN].Unit"/>
+                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFan.Value"/>
+                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFan.Unit"/>
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>
                             </StackPanel>
                             <StackPanel Grid.Column="1"
-                                        Visibility="{Binding ViewModel.Aquila.Motherboard.Fan.Secondary, Converter={StaticResource NullToCollapsedConverter}}">
-                                <TextBlock Text="Fan 2" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
+                                        Visibility="{Binding ViewModel.Hardware.Motherboard.CpuFanSecondary, Converter={StaticResource NullToCollapsedConverter}}">
+                                <TextBlock Text="{Binding ViewModel.Hardware.Motherboard.CpuFanSecondary.Name, FallbackValue='CPU Fan 2'}"
+                                           Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
                                 <TextBlock FontSize="13" FontWeight="SemiBold">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Aquila.Motherboard.Fan.Secondary.Value"/>
-                                            <Binding Path="ViewModel.Aquila.Motherboard.Fan.Secondary.Unit"/>
+                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFanSecondary.Value"/>
+                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFanSecondary.Unit"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2"
+                                        Visibility="{Binding ViewModel.Hardware.Motherboard.CpuPump, Converter={StaticResource NullToCollapsedConverter}}">
+                                <TextBlock Text="{Binding ViewModel.Hardware.Motherboard.CpuPump.Name, FallbackValue='Pump'}"
+                                           Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
+                                <TextBlock FontSize="13" FontWeight="SemiBold">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuPump.Value"/>
+                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuPump.Unit"/>
                                         </MultiBinding>
                                     </TextBlock.Text>
                                 </TextBlock>
@@ -343,9 +336,7 @@
 
             </StackPanel>
 
-            <!-- =
-                 COL 1 ° RAM + Network + Storage + Power + Temperatures + Fans
-                 = -->
+            <!-- COL 1: RAM + Network + Storage + Temperatures + Fans + Power -->
             <StackPanel Margin="0,0,8,8"
                         Width="{Binding ActualWidth, ElementName=DashboardRoot, Converter={StaticResource ColumnWidthConverter}}">
 
@@ -353,44 +344,29 @@
                 <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="RAM" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding ViewModel.Aquila.Memory.Name, FallbackValue='System Memory'}"
-                                   Style="{StaticResource ChipName}"
-                                   Margin="0,0,0,8"
-                                   TextWrapping="Wrap"
-                                   TextTrimming="CharacterEllipsis"/>
 
-                        <!-- Big used value -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
                             <TextBlock FontSize="26" FontWeight="Light"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                       Text="{Binding ViewModel.Aquila.Memory.Data.Used.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
+                                       Text="{Binding ViewModel.Hardware.Memory.Data.Used.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
                             <TextBlock Text="GB" FontSize="12" VerticalAlignment="Bottom"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                        Margin="2,0,0,4"/>
                         </StackPanel>
 
-                        <!-- de X GB -->
-                        <TextBlock FontSize="12" Opacity="0.60" Margin="0,0,0,2">
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="de {0:F0} GB total" FallbackValue="--">
-                                    <Binding Path="ViewModel.MemoryTotalVisibleGb"/>
-                                </MultiBinding>
-                            </TextBlock.Text>
-                        </TextBlock>
-                        <!-- Virtual memory info -->
+                        <TextBlock FontSize="12" Opacity="0.60" Margin="0,0,0,2"
+                                   Text="{Binding ViewModel.Hardware.Memory.Data.Total.Value, StringFormat='de {0:F0} GB total', FallbackValue='--'}"/>
+
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Opacity="0.75">
                             <TextBlock Text="Virtual: " FontSize="11"/>
-                            <TextBlock Text="{Binding ViewModel.VirtualMemoryUsedGb, StringFormat='{}{0:F1}', FallbackValue='--'}" FontSize="11"/>
+                            <TextBlock Text="{Binding ViewModel.Hardware.Memory.Virtual.Used.Value, StringFormat='{}{0:F1}', FallbackValue='--'}" FontSize="11"/>
                             <TextBlock Text=" GB usada, " FontSize="11"/>
-                            <TextBlock Text="{Binding ViewModel.VirtualMemoryAvailableGb, StringFormat='{}{0:F1}', FallbackValue='--'}" FontSize="11"/>
+                            <TextBlock Text="{Binding ViewModel.Hardware.Memory.Virtual.Available.Value, StringFormat='{}{0:F1}', FallbackValue='--'}" FontSize="11"/>
                             <TextBlock Text=" GB livre" FontSize="11"/>
                         </StackPanel>
 
-                        <!-- Segmented bar: Used / Cache / Free -->
                         <Grid Height="8" Margin="0,6,0,4" x:Name="RamBar">
                             <Border CornerRadius="4" Background="{DynamicResource ControlFillColorSecondaryBrush}"/>
                             <DockPanel>
-                                <!-- Used (blue) -->
                                 <Border DockPanel.Dock="Left"
                                         Background="{DynamicResource Aquila.Cpu}"
                                         CornerRadius="4,0,0,4">
@@ -403,83 +379,35 @@
                                         </MultiBinding>
                                     </Border.Width>
                                 </Border>
-                                <!-- Gap for free space -->
                             </DockPanel>
                         </Grid>
 
-                        <!-- Legend -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <!-- Used -->
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
                                     Background="{DynamicResource Aquila.Cpu}"/>
-                            <TextBlock FontSize="11" Opacity="0.65" Margin="0,0,12,0">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="Usada {0:F1}" FallbackValue="--">
-                                        <Binding Path="ViewModel.Aquila.Memory.Data.Used.Value"/>
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
-
-                            <!-- Free -->
+                            <TextBlock FontSize="11" Opacity="0.65" Margin="0,0,12,0"
+                                       Text="{Binding ViewModel.Hardware.Memory.Data.Used.Value, StringFormat='Usada {0:F1}', FallbackValue='--'}"/>
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
                                     Background="{DynamicResource TextFillColorTertiaryBrush}" Opacity="0.3"/>
-                            <TextBlock FontSize="11" Opacity="0.65">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="Livre {0:F1}" FallbackValue="--">
-                                        <Binding Path="ViewModel.Aquila.Memory.Data.Available.Value"/>
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
+                            <TextBlock FontSize="11" Opacity="0.65"
+                                       Text="{Binding ViewModel.Hardware.Memory.Data.Available.Value, StringFormat='Livre {0:F1}', FallbackValue='--'}"/>
                         </StackPanel>
 
                         <Border Style="{StaticResource Divider}"/>
 
-                        <!-- RAM usage sparkline -->
                         <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"/>
                         <controls:SparklineChart
                             Height="52"
-                            Values="{Binding ViewModel.RamUsageHistory}"
+                            Values="{Binding ViewModel.RamHistory}"
                             SeriesColor="{DynamicResource Aquila.Chart.Ram}"
                             MaxY="100"/>
 
                         <Border Style="{StaticResource Divider}"/>
 
-                        <!-- Page reads / writes StatBoxes -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Leitura -->
-                            <Border Grid.Column="0" Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,4,0">
-                                <StackPanel>
-                                    <TextBlock Text="Page Reads" FontSize="10" Opacity="0.55" Margin="0,0,0,3"/>
-                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Aquila.Cpu}">
-                                        <Run Text="{Binding ViewModel.Aquila.Memory.Data.PageReads.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="/s" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Escrita -->
-                            <Border Grid.Column="1" Background="{DynamicResource ControlFillColorSecondaryBrush}" CornerRadius="6" Padding="10,8" Margin="4,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="Page Writes" FontSize="10" Opacity="0.55" Margin="0,0,0,3"/>
-                                    <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Aquila.Ram}">
-                                        <Run Text="{Binding ViewModel.Aquila.Memory.Data.PageWrites.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="/s" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-
-                        <Border Style="{StaticResource Divider}"/>
-
                         <TextBlock Text="DIMMS" Style="{StaticResource SectionLabel}"
-                                   Visibility="{Binding ViewModel.Aquila.Memory.Dimms.Count, Converter={StaticResource ZeroToCollapsedConverter}}"/>
-                        <ItemsControl ItemsSource="{Binding ViewModel.Aquila.Memory.Dimms}"
-                                      Visibility="{Binding ViewModel.Aquila.Memory.Dimms.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
+                                   Visibility="{Binding ViewModel.Hardware.Memory.Dimms.Count, Converter={StaticResource ZeroToCollapsedConverter}}"/>
+                        <ItemsControl ItemsSource="{Binding ViewModel.Hardware.Memory.Dimms}"
+                                      Visibility="{Binding ViewModel.Hardware.Memory.Dimms.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
@@ -489,24 +417,11 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold"
-                                                           TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock FontSize="10" Opacity="0.55" Margin="0,1,0,0">
-                                                    <TextBlock.Text>
-                                                        <MultiBinding StringFormat="Cap. {0:F1} {1}" FallbackValue="Cap. --">
-                                                            <Binding Path="Capacity.Value"/>
-                                                            <Binding Path="Capacity.Unit"/>
-                                                        </MultiBinding>
-                                                    </TextBlock.Text>
-                                                </TextBlock>
-                                            </StackPanel>
-
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="11" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"/>
                                             <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                                <TextBlock FontSize="12" FontWeight="SemiBold"
-                                                           Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}"
-                                                           HorizontalAlignment="Right">
+                                                <TextBlock FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                                           Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}">
                                                     <TextBlock.Text>
                                                         <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
                                                             <Binding Path="Temperature.Value"/>
@@ -535,7 +450,7 @@
                 <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="NETWORK" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding ViewModel.Aquila.Network.PrimaryAdapterName, FallbackValue='Adapter'}"
+                        <TextBlock Text="{Binding ViewModel.Hardware.Networks[0].Name, FallbackValue='Adapter'}"
                                    FontSize="12" FontWeight="Normal" Opacity="0.55"
                                    TextTrimming="CharacterEllipsis" Margin="0,0,0,10"/>
 
@@ -547,7 +462,7 @@
                             <TextBlock Grid.Column="0" Text="↓ Download" Style="{StaticResource RowLabel}"/>
                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
                                        Foreground="{DynamicResource Aquila.Cpu}"
-                                       Text="{Binding ViewModel.Aquila.Network.Throughput.Download.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                       Text="{Binding ViewModel.Hardware.Networks[0].Throughput.Download.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                         </Grid>
                         <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
@@ -557,14 +472,14 @@
                             <TextBlock Grid.Column="0" Text="↑ Upload" Style="{StaticResource RowLabel}"/>
                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
                                        Foreground="{DynamicResource Aquila.Ram}"
-                                       Text="{Binding ViewModel.Aquila.Network.Throughput.Upload.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                       Text="{Binding ViewModel.Hardware.Networks[0].Throughput.Upload.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                         </Grid>
                         <controls:SparklineChart
                             Height="52"
                             Margin="0,6,0,0"
-                            Values="{Binding ViewModel.NetworkDownloadHistory}"
+                            Values="{Binding ViewModel.NetDownHistory}"
                             SeriesColor="{DynamicResource Aquila.Chart.NetDown}"
-                            SecondValues="{Binding ViewModel.NetworkUploadHistory}"
+                            SecondValues="{Binding ViewModel.NetUpHistory}"
                             SecondColor="{DynamicResource Aquila.Chart.NetUp}"/>
 
                         <Border Style="{StaticResource Divider}"/>
@@ -578,8 +493,8 @@
                             <TextBlock Grid.Column="1" Style="{StaticResource RowValue}">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
-                                        <Binding Path="ViewModel.Aquila.Network.Data.Downloaded.Value"/>
-                                        <Binding Path="ViewModel.Aquila.Network.Data.Downloaded.Unit"/>
+                                        <Binding Path="ViewModel.Hardware.Networks[0].Data.Downloaded.Value"/>
+                                        <Binding Path="ViewModel.Hardware.Networks[0].Data.Downloaded.Unit"/>
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
@@ -593,8 +508,8 @@
                             <TextBlock Grid.Column="1" Style="{StaticResource RowValue}">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
-                                        <Binding Path="ViewModel.Aquila.Network.Data.Uploaded.Value"/>
-                                        <Binding Path="ViewModel.Aquila.Network.Data.Uploaded.Unit"/>
+                                        <Binding Path="ViewModel.Hardware.Networks[0].Data.Uploaded.Value"/>
+                                        <Binding Path="ViewModel.Hardware.Networks[0].Data.Uploaded.Unit"/>
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
@@ -604,10 +519,10 @@
 
                 <!-- Storage card -->
                 <ui:Card Margin="0,0,0,8" Padding="12,10"
-                         Visibility="{Binding ViewModel.Aquila.Storage.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
+                         Visibility="{Binding ViewModel.Hardware.Storages.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
                     <StackPanel>
                         <TextBlock Text="STORAGE" Style="{StaticResource SectionLabel}"/>
-                        <ItemsControl ItemsSource="{Binding ViewModel.Aquila.Storage}">
+                        <ItemsControl ItemsSource="{Binding ViewModel.Hardware.Storages}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="0,0,0,14">
@@ -618,8 +533,8 @@
                                             <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource StatBoxValue}"
-                                                               Foreground="{Binding Temperature.System.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                                        <Run Text="{Binding Temperature.System.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                               Foreground="{Binding Temperature.Primary.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                                        <Run Text="{Binding Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                                         <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                     </TextBlock>
                                                     <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
@@ -628,7 +543,7 @@
                                             <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource StatBoxValue}">
-                                                        <Run Text="{Binding Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                                        <Run Text="{Binding Load.UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                                         <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                     </TextBlock>
                                                     <TextBlock Text="Used" Style="{StaticResource StatBoxLabel}"/>
@@ -641,28 +556,28 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="? Read" Style="{StaticResource RowLabel}"/>
+                                            <TextBlock Grid.Column="0" Text="Read" Style="{StaticResource RowLabel}"/>
                                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource Aquila.Cpu}"
-                                                                                                             Text="{Binding Throughput.Read.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                                       Text="{Binding Throughput.ReadRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                                         </Grid>
                                         <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,6"
-                                                     Value="{Binding Throughput.Read.Value, FallbackValue=0}"
-                                                     Maximum="{Binding Throughput.Read.Max, FallbackValue=1}"/>
+                                                     Value="{Binding Throughput.ReadRate.Value, FallbackValue=0}"
+                                                     Maximum="{Binding Throughput.ReadRate.Max, FallbackValue=1}"/>
 
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="? Write" Style="{StaticResource RowLabel}"/>
+                                            <TextBlock Grid.Column="0" Text="Write" Style="{StaticResource RowLabel}"/>
                                             <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource Aquila.Ram}"
-                                                                                                             Text="{Binding Throughput.Write.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                                                       Text="{Binding Throughput.WriteRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
                                         </Grid>
                                         <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,0"
-                                                     Value="{Binding Throughput.Write.Value, FallbackValue=0}"
-                                                     Maximum="{Binding Throughput.Write.Max, FallbackValue=1}"/>
+                                                     Value="{Binding Throughput.WriteRate.Value, FallbackValue=0}"
+                                                     Maximum="{Binding Throughput.WriteRate.Max, FallbackValue=1}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -670,12 +585,11 @@
                     </StackPanel>
                 </ui:Card>
 
-                <!-- Temperatures + Fans + Power = -->
                 <!-- Temperatures card -->
                 <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="TEMPERATURES" Style="{StaticResource SectionLabel}"/>
-                        <ItemsControl ItemsSource="{Binding ViewModel.Aquila.Motherboard.Temperatures}">
+                        <ItemsControl ItemsSource="{Binding ViewModel.Hardware.Motherboard.Temperature}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <UniformGrid Columns="2"/>
@@ -704,7 +618,7 @@
                 <ui:Card Margin="0,0,0,8" Padding="12,10">
                     <StackPanel>
                         <TextBlock Text="FANS" Style="{StaticResource SectionLabel}"/>
-                        <ItemsControl ItemsSource="{Binding ViewModel.Aquila.Motherboard.Fans}">
+                        <ItemsControl ItemsSource="{Binding ViewModel.Hardware.Motherboard.Fan}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,0,0,8"
@@ -718,45 +632,18 @@
                                                    Style="{StaticResource RowLabel}"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <ProgressBar Grid.Column="1"
+                                                     Style="{StaticResource FanBar}"
                                                      VerticalAlignment="Center"
-                                                     Value="{Binding ControlPercent, FallbackValue=0}"
-                                                     Maximum="100">
-                                            <ProgressBar.Style>
-                                                <Style BasedOn="{StaticResource FanBar}" TargetType="ProgressBar">
-                                                    <Setter Property="Opacity" Value="1"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding ControlPercent}" Value="{x:Null}">
-                                                            <Setter Property="Opacity" Value="0.35"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ProgressBar.Style>
-                                        </ProgressBar>
-                                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                                            <TextBlock Style="{StaticResource RowValue}" FontSize="12" HorizontalAlignment="Right">
-                                                <TextBlock.Text>
-                                                    <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                                        <Binding Path="Value"/>
-                                                        <Binding Path="Unit"/>
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
-                                            </TextBlock>
-                                            <TextBlock FontSize="10" Opacity="0.5" HorizontalAlignment="Right"
-                                                       Visibility="{Binding ControlPercent, Converter={StaticResource NullToCollapsedConverter}}"
-                                                       Text="{Binding ControlPercent, StringFormat='{}{0:F0}%'}"/>
-                                            <TextBlock FontSize="10" Opacity="0.5" HorizontalAlignment="Right" Text="PWM N/A">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding ControlPercent}" Value="{x:Null}">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </StackPanel>
+                                                     Value="{Binding Value, FallbackValue=0}"
+                                                     Maximum="{Binding Max, FallbackValue=3000}"/>
+                                        <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12" HorizontalAlignment="Right">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
+                                                    <Binding Path="Value"/>
+                                                    <Binding Path="Unit"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -770,7 +657,7 @@
                         <TextBlock Text="POWER" Style="{StaticResource SectionLabel}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock FontSize="26"
-                                       Text="{Binding ViewModel.TotalPowerValue, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                       Text="{Binding ViewModel.Hardware.TotalPower.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                             <TextBlock Text="W total" FontSize="12" VerticalAlignment="Bottom"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="5,0,0,4"/>
                         </StackPanel>
@@ -782,11 +669,11 @@
                                 <ColumnDefinition Width="44"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="CPU" Style="{StaticResource RowLabel}"/>
-                                                        <ProgressBar Grid.Column="1" Style="{StaticResource CpuBar}" VerticalAlignment="Center"
-                                                                                 Value="{Binding ViewModel.Aquila.Cpu.Power.Package.Value, FallbackValue=0}"
-                                         Maximum="{Binding ViewModel.Aquila.Cpu.Power.Package.Max, FallbackValue=1}"/>
+                            <ProgressBar Grid.Column="1" Style="{StaticResource CpuBar}" VerticalAlignment="Center"
+                                         Value="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, FallbackValue=0}"
+                                         Maximum="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Max, FallbackValue=1}"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                                                                             Text="{Binding ViewModel.Aquila.Cpu.Power.Package.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                                       Text="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
                         <Grid Margin="0,0,0,5">
                             <Grid.ColumnDefinitions>
@@ -814,19 +701,6 @@
                                          Maximum="{Binding ViewModel.Gpu2.Power.Max, FallbackValue=1}"/>
                             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
                                        Text="{Binding ViewModel.Gpu2.Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                        </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="36"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="44"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="RAM" Style="{StaticResource RowLabel}"/>
-                                                        <ProgressBar Grid.Column="1" Style="{StaticResource RamBar}" VerticalAlignment="Center"
-                                                                                 Value="{Binding ViewModel.Aquila.Memory.Power.Total.Value, FallbackValue=0}"
-                                         Maximum="{Binding ViewModel.Aquila.Memory.Power.Total.Max, FallbackValue=1}"/>
-                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                                                                             Text="{Binding ViewModel.Aquila.Memory.Power.Total.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </Grid>
                     </StackPanel>
                 </ui:Card>

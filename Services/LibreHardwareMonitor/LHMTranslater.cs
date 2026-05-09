@@ -47,6 +47,23 @@ public class LHMTranslater
                     break;
             }
         }
+
+        FillDerived(state);
+    }
+
+    private static void FillDerived(AquilaState state)
+    {
+        var mem = state.Hardware.Memory.Data;
+        if (mem.Used.Value.HasValue || mem.Available.Value.HasValue)
+        {
+            mem.Total.Value = (mem.Used.Value ?? 0) + (mem.Available.Value ?? 0);
+            mem.Total.Unit  = "GB";
+        }
+
+        var cpuPower = state.Hardware.Cpus.Sum(c => c.Power.Package.Value ?? 0);
+        var gpuPower = state.Hardware.Gpus.Sum(g => g.Power.Package.Value ?? 0);
+        state.Hardware.TotalPower.Value = cpuPower + gpuPower;
+        state.Hardware.TotalPower.Unit  = "W";
     }
 
     // ── CPU ──────────────────────────────────────────────────────────
@@ -88,6 +105,7 @@ public class LHMTranslater
                     switch (sensor.Name)
                     {
                         case "CPU Package":
+                        case "Package":
                             Fill(node.Power.Package, sensor, "W"); break;
                             //case "CPU Memory":
                             //  Fill(node.Power.Memory, sensor, "W"); break;
@@ -101,9 +119,12 @@ public class LHMTranslater
                             Fill(node.Clock.BusSpeed, sensor, "MHz"); break;
                         case "CPU Cores":
                         case "Core Average":
-                            Fill(node.Clock.CoresAverage, sensor, "MHz"); break;
+                        case "Cores (Average)":
+                        case "Cores (Average Effective)":
+                            Fill(node.Clock.CoresAverage, sensor, "MHz");
+                            break;
                         default:
-                            if (sensor.Name.Contains("Core"))
+                            if (sensor.Name.StartsWith("Core #"))
                                 Fill(node.Clock.Cores.GetOrCreate(sensor.Index), sensor, "MHz");
                             break;
                     }
@@ -144,6 +165,13 @@ public class LHMTranslater
             default:
                 if (!hw.Identifier.ToString().Contains("dimm")) break;
 
+                var temps = hw.Sensors
+                    .Where(s => s.SensorType == SensorType.Temperature)
+                    .OrderBy(s => s.Index)
+                    .ToList();
+
+                if (temps.Count == 0) break;
+
                 var index = int.Parse(
                     hw.Identifier.ToString()
                         .Split('/')
@@ -151,11 +179,6 @@ public class LHMTranslater
 
                 var dimm = node.GetOrCreateDimm(index - 1);
                 dimm.Name = hw.Name;
-
-                var temps = hw.Sensors
-                    .Where(s => s.SensorType == SensorType.Temperature)
-                    .OrderBy(s => s.Index)
-                    .ToList();
 
                 if (temps.Count > 0) Fill(dimm.Temperature, temps[0], "°C");
                 if (temps.Count > 1) Fill(dimm.WarningTemperature, temps[1], "°C");
@@ -177,6 +200,25 @@ public class LHMTranslater
 
         // sensores directos (raramente existem mas prevenimos)
         PopulateMotherboardSensors(hw.Sensors, node);
+
+        // pump: qualquer header com "PUMP" ou "AIO" (CPU_PUMP, W_PUMP+, AIO_PUMP, ...)
+        node.CpuPump = node.Fan.FirstOrDefault(s =>
+            s.Name?.Contains("PUMP", StringComparison.OrdinalIgnoreCase) == true ||
+            s.Name?.Contains("AIO",  StringComparison.OrdinalIgnoreCase) == true);
+
+        // CPU fans: headers com "CPU" excluindo o pump
+        var cpuFans = node.Fan
+            .Where(s => s.Name?.Contains("CPU", StringComparison.OrdinalIgnoreCase) == true
+                     && s != node.CpuPump)
+            .ToList();
+
+        node.CpuFan = cpuFans.FirstOrDefault(s =>
+            s.Name?.Contains("Optional", StringComparison.OrdinalIgnoreCase) != true)
+            ?? cpuFans.FirstOrDefault();
+
+        node.CpuFanSecondary = cpuFans.FirstOrDefault(s =>
+            s.Name?.Contains("Optional", StringComparison.OrdinalIgnoreCase) == true)
+            ?? cpuFans.Skip(1).FirstOrDefault();
     }
 
     private static void PopulateMotherboardSensors(
@@ -296,7 +338,20 @@ public class LHMTranslater
             switch (sensor.SensorType)
             {
                 case SensorType.Temperature:
-                    Fill(node.Temperature.Primary, sensor, "°C"); break;
+                    switch (sensor.Name)
+                    {
+                        case "Temperature":
+                            Fill(node.Temperature.Primary, sensor, "°C"); break;
+                        case "Temperature 1":
+                            Fill(node.Temperature.Warning, sensor, "°C"); break;
+                        case "Temperature 2":
+                            Fill(node.Temperature.Critical, sensor, "°C"); break;
+                        default:
+                            if (node.Temperature.Primary.Value is null)
+                                Fill(node.Temperature.Primary, sensor, "°C");
+                            break;
+                    }
+                    break;
 
                 case SensorType.Load:
                     switch (sensor.Name)

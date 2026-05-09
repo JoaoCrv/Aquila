@@ -1,9 +1,5 @@
 ﻿using Aquila.Models.Nodes;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Aquila.Models;
 
@@ -15,4 +11,6 @@ public class HardwareNode
     public List<GpuNode> Gpus { get; } = new();
     public List<NetworkNode> Networks { get; } = new();
     public List<StorageNode> Storages { get; } = new();
+
+    public SensorNode TotalPower { get; } = new();
 }
