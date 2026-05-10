@@ -31,10 +31,15 @@ Aquila is built with and made possible by several open-source projects:
 |---|---|---|
 | [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | hardware sensors and monitoring data | MPL-2.0 |
 | [WPF-UI](https://github.com/lepoco/wpfui) | Fluent-style WPF controls and navigation | MIT |
+| [WPF-UI.DependencyInjection](https://github.com/lepoco/wpfui) | DI integration for WPF-UI | MIT |
 | [Velopack](https://github.com/velopack/velopack) | packaging and in-app updates | MIT |
 | [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) | MVVM helpers, source generators, commands | MIT |
 | [LiveCharts2](https://github.com/beto-rodriguez/LiveCharts2) | charts and sparklines | MIT |
 | [Microsoft.Extensions.Hosting](https://github.com/dotnet/runtime) | dependency injection and app hosting | MIT |
+
+## Development
+
+Aquila is developed with the assistance of [Claude Code](https://claude.ai/code) by Anthropic.
 
 ## License
 
