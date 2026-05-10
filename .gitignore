@@ -15,8 +15,15 @@ commit-types.md
 
 drafts/
 repos/
-# Continue.dev instructions
+docs/
+PROJECT_CONTEXT.md
+ROADMAP.md
+CLAUDE.md
+# AI assistant config files
 .continue/
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)
