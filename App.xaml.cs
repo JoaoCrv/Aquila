@@ -9,9 +9,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Velopack;
 using Wpf.Ui;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.DependencyInjection;
 
 namespace Aquila
@@ -49,8 +51,6 @@ namespace Aquila
                 //services.AddSingleton<AquilaService>();
                 services.AddSingleton<AquilaService>();
 
-                // Theme manipulation
-                services.AddSingleton<IThemeService, ThemeService>();
                 services.AddSingleton<ISnackbarService, SnackbarService>();
 
                 // TaskBar manipulation
@@ -97,11 +97,30 @@ namespace Aquila
             get { return _host.Services; }
         }
 
+        private static readonly string[] _accentKeys =
+        [
+            "Aquila.Cpu", "Aquila.Gpu", "Aquila.Ram", "Aquila.Temp", "Aquila.GpuTemp",
+            "Aquila.Power", "Aquila.Critical", "Aquila.Gauge.Background",
+            "Aquila.Chart.Cpu", "Aquila.Chart.Ram", "Aquila.Chart.Gpu",
+            "Aquila.Chart.NetDown", "Aquila.Chart.NetUp"
+        ];
+
+        private static void RefreshAccentBrushes()
+        {
+            var suffix = ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Light ? ".Light" : ".Dark";
+            var res = Current.Resources;
+            foreach (var key in _accentKeys)
+                if (res[key + suffix] is Brush brush) res[key] = brush;
+        }
+
         /// <summary>
         /// Occurs when the application is loading.
         /// </summary>
         private async void OnStartup(object sender, StartupEventArgs e)
         {
+            ApplicationThemeManager.Changed += (_, _) => Dispatcher.Invoke(RefreshAccentBrushes);
+            RefreshAccentBrushes();
+
             await _host.StartAsync();
             _ = Services.GetRequiredService<UpdateService>()
                 .CheckForUpdatesSilentlyAndNotifyAsync(Services.GetService<ISnackbarService>(), TimeSpan.FromSeconds(2));
@@ -113,10 +132,7 @@ namespace Aquila
         /// </summary>
         private async void OnExit(object sender, ExitEventArgs e)
         {
-            (Resources["AccentBrushes"] as IDisposable)?.Dispose();
-
             await _host.StopAsync();
-
             _host.Dispose();
         }
 
