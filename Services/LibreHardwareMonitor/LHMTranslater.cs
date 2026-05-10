@@ -136,54 +136,76 @@ public class LHMTranslater
     // ── Memory ───────────────────────────────────────────────────────
     private static void TranslateMemory(IHardware hw, MemoryNode node)
     {
-        switch (hw.Name)
+        if (hw.Identifier.ToString().Contains("dimm"))
         {
-            case "Total Memory":
-                foreach (var sensor in hw.Sensors)
+            if (!hw.Sensors.Any(s => s.SensorType == SensorType.Temperature)) return;
+
+            var index = int.Parse(
+                hw.Identifier.ToString()
+                    .Split('/')
+                    .Last(s => int.TryParse(s, out _)));
+
+            var dimm = node.GetOrCreateDimm(index - 1);
+            dimm.Name = hw.Name;
+
+            foreach (var sensor in hw.Sensors)
+            {
+                switch (sensor.SensorType)
                 {
-                    switch (sensor.Name)
-                    {
-                        case "Memory": Fill(node.Load.Total, sensor, "%"); break;
-                        case "Memory Used": Fill(node.Data.Used, sensor, "GB"); break;
-                        case "Memory Available": Fill(node.Data.Available, sensor, "GB"); break;
-                    }
+                    case SensorType.Temperature:
+                        switch (sensor.Name)
+                        {
+                            case "Thermal Sensor Low Limit":
+                                if (sensor.Value.GetValueOrDefault() > 0)
+                                    Fill(dimm.LowTemperature, sensor, "°C");
+                                break;
+                            case "Thermal Sensor High Limit":
+                                if (sensor.Value.GetValueOrDefault() > 0)
+                                    Fill(dimm.WarningTemperature, sensor, "°C");
+                                break;
+                            case "Thermal Sensor Critical Low Limit":
+                                if (sensor.Value.GetValueOrDefault() > 0)
+                                    Fill(dimm.CriticalLowTemperature, sensor, "°C");
+                                break;
+                            case "Thermal Sensor Critical High Limit":
+                                if (sensor.Value.GetValueOrDefault() > 0)
+                                    Fill(dimm.CriticalTemperature, sensor, "°C");
+                                break;
+                            default:
+                                if (dimm.Temperature.Value is null
+                                    && !sensor.Name.Contains("Limit", StringComparison.OrdinalIgnoreCase)
+                                    && !sensor.Name.Contains("Resolution", StringComparison.OrdinalIgnoreCase))
+                                    Fill(dimm.Temperature, sensor, "°C");
+                                break;
+                        }
+                        break;
+
+                    case SensorType.Data:
+                        if (sensor.Name == "Capacity")
+                            Fill(dimm.Capacity, sensor, "GB");
+                        break;
                 }
-                break;
+            }
 
-            case "Virtual Memory":
-                foreach (var sensor in hw.Sensors)
-                {
-                    switch (sensor.Name)
-                    {
-                        case "Virtual Memory": Fill(node.Virtual.Load, sensor, "%"); break;
-                        case "Virtual Memory Used": Fill(node.Virtual.Used, sensor, "GB"); break;
-                        case "Virtual Memory Available": Fill(node.Virtual.Available, sensor, "GB"); break;
-                    }
-                }
-                break;
+            return;
+        }
 
-            default:
-                if (!hw.Identifier.ToString().Contains("dimm")) break;
+        bool isVirtual = hw.Name.Contains("virtual", StringComparison.OrdinalIgnoreCase);
 
-                var temps = hw.Sensors
-                    .Where(s => s.SensorType == SensorType.Temperature)
-                    .OrderBy(s => s.Index)
-                    .ToList();
-
-                if (temps.Count == 0) break;
-
-                var index = int.Parse(
-                    hw.Identifier.ToString()
-                        .Split('/')
-                        .Last(s => int.TryParse(s, out _)));
-
-                var dimm = node.GetOrCreateDimm(index - 1);
-                dimm.Name = hw.Name;
-
-                if (temps.Count > 0) Fill(dimm.Temperature, temps[0], "°C");
-                if (temps.Count > 1) Fill(dimm.WarningTemperature, temps[1], "°C");
-                if (temps.Count > 2) Fill(dimm.CriticalTemperature, temps[2], "°C");
-                break;
+        foreach (var sensor in hw.Sensors)
+        {
+            switch (sensor.Name)
+            {
+                case "Virtual Memory":           Fill(node.Virtual.Load,      sensor, "%");  break;
+                case "Virtual Memory Used":      Fill(node.Virtual.Used,      sensor, "GB"); break;
+                case "Virtual Memory Available": Fill(node.Virtual.Available, sensor, "GB"); break;
+                case "Memory":
+                    Fill(isVirtual ? node.Virtual.Load      : node.Load.Total,  sensor, "%");  break;
+                case "Memory Used":
+                    Fill(isVirtual ? node.Virtual.Used      : node.Data.Used,   sensor, "GB"); break;
+                case "Memory Available":
+                    Fill(isVirtual ? node.Virtual.Available : node.Data.Available, sensor, "GB"); break;
+            }
         }
     }
 

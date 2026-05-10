@@ -44,8 +44,10 @@ public class MemoryVirtualNode
 public class DimmNode
 {
     public string? Name { get; set; }
-    public SensorNode Capacity { get; } = new();
-    public SensorNode Temperature { get; } = new();
-    public SensorNode WarningTemperature { get; } = new();
-    public SensorNode CriticalTemperature { get; } = new();
+    public SensorNode Capacity               { get; } = new();
+    public SensorNode Temperature            { get; } = new();
+    public SensorNode LowTemperature         { get; } = new();
+    public SensorNode WarningTemperature     { get; } = new();
+    public SensorNode CriticalLowTemperature { get; } = new();
+    public SensorNode CriticalTemperature    { get; } = new();
 }
