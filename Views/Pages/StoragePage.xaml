@@ -6,6 +6,7 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:vm="clr-namespace:Aquila.ViewModels.Pages"
       xmlns:helpers="clr-namespace:Aquila.Helpers"
+      xmlns:controls="clr-namespace:Aquila.Controls"
       Style="{StaticResource BasePageStyle}"
       Title="StoragePage"
       ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -185,6 +186,55 @@
                                 </Border>
 
                             </UniformGrid>
+
+                            <!-- Health stats: Life · Power On Hours · Available Spare -->
+                            <UniformGrid Columns="3" Margin="0,4,0,0"
+                                         Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}">
+
+                                <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource StatBoxValue}"
+                                                   Foreground="{DynamicResource Aquila.Ram}">
+                                            <Run Text="{Binding Life.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                            <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="Life" Style="{StaticResource StatBoxLabel}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource StatBox}" Margin="3,0">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource StatBoxValue}">
+                                            <Run Text="{Binding PowerOnHours.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                            <Run Text=" h" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="Power On" Style="{StaticResource StatBoxLabel}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource StatBox}" Margin="3,0,0,0"
+                                        Visibility="{Binding AvailableSpare.Value, Converter={StaticResource NullToCollapsedConverter}}">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource StatBoxValue}"
+                                                   Foreground="{DynamicResource Aquila.Ram}">
+                                            <Run Text="{Binding AvailableSpare.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                            <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="Spare" Style="{StaticResource StatBoxLabel}"/>
+                                    </StackPanel>
+                                </Border>
+
+                            </UniformGrid>
+
+                            <!-- Read / Write throughput history -->
+                            <controls:SparklineChart
+                                Height="44"
+                                Margin="0,8,0,0"
+                                Values="{Binding ReadHistory}"
+                                SeriesColor="{DynamicResource Aquila.Chart.NetDown}"
+                                SecondValues="{Binding WriteHistory}"
+                                SecondColor="{DynamicResource Aquila.Chart.Cpu}"
+                                Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}"/>
 
                         </StackPanel>
 

@@ -396,8 +396,8 @@ public class LHMTranslater
                 case SensorType.Level:
                     switch (sensor.Name)
                     {
+                        case "Life":
                         case "Remaining Life":
-                        case "Percentage Used":
                             Fill(node.Level.Life, sensor, "%"); break;
                         case "Available Spare":
                             Fill(node.Level.AvailableSpare, sensor, "%"); break;
