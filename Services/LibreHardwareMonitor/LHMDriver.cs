@@ -18,7 +18,7 @@ namespace Aquila.Services.LibreHardwareMonitor
         private LHMTranslater? _translater;
 
         public string Name => "Libre Hardware Monitor";
-        public string Version => "0.9.4";
+        public string Version => "0.9.6";
         public bool IsAvailable =>
         File.Exists("LibreHardwareMonitor.dll") &&
         new WindowsPrincipal(WindowsIdentity.GetCurrent())
