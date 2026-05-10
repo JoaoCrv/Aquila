@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Aquila.ViewModels.Pages;
 using Aquila.Views.Pages;
 using Aquila.Views.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Wpf.Ui;
 
 namespace Aquila.Services
@@ -9,10 +10,9 @@ namespace Aquila.Services
     /// <summary>
     /// Managed host of the application.
     /// </summary>
-    public class ApplicationHostService(IServiceProvider serviceProvider, HardwareMonitorService hardwareMonitor) : IHostedService
+    public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService) : IHostedService
     {
         private readonly IServiceProvider _serviceProvider = serviceProvider;
-        private readonly HardwareMonitorService _hardwareMonitor = hardwareMonitor;
 
         private INavigationWindow? _navigationWindow;
 
@@ -22,8 +22,8 @@ namespace Aquila.Services
         /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            // Start monitoring first so data is ready when the UI loads
-            _hardwareMonitor.StartMonitoring();
+            aquilaService.Start();
+            await _serviceProvider.GetRequiredService<ExplorerViewModel>().InitializeAsync();
             await HandleActivationAsync();
         }
 
@@ -33,7 +33,6 @@ namespace Aquila.Services
         /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _hardwareMonitor.Dispose();
             await Task.CompletedTask;
         }
 

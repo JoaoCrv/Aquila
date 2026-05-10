@@ -9,7 +9,7 @@ namespace Aquila.Views.Pages
     /// <summary>
     /// Interaction logic for ExplorerPage.xaml
     /// </summary>
-    public partial class ExplorerPage : Page, INavigableView<ExplorerViewModel>, INavigationAware
+    public partial class ExplorerPage : Page, INavigableView<ExplorerViewModel>//, INavigationAware
     {
         public ExplorerViewModel ViewModel { get; }
 
@@ -20,10 +20,10 @@ namespace Aquila.Views.Pages
             InitializeComponent();
         }
 
-        public Task OnNavigatedToAsync()
-        {
-            return ViewModel.InitializeAsync();
-        }
+        //public Task OnNavigatedToAsync()
+        //{
+        //    return ViewModel.InitializeAsync();
+        //}
 
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
     }

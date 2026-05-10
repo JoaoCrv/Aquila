@@ -25,13 +25,13 @@ namespace Aquila.Views.Pages
 
         public Task OnNavigatedToAsync()
         {
-            ViewModel.Resume();
+           // ViewModel.Resume();
             return Task.CompletedTask;
         }
 
         public Task OnNavigatedFromAsync()
         {
-            ViewModel.Suspend();
+            //ViewModel.Suspend();
             return Task.CompletedTask;
         }
     }

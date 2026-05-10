@@ -34,18 +34,18 @@
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                     <TextBlock Text="Hardware Sensors" FontSize="18" FontWeight="SemiBold"/>
                     <TextBlock
-                        Text="All monitored sensors — identifiers for Dashboard widgets"
+                        Text="All monitored sensors - identifiers for Dashboard widgets"
                         FontSize="12"
                         Opacity="0.6"
                         Margin="0,2,0,0"/>
                 </StackPanel>
                 <ui:Button
                     Grid.Column="1"
-                    Content="Export to HTML"
-                    Command="{Binding ViewModel.ExportToHtmlCommand}"
+                    Content="Export report"
+                    Command="{Binding ViewModel.ExportReportCommand}"
                     VerticalAlignment="Center">
                     <ui:Button.Icon>
-                        <ui:SymbolIcon Symbol="ArrowExportLtr24"/>
+                        <ui:SymbolIcon Symbol="DocumentText24"/>
                     </ui:Button.Icon>
                 </ui:Button>
             </Grid>
@@ -55,7 +55,7 @@
         <ui:TextBox
             Grid.Row="1"
             Margin="20,4,20,8"
-            PlaceholderText="Search sensors…"
+            PlaceholderText="Search sensors..."
             ClearButtonEnabled="True"
             Text="{Binding ViewModel.SearchText, UpdateSourceTrigger=PropertyChanged}">
             <ui:TextBox.Icon>
@@ -68,167 +68,167 @@
             Grid.Row="2"
             ItemsSource="{Binding ViewModel.FilteredHardware}"
             Margin="20,0,20,20">
-        <ItemsControl.ItemTemplate>
-            <DataTemplate>
-                <ui:CardExpander
-                    Margin="0,0,0,4"
-                    IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
-                    CornerRadius="8"
-                    Icon="{Binding HardwareType, Converter={StaticResource HardwareTypeToIconConverter}}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ui:CardExpander
+                        Margin="0,0,0,4"
+                        IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                        CornerRadius="8"
+                        Icon="{Binding HardwareType, Converter={StaticResource HardwareTypeToIconConverter}}">
 
-                    <!-- Header: hardware name + sensor count -->
-                    <ui:CardExpander.Header>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock
-                                Text="{Binding HardwareName}"
-                                FontSize="14"
-                                FontWeight="SemiBold"/>
-                            <TextBlock
-                                FontSize="12"
-                                Opacity="0.6"
-                                Margin="0,2,0,0">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="{}{0} sensor groups">
-                                        <Binding Path="SensorGroups.Count"/>
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
+                        <ui:CardExpander.Header>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock
+                                    Text="{Binding HardwareName}"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"/>
+                                <TextBlock
+                                    FontSize="12"
+                                    Opacity="0.6"
+                                    Margin="0,2,0,0">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0} sensor groups">
+                                            <Binding Path="SensorGroups.Count"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                        </ui:CardExpander.Header>
+
+                        <StackPanel Margin="0,8,0,4">
+                            <Border
+                                Margin="10,0,10,0"
+                                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="0,0,0,6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="300"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="SENSOR" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="IDENTIFIER" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="VALUE"  FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="3" Text="MIN"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="4" Text="MAX"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="5" Text="COPY"   FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <ItemsControl ItemsSource="{Binding SensorGroups}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock
+                                                Text="{Binding CategoryName}"
+                                                FontSize="11"
+                                                FontWeight="SemiBold"
+                                                Opacity="0.45"
+                                                Margin="10,8,0,2"
+                                                HorizontalAlignment="Left"
+                                                TextWrapping="NoWrap"/>
+                                            <ItemsControl ItemsSource="{Binding Sensors}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="8,0" MinHeight="38" CornerRadius="4">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Background" Value="Transparent"/>
+                                                                    <Style.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                                                        </Trigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <Grid MinHeight="32">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="300"/>
+                                                                    <ColumnDefinition Width="80"/>
+                                                                    <ColumnDefinition Width="80"/>
+                                                                    <ColumnDefinition Width="80"/>
+                                                                    <ColumnDefinition Width="120"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock
+                                                                    Grid.Column="0"
+                                                                    Text="{Binding Name}"
+                                                                    FontSize="13"
+                                                                    VerticalAlignment="Center"/>
+                                                                <TextBlock
+    Grid.Column="1"
+    Text="{Binding Identifier}"
+    FontSize="13"
+                                                                    HorizontalAlignment="Left"
+    VerticalAlignment="Center"/>
+                                                                <TextBlock
+                                                                    Grid.Column="2"
+                                                                    FontSize="13"
+                                                                    FontWeight="SemiBold"
+                                                                    HorizontalAlignment="Right"
+                                                                    VerticalAlignment="Center">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                            <Binding Path="Value"/>
+                                                                            <Binding Path="Unit"/>
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                                <TextBlock
+                                                                    Grid.Column="3"
+                                                                    FontSize="12"
+                                                                    Opacity="0.55"
+                                                                    HorizontalAlignment="Right"
+                                                                    VerticalAlignment="Center">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                            <Binding Path="Min"/>
+                                                                            <Binding Path="Unit"/>
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                                <TextBlock
+                                                                    Grid.Column="4"
+                                                                    FontSize="12"
+                                                                    Opacity="0.55"
+                                                                    HorizontalAlignment="Right"
+                                                                    VerticalAlignment="Center">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                                            <Binding Path="Max"/>
+                                                                            <Binding Path="Unit"/>
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                                <ui:Button
+                                                                    Grid.Column="5"
+                                                                    Appearance="Secondary"
+                                                                    FontSize="11"
+                                                                    Padding="8,3"
+                                                                    VerticalAlignment="Center"
+                                                                    HorizontalAlignment="Right"
+                                                                    Content="Copy"
+                                                                    ToolTip="{Binding Identifier}"
+                                                                    Command="{Binding DataContext.ViewModel.CopyIdentifierCommand,
+                                                                              RelativeSource={RelativeSource AncestorType=Page}}"
+                                                                    CommandParameter="{Binding Identifier}"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
-                    </ui:CardExpander.Header>
-
-                    <!-- Content: column headers once + sensor groups -->
-                    <StackPanel Margin="0,8,0,4">
-
-                        <!-- Column headers — shown once per hardware block -->
-                        <Border
-                            Margin="10,0,10,0"
-                            BorderBrush="{DynamicResource ControlElevationBorderBrush}"
-                            BorderThickness="0,0,0,1"
-                            Padding="0,0,0,6">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="110"/>
-                                    <ColumnDefinition Width="80"/>
-                                    <ColumnDefinition Width="80"/>
-                                    <ColumnDefinition Width="120"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="SENSOR" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="VALUE"  FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="MIN"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="3" Text="MAX"    FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="4" Text="COPY"   FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorTertiaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                            </Grid>
-                        </Border>
-
-                        <ItemsControl ItemsSource="{Binding SensorGroups}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="0,0,0,8">
-
-                                        <!-- Category label as section divider -->
-                                        <TextBlock
-                                            Text="{Binding CategoryName}"
-                                            FontSize="11"
-                                            FontWeight="SemiBold"
-                                            Opacity="0.45"
-                                            Margin="10,8,0,2"
-                                            HorizontalAlignment="Left"
-                                            TextWrapping="NoWrap"/>
-
-                                        <!-- Sensor rows -->
-                                        <ItemsControl ItemsSource="{Binding Sensors}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border Padding="8,0" MinHeight="38" CornerRadius="4">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="Background" Value="Transparent"/>
-                                                                <Style.Triggers>
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
-                                                                    </Trigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-                                                        <Grid MinHeight="32">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="110"/>
-                                                                <ColumnDefinition Width="80"/>
-                                                                <ColumnDefinition Width="80"/>
-                                                                <ColumnDefinition Width="120"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock
-                                                                Grid.Column="0"
-                                                                Text="{Binding Name}"
-                                                                FontSize="13"
-                                                                VerticalAlignment="Center"/>
-                                                            <TextBlock
-                                                                Grid.Column="1"
-                                                                FontSize="13"
-                                                                FontWeight="SemiBold"
-                                                                HorizontalAlignment="Right"
-                                                                VerticalAlignment="Center">
-                                                                <TextBlock.Text>
-                                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                        <Binding Path="Value"/>
-                                                                        <Binding Path="Unit"/>
-                                                                    </MultiBinding>
-                                                                </TextBlock.Text>
-                                                            </TextBlock>
-                                                            <TextBlock
-                                                                Grid.Column="2"
-                                                                FontSize="12"
-                                                                Opacity="0.55"
-                                                                HorizontalAlignment="Right"
-                                                                VerticalAlignment="Center">
-                                                                <TextBlock.Text>
-                                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                        <Binding Path="Min"/>
-                                                                        <Binding Path="Unit"/>
-                                                                    </MultiBinding>
-                                                                </TextBlock.Text>
-                                                            </TextBlock>
-                                                            <TextBlock
-                                                                Grid.Column="3"
-                                                                FontSize="12"
-                                                                Opacity="0.55"
-                                                                HorizontalAlignment="Right"
-                                                                VerticalAlignment="Center">
-                                                                <TextBlock.Text>
-                                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                                        <Binding Path="Max"/>
-                                                                        <Binding Path="Unit"/>
-                                                                    </MultiBinding>
-                                                                </TextBlock.Text>
-                                                            </TextBlock>
-                                                            <!-- col 4: Copy Identifier (#5) -->
-                                                            <ui:Button
-                                                                Grid.Column="4"
-                                                                Appearance="Secondary"
-                                                                FontSize="11"
-                                                                Padding="8,3"
-                                                                VerticalAlignment="Center"
-                                                                HorizontalAlignment="Right"
-                                                                Content="Copy"
-                                                                ToolTip="{Binding Identifier}"
-                                                                Command="{Binding DataContext.ViewModel.CopyIdentifierCommand,
-                                                                          RelativeSource={RelativeSource AncestorType=Page}}"
-                                                                CommandParameter="{Binding Identifier}"/>
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </ui:CardExpander>
-            </DataTemplate>
-        </ItemsControl.ItemTemplate>
-    </ItemsControl>
+                    </ui:CardExpander>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </Page>
