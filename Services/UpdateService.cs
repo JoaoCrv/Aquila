@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Velopack;
 using Velopack.Sources;
 using Wpf.Ui;
@@ -8,8 +9,14 @@ namespace Aquila.Services
     public sealed class UpdateService
     {
         private const string DefaultStatusMessage = "Check manually for new Aquila releases.";
-        private static readonly GithubSource Source = new("https://github.com/JoaoCrv/Aquila", null, false);
+        private readonly GithubSource _source;
         private readonly SemaphoreSlim _checkLock = new(1, 1);
+
+        public UpdateService(IConfiguration configuration)
+        {
+            var url = configuration["Velopack:UpdateUrl"] ?? "https://github.com/JoaoCrv/Aquila";
+            _source = new GithubSource(url, null, false);
+        }
 
         public event Action? StatusChanged;
 
@@ -95,7 +102,7 @@ namespace Aquila.Services
 
             try
             {
-                var manager = new UpdateManager(Source);
+                var manager = new UpdateManager(_source);
                 var updateInfo = await manager.CheckForUpdatesAsync();
 
                 if (updateInfo is null)
@@ -138,7 +145,7 @@ namespace Aquila.Services
 
             try
             {
-                var manager = new UpdateManager(Source);
+                var manager = new UpdateManager(_source);
                 await manager.DownloadUpdatesAsync(targetUpdate);
 
                 SetStatus("Update downloaded successfully. Restart Aquila to apply it.");
@@ -153,7 +160,7 @@ namespace Aquila.Services
 
         public void ApplyUpdatesAndRestart(UpdateInfo updateInfo)
         {
-            var manager = new UpdateManager(Source);
+            var manager = new UpdateManager(_source);
             manager.ApplyUpdatesAndRestart(updateInfo);
         }
 

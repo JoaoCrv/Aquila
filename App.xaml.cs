@@ -30,7 +30,13 @@ namespace Aquila
         // https://docs.microsoft.com/dotnet/core/extensions/logging
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
-            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(AppContext.BaseDirectory) ?? AppContext.BaseDirectory); })
+            .ConfigureAppConfiguration(c =>
+            {
+                var basePath = Path.GetDirectoryName(AppContext.BaseDirectory) ?? AppContext.BaseDirectory;
+                c.SetBasePath(basePath);
+                c.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
+                c.AddJsonFile("appsettings.local.json", optional: true,  reloadOnChange: false);
+            })
             .ConfigureServices((context, services) =>
             {
                 services.AddNavigationViewPageProvider();

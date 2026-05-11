@@ -11,6 +11,7 @@
 *.sln.docstates
 build.ps1
 aquila-cert.pfx
+appsettings.local.json
 commit-types.md
 
 drafts/
