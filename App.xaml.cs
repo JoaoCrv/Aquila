@@ -52,9 +52,8 @@ namespace Aquila
 
                 //Services
                 services.AddSingleton<UiService>();
+                services.AddSingleton<SettingsService>();
                 services.AddSingleton<UpdateService>();
-                // Hardware monitoring service
-                //services.AddSingleton<AquilaService>();
                 services.AddSingleton<AquilaService>();
 
                 services.AddSingleton<ISnackbarService, SnackbarService>();
@@ -124,10 +123,16 @@ namespace Aquila
         /// </summary>
         private async void OnStartup(object sender, StartupEventArgs e)
         {
+            var settings = _host.Services.GetRequiredService<SettingsService>();
+            settings.Load();
+
             ApplicationThemeManager.Changed += (_, _) => Dispatcher.Invoke(RefreshAccentBrushes);
-            RefreshAccentBrushes();
 
             await _host.StartAsync();
+
+            var theme = settings.Current.Theme == "Light" ? ApplicationTheme.Light : ApplicationTheme.Dark;
+            ApplicationThemeManager.Apply(theme);
+            RefreshAccentBrushes();
             _ = Services.GetRequiredService<UpdateService>()
                 .CheckForUpdatesSilentlyAndNotifyAsync(Services.GetService<ISnackbarService>(), TimeSpan.FromSeconds(2));
             _host.Services.GetRequiredService<AquilaService>();

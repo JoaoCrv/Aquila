@@ -8,11 +8,13 @@ namespace Aquila.ViewModels.Pages
     public partial class SettingsViewModel : ObservableObject, INavigationAware, IDisposable
     {
         private readonly UpdateService _updateService;
+        private readonly SettingsService _settings;
         private bool _isInitialized = false;
 
-        public SettingsViewModel(UpdateService updateService)
+        public SettingsViewModel(UpdateService updateService, SettingsService settings)
         {
             _updateService = updateService;
+            _settings = settings;
             _updateService.StatusChanged += OnUpdateStatusChanged;
         }
 
@@ -66,23 +68,20 @@ namespace Aquila.ViewModels.Pages
             switch (parameter)
             {
                 case "theme_light":
-                    if (CurrentTheme == ApplicationTheme.Light)
-                        break;
-
+                    if (CurrentTheme == ApplicationTheme.Light) break;
                     ApplicationThemeManager.Apply(ApplicationTheme.Light);
                     CurrentTheme = ApplicationTheme.Light;
-
                     break;
 
                 default:
-                    if (CurrentTheme == ApplicationTheme.Dark)
-                        break;
-
+                    if (CurrentTheme == ApplicationTheme.Dark) break;
                     ApplicationThemeManager.Apply(ApplicationTheme.Dark);
                     CurrentTheme = ApplicationTheme.Dark;
-
                     break;
             }
+
+            _settings.Current.Theme = CurrentTheme == ApplicationTheme.Light ? "Light" : "Dark";
+            _settings.Save();
         }
 
         [RelayCommand]
