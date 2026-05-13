@@ -1,20 +1,36 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Reflection;
 using Aquila.Services;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
 namespace Aquila.ViewModels.Pages
 {
+    public record PollingOption(string Label, int Ms);
+
     public partial class SettingsViewModel : ObservableObject, INavigationAware, IDisposable
     {
         private readonly UpdateService _updateService;
         private readonly SettingsService _settings;
+        private readonly AquilaService _aquila;
         private bool _isInitialized = false;
 
-        public SettingsViewModel(UpdateService updateService, SettingsService settings)
+        public List<PollingOption> PollingIntervalOptions { get; } =
+        [
+            new("500 ms",  500),
+            new("1 s",    1000),
+            new("2 s",    2000),
+            new("5 s",    5000),
+        ];
+
+        [ObservableProperty]
+        private PollingOption _selectedPollingInterval = null!;
+
+        public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila)
         {
             _updateService = updateService;
             _settings = settings;
+            _aquila = aquila;
             _updateService.StatusChanged += OnUpdateStatusChanged;
         }
 
@@ -50,6 +66,9 @@ namespace Aquila.ViewModels.Pages
             CurrentTheme = ApplicationThemeManager.GetAppTheme();
             AppVersion = $"Current version: {GetAssemblyVersion()}";
             UpdateStatusMessage = _updateService.StatusMessage;
+            SelectedPollingInterval =
+                PollingIntervalOptions.FirstOrDefault(o => o.Ms == _settings.Current.PollingIntervalMs)
+                ?? PollingIntervalOptions[1];
 
             _isInitialized = true;
         }
@@ -81,6 +100,14 @@ namespace Aquila.ViewModels.Pages
             }
 
             _settings.Current.Theme = CurrentTheme == ApplicationTheme.Light ? "Light" : "Dark";
+            _settings.Save();
+        }
+
+        partial void OnSelectedPollingIntervalChanged(PollingOption? value)
+        {
+            if (!_isInitialized || value is null) return;
+            _aquila.SetInterval(value.Ms);
+            _settings.Current.PollingIntervalMs = value.Ms;
             _settings.Save();
         }
 

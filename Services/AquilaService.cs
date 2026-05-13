@@ -28,6 +28,9 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) : IDisposa
         _timer.Start();
     }
 
+    public void SetInterval(int milliseconds)
+        => _timer.Interval = TimeSpan.FromMilliseconds(milliseconds);
+
     private void OnTick(object? sender, EventArgs e)
     {
         _driver.Populate(_state);

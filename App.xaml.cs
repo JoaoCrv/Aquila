@@ -133,6 +133,8 @@ namespace Aquila
             var theme = settings.Current.Theme == "Light" ? ApplicationTheme.Light : ApplicationTheme.Dark;
             ApplicationThemeManager.Apply(theme);
             RefreshAccentBrushes();
+
+            _host.Services.GetRequiredService<AquilaService>().SetInterval(settings.Current.PollingIntervalMs);
             _ = Services.GetRequiredService<UpdateService>()
                 .CheckForUpdatesSilentlyAndNotifyAsync(Services.GetService<ISnackbarService>(), TimeSpan.FromSeconds(2));
             _host.Services.GetRequiredService<AquilaService>();
