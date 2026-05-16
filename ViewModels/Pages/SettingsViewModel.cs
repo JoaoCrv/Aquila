@@ -59,6 +59,12 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private bool _startWithWindows;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsNotDashboardMode))]
+        private bool _dashboardMode;
+
+        public bool IsNotDashboardMode => !DashboardMode;
+
         public Task OnNavigatedToAsync()
         {
             if (!_isInitialized)
@@ -83,9 +89,10 @@ namespace Aquila.ViewModels.Pages
                 PollingIntervalOptions.FirstOrDefault(o => o.Ms == _settings.Current.PollingIntervalMs)
                 ?? PollingIntervalOptions[1];
 
-            MinimizeToTray  = _settings.Current.MinimizeToTray;
-            StartMinimized  = _settings.Current.StartMinimized;
+            MinimizeToTray   = _settings.Current.MinimizeToTray;
+            StartMinimized   = _settings.Current.StartMinimized;
             StartWithWindows = IsRegisteredAtStartup();
+            DashboardMode    = _settings.Current.DashboardMode;
 
             _isInitialized = true;
         }
@@ -146,6 +153,25 @@ namespace Aquila.ViewModels.Pages
         {
             if (!_isInitialized) return;
             SetRegistryStartup(value);
+        }
+
+        partial void OnDashboardModeChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            _settings.Current.DashboardMode = value;
+            if (value)
+            {
+                MinimizeToTray   = true;
+                StartMinimized   = true;
+                StartWithWindows = true;
+            }
+            else
+            {
+                MinimizeToTray   = false;
+                StartMinimized   = false;
+                StartWithWindows = false;
+            }
+            _settings.Save();
         }
 
         private static bool IsRegisteredAtStartup()

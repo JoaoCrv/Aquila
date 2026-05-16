@@ -53,17 +53,31 @@
         <ui:ToggleSwitch
             Margin="0,12,0,0"
             Content="Minimize to tray"
-            IsChecked="{Binding ViewModel.MinimizeToTray}" />
+            IsChecked="{Binding ViewModel.MinimizeToTray}"
+            IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
 
         <ui:ToggleSwitch
             Margin="0,8,0,0"
             Content="Start minimized"
-            IsChecked="{Binding ViewModel.StartMinimized}" />
+            IsChecked="{Binding ViewModel.StartMinimized}"
+            IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
 
         <ui:ToggleSwitch
             Margin="0,8,0,0"
             Content="Start with Windows"
-            IsChecked="{Binding ViewModel.StartWithWindows}" />
+            IsChecked="{Binding ViewModel.StartWithWindows}"
+            IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
+
+        <ui:ToggleSwitch
+            Margin="0,8,0,0"
+            Content="Dashboard mode"
+            IsChecked="{Binding ViewModel.DashboardMode}" />
+        <TextBlock
+            Margin="0,4,0,0"
+            Opacity="0.55"
+            FontSize="12"
+            Text="Window opens at the tray icon only, no taskbar entry. Single click to show/hide."
+            TextWrapping="Wrap" />
 
         <ui:Card Margin="0,24,0,0" Padding="16,14">
             <StackPanel>
