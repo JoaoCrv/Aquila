@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
 using Aquila.Services;
+using Microsoft.Win32;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
@@ -10,6 +11,9 @@ namespace Aquila.ViewModels.Pages
 
     public partial class SettingsViewModel : ObservableObject, INavigationAware, IDisposable
     {
+        private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+        private const string AppName = "Aquila";
+
         private readonly UpdateService _updateService;
         private readonly SettingsService _settings;
         private readonly AquilaService _aquila;
@@ -46,6 +50,15 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private bool _isCheckingForUpdates;
 
+        [ObservableProperty]
+        private bool _minimizeToTray;
+
+        [ObservableProperty]
+        private bool _startMinimized;
+
+        [ObservableProperty]
+        private bool _startWithWindows;
+
         public Task OnNavigatedToAsync()
         {
             if (!_isInitialized)
@@ -69,6 +82,10 @@ namespace Aquila.ViewModels.Pages
             SelectedPollingInterval =
                 PollingIntervalOptions.FirstOrDefault(o => o.Ms == _settings.Current.PollingIntervalMs)
                 ?? PollingIntervalOptions[1];
+
+            MinimizeToTray  = _settings.Current.MinimizeToTray;
+            StartMinimized  = _settings.Current.StartMinimized;
+            StartWithWindows = IsRegisteredAtStartup();
 
             _isInitialized = true;
         }
@@ -103,12 +120,53 @@ namespace Aquila.ViewModels.Pages
             _settings.Save();
         }
 
-        partial void OnSelectedPollingIntervalChanged(PollingOption? value)
+        partial void OnSelectedPollingIntervalChanged(PollingOption value)
         {
-            if (!_isInitialized || value is null) return;
+            if (!_isInitialized) return;
             _aquila.SetInterval(value.Ms);
             _settings.Current.PollingIntervalMs = value.Ms;
             _settings.Save();
+        }
+
+        partial void OnMinimizeToTrayChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            _settings.Current.MinimizeToTray = value;
+            _settings.Save();
+        }
+
+        partial void OnStartMinimizedChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            _settings.Current.StartMinimized = value;
+            _settings.Save();
+        }
+
+        partial void OnStartWithWindowsChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            SetRegistryStartup(value);
+        }
+
+        private static bool IsRegisteredAtStartup()
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: false);
+            return key?.GetValue(AppName) is not null;
+        }
+
+        private static void SetRegistryStartup(bool enable)
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+            if (key is null) return;
+            if (enable)
+            {
+                var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+                key.SetValue(AppName, $"\"{exe}\"");
+            }
+            else
+            {
+                key.DeleteValue(AppName, throwOnMissingValue: false);
+            }
         }
 
         [RelayCommand]

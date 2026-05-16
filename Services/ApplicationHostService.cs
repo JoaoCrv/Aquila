@@ -10,7 +10,7 @@ namespace Aquila.Services
     /// <summary>
     /// Managed host of the application.
     /// </summary>
-    public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService) : IHostedService
+    public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService, SettingsService settingsService) : IHostedService
     {
         private readonly IServiceProvider _serviceProvider = serviceProvider;
 
@@ -47,8 +47,10 @@ namespace Aquila.Services
                     _serviceProvider.GetService(typeof(INavigationWindow)) as INavigationWindow
                 )!;
                 _navigationWindow!.ShowWindow();
-
                 _navigationWindow.Navigate(typeof(Views.Pages.DashboardPage));
+
+                if (settingsService.Current.StartMinimized)
+                    ((System.Windows.Window)_navigationWindow).Hide();
             }
 
             await Task.CompletedTask;
