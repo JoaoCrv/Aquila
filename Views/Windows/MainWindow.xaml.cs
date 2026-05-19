@@ -151,7 +151,7 @@ namespace Aquila.Views.Windows
         private void SaveWindowBounds()
         {
             var s = _settings.Current;
-            s.WindowMaximized = WindowState == WindowState.Maximized;
+            s.WindowMaximized = WindowState == WindowState.Maximized && !ViewModel.IsDashboardMode;
             s.WindowLeft      = !double.IsNaN(_normalLeft)   ? _normalLeft   : Left;
             s.WindowTop       = !double.IsNaN(_normalTop)    ? _normalTop    : Top;
             s.WindowWidth     = !double.IsNaN(_normalWidth)  && _normalWidth  > 0 ? _normalWidth  : Width;
@@ -172,9 +172,22 @@ namespace Aquila.Views.Windows
             ShowInTaskbar = !on;
             TitleBar.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
             if (on)
+            {
                 RootNavigation.IsPaneOpen = false;
+                WindowState = WindowState.Maximized;
+            }
             else
+            {
                 RootNavigation.ClearValue(Wpf.Ui.Controls.NavigationView.IsPaneOpenProperty);
+                WindowState = WindowState.Normal;
+                if (!double.IsNaN(_normalLeft))
+                {
+                    Left   = _normalLeft;
+                    Top    = _normalTop;
+                    Width  = _normalWidth;
+                    Height = _normalHeight;
+                }
+            }
         }
 
         private void DashboardMenuButton_Click(object sender, RoutedEventArgs e)
@@ -199,7 +212,7 @@ namespace Aquila.Views.Windows
             ShowInTaskbar = !_settings.Current.DashboardMode;
             Show();
             Activate();
-            WindowState = WindowState.Normal;
+            WindowState = _settings.Current.DashboardMode ? WindowState.Maximized : WindowState.Normal;
         }
 
         private void TrayExit()
