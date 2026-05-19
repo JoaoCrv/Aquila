@@ -23,9 +23,9 @@ namespace Aquila.Helpers
             {
                 "nav" => w switch
                 {
-                    >= 1000 => new Thickness(42, 0, 42, 0),
-                    >= 700  => new Thickness(24, 0, 24, 0),
-                    _       => new Thickness(12, 0, 12, 0),
+                    >= 1000 => new Thickness(30, 0, 30, 0),
+                    >= 700  => new Thickness(12, 0, 12, 0),
+                    _       => new Thickness(0,  0, 0,  0),
                 },
                 _ => w switch
                 {
