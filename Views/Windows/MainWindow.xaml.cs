@@ -49,12 +49,6 @@ namespace Aquila.Views.Windows
 
             Loaded += (_, _) => ApplyDashboardMode(_settings.Current.DashboardMode);
 
-            RootNavigation.Navigated += (_, _) =>
-            {
-                if (ViewModel.IsDashboardMode)
-                    RootNavigation.IsPaneOpen = false;
-            };
-
             SizeChanged     += (_, _) => TrackNormalBounds();
             LocationChanged += (_, _) => TrackNormalBounds();
         }
@@ -188,16 +182,6 @@ namespace Aquila.Views.Windows
                     Height = _normalHeight;
                 }
             }
-        }
-
-        private void DashboardMenuButton_Click(object sender, RoutedEventArgs e)
-            => RootNavigation.IsPaneOpen = !RootNavigation.IsPaneOpen;
-
-        private void DashboardHideButton_Click(object sender, RoutedEventArgs e)
-        {
-            SaveWindowBounds();
-            ShowInTaskbar = false;
-            Hide();
         }
 
         private void TrayClick()
