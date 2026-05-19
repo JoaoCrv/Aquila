@@ -16,7 +16,7 @@ namespace Aquila.Views.Windows
         private bool _allowClose = false;
 
         // Tracks normal-state bounds so we always have a valid non-maximized size to persist
-        private double _normalLeft, _normalTop, _normalWidth, _normalHeight;
+        private double _normalLeft = double.NaN, _normalTop = double.NaN, _normalWidth = double.NaN, _normalHeight = double.NaN;
 
         public MainWindow(
             MainWindowViewModel viewModel,
@@ -39,8 +39,21 @@ namespace Aquila.Views.Windows
             _trayIcon = BuildTrayIcon();
             RestoreWindowBounds();
 
-            if (_settings.Current.DashboardMode)
-                ShowInTaskbar = false;
+            ShowInTaskbar = !_settings.Current.DashboardMode;
+
+            ViewModel.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName != nameof(MainWindowViewModel.IsDashboardMode)) return;
+                ApplyDashboardMode(ViewModel.IsDashboardMode);
+            };
+
+            Loaded += (_, _) => ApplyDashboardMode(_settings.Current.DashboardMode);
+
+            RootNavigation.Navigated += (_, _) =>
+            {
+                if (ViewModel.IsDashboardMode)
+                    RootNavigation.IsPaneOpen = false;
+            };
 
             SizeChanged     += (_, _) => TrackNormalBounds();
             LocationChanged += (_, _) => TrackNormalBounds();
@@ -139,10 +152,10 @@ namespace Aquila.Views.Windows
         {
             var s = _settings.Current;
             s.WindowMaximized = WindowState == WindowState.Maximized;
-            s.WindowLeft      = _normalLeft;
-            s.WindowTop       = _normalTop;
-            s.WindowWidth     = _normalWidth  > 0 ? _normalWidth  : Width;
-            s.WindowHeight    = _normalHeight > 0 ? _normalHeight : Height;
+            s.WindowLeft      = !double.IsNaN(_normalLeft)   ? _normalLeft   : Left;
+            s.WindowTop       = !double.IsNaN(_normalTop)    ? _normalTop    : Top;
+            s.WindowWidth     = !double.IsNaN(_normalWidth)  && _normalWidth  > 0 ? _normalWidth  : Width;
+            s.WindowHeight    = !double.IsNaN(_normalHeight) && _normalHeight > 0 ? _normalHeight : Height;
             _settings.Save();
         }
 
@@ -152,6 +165,26 @@ namespace Aquila.Views.Windows
             _trayIcon.Dispose();
             base.OnClosed(e);
             Application.Current.Shutdown();
+        }
+
+        private void ApplyDashboardMode(bool on)
+        {
+            ShowInTaskbar = !on;
+            TitleBar.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+            if (on)
+                RootNavigation.IsPaneOpen = false;
+            else
+                RootNavigation.ClearValue(Wpf.Ui.Controls.NavigationView.IsPaneOpenProperty);
+        }
+
+        private void DashboardMenuButton_Click(object sender, RoutedEventArgs e)
+            => RootNavigation.IsPaneOpen = !RootNavigation.IsPaneOpen;
+
+        private void DashboardHideButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveWindowBounds();
+            ShowInTaskbar = false;
+            Hide();
         }
 
         private void TrayClick()

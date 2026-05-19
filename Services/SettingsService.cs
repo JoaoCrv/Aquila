@@ -21,6 +21,8 @@ public class SettingsService
         catch { Current = new(); }
     }
 
+    public event Action? Changed;
+
     public void Save()
     {
         try
@@ -28,6 +30,7 @@ public class SettingsService
             Directory.CreateDirectory(AquilaPaths.Root);
             File.WriteAllText(AquilaPaths.Settings,
                 JsonSerializer.Serialize(Current, _json));
+            Changed?.Invoke();
         }
         catch { }
     }

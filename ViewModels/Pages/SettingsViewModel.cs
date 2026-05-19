@@ -162,13 +162,11 @@ namespace Aquila.ViewModels.Pages
             if (value)
             {
                 MinimizeToTray   = true;
-                StartMinimized   = true;
                 StartWithWindows = true;
             }
             else
             {
                 MinimizeToTray   = false;
-                StartMinimized   = false;
                 StartWithWindows = false;
             }
             _settings.Save();

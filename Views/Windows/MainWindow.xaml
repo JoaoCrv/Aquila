@@ -35,13 +35,21 @@
         <ui:NavigationView
             x:Name="RootNavigation"
             Grid.Row="1"
-            Padding="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource ResponsivePaddingConverter}, ConverterParameter=nav}"
             FooterMenuItemsSource="{Binding ViewModel.FooterMenuItems, Mode=OneWay}"
             FrameMargin="0"
-            IsBackButtonVisible="Visible"
-            IsPaneToggleVisible="True"
-            MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}"
-            PaneDisplayMode="LeftFluent">
+            MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}">
+            <ui:NavigationView.Style>
+                <Style TargetType="ui:NavigationView" BasedOn="{StaticResource {x:Type ui:NavigationView}}">
+                    <Setter Property="PaneDisplayMode"     Value="LeftFluent" />
+                    <Setter Property="IsBackButtonVisible" Value="Collapsed" />
+                    <Setter Property="Padding"             Value="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource ResponsivePaddingConverter}, ConverterParameter=nav}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ViewModel.IsDashboardMode}" Value="True">
+                            <Setter Property="Padding" Value="0" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ui:NavigationView.Style>
             <ui:NavigationView.ContentOverlay>
                 <Grid>
                     <ui:SnackbarPresenter x:Name="SnackbarPresenter" />
@@ -58,6 +66,7 @@
                 <ui:ImageIcon Source="/Assets/Images/icon.png" />
             </ui:TitleBar.Icon>
         </ui:TitleBar>
+
         <Grid Grid.Row="0" Grid.RowSpan="2" Background="#80000000" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
             <ui:ProgressRing IsIndeterminate="True" VerticalAlignment="Center" HorizontalAlignment="Center"/>
         </Grid>
@@ -66,5 +75,35 @@
             Grid.Row="0"
             Grid.RowSpan="2" />
 
+        <StackPanel
+            Grid.Row="1"
+            VerticalAlignment="Bottom"
+            HorizontalAlignment="Center"
+            Orientation="Horizontal"
+            Margin="0,0,0,16">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ViewModel.IsDashboardMode}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+            <ui:Button
+                x:Name="DashboardMenuButton"
+                Icon="{ui:SymbolIcon Navigation24}"
+                ToolTip="Toggle menu"
+                Appearance="Secondary"
+                Click="DashboardMenuButton_Click" />
+            <ui:Button
+                x:Name="DashboardHideButton"
+                Icon="{ui:SymbolIcon EyeOff24}"
+                ToolTip="Hide to tray"
+                Appearance="Secondary"
+                Margin="8,0,0,0"
+                Click="DashboardHideButton_Click" />
+        </StackPanel>
     </Grid>
 </ui:FluentWindow>
