@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
+
+      - name: Extract version from tag
+        id: vars
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Publish
+        run: dotnet publish -c Release -r win-x64
+
+      - name: Decode certificate
+        id: cert
+        shell: pwsh
+        run: |
+          $b64 = "${{ secrets.CERT_PFX_BASE64 }}"
+          if ($b64) {
+            [IO.File]::WriteAllBytes("aquila-cert.pfx", [Convert]::FromBase64String($b64))
+            "AVAILABLE=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $publishDir = ".\bin\Release\net9.0-windows10.0.19041\win-x64\publish"
+          $vpkArgs = @(
+            "pack",
+            "--packId",      "Aquila",
+            "--packVersion", "${{ steps.vars.outputs.VERSION }}",
+            "--packDir",     $publishDir,
+            "--mainExe",     "Aquila.exe"
+          )
+          if ("${{ steps.cert.outputs.AVAILABLE }}" -eq "true") {
+            $signParams = "/td sha256 /fd sha256 /f `"aquila-cert.pfx`" /p `"${{ secrets.CERT_PASSWORD }}`" /tr http://timestamp.comodoca.com"
+            $vpkArgs += "--signParams", $signParams
+          }
+          vpk @vpkArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" ./releases/* `
+            --title "Aquila ${{ github.ref_name }}" `
+            --generate-notes
