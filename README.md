@@ -1,7 +1,22 @@
 
 # Aquila
 
-Aquila is a free and open-source Windows hardware monitoring app built with .NET and LibreHardwareMonitor. It is designed for secondary screens and focuses on presenting CPU, GPU, RAM, network, and storage metrics in a clean WPF dashboard.
+Aquila is a free and open-source Windows hardware monitoring app built with .NET and LibreHardwareMonitor. It is designed for secondary screens and focuses on presenting CPU, GPU, RAM, network, and storage metrics in a clean, responsive WPF dashboard.
+
+## Features
+
+- **Responsive card grid** — cards reflow automatically as the window resizes; all cards in a row match the height of the tallest card
+- **Real-time sparklines** — 60-second rolling history charts for CPU load, CPU die temperature, GPU load, RAM usage, network throughput, total system power and CPU fan speed
+- **CPU** — load, temperature, clock and package power; per-core load bars
+- **GPU** — load, temperature, core clock, power, VRAM usage and fan speeds; supports multiple GPUs
+- **RAM** — used/available physical and virtual memory with a segmented progress bar; DIMM temperatures when available
+- **Network** — live download/upload throughput and session totals
+- **Storage** — temperature, used space, read/write rates; supports multiple drives
+- **Fans** — all motherboard fan channels with RPM bars
+- **Power** — total system power with per-component breakdown
+- **Motherboard temperatures** — all available thermal sensors in a grid
+- **System tray** — minimize to tray; toggle dashboard mode (borderless, pinned to monitor)
+- **Clock and uptime** — displayed in the dashboard header
 
 ## Project principles
 
