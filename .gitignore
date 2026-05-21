@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 build.ps1
+release.ps1
 aquila-cert.pfx
 appsettings.local.json
 commit-types.md
