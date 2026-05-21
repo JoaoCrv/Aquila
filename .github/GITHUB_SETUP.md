@@ -33,15 +33,25 @@ If these secrets are absent the pipeline still runs but skips code signing.
 
 ## Local builds
 
-Use `build.ps1` (gitignored, kept locally):
+Use `build.ps1` (gitignored, kept locally).
+
+`versionize` must be installed: `dotnet tool install -g versionize`
 
 ```powershell
-# With signing (password from env var)
+# Auto-version + build + push tag (full pipeline, triggers GitHub Actions)
 $env:AQUILA_PFX_PASSWORD = "your-password"
-.\build.ps1 -Version 1.5.0
+.\build.ps1 -Push
 
-# Without signing
-.\build.ps1 -Version 1.5.0
+# Auto-version + build locally only (no push)
+.\build.ps1
+
+# Manual version override
+.\build.ps1 -Version 1.5.0 -Push
 ```
+
+`versionize` reads conventional commits since the last tag and bumps
+the version (patch / minor / major) automatically, updates the csproj,
+and creates a git commit + tag. `-Push` then sends that tag to origin,
+which triggers the GitHub Actions release workflow.
 
 Artifacts are written to `.\releases\`.
