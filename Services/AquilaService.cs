@@ -42,8 +42,13 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) : IDisposa
     {
         var hw = _state.Hardware;
         foreach (var cpu in hw.Cpus)
+        {
             cpu.Load.Total.Record();
+            cpu.Temperature.Primary.Record();
+        }
         hw.Memory.Load.Total.Record();
+        hw.TotalPower.Record();
+        hw.Motherboard.CpuFan?.Record();
         foreach (var net in hw.Networks)
         {
             net.Throughput.Download.Record();
