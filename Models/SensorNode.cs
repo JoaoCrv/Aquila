@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -46,6 +47,14 @@ public class SensorNode : INotifyPropertyChanged
     {
         get => _identifier;
         set { if (_identifier != value) { _identifier = value; OnPropertyChanged(); } }
+    }
+
+    public ObservableCollection<double> History { get; } = [];
+
+    public void Record(int depth = 60)
+    {
+        if (History.Count >= depth) History.RemoveAt(0);
+        History.Add(Value ?? 0);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

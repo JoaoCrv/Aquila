@@ -95,7 +95,7 @@
                     <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"/>
                     <controls:SparklineChart
                         Height="52"
-                        Values="{Binding UsageHistory}"
+                        Values="{Binding Load.History}"
                         SeriesColor="{DynamicResource Aquila.Chart.Gpu}"
                         MaxY="100"/>
 
@@ -281,7 +281,7 @@
                     <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"/>
                     <controls:SparklineChart
                         Height="52"
-                        Values="{Binding ViewModel.CpuHistory}"
+                        Values="{Binding ViewModel.Hardware.Cpus[0].Load.Total.History}"
                         SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
                         MaxY="100"/>
 
@@ -447,7 +447,7 @@
                     <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"/>
                     <controls:SparklineChart
                         Height="52"
-                        Values="{Binding ViewModel.RamHistory}"
+                        Values="{Binding ViewModel.Hardware.Memory.Load.Total.History}"
                         SeriesColor="{DynamicResource Aquila.Chart.Ram}"
                         MaxY="100"/>
 
@@ -529,9 +529,9 @@
                     <controls:SparklineChart
                         Height="52"
                         Margin="0,6,0,0"
-                        Values="{Binding ViewModel.NetDownHistory}"
+                        Values="{Binding ViewModel.Hardware.Networks[0].Throughput.Download.History}"
                         SeriesColor="{DynamicResource Aquila.Chart.NetDown}"
-                        SecondValues="{Binding ViewModel.NetUpHistory}"
+                        SecondValues="{Binding ViewModel.Hardware.Networks[0].Throughput.Upload.History}"
                         SecondColor="{DynamicResource Aquila.Chart.NetUp}"/>
 
                     <!-- Totals: hide when narrow -->

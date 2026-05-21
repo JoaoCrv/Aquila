@@ -34,7 +34,23 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) : IDisposa
     private void OnTick(object? sender, EventArgs e)
     {
         _driver.Populate(_state);
+        RecordHistory();
         DataUpdated?.Invoke();
+    }
+
+    private void RecordHistory()
+    {
+        var hw = _state.Hardware;
+        foreach (var cpu in hw.Cpus)
+            cpu.Load.Total.Record();
+        hw.Memory.Load.Total.Record();
+        foreach (var net in hw.Networks)
+        {
+            net.Throughput.Download.Record();
+            net.Throughput.Upload.Record();
+        }
+        foreach (var gpu in hw.Gpus)
+            gpu.Load.Core.Record();
     }
 
     public void Dispose()
