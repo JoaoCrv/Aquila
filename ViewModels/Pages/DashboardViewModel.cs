@@ -24,6 +24,11 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public GpuCardData? Gpu1 => GpuCards.Count > 0 ? GpuCards[0] : null;
     public GpuCardData? Gpu2 => GpuCards.Count > 1 ? GpuCards[1] : null;
 
+    public StorageNode? Storage1 => Hardware.Storages.Count > 0 ? Hardware.Storages[0] : null;
+    public StorageNode? Storage2 => Hardware.Storages.Count > 1 ? Hardware.Storages[1] : null;
+    public StorageNode? Storage3 => Hardware.Storages.Count > 2 ? Hardware.Storages[2] : null;
+    public StorageNode? Storage4 => Hardware.Storages.Count > 3 ? Hardware.Storages[3] : null;
+
     public string SystemUptime
     {
         get
@@ -88,6 +93,10 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CpuSummary));
         OnPropertyChanged(nameof(Gpu1));
         OnPropertyChanged(nameof(Gpu2));
+        OnPropertyChanged(nameof(Storage1));
+        OnPropertyChanged(nameof(Storage2));
+        OnPropertyChanged(nameof(Storage3));
+        OnPropertyChanged(nameof(Storage4));
         OnPropertyChanged(nameof(MemPhysUsedFrac));
         OnPropertyChanged(nameof(MemPhysFreeFrac));
         OnPropertyChanged(nameof(MemVirtUsedFrac));

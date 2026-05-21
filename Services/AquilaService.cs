@@ -56,6 +56,11 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) : IDisposa
         }
         foreach (var gpu in hw.Gpus)
             gpu.Load.Core.Record();
+        foreach (var storage in hw.Storages)
+        {
+            storage.Throughput.ReadRate.Record();
+            storage.Throughput.WriteRate.Record();
+        }
     }
 
     public void Dispose()

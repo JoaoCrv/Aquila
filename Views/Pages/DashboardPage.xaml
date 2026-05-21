@@ -7,6 +7,7 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:controls="clr-namespace:Aquila.Controls"
     xmlns:vm="clr-namespace:Aquila.ViewModels.Pages"
+    xmlns:nodes="clr-namespace:Aquila.Models.Nodes"
     xmlns:helpers="clr-namespace:Aquila.Helpers"
     Style="{StaticResource BasePageStyle}"
     Title="DashboardPage"
@@ -41,6 +42,83 @@
                 <TextBlock Text="{Binding ValueText}" FontSize="9" Opacity="0.50"
                            HorizontalAlignment="Center" Margin="0,2,0,0"/>
             </StackPanel>
+        </DataTemplate>
+
+        <!-- Storage card DataTemplate -->
+        <DataTemplate x:Key="StorageCardTemplate" DataType="{x:Type nodes:StorageNode}">
+            <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: name + stats + I/O rows -->
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Text="STORAGE" Style="{StaticResource SectionLabel}"/>
+                        <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,0,0,10"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <UniformGrid Columns="2" Margin="0,0,0,10">
+                            <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatBoxValue}"
+                                               Foreground="{Binding Temperature.Primary.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                        <Run Text="{Binding Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatBoxValue}">
+                                        <Run Text="{Binding Load.UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                        <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="Used" Style="{StaticResource StatBoxLabel}"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Read" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Aquila.Cpu}"
+                                       Text="{Binding Throughput.ReadRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                        </Grid>
+                        <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,6"
+                                     Value="{Binding Throughput.ReadRate.Value, FallbackValue=0}"
+                                     Maximum="{Binding Throughput.ReadRate.Max, FallbackValue=1}"/>
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Write" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Aquila.Ram}"
+                                       Text="{Binding Throughput.WriteRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
+                        </Grid>
+                        <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,6"
+                                     Value="{Binding Throughput.WriteRate.Value, FallbackValue=0}"
+                                     Maximum="{Binding Throughput.WriteRate.Max, FallbackValue=1}"/>
+                        <TextBlock Text="I/O ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
+                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
+                    </StackPanel>
+
+                    <!-- Row 1: sparkline fills remaining space -->
+                    <controls:SparklineChart Grid.Row="1" MinHeight="40"
+                        Values="{Binding Throughput.ReadRate.History}"
+                        SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
+                        SecondValues="{Binding Throughput.WriteRate.History}"
+                        SecondColor="{DynamicResource Aquila.Chart.Ram}"
+                        Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
+                </Grid>
+            </ui:Card>
         </DataTemplate>
 
         <!-- GPU card DataTemplate -->
@@ -619,70 +697,31 @@
                 </Grid>
             </ui:Card>
 
-            <!-- ── Storage card ──────────────────────────────────────── -->
-            <ui:Card Padding="12,10"
-                     Visibility="{Binding ViewModel.Hardware.Storages.Count, Converter={StaticResource ZeroToCollapsedConverter}}">
-                <StackPanel>
-                    <TextBlock Text="STORAGE" Style="{StaticResource SectionLabel}"/>
-                    <ItemsControl ItemsSource="{Binding ViewModel.Hardware.Storages}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="0,0,0,14">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,4,0,10"
-                                               TextTrimming="CharacterEllipsis"/>
-                                    <UniformGrid Columns="2" Margin="0,0,0,10">
-                                        <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
-                                            <StackPanel>
-                                                <TextBlock Style="{StaticResource StatBoxValue}"
-                                                           Foreground="{Binding Temperature.Primary.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                                    <Run Text="{Binding Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                                    <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                                </TextBlock>
-                                                <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
-                                            <StackPanel>
-                                                <TextBlock Style="{StaticResource StatBoxValue}">
-                                                    <Run Text="{Binding Load.UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                                    <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                                </TextBlock>
-                                                <TextBlock Text="Used" Style="{StaticResource StatBoxLabel}"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </UniformGrid>
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Read" Style="{StaticResource RowLabel}"/>
-                                        <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource Aquila.Cpu}"
-                                                   Text="{Binding Throughput.ReadRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
-                                    </Grid>
-                                    <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,6"
-                                                 Value="{Binding Throughput.ReadRate.Value, FallbackValue=0}"
-                                                 Maximum="{Binding Throughput.ReadRate.Max, FallbackValue=1}"/>
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Write" Style="{StaticResource RowLabel}"/>
-                                        <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource Aquila.Ram}"
-                                                   Text="{Binding Throughput.WriteRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
-                                    </Grid>
-                                    <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,0"
-                                                 Value="{Binding Throughput.WriteRate.Value, FallbackValue=0}"
-                                                 Maximum="{Binding Throughput.WriteRate.Max, FallbackValue=1}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </ui:Card>
+            <!-- ── Storage cards (one slot per drive) ───────────────── -->
+            <ContentControl Content="{Binding ViewModel.Storage1}"
+                            ContentTemplate="{StaticResource StorageCardTemplate}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            Visibility="{Binding ViewModel.Storage1, Converter={StaticResource NullToCollapsedConverter}}"/>
+            <ContentControl Content="{Binding ViewModel.Storage2}"
+                            ContentTemplate="{StaticResource StorageCardTemplate}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            Visibility="{Binding ViewModel.Storage2, Converter={StaticResource NullToCollapsedConverter}}"/>
+            <ContentControl Content="{Binding ViewModel.Storage3}"
+                            ContentTemplate="{StaticResource StorageCardTemplate}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            Visibility="{Binding ViewModel.Storage3, Converter={StaticResource NullToCollapsedConverter}}"/>
+            <ContentControl Content="{Binding ViewModel.Storage4}"
+                            ContentTemplate="{StaticResource StorageCardTemplate}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            Visibility="{Binding ViewModel.Storage4, Converter={StaticResource NullToCollapsedConverter}}"/>
 
             <!-- ── Temperatures card ─────────────────────────────────── -->
             <ui:Card Padding="12,10">
