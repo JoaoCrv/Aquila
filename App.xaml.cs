@@ -8,6 +8,9 @@ using Aquila.Views.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -23,11 +26,8 @@ namespace Aquila
     /// </summary>
     public partial class App
     {
-        // The.NET Generic Host provides dependency injection, configuration, logging, and other services.
-        // https://docs.microsoft.com/dotnet/core/extensions/generic-host
-        // https://docs.microsoft.com/dotnet/core/extensions/dependency-injection
-        // https://docs.microsoft.com/dotnet/core/extensions/configuration
-        // https://docs.microsoft.com/dotnet/core/extensions/logging
+        internal static LoggingLevelSwitch LogLevel { get; } = new(LogEventLevel.Warning);
+
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
             .ConfigureAppConfiguration(c =>
@@ -78,7 +78,14 @@ namespace Aquila
                 services.AddSingleton<AboutViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
-            }).Build();
+            })
+            .UseSerilog((_, _, cfg) => cfg
+                .MinimumLevel.ControlledBy(App.LogLevel)
+                .WriteTo.File(
+                    Path.Combine(AquilaPaths.Logs, "aquila-.log"),
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7))
+            .Build();
 
         public App()
         {
@@ -126,6 +133,9 @@ namespace Aquila
             var settings = _host.Services.GetRequiredService<SettingsService>();
             settings.Load();
 
+            if (settings.Current.EnableVerboseLogging)
+                LogLevel.MinimumLevel = LogEventLevel.Debug;
+
             ApplicationThemeManager.Changed += (_, _) => Dispatcher.Invoke(RefreshAccentBrushes);
 
             await _host.StartAsync();
@@ -147,14 +157,13 @@ namespace Aquila
         {
             await _host.StopAsync();
             _host.Dispose();
+            Log.CloseAndFlush();
         }
 
-        /// <summary>
-        /// Occurs when an exception is thrown by an application but not handled.
-        /// </summary>
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            // For more info see https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.dispatcherunhandledexception?view=windowsdesktop-6.0
+            Log.Fatal(e.Exception, "Unhandled UI exception");
+            Log.CloseAndFlush();
         }
     }
 }

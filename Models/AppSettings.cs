@@ -11,5 +11,6 @@ public class AppSettings
     public double WindowWidth      { get; set; } = 1600;
     public double WindowHeight     { get; set; } = 900;
     public bool   WindowMaximized  { get; set; } = false;
-    public bool   DashboardMode    { get; set; } = false;
+    public bool   DashboardMode         { get; set; } = false;
+    public bool   EnableVerboseLogging  { get; set; } = false;
 }

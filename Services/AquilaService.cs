@@ -1,15 +1,17 @@
 ﻿using Aquila.Models;
 using Aquila.Services.LibreHardwareMonitor;
 using LibreHardwareMonitor.Hardware;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Windows.Threading;
 
 namespace Aquila.Services;
 
-public class AquilaService(IHardwareDriver driver, AquilaState state) : IDisposable
+public class AquilaService(IHardwareDriver driver, AquilaState state, ILogger<AquilaService> logger) : IDisposable
 {
     private readonly IHardwareDriver _driver = driver;
     private readonly AquilaState _state = state;
+    private readonly ILogger<AquilaService> _logger = logger;
     private readonly DispatcherTimer _timer = new();
     private bool _disposed;
 
@@ -21,6 +23,7 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) : IDisposa
 
     public void Start()
     {
+        _logger.LogInformation("Hardware monitor starting");
         _driver.Initialize();
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += OnTick;
@@ -33,9 +36,16 @@ public class AquilaService(IHardwareDriver driver, AquilaState state) : IDisposa
 
     private void OnTick(object? sender, EventArgs e)
     {
-        _driver.Populate(_state);
-        RecordHistory();
-        DataUpdated?.Invoke();
+        try
+        {
+            _driver.Populate(_state);
+            RecordHistory();
+            DataUpdated?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during hardware poll");
+        }
     }
 
     private void RecordHistory()

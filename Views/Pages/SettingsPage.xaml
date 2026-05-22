@@ -81,6 +81,22 @@
 
         <ui:Card Margin="0,24,0,0" Padding="16,14">
             <StackPanel>
+                <TextBlock Text="Diagnostics" Style="{StaticResource SectionLabel}" />
+                <ui:ToggleSwitch
+                    Margin="0,8,0,0"
+                    Content="Verbose logging"
+                    IsChecked="{Binding ViewModel.EnableVerboseLogging}" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    Opacity="0.55"
+                    FontSize="12"
+                    Text="Writes detailed logs to Documents\Aquila\logs\. Useful for troubleshooting. Disabled by default."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </ui:Card>
+
+        <ui:Card Margin="0,12,0,0" Padding="16,14">
+            <StackPanel>
                 <TextBlock Text="Updates" Style="{StaticResource SectionLabel}" />
                 <TextBlock Text="{Binding ViewModel.AppVersion, Mode=OneWay}"
                            Style="{StaticResource ChipName}"

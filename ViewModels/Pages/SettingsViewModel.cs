@@ -2,6 +2,7 @@
 using System.Reflection;
 using Aquila.Services;
 using Microsoft.Win32;
+using Serilog.Events;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
@@ -63,6 +64,9 @@ namespace Aquila.ViewModels.Pages
         [NotifyPropertyChangedFor(nameof(IsNotDashboardMode))]
         private bool _dashboardMode;
 
+        [ObservableProperty]
+        private bool _enableVerboseLogging;
+
         public bool IsNotDashboardMode => !DashboardMode;
 
         public Task OnNavigatedToAsync()
@@ -91,8 +95,9 @@ namespace Aquila.ViewModels.Pages
 
             MinimizeToTray   = _settings.Current.MinimizeToTray;
             StartMinimized   = _settings.Current.StartMinimized;
-            StartWithWindows = IsRegisteredAtStartup();
-            DashboardMode    = _settings.Current.DashboardMode;
+            StartWithWindows    = IsRegisteredAtStartup();
+            DashboardMode       = _settings.Current.DashboardMode;
+            EnableVerboseLogging = _settings.Current.EnableVerboseLogging;
 
             _isInitialized = true;
         }
@@ -153,6 +158,14 @@ namespace Aquila.ViewModels.Pages
         {
             if (!_isInitialized) return;
             SetRegistryStartup(value);
+        }
+
+        partial void OnEnableVerboseLoggingChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            App.LogLevel.MinimumLevel = value ? LogEventLevel.Debug : LogEventLevel.Warning;
+            _settings.Current.EnableVerboseLogging = value;
+            _settings.Save();
         }
 
         partial void OnDashboardModeChanged(bool value)

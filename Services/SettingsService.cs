@@ -1,12 +1,14 @@
 using Aquila.Models;
+using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Text.Json;
 
 namespace Aquila.Services;
 
-public class SettingsService
+public class SettingsService(ILogger<SettingsService> logger)
 {
     private static readonly JsonSerializerOptions _json = new() { WriteIndented = true };
+    private readonly ILogger<SettingsService> _logger = logger;
 
     public AppSettings Current { get; private set; } = new();
 
@@ -18,7 +20,11 @@ public class SettingsService
             Current = JsonSerializer.Deserialize<AppSettings>(
                 File.ReadAllText(AquilaPaths.Settings)) ?? new();
         }
-        catch { Current = new(); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load settings, using defaults");
+            Current = new();
+        }
     }
 
     public event Action? Changed;
@@ -32,6 +38,9 @@ public class SettingsService
                 JsonSerializer.Serialize(Current, _json));
             Changed?.Invoke();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to save settings");
+        }
     }
 }
