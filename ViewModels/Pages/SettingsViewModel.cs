@@ -67,6 +67,15 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private bool _enableVerboseLogging;
 
+        [ObservableProperty] private bool _showCpuCard;
+        [ObservableProperty] private bool _showMemoryCard;
+        [ObservableProperty] private bool _showNetworkCard;
+        [ObservableProperty] private bool _showTemperaturesCard;
+        [ObservableProperty] private bool _showPowerCard;
+        [ObservableProperty] private bool _showFansCard;
+        [ObservableProperty] private bool _showGpuCard;
+        [ObservableProperty] private bool _showStorageCard;
+
         public bool IsNotDashboardMode => !DashboardMode;
 
         public Task OnNavigatedToAsync()
@@ -97,7 +106,16 @@ namespace Aquila.ViewModels.Pages
             StartMinimized   = _settings.Current.StartMinimized;
             StartWithWindows    = IsRegisteredAtStartup();
             DashboardMode       = _settings.Current.DashboardMode;
-            EnableVerboseLogging = _settings.Current.EnableVerboseLogging;
+            EnableVerboseLogging  = _settings.Current.EnableVerboseLogging;
+
+            ShowCpuCard          = _settings.Current.ShowCpuCard;
+            ShowMemoryCard       = _settings.Current.ShowMemoryCard;
+            ShowNetworkCard      = _settings.Current.ShowNetworkCard;
+            ShowTemperaturesCard = _settings.Current.ShowTemperaturesCard;
+            ShowPowerCard        = _settings.Current.ShowPowerCard;
+            ShowFansCard         = _settings.Current.ShowFansCard;
+            ShowGpuCard          = _settings.Current.ShowGpuCard;
+            ShowStorageCard      = _settings.Current.ShowStorageCard;
 
             _isInitialized = true;
         }
@@ -167,6 +185,15 @@ namespace Aquila.ViewModels.Pages
             _settings.Current.EnableVerboseLogging = value;
             _settings.Save();
         }
+
+        partial void OnShowGpuCardChanged(bool value)          { if (!_isInitialized) return; _settings.Current.ShowGpuCard          = value; _settings.Save(); }
+        partial void OnShowStorageCardChanged(bool value)      { if (!_isInitialized) return; _settings.Current.ShowStorageCard      = value; _settings.Save(); }
+        partial void OnShowCpuCardChanged(bool value)          { if (!_isInitialized) return; _settings.Current.ShowCpuCard          = value; _settings.Save(); }
+        partial void OnShowMemoryCardChanged(bool value)       { if (!_isInitialized) return; _settings.Current.ShowMemoryCard       = value; _settings.Save(); }
+        partial void OnShowNetworkCardChanged(bool value)      { if (!_isInitialized) return; _settings.Current.ShowNetworkCard      = value; _settings.Save(); }
+        partial void OnShowTemperaturesCardChanged(bool value) { if (!_isInitialized) return; _settings.Current.ShowTemperaturesCard = value; _settings.Save(); }
+        partial void OnShowPowerCardChanged(bool value)        { if (!_isInitialized) return; _settings.Current.ShowPowerCard        = value; _settings.Save(); }
+        partial void OnShowFansCardChanged(bool value)         { if (!_isInitialized) return; _settings.Current.ShowFansCard         = value; _settings.Save(); }
 
         partial void OnDashboardModeChanged(bool value)
         {

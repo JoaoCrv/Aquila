@@ -303,7 +303,7 @@
         <controls:ResponsiveCardPanel Gap="8" MinCardWidth="320">
 
             <!-- ── CPU card ─────────────────────────────────────────── -->
-            <ui:Card Padding="12,10">
+            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowCpuCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -455,7 +455,7 @@
                             Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}"/>
 
             <!-- ── RAM card ──────────────────────────────────────────── -->
-            <ui:Card Padding="12,10">
+            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowMemoryCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -613,7 +613,7 @@
             </ui:Card>
 
             <!-- ── Network card ──────────────────────────────────────── -->
-            <ui:Card Padding="12,10">
+            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowNetworkCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -724,7 +724,7 @@
                             Visibility="{Binding ViewModel.Storage4, Converter={StaticResource NullToCollapsedConverter}}"/>
 
             <!-- ── Temperatures card ─────────────────────────────────── -->
-            <ui:Card Padding="12,10">
+            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowTemperaturesCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -769,7 +769,7 @@
             </ui:Card>
 
             <!-- ── Fans card ─────────────────────────────────────────── -->
-            <ui:Card Padding="12,10">
+            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowFansCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -821,7 +821,7 @@
             </ui:Card>
 
             <!-- ── Power card ────────────────────────────────────────── -->
-            <ui:Card Padding="12,10">
+            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowPowerCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

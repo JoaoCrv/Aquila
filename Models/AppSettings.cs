@@ -13,4 +13,13 @@ public class AppSettings
     public bool   WindowMaximized  { get; set; } = false;
     public bool   DashboardMode         { get; set; } = false;
     public bool   EnableVerboseLogging  { get; set; } = false;
+
+    public bool ShowCpuCard          { get; set; } = true;
+    public bool ShowMemoryCard       { get; set; } = true;
+    public bool ShowNetworkCard      { get; set; } = true;
+    public bool ShowTemperaturesCard { get; set; } = true;
+    public bool ShowPowerCard        { get; set; } = true;
+    public bool ShowFansCard         { get; set; } = true;
+    public bool ShowGpuCard          { get; set; } = true;
+    public bool ShowStorageCard      { get; set; } = true;
 }

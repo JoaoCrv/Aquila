@@ -79,6 +79,19 @@
             Text="Window opens at the tray icon only, no taskbar entry. Single click to show/hide."
             TextWrapping="Wrap" />
 
+        <TextBlock Margin="0,24,0,0" FontSize="20" FontWeight="Medium" Text="Dashboard cards" />
+        <TextBlock Margin="0,4,0,8" Opacity="0.55" FontSize="12"
+                   Text="Hidden cards are excluded from the layout entirely." />
+
+        <ui:ToggleSwitch Content="CPU" IsChecked="{Binding ViewModel.ShowCpuCard}" />
+        <ui:ToggleSwitch Margin="0,4,0,0" Content="Memory" IsChecked="{Binding ViewModel.ShowMemoryCard}" />
+        <ui:ToggleSwitch Margin="0,4,0,0" Content="GPU" IsChecked="{Binding ViewModel.ShowGpuCard}" />
+        <ui:ToggleSwitch Margin="0,4,0,0" Content="Network" IsChecked="{Binding ViewModel.ShowNetworkCard}" />
+        <ui:ToggleSwitch Margin="0,4,0,0" Content="Storage" IsChecked="{Binding ViewModel.ShowStorageCard}" />
+        <ui:ToggleSwitch Margin="0,4,0,0" Content="Temperatures" IsChecked="{Binding ViewModel.ShowTemperaturesCard}" />
+        <ui:ToggleSwitch Margin="0,4,0,0" Content="Power" IsChecked="{Binding ViewModel.ShowPowerCard}" />
+        <ui:ToggleSwitch Margin="0,4,0,0" Content="Fans" IsChecked="{Binding ViewModel.ShowFansCard}" />
+
         <ui:Card Margin="0,24,0,0" Padding="16,14">
             <StackPanel>
                 <TextBlock Text="Diagnostics" Style="{StaticResource SectionLabel}" />

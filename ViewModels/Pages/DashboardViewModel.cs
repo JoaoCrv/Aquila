@@ -6,12 +6,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Threading;
+using System.Windows;
 
 namespace Aquila.ViewModels.Pages;
 
 public partial class DashboardViewModel : ObservableObject, IDisposable
 {
     private readonly AquilaService _aquila;
+    private readonly SettingsService _settings;
     private readonly DispatcherTimer _clockTimer;
     private bool _suspended;
 
@@ -21,13 +23,16 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     [ObservableProperty] private List<CoreBarItem> _cpuCoreItems = [];
     [ObservableProperty] private List<GpuCardData> _gpuCards = [];
 
-    public GpuCardData? Gpu1 => GpuCards.Count > 0 ? GpuCards[0] : null;
-    public GpuCardData? Gpu2 => GpuCards.Count > 1 ? GpuCards[1] : null;
+    private bool GpuVisible     => _settings.Current.ShowGpuCard;
+    private bool StorageVisible => _settings.Current.ShowStorageCard;
 
-    public StorageNode? Storage1 => Hardware.Storages.Count > 0 ? Hardware.Storages[0] : null;
-    public StorageNode? Storage2 => Hardware.Storages.Count > 1 ? Hardware.Storages[1] : null;
-    public StorageNode? Storage3 => Hardware.Storages.Count > 2 ? Hardware.Storages[2] : null;
-    public StorageNode? Storage4 => Hardware.Storages.Count > 3 ? Hardware.Storages[3] : null;
+    public GpuCardData? Gpu1 => GpuVisible && GpuCards.Count > 0 ? GpuCards[0] : null;
+    public GpuCardData? Gpu2 => GpuVisible && GpuCards.Count > 1 ? GpuCards[1] : null;
+
+    public StorageNode? Storage1 => StorageVisible && Hardware.Storages.Count > 0 ? Hardware.Storages[0] : null;
+    public StorageNode? Storage2 => StorageVisible && Hardware.Storages.Count > 1 ? Hardware.Storages[1] : null;
+    public StorageNode? Storage3 => StorageVisible && Hardware.Storages.Count > 2 ? Hardware.Storages[2] : null;
+    public StorageNode? Storage4 => StorageVisible && Hardware.Storages.Count > 3 ? Hardware.Storages[3] : null;
 
     public string SystemUptime
     {
@@ -55,13 +60,22 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         }
     }
 
+    public Visibility ShowCpuCard          => _settings.Current.ShowCpuCard          ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ShowMemoryCard       => _settings.Current.ShowMemoryCard       ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ShowNetworkCard      => _settings.Current.ShowNetworkCard      ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ShowTemperaturesCard => _settings.Current.ShowTemperaturesCard ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ShowPowerCard        => _settings.Current.ShowPowerCard        ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ShowFansCard         => _settings.Current.ShowFansCard         ? Visibility.Visible : Visibility.Collapsed;
+
     public void Suspend() => _suspended = true;
     public void Resume() => _suspended = false;
 
-    public DashboardViewModel(AquilaService aquila)
+    public DashboardViewModel(AquilaService aquila, SettingsService settings)
     {
         _aquila = aquila;
+        _settings = settings;
         _aquila.DataUpdated += OnDataUpdated;
+        _settings.Changed += OnSettingsChanged;
 
         _clockTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -123,10 +137,27 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         GpuCards = cards;
     }
 
+    private void OnSettingsChanged()
+    {
+        OnPropertyChanged(nameof(ShowCpuCard));
+        OnPropertyChanged(nameof(ShowMemoryCard));
+        OnPropertyChanged(nameof(ShowNetworkCard));
+        OnPropertyChanged(nameof(ShowTemperaturesCard));
+        OnPropertyChanged(nameof(ShowPowerCard));
+        OnPropertyChanged(nameof(ShowFansCard));
+        OnPropertyChanged(nameof(Gpu1));
+        OnPropertyChanged(nameof(Gpu2));
+        OnPropertyChanged(nameof(Storage1));
+        OnPropertyChanged(nameof(Storage2));
+        OnPropertyChanged(nameof(Storage3));
+        OnPropertyChanged(nameof(Storage4));
+    }
+
     public void Dispose()
     {
         _clockTimer.Stop();
         _aquila.DataUpdated -= OnDataUpdated;
+        _settings.Changed -= OnSettingsChanged;
     }
 }
 
