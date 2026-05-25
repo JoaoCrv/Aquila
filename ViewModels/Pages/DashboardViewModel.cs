@@ -2,11 +2,13 @@ using Aquila.Models;
 using Aquila.Models.Nodes;
 using Aquila.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Windows.Threading;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Aquila.ViewModels.Pages;
 
@@ -60,12 +62,26 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         }
     }
 
+    public Visibility DashboardControls    => _settings.Current.DashboardMode         ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowCpuCard          => _settings.Current.ShowCpuCard          ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowMemoryCard       => _settings.Current.ShowMemoryCard       ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowNetworkCard      => _settings.Current.ShowNetworkCard      ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowTemperaturesCard => _settings.Current.ShowTemperaturesCard ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowPowerCard        => _settings.Current.ShowPowerCard        ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowFansCard         => _settings.Current.ShowFansCard         ? Visibility.Visible : Visibility.Collapsed;
+
+    [RelayCommand]
+    private void ExitDashboard()
+    {
+        _settings.Current.DashboardMode = false;
+        _settings.Save();
+        var exe = Environment.ProcessPath;
+        if (exe != null) Process.Start(exe);
+        Application.Current.Shutdown();
+    }
+
+    [RelayCommand]
+    private static void CloseApp() => Application.Current.Shutdown();
 
     public void Suspend() => _suspended = true;
     public void Resume() => _suspended = false;
@@ -139,6 +155,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void OnSettingsChanged()
     {
+        OnPropertyChanged(nameof(DashboardControls));
         OnPropertyChanged(nameof(ShowCpuCard));
         OnPropertyChanged(nameof(ShowMemoryCard));
         OnPropertyChanged(nameof(ShowNetworkCard));

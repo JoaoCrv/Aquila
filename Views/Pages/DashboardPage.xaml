@@ -292,12 +292,24 @@
                 </StackPanel>
             </Border>
             <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                    CornerRadius="5" Padding="10,4">
+                    CornerRadius="5" Padding="10,4" Margin="0,0,6,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <ui:SymbolIcon Symbol="CalendarLtr24" FontSize="13" Margin="0,0,5,0" Opacity="0.45"/>
                     <TextBlock Text="{Binding ViewModel.CurrentDateTime}" FontSize="12" Opacity="0.65"/>
                 </StackPanel>
             </Border>
+            <ui:Button Command="{Binding ViewModel.ExitDashboardCommand}"
+                       ToolTip="Exit dashboard mode"
+                       Appearance="Secondary" Padding="7,4" Margin="0,0,4,0"
+                       Visibility="{Binding ViewModel.DashboardControls}">
+                <ui:SymbolIcon Symbol="Home24" FontSize="13"/>
+            </ui:Button>
+            <ui:Button Command="{Binding ViewModel.CloseAppCommand}"
+                       ToolTip="Close Aquila"
+                       Appearance="Secondary" Padding="7,4"
+                       Visibility="{Binding ViewModel.DashboardControls}">
+                <ui:SymbolIcon Symbol="Dismiss24" FontSize="13"/>
+            </ui:Button>
         </StackPanel>
 
         <controls:ResponsiveCardPanel Gap="8" MinCardWidth="320">
