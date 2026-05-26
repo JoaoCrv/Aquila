@@ -20,10 +20,7 @@
     </Page.Resources>
 
     <StackPanel>
-        <TextBlock
-            FontSize="20"
-            FontWeight="Medium"
-            Text="Personalization" />
+        <TextBlock Style="{StaticResource PageSectionHeader}" Text="Personalization" />
         <TextBlock Margin="0,12,0,0" Text="Theme" />
         <RadioButton
             Margin="0,12,0,0"
@@ -48,7 +45,7 @@
                   MinWidth="120"
                   HorizontalAlignment="Left"/>
 
-        <TextBlock Margin="0,24,0,0" FontSize="20" FontWeight="Medium" Text="Behaviour" />
+        <TextBlock Margin="0,24,0,0" Style="{StaticResource PageSectionHeader}" Text="Behaviour" />
 
         <ui:ToggleSwitch
             Margin="0,12,0,0"
@@ -79,7 +76,7 @@
             Text="Window opens at the tray icon only, no taskbar entry. Single click to show/hide."
             TextWrapping="Wrap" />
 
-        <TextBlock Margin="0,24,0,0" FontSize="20" FontWeight="Medium" Text="Dashboard cards" />
+        <TextBlock Margin="0,24,0,0" Style="{StaticResource PageSectionHeader}" Text="Dashboard cards" />
         <TextBlock Margin="0,4,0,8" Opacity="0.55" FontSize="12"
                    Text="Hidden cards are excluded from the layout entirely." />
 
