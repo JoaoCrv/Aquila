@@ -791,29 +791,35 @@
 
                     <StackPanel Grid.Row="0">
                         <TextBlock Text="FANS" Style="{StaticResource SectionLabel}"/>
-                        <ItemsControl ItemsSource="{Binding ViewModel.Hardware.Motherboard.Fan}">
+                        <ItemsControl ItemsSource="{Binding ViewModel.FanRows}">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Margin="0,0,0,8"
-                                          Visibility="{Binding Value, Converter={StaticResource ZeroToCollapsedConverter}}">
+                                <DataTemplate DataType="{x:Type vm:FanRowItem}">
+                                    <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="110"/>
                                             <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="72"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                        <TextBlock Grid.Column="0" Text="{Binding Fan.Name}"
                                                    Style="{StaticResource RowLabel}"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <ProgressBar Grid.Column="1"
                                                      Style="{StaticResource FanBar}"
                                                      VerticalAlignment="Center"
-                                                     Value="{Binding Value, FallbackValue=0}"
-                                                     Maximum="{Binding Max, FallbackValue=3000}"/>
-                                        <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12" HorizontalAlignment="Right">
+                                                     Value="{Binding BarValue, Mode=OneWay}"
+                                                     Maximum="{Binding BarMaximum, Mode=OneWay}"/>
+                                        <TextBlock Grid.Column="2"
+                                                   Style="{StaticResource RowValue}" FontSize="11"
+                                                   Opacity="0.55" Margin="6,0,4,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="{Binding DutyText}"
+                                                   Visibility="{Binding DutyText, Converter={StaticResource NullToCollapsedConverter}}"/>
+                                        <TextBlock Grid.Column="3" Style="{StaticResource RowValue}" FontSize="12" HorizontalAlignment="Right">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                                    <Binding Path="Value"/>
-                                                    <Binding Path="Unit"/>
+                                                    <Binding Path="Fan.Value"/>
+                                                    <Binding Path="Fan.Unit"/>
                                                 </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>

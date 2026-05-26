@@ -24,6 +24,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     [ObservableProperty] private double _ramGaugeValue;
     [ObservableProperty] private List<CoreBarItem> _cpuCoreItems = [];
     [ObservableProperty] private List<GpuCardData> _gpuCards = [];
+    [ObservableProperty] private List<FanRowItem> _fanRows = [];
 
     private bool GpuVisible     => _settings.Current.ShowGpuCard;
     private bool StorageVisible => _settings.Current.ShowStorageCard;
@@ -119,6 +120,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
             .ToList() ?? [];
 
         UpdateGpus();
+        UpdateFans();
 
         OnPropertyChanged(nameof(CpuSummary));
         OnPropertyChanged(nameof(Gpu1));
@@ -141,6 +143,15 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public double MemPhysUsedFrac => MemPool > 0 ? (Hardware.Memory.Data.Used.Value ?? 0) / MemPool : 0;
     public double MemPhysFreeFrac => MemPool > 0 ? (Hardware.Memory.Data.Available.Value ?? 0) / MemPool : 0;
     public double MemVirtUsedFrac => MemPool > 0 ? (Hardware.Memory.Virtual.Used.Value ?? 0) / MemPool : 0;
+
+    private void UpdateFans()
+    {
+        var mb = Hardware.Motherboard;
+        FanRows = mb.Fan
+            .Where(f => f.Value > 0)
+            .Select(f => new FanRowItem(f, mb.Control[f.Name ?? string.Empty]))
+            .ToList();
+    }
 
     private void UpdateGpus()
     {
@@ -189,6 +200,25 @@ public sealed class GpuCardData(GpuNode gpu)
     public SensorNode Fan2        => gpu.Fan.Secondary;
     public SensorNode VramUsed    => gpu.Data.Used;
     public SensorNode VramTotal   => gpu.Data.Total;
+}
+
+public sealed class FanRowItem(SensorNode fan, SensorNode? control)
+{
+    public SensorNode  Fan        => fan;
+    public SensorNode? Control    => control;
+    public double      BarValue   => control?.Value ?? fan.Value ?? 0;
+    public double      BarMaximum => control != null ? 100 : (fan.Max ?? 3000);
+
+    public string? DutyText
+    {
+        get
+        {
+            if (control?.Value is float cv) return $"{cv:F0}%";
+            if (fan.Value is float v && fan.Max is float max && max > 0)
+                return $"{v / max * 100:F0}%";
+            return null;
+        }
+    }
 }
 
 public sealed class CoreBarItem(string label, double value)
