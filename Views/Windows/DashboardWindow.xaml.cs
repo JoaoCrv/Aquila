@@ -21,12 +21,18 @@ namespace Aquila.Views.Windows
 
             IsVisibleChanged += (_, e) =>
             {
-                if (!(bool)e.NewValue) return;
-                Opacity = 0;
-                BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
+                if ((bool)e.NewValue)
                 {
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                });
+                    Opacity = 0;
+                    BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    });
+                }
+                else
+                {
+                    SaveWindowBounds();
+                }
             };
         }
 
