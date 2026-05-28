@@ -76,10 +76,5 @@ namespace Aquila.ViewModels.Windows
             
         ];
 
-        [ObservableProperty]
-        private ObservableCollection<MenuItem> _trayMenuItems =
-        [
-            new MenuItem { Header = "Open Aquila", Tag = "tray_home" }
-        ];
     }
 }

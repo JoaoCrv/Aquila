@@ -19,7 +19,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private readonly AquilaService _aquila;
     private readonly SettingsService _settings;
     private readonly DispatcherTimer _clockTimer;
-    private bool _suspended;
 
     public HardwareNode Hardware => _aquila.State.Hardware;
 
@@ -97,9 +96,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(DashboardToggleTooltip));
     }
 
-    public void Suspend() => _suspended = true;
-    public void Resume() => _suspended = false;
-
     public DashboardViewModel(AquilaService aquila, SettingsService settings)
     {
         _aquila = aquila;
@@ -123,8 +119,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void OnDataUpdated()
     {
-        if (_suspended) return;
-
         var cpu = Hardware.Cpus.FirstOrDefault();
         RamGaugeValue = Math.Round(Hardware.Memory.Load.Total.Value ?? 0);
         CpuCoreItems = cpu?.Load.Cores

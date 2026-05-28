@@ -1,5 +1,3 @@
-using Aquila.ViewModels.Pages;
-using Aquila.Views.Pages;
 using Aquila.Views.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -7,53 +5,24 @@ using Wpf.Ui;
 
 namespace Aquila.Services
 {
-    /// <summary>
-    /// Managed host of the application.
-    /// </summary>
     public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService, SettingsService settingsService) : IHostedService
     {
-        private readonly IServiceProvider _serviceProvider = serviceProvider;
-
-        private INavigationWindow? _navigationWindow;
-
-        /// <summary>
-        /// Triggered when the application host is ready to start the service.
-        /// </summary>
-        /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             aquilaService.Start();
-            await _serviceProvider.GetRequiredService<ExplorerViewModel>().InitializeAsync();
-            await HandleActivationAsync();
-        }
+            await serviceProvider.GetRequiredService<ViewModels.Pages.ExplorerViewModel>().InitializeAsync();
 
-        /// <summary>
-        /// Triggered when the application host is performing a graceful shutdown.
-        /// </summary>
-        /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
-        public async Task StopAsync(CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Creates main window during activation.
-        /// </summary>
-        private async Task HandleActivationAsync()
-        {
             if (!Application.Current.Windows.OfType<MainWindow>().Any())
             {
-                _navigationWindow = (
-                    _serviceProvider.GetService(typeof(INavigationWindow)) as INavigationWindow
-                )!;
-                _navigationWindow!.ShowWindow();
-                _navigationWindow.Navigate(typeof(Views.Pages.DashboardPage));
+                var nav = (serviceProvider.GetRequiredService<INavigationWindow>());
+                nav.ShowWindow();
+                nav.Navigate(typeof(Views.Pages.DashboardPage));
 
                 if (settingsService.Current.StartMinimized || settingsService.Current.DashboardMode)
-                    ((System.Windows.Window)_navigationWindow).Hide();
+                    ((System.Windows.Window)nav).Hide();
             }
-
-            await Task.CompletedTask;
         }
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
