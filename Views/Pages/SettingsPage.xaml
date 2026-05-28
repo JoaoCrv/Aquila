@@ -73,7 +73,7 @@
             Margin="0,4,0,0"
             Opacity="0.55"
             FontSize="12"
-            Text="Window opens at the tray icon only, no taskbar entry. Single click to show/hide."
+            Text="Opens a borderless dashboard window. The main app window stays in the tray for settings access."
             TextWrapping="Wrap" />
 
         <TextBlock Margin="0,24,0,0" Style="{StaticResource PageSectionHeader}" Text="Dashboard cards" />

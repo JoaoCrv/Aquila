@@ -49,7 +49,9 @@ namespace Aquila.Services
                 _navigationWindow!.ShowWindow();
                 _navigationWindow.Navigate(typeof(Views.Pages.DashboardPage));
 
-                if (settingsService.Current.StartMinimized)
+                // In dashboard mode, MainWindow.Loaded → ApplyDashboardMode(true) hides it
+                // and opens DashboardWindow. Only apply StartMinimized in normal mode.
+                if (settingsService.Current.StartMinimized && !settingsService.Current.DashboardMode)
                     ((System.Windows.Window)_navigationWindow).Hide();
             }
 

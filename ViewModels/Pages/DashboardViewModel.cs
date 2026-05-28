@@ -1,11 +1,11 @@
 using Aquila.Models;
 using Aquila.Models.Nodes;
 using Aquila.Services;
+using Aquila.Views.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
@@ -74,11 +74,14 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void ExitDashboard()
     {
-        _settings.Current.DashboardMode = false;
+        _settings.Current.DashboardMode  = false;
+        _settings.Current.MinimizeToTray = false;
         _settings.Save();
-        var exe = Environment.ProcessPath;
-        if (exe != null) Process.Start(exe);
-        Application.Current.Shutdown();
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            var mw = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
+            mw?.ApplyDashboardMode(false);
+        });
     }
 
     [RelayCommand]

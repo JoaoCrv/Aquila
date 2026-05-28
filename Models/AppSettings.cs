@@ -22,4 +22,9 @@ public class AppSettings
     public bool ShowFansCard         { get; set; } = true;
     public bool ShowGpuCard          { get; set; } = true;
     public bool ShowStorageCard      { get; set; } = true;
+
+    public double DashboardWindowLeft   { get; set; } = double.NaN;
+    public double DashboardWindowTop    { get; set; } = double.NaN;
+    public double DashboardWindowWidth  { get; set; } = 900;
+    public double DashboardWindowHeight { get; set; } = 600;
 }

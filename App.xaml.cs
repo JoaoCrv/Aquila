@@ -68,7 +68,8 @@ namespace Aquila
                 services.AddSingleton<INavigationWindow, MainWindow>();
                 services.AddSingleton<MainWindowViewModel>();
 
-                services.AddSingleton<DashboardPage>();
+                services.AddSingleton<DashboardWindow>();
+                services.AddTransient<DashboardPage>(); // transient: DashboardWindow and MainWindow each get their own instance; ViewModel is the shared singleton
                 services.AddSingleton<DashboardViewModel>();
                 services.AddSingleton<ExplorerPage>();
                 services.AddSingleton<ExplorerViewModel>();

@@ -31,7 +31,7 @@ namespace Aquila.ViewModels.Windows
 
             IsDashboardMode = _settings.Current.DashboardMode;
             _settings.Changed += () =>
-                Application.Current.Dispatcher.Invoke(
+                Application.Current.Dispatcher.BeginInvoke(
                     () => IsDashboardMode = _settings.Current.DashboardMode);
         }
 

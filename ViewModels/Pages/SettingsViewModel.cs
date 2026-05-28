@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
+using System.Windows;
 using Aquila.Services;
+using Aquila.Views.Windows;
 using Microsoft.Win32;
 using Serilog.Events;
 using Wpf.Ui.Abstractions.Controls;
@@ -210,6 +212,11 @@ namespace Aquila.ViewModels.Pages
                 StartWithWindows = false;
             }
             _settings.Save();
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                var mw = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
+                mw?.ApplyDashboardMode(value);
+            });
         }
 
         private static bool IsRegisteredAtStartup()

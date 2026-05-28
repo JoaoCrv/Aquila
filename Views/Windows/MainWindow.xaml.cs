@@ -1,5 +1,6 @@
 using Aquila.Services;
 using Aquila.ViewModels.Windows;
+using Microsoft.Extensions.DependencyInjection;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
@@ -40,12 +41,6 @@ namespace Aquila.Views.Windows
             RestoreWindowBounds();
 
             ShowInTaskbar = !_settings.Current.DashboardMode;
-
-            ViewModel.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName != nameof(MainWindowViewModel.IsDashboardMode)) return;
-                ApplyDashboardMode(ViewModel.IsDashboardMode);
-            };
 
             Loaded += (_, _) => ApplyDashboardMode(_settings.Current.DashboardMode);
 
@@ -161,25 +156,39 @@ namespace Aquila.Views.Windows
             Application.Current.Shutdown();
         }
 
-        private void ApplyDashboardMode(bool on)
+        public void ApplyDashboardMode(bool on)
         {
             ShowInTaskbar = !on;
-            TitleBar.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
             if (on)
             {
-                RootNavigation.IsPaneOpen = false;
-                WindowState = WindowState.Maximized;
+                var dw = App.Services.GetRequiredService<DashboardWindow>();
+                if (!dw.IsVisible) dw.Show();
+                Hide();
             }
             else
             {
+                // Only interact with DashboardWindow if it was already created
+                var dw = Application.Current.Windows.OfType<DashboardWindow>().FirstOrDefault();
+                dw?.Hide();
+
+                TitleBar.Visibility = Visibility.Visible;
                 RootNavigation.ClearValue(Wpf.Ui.Controls.NavigationView.IsPaneOpenProperty);
-                WindowState = WindowState.Normal;
-                if (!double.IsNaN(_normalLeft))
+
+                if (!IsVisible)
                 {
-                    Left   = _normalLeft;
-                    Top    = _normalTop;
-                    Width  = _normalWidth;
-                    Height = _normalHeight;
+                    // Transitioning from dashboard mode back to normal
+                    ShowInTaskbar = true;
+                    Show();
+                    Activate();
+                    WindowState = WindowState.Normal;
+                    RootNavigation.Navigate(typeof(Views.Pages.DashboardPage));
+                    if (!double.IsNaN(_normalLeft))
+                    {
+                        Left   = _normalLeft;
+                        Top    = _normalTop;
+                        Width  = _normalWidth;
+                        Height = _normalHeight;
+                    }
                 }
             }
         }
@@ -196,7 +205,7 @@ namespace Aquila.Views.Windows
             ShowInTaskbar = !_settings.Current.DashboardMode;
             Show();
             Activate();
-            WindowState = _settings.Current.DashboardMode ? WindowState.Maximized : WindowState.Normal;
+            WindowState = WindowState.Normal;
         }
 
         private void TrayExit()
