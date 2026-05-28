@@ -298,17 +298,11 @@
                     <TextBlock Text="{Binding ViewModel.CurrentDateTime}" FontSize="12" Opacity="0.65"/>
                 </StackPanel>
             </Border>
-            <ui:Button Command="{Binding ViewModel.ExitDashboardCommand}"
-                       ToolTip="Exit dashboard mode"
-                       Appearance="Secondary" Padding="7,4" Margin="0,0,4,0"
-                       Visibility="{Binding ViewModel.DashboardControls}">
-                <ui:SymbolIcon Symbol="Home24" FontSize="13"/>
-            </ui:Button>
-            <ui:Button Command="{Binding ViewModel.CloseAppCommand}"
-                       ToolTip="Close Aquila"
+            <ui:Button Command="{Binding ViewModel.ToggleDashboardCommand}"
+                       ToolTip="{Binding ViewModel.DashboardToggleTooltip}"
                        Appearance="Secondary" Padding="7,4"
                        Visibility="{Binding ViewModel.DashboardControls}">
-                <ui:SymbolIcon Symbol="Dismiss24" FontSize="13"/>
+                <ui:SymbolIcon Symbol="{Binding ViewModel.DashboardToggleIcon}" FontSize="13"/>
             </ui:Button>
         </StackPanel>
 

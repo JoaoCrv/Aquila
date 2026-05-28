@@ -3,6 +3,8 @@ using Aquila.Models.Nodes;
 using Aquila.Services;
 using Aquila.Views.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
+using Wpf.Ui.Controls;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
@@ -71,21 +73,29 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public Visibility ShowPowerCard        => _settings.Current.ShowPowerCard        ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowFansCard         => _settings.Current.ShowFansCard         ? Visibility.Visible : Visibility.Collapsed;
 
-    [RelayCommand]
-    private void ExitDashboard()
-    {
-        _settings.Current.DashboardMode  = false;
-        _settings.Current.MinimizeToTray = false;
-        _settings.Save();
-        Application.Current.Dispatcher.BeginInvoke(() =>
-        {
-            var mw = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
-            mw?.ApplyDashboardMode(false);
-        });
-    }
+    public bool IsDashboardWindowVisible =>
+        Application.Current.Windows.OfType<DashboardWindow>().Any(w => w.IsVisible);
+
+    public SymbolRegular DashboardToggleIcon =>
+        IsDashboardWindowVisible ? SymbolRegular.Dismiss24 : SymbolRegular.ArrowExpand24;
+
+    public string DashboardToggleTooltip =>
+        IsDashboardWindowVisible ? "Close dashboard" : "Open dashboard";
 
     [RelayCommand]
-    private static void CloseApp() => Application.Current.Shutdown();
+    private void ToggleDashboard()
+    {
+        var dw = App.Services.GetRequiredService<DashboardWindow>();
+        if (dw.IsVisible) dw.Hide(); else dw.Show();
+        NotifyDashboardToggle();
+    }
+
+    private void NotifyDashboardToggle()
+    {
+        OnPropertyChanged(nameof(IsDashboardWindowVisible));
+        OnPropertyChanged(nameof(DashboardToggleIcon));
+        OnPropertyChanged(nameof(DashboardToggleTooltip));
+    }
 
     public void Suspend() => _suspended = true;
     public void Resume() => _suspended = false;
@@ -135,6 +145,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(MemPhysUsedFrac));
         OnPropertyChanged(nameof(MemPhysFreeFrac));
         OnPropertyChanged(nameof(MemVirtUsedFrac));
+        NotifyDashboardToggle();
     }
 
     private double MemPool =>

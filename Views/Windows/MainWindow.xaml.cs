@@ -163,7 +163,6 @@ namespace Aquila.Views.Windows
             {
                 var dw = App.Services.GetRequiredService<DashboardWindow>();
                 if (!dw.IsVisible) dw.Show();
-                Hide();
             }
             else
             {

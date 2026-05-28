@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 
 namespace Aquila.Views.Windows
 {
@@ -17,6 +18,16 @@ namespace Aquila.Views.Windows
             InitializeComponent();
             RestoreWindowBounds();
             ContentFrame.Navigate(dashboardPage);
+
+            IsVisibleChanged += (_, e) =>
+            {
+                if (!(bool)e.NewValue) return;
+                Opacity = 0;
+                BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                });
+            };
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
