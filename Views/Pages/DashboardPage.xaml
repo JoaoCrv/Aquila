@@ -300,8 +300,7 @@
             </Border>
             <ui:Button Command="{Binding ViewModel.ToggleDashboardCommand}"
                        ToolTip="{Binding ViewModel.DashboardToggleTooltip}"
-                       Appearance="Secondary" Padding="7,4"
-                       Visibility="{Binding ViewModel.DashboardControls}">
+                       Appearance="Secondary" Padding="7,4">
                 <ui:SymbolIcon Symbol="{Binding ViewModel.DashboardToggleIcon}" FontSize="13"/>
             </ui:Button>
         </StackPanel>

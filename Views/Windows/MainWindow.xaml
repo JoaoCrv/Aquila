@@ -43,11 +43,6 @@
                     <Setter Property="PaneDisplayMode"     Value="LeftFluent" />
                     <Setter Property="IsBackButtonVisible" Value="Collapsed" />
                     <Setter Property="Padding"             Value="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource ResponsivePaddingConverter}, ConverterParameter=nav}" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding ViewModel.IsDashboardMode}" Value="True">
-                            <Setter Property="Padding" Value="0" />
-                        </DataTrigger>
-                    </Style.Triggers>
                 </Style>
             </ui:NavigationView.Style>
             <ui:NavigationView.ContentOverlay>

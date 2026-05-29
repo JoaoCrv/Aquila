@@ -85,7 +85,23 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     private void ToggleDashboard()
     {
         var dw = App.Services.GetRequiredService<DashboardWindow>();
-        if (dw.IsVisible) dw.Hide(); else dw.Show();
+        if (dw.IsVisible)
+        {
+            dw.Hide();
+            _settings.Current.DashboardMode  = false;
+            _settings.Current.MinimizeToTray = false;
+            _settings.Save();
+        }
+        else
+        {
+            if (!_settings.Current.DashboardMode)
+            {
+                _settings.Current.DashboardMode  = true;
+                _settings.Current.MinimizeToTray = true;
+                _settings.Save();
+            }
+            dw.Show();
+        }
         NotifyDashboardToggle();
     }
 

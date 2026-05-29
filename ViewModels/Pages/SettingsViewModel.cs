@@ -21,6 +21,7 @@ namespace Aquila.ViewModels.Pages
         private readonly SettingsService _settings;
         private readonly AquilaService _aquila;
         private bool _isInitialized = false;
+        private bool _externalUpdate = false;
 
         public List<PollingOption> PollingIntervalOptions { get; } =
         [
@@ -39,6 +40,16 @@ namespace Aquila.ViewModels.Pages
             _settings = settings;
             _aquila = aquila;
             _updateService.StatusChanged += OnUpdateStatusChanged;
+            _settings.Changed += OnSettingsChangedExternally;
+        }
+
+        private void OnSettingsChangedExternally()
+        {
+            if (!_isInitialized) return;
+            _externalUpdate = true;
+            DashboardMode  = _settings.Current.DashboardMode;
+            MinimizeToTray = _settings.Current.MinimizeToTray;
+            _externalUpdate = false;
         }
 
         [ObservableProperty]
@@ -93,6 +104,7 @@ namespace Aquila.ViewModels.Pages
         public void Dispose()
         {
             _updateService.StatusChanged -= OnUpdateStatusChanged;
+            _settings.Changed -= OnSettingsChangedExternally;
         }
 
         private void InitializeViewModel()
@@ -162,7 +174,7 @@ namespace Aquila.ViewModels.Pages
 
         partial void OnMinimizeToTrayChanged(bool value)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _externalUpdate) return;
             _settings.Current.MinimizeToTray = value;
             _settings.Save();
         }
@@ -199,7 +211,7 @@ namespace Aquila.ViewModels.Pages
 
         partial void OnDashboardModeChanged(bool value)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _externalUpdate) return;
             _settings.Current.DashboardMode = value;
             if (value)
             {

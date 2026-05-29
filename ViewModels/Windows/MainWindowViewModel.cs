@@ -11,28 +11,18 @@ namespace Aquila.ViewModels.Windows
         private string _applicationTitle = "Aquila";
 
         private readonly UiService _uiService;
-        private readonly SettingsService _settings;
 
         public bool IsLoading => _uiService.IsLoading;
 
-        [ObservableProperty]
-        private bool _isDashboardMode;
-
-        public MainWindowViewModel(UiService uiService, SettingsService settings)
+        public MainWindowViewModel(UiService uiService)
         {
             _uiService = uiService;
-            _settings  = settings;
 
             _uiService.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(UiService.IsLoading))
                     OnPropertyChanged(nameof(IsLoading));
             };
-
-            IsDashboardMode = _settings.Current.DashboardMode;
-            _settings.Changed += () =>
-                Application.Current.Dispatcher.BeginInvoke(
-                    () => IsDashboardMode = _settings.Current.DashboardMode);
         }
 
         [ObservableProperty]

@@ -140,7 +140,7 @@ namespace Aquila.Views.Windows
         private void SaveWindowBounds()
         {
             var s = _settings.Current;
-            s.WindowMaximized = WindowState == WindowState.Maximized && !ViewModel.IsDashboardMode;
+            s.WindowMaximized = WindowState == WindowState.Maximized && !_settings.Current.DashboardMode;
             s.WindowLeft      = !double.IsNaN(_normalLeft)   ? _normalLeft   : Left;
             s.WindowTop       = !double.IsNaN(_normalTop)    ? _normalTop    : Top;
             s.WindowWidth     = !double.IsNaN(_normalWidth)  && _normalWidth  > 0 ? _normalWidth  : Width;
@@ -167,11 +167,7 @@ namespace Aquila.Views.Windows
             else
             {
                 // Only interact with DashboardWindow if it was already created
-                var dw = Application.Current.Windows.OfType<DashboardWindow>().FirstOrDefault();
-                dw?.Hide();
-
-                TitleBar.Visibility = Visibility.Visible;
-                RootNavigation.ClearValue(Wpf.Ui.Controls.NavigationView.IsPaneOpenProperty);
+                Application.Current.Windows.OfType<DashboardWindow>().FirstOrDefault()?.Hide();
 
                 if (!IsVisible)
                 {
