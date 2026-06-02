@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="2.0.0"></a>
+## [2.0.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.0.0) (2026-06-02)
+
+### Features
+
+* add initial hardware semantic snapshot ([b1a980a](https://www.github.com/JoaoCrv/Aquila/commit/b1a980aad6c118f7751aeb89a00a7105fd3c0c91))
+* add sensor identifier tracking and enhance explorer view ([8e51941](https://www.github.com/JoaoCrv/Aquila/commit/8e51941ef2577f6e18e1475922179fec9fdb9fec))
+* improve dashboard RAM card, DIMM sensors, and GPU fan visibility ([c9994fe](https://www.github.com/JoaoCrv/Aquila/commit/c9994fe083ca6ef1e866578d8500ce0ceb89416d))
+* **ci:** automated release pipeline via GitHub Actions ([f818c92](https://www.github.com/JoaoCrv/Aquila/commit/f818c92b805ccff9aa6b90436f56ced3dfff65f1))
+* **config:** add appsettings system with local override support ([14b8f9f](https://www.github.com/JoaoCrv/Aquila/commit/14b8f9f55b44785dc9605c936d6a46d159b4dcae))
+* **dashboard:** add borderless dashboard window (Issue [#16](https://www.github.com/JoaoCrv/Aquila/issues/16)) ([05dc0ed](https://www.github.com/JoaoCrv/Aquila/commit/05dc0edad4435205e074dfa2589928ad63c94238))
+* **dashboard:** add exit and close buttons in dashboard mode ([1ad056a](https://www.github.com/JoaoCrv/Aquila/commit/1ad056ad4ac9ee4756d12ecfc393886d6a80b607))
+* **dashboard:** expandable sparklines with conditional visibility ([2b0ccbb](https://www.github.com/JoaoCrv/Aquila/commit/2b0ccbb7ac33ef372d95bf84d040e9626686c3ca))
+* **dashboard:** fan card duty cycle and dynamic progress bar ([bb39c3b](https://www.github.com/JoaoCrv/Aquila/commit/bb39c3bb699e9cd9fc78dcd5601818d8081eb480))
+* **dashboard:** fix RAM name display, remove cache, add virtual memory ([760298a](https://www.github.com/JoaoCrv/Aquila/commit/760298a8ffcc6d6faaf375f730aa7c7c9e77b902))
+* **dashboard:** individual storage cards with I/O sparklines ([3de5238](https://www.github.com/JoaoCrv/Aquila/commit/3de52380edd45c1e5f15f47512f1a32a7f6714c1))
+* **dashboard:** maximise to current screen on enable, restore on disable ([9bcc77b](https://www.github.com/JoaoCrv/Aquila/commit/9bcc77bafb5ee7cbdfa421cdd20e90fe1292a407))
+* **dashboard:** persist card visibility across sessions ([cac7350](https://www.github.com/JoaoCrv/Aquila/commit/cac73500035610d7c06ebe791ec20b15cd7c7ed4))
+* **dashboard:** polish dashboard window UX ([cac2673](https://www.github.com/JoaoCrv/Aquila/commit/cac26737ef9bd36ef3dc4ac4a230d6ce1f99256e))
+* **dashboard:** polish toggle button and settings sync ([f46bf17](https://www.github.com/JoaoCrv/Aquila/commit/f46bf17c01bfcf2f8ab80adf3c66f54d2d067777))
+* **dashboard:** responsive card grid with equal-height rows ([e252f59](https://www.github.com/JoaoCrv/Aquila/commit/e252f597e8edabf2bbe5bddd47de3ae33013d0a7))
+* **logging:** add Serilog file logging with verbose toggle ([1014c93](https://www.github.com/JoaoCrv/Aquila/commit/1014c939280b08455b0a279ad0caf9a49d6dc792))
+* **sensors:** record cpu temperature, total power and cpu fan history ([61fa949](https://www.github.com/JoaoCrv/Aquila/commit/61fa949b18de460f862dbc9bec8f4a08134d6e84))
+* **settings:** add persistent polling interval with ComboBox ([4d6a91a](https://www.github.com/JoaoCrv/Aquila/commit/4d6a91a937ca628db978f97ab1d41a7cf349bf84))
+* **settings:** Phase 5 — persistent settings with theme and path infrastructure ([eefa50d](https://www.github.com/JoaoCrv/Aquila/commit/eefa50d790f29db7c61b7f15cc5b6b6c7f159e4b))
+* **storage:** add sparklines, health stats, and package updates ([05e13c1](https://www.github.com/JoaoCrv/Aquila/commit/05e13c1dd23a315304a0cd82f28e3971cbfb8caa))
+* **theme:** add typography tokens for page and card section headers ([e87656b](https://www.github.com/JoaoCrv/Aquila/commit/e87656b59ed66752c770aa627a4c14bdaf76f111))
+* **tray:** Phase 7 — system tray, minimize to tray, start minimized, start with Windows ([67205de](https://www.github.com/JoaoCrv/Aquila/commit/67205de5ef408e50825334c4e677a583c842ef0a))
+* **tray:** window bounds persistence and dashboard mode ([d9c80d1](https://www.github.com/JoaoCrv/Aquila/commit/d9c80d1f459efd61ffc962d01a7fe341ed90f97c))
+
+### Bug Fixes
+
+* correct sensor mapping and dashboard bindings ([ddf7f9e](https://www.github.com/JoaoCrv/Aquila/commit/ddf7f9e4abedbdfc7e713a15aea8778357d760ea))
+* **dashboard:** save window bounds on hide, not only on close ([7f6b3ae](https://www.github.com/JoaoCrv/Aquila/commit/7f6b3ae240bbcccf7e3b66093ec32329ebbc1861))
+* **dashboard:** stable dashboard mode without PaneDisplayMode switching ([a1c58da](https://www.github.com/JoaoCrv/Aquila/commit/a1c58dabc9ca5d915fc0ba45914901c9a1158a07))
+* **layout:** balanced page margins for normal and dashboard modes ([a233dfc](https://www.github.com/JoaoCrv/Aquila/commit/a233dfcf49a679c94d8ecc2630edfdb4e3a8ae32))
+
+### Breaking Changes
+
+* simplify hardware driver architecture with direct AquilaService integration ([5fde0bd](https://www.github.com/JoaoCrv/Aquila/commit/5fde0bd81ba8b9fc42bdd9a93a84033e83963b3a))
+
 <a name="1.4.0"></a>
 ## [1.4.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v1.4.0) (2026-04-04)
 
