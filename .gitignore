@@ -14,6 +14,8 @@ release.ps1
 aquila-cert.pfx
 appsettings.local.json
 commit-types.md
+.claude/
+*.lscache
 
 drafts/
 repos/
