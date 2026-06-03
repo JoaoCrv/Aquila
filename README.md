@@ -1,22 +1,87 @@
+<div align="center">
+
+<img src="Assets/Images/icon.png" width="96" alt="Aquila logo" />
 
 # Aquila
 
-Aquila is a free and open-source Windows hardware monitoring app built with .NET and LibreHardwareMonitor. It is designed for secondary screens and focuses on presenting CPU, GPU, RAM, network, and storage metrics in a clean, responsive WPF dashboard.
+**A free, open-source Windows hardware monitor built for secondary screens.**
+
+Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive WPF dashboard.
+
+[![Download](https://img.shields.io/github/v/release/JoaoCrv/Aquila?label=Download&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/releases/latest)
+[![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge)](LICENSE)
+
+</div>
+
+<br />
+
+![Aquila dashboard — dark theme](Assets/DarkTheme.png)
+
+## Download
+
+Grab the latest release from the [**Releases page**](https://github.com/JoaoCrv/Aquila/releases/latest):
+
+- **`Aquila-win-Setup.exe`** — installer with automatic updates (recommended)
+- **`Aquila-win-Portable.zip`** — portable build, no installation required
+
+Once installed, Aquila checks for updates silently on startup and notifies you before downloading anything.
 
 ## Features
 
+- **Borderless dashboard mode** — a frameless window you can pin to a secondary monitor or TV; opens and closes from anywhere, no restart
 - **Responsive card grid** — cards reflow automatically as the window resizes; all cards in a row match the height of the tallest card
-- **Real-time sparklines** — 60-second rolling history charts for CPU load, CPU die temperature, GPU load, RAM usage, network throughput, total system power and CPU fan speed
+- **Real-time sparklines** — 60-second rolling history for CPU load, CPU die temperature, GPU load, RAM usage, network throughput, total system power and CPU fan speed
+- **Light & dark themes** — follows a clean Fluent design across both
 - **CPU** — load, temperature, clock and package power; per-core load bars
-- **GPU** — load, temperature, core clock, power, VRAM usage and fan speeds; supports multiple GPUs
-- **RAM** — used/available physical and virtual memory with a segmented progress bar; DIMM temperatures when available
+- **GPU** — load, temperature, core clock, power, VRAM usage and fan speeds; multi-GPU support
+- **RAM** — used/available physical and virtual memory with a segmented bar; DIMM temperatures when available
 - **Network** — live download/upload throughput and session totals
-- **Storage** — temperature, used space, read/write rates; supports multiple drives
-- **Fans** — all motherboard fan channels with RPM bars
+- **Storage** — temperature, used space, read/write rates, drive health; multi-drive support
+- **Fans** — all motherboard fan channels with RPM bars and duty cycle
 - **Power** — total system power with per-component breakdown
 - **Motherboard temperatures** — all available thermal sensors in a grid
-- **System tray** — minimize to tray; toggle dashboard mode (borderless, pinned to monitor)
-- **Clock and uptime** — displayed in the dashboard header
+- **Sensor explorer** — raw access to every sensor the system exposes
+- **System tray** — minimize to tray, start with Windows, start minimized
+
+## Screenshots
+
+### Dashboard mode
+
+A borderless window designed to live on a second screen.
+
+<img src="Assets/Dashboard.png" alt="Borderless dashboard mode" />
+
+### Light & dark themes
+
+<table>
+  <tr>
+    <td width="50%"><img src="Assets/DarkTheme.png" alt="Dark theme" /></td>
+    <td width="50%"><img src="Assets/LightTheme.png" alt="Light theme" /></td>
+  </tr>
+</table>
+
+### Storage & Explorer
+
+<table>
+  <tr>
+    <td width="50%"><img src="Assets/StoragePage.png" alt="Storage page" /></td>
+    <td width="50%"><img src="Assets/ExplorerPage.png" alt="Sensor explorer" /></td>
+  </tr>
+</table>
+
+## Demos
+
+**Open & close the dashboard**
+
+https://github.com/user-attachments/assets/30127f9f-57dd-417c-b11c-1c95b7347ae5
+
+**Responsive layout**
+
+https://github.com/user-attachments/assets/5e441247-ed95-4708-b9a6-e6ab05ecd68b
+
+**Toggle cards from settings**
+
+https://github.com/user-attachments/assets/fb986d27-9a97-4d8e-a4c5-4616ed307a43
 
 ## Project principles
 
@@ -25,10 +90,6 @@ Aquila is a free and open-source Windows hardware monitoring app built with .NET
 - no ads
 - no telemetry or personal data collection
 - optional network communication only for update checks and downloads through `Velopack`
-
-## Maintainer
-
-- [@JoaoCrv](https://github.com/JoaoCrv)
 
 ## Privacy
 
@@ -51,6 +112,10 @@ Aquila is built with and made possible by several open-source projects:
 | [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) | MVVM helpers, source generators, commands | MIT |
 | [LiveCharts2](https://github.com/beto-rodriguez/LiveCharts2) | charts and sparklines | MIT |
 | [Microsoft.Extensions.Hosting](https://github.com/dotnet/runtime) | dependency injection and app hosting | MIT |
+
+## Maintainer
+
+- [@JoaoCrv](https://github.com/JoaoCrv)
 
 ## Development
 

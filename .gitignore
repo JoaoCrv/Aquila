@@ -16,6 +16,7 @@ appsettings.local.json
 commit-types.md
 .claude/
 *.lscache
+Assets/*.mp4
 
 drafts/
 repos/
