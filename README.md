@@ -53,12 +53,7 @@ A borderless window designed to live on a second screen.
 
 ### Light & dark themes
 
-<table>
-  <tr>
-    <td width="50%"><img src="Assets/DarkTheme.png" alt="Dark theme" /></td>
-    <td width="50%"><img src="Assets/LightTheme.png" alt="Light theme" /></td>
-  </tr>
-</table>
+<img src="Assets/Theme.png" alt="Themes" />
 
 ### Storage & Explorer
 
@@ -103,15 +98,15 @@ Aquila is not sold as a commercial product by the maintainer. Optional donations
 
 Aquila is built with and made possible by several open-source projects:
 
-| Project | Purpose | License |
-|---|---|---|
-| [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | hardware sensors and monitoring data | MPL-2.0 |
-| [WPF-UI](https://github.com/lepoco/wpfui) | Fluent-style WPF controls and navigation | MIT |
-| [WPF-UI.DependencyInjection](https://github.com/lepoco/wpfui) | DI integration for WPF-UI | MIT |
-| [Velopack](https://github.com/velopack/velopack) | packaging and in-app updates | MIT |
-| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) | MVVM helpers, source generators, commands | MIT |
-| [LiveCharts2](https://github.com/beto-rodriguez/LiveCharts2) | charts and sparklines | MIT |
-| [Microsoft.Extensions.Hosting](https://github.com/dotnet/runtime) | dependency injection and app hosting | MIT |
+| Project                                                                              | Purpose                                   | License |
+| ------------------------------------------------------------------------------------ | ----------------------------------------- | ------- |
+| [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | hardware sensors and monitoring data      | MPL-2.0 |
+| [WPF-UI](https://github.com/lepoco/wpfui)                                            | Fluent-style WPF controls and navigation  | MIT     |
+| [WPF-UI.DependencyInjection](https://github.com/lepoco/wpfui)                        | DI integration for WPF-UI                 | MIT     |
+| [Velopack](https://github.com/velopack/velopack)                                     | packaging and in-app updates              | MIT     |
+| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)                  | MVVM helpers, source generators, commands | MIT     |
+| [LiveCharts2](https://github.com/beto-rodriguez/LiveCharts2)                         | charts and sparklines                     | MIT     |
+| [Microsoft.Extensions.Hosting](https://github.com/dotnet/runtime)                    | dependency injection and app hosting      | MIT     |
 
 ## Maintainer
 
