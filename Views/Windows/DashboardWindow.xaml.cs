@@ -12,6 +12,9 @@ namespace Aquila.Views.Windows
     {
         private readonly SettingsService _settings;
 
+        private double? _restoreLeft;
+        private double? _restoreTop;
+
         public DashboardWindow(DashboardPage dashboardPage, SettingsService settings)
         {
             _settings = settings;
@@ -73,9 +76,23 @@ namespace Aquila.Views.Windows
 
             if (!onScreen) return;
 
+            // Stash the position and apply it in OnSourceInitialized. Setting Left/Top in the
+            // constructor is unreliable for a borderless (WindowStyle=None) window shown for the
+            // first time — WPF can ignore it and place the window at (0,0) or off-screen. Applying
+            // after the HWND exists fixes the "dashboard opens but is nowhere to be seen" on startup.
             WindowStartupLocation = WindowStartupLocation.Manual;
-            Left = s.DashboardWindowLeft;
-            Top  = s.DashboardWindowTop;
+            _restoreLeft = s.DashboardWindowLeft;
+            _restoreTop  = s.DashboardWindowTop;
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            if (_restoreLeft is double l && _restoreTop is double t)
+            {
+                Left = l;
+                Top  = t;
+            }
         }
 
         private void SaveWindowBounds()
