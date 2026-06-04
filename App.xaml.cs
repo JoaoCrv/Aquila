@@ -131,6 +131,24 @@ namespace Aquila
         /// </summary>
         private async void OnStartup(object sender, StartupEventArgs e)
         {
+            // Elevated helper mode: launched only to create the elevation task, then exit.
+            if (e.Args.Contains(ElevationService.CreateTaskArg))
+            {
+                try { ElevationService.CreateTask(); Shutdown(0); }
+                catch { Shutdown(1); }
+                return;
+            }
+
+            // Elevate only if the active hardware driver needs it (LHM does; future API-based
+            // drivers may not). In a Velopack install this may relaunch us elevated via the
+            // scheduled task and ask this instance to exit.
+            var driver = _host.Services.GetRequiredService<IHardwareDriver>();
+            if (driver.RequiresElevation && !ElevationService.EnsureElevated())
+            {
+                Shutdown(0);
+                return;
+            }
+
             var settings = _host.Services.GetRequiredService<SettingsService>();
             settings.Load();
 

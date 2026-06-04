@@ -20,6 +20,7 @@ namespace Aquila.Services.LibreHardwareMonitor
 
         public string Name => "Libre Hardware Monitor";
         public string Version => "0.9.6";
+        public bool RequiresElevation => true;
         public bool IsAvailable =>
             File.Exists("LibreHardwareMonitor.dll") &&
             new WindowsPrincipal(WindowsIdentity.GetCurrent())

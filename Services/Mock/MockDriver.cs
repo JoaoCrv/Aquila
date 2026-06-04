@@ -10,6 +10,7 @@ public class MockDriver : IHardwareDriver
 
     public string Name => "Mock";
     public string Version => "1.0";
+    public bool RequiresElevation => false;
     public bool IsAvailable => true;
 
     public void Initialize() { }
