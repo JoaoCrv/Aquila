@@ -17,6 +17,7 @@ commit-types.md
 .claude/
 *.lscache
 Assets/*.mp4
+test-release/
 
 drafts/
 repos/

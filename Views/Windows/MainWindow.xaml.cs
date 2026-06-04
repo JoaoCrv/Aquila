@@ -60,10 +60,18 @@ namespace Aquila.Views.Windows
 
         private System.Windows.Forms.NotifyIcon BuildTrayIcon()
         {
-            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico");
-            var icon = System.IO.File.Exists(iconPath)
-                ? new System.Drawing.Icon(iconPath)
-                : System.Drawing.SystemIcons.Application;
+            // Extract the icon embedded in our own exe (the <ApplicationIcon>), which is
+            // always present — copying a loose .ico into the output is unreliable under Velopack.
+            System.Drawing.Icon icon;
+            try
+            {
+                var exePath = Environment.ProcessPath ?? System.Reflection.Assembly.GetEntryAssembly()!.Location;
+                icon = System.Drawing.Icon.ExtractAssociatedIcon(exePath) ?? System.Drawing.SystemIcons.Application;
+            }
+            catch
+            {
+                icon = System.Drawing.SystemIcons.Application;
+            }
 
             var menu = new System.Windows.Forms.ContextMenuStrip();
             menu.Items.Add("Open Aquila", null, (_, _) => TrayOpen());
