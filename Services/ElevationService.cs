@@ -78,6 +78,43 @@ public static class ElevationService
         ts.RootFolder.RegisterTaskDefinition(TaskName, td);
     }
 
+    /// <summary>Whether the elevation task is set to also run at logon ("start with Windows").</summary>
+    public static bool HasLogonTrigger()
+    {
+        try
+        {
+            using var ts = new TaskService();
+            var task = ts.GetTask(TaskName);
+            return task is not null && task.Definition.Triggers.Any(t => t.TriggerType == TaskTriggerType.Logon);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Adds or removes a logon trigger on the existing elevation task. Because the running app is
+    /// already elevated (launched by the task), this modifies the task with no UAC prompt. Returns
+    /// false if the task doesn't exist or the change failed.
+    /// </summary>
+    public static bool SetLogonTrigger(bool enable)
+    {
+        try
+        {
+            using var ts = new TaskService();
+            var task = ts.GetTask(TaskName);
+            if (task is null) return false;
+
+            var def = task.Definition;
+            foreach (var logon in def.Triggers.Where(t => t.TriggerType == TaskTriggerType.Logon).ToList())
+                def.Triggers.Remove(logon);
+            if (enable)
+                def.Triggers.Add(new LogonTrigger { UserId = WindowsIdentity.GetCurrent().Name });
+
+            ts.RootFolder.RegisterTaskDefinition(TaskName, def);
+            return true;
+        }
+        catch { return false; }
+    }
+
     /// <summary>Runs the task now (elevates with no UAC prompt). Returns false on failure.</summary>
     public static bool RunTask()
     {

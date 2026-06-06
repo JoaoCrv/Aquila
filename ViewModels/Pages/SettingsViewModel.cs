@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Windows;
 using Aquila.Services;
 using Aquila.Views.Windows;
-using Microsoft.Win32;
 using Serilog.Events;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
@@ -14,9 +13,6 @@ namespace Aquila.ViewModels.Pages
 
     public partial class SettingsViewModel : ObservableObject, INavigationAware, IDisposable
     {
-        private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-        private const string AppName = "Aquila";
-
         private readonly UpdateService _updateService;
         private readonly SettingsService _settings;
         private readonly AquilaService _aquila;
@@ -118,7 +114,7 @@ namespace Aquila.ViewModels.Pages
 
             MinimizeToTray   = _settings.Current.MinimizeToTray;
             StartMinimized   = _settings.Current.StartMinimized;
-            StartWithWindows    = IsRegisteredAtStartup();
+            StartWithWindows    = ElevationService.HasLogonTrigger();
             DashboardMode       = _settings.Current.DashboardMode;
             EnableVerboseLogging  = _settings.Current.EnableVerboseLogging;
 
@@ -188,8 +184,21 @@ namespace Aquila.ViewModels.Pages
 
         partial void OnStartWithWindowsChanged(bool value)
         {
-            if (!_isInitialized) return;
-            SetRegistryStartup(value);
+            if (!_isInitialized || _externalUpdate) return;
+
+            // Auto-start rides on the elevation task's logon trigger. The app is already elevated
+            // (launched by that task), so this needs no UAC prompt. If the task isn't there (e.g.
+            // dev, or elevation was declined), revert and tell the user.
+            if (!ElevationService.SetLogonTrigger(value))
+            {
+                _externalUpdate = true;
+                StartWithWindows = !value;
+                _externalUpdate = false;
+
+                MessageBox.Show(
+                    "Aquila could not change the startup setting. This requires the app to be running with administrator privileges.",
+                    "Start with Windows", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         partial void OnEnableVerboseLoggingChanged(bool value)
@@ -229,27 +238,6 @@ namespace Aquila.ViewModels.Pages
                 var mw = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
                 mw?.ApplyDashboardMode(value);
             });
-        }
-
-        private static bool IsRegisteredAtStartup()
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: false);
-            return key?.GetValue(AppName) is not null;
-        }
-
-        private static void SetRegistryStartup(bool enable)
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
-            if (key is null) return;
-            if (enable)
-            {
-                var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
-                key.SetValue(AppName, $"\"{exe}\"");
-            }
-            else
-            {
-                key.DeleteValue(AppName, throwOnMissingValue: false);
-            }
         }
 
         [RelayCommand]

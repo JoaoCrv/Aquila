@@ -28,6 +28,10 @@ namespace Aquila
     {
         internal static LoggingLevelSwitch LogLevel { get; } = new(LogEventLevel.Warning);
 
+        // Held for the primary instance's lifetime to prevent duplicates (the logon task, a manual
+        // launch, and the elevation relaunch could otherwise overlap).
+        private static System.Threading.Mutex? _instanceMutex;
+
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
             .ConfigureAppConfiguration(c =>
@@ -144,6 +148,15 @@ namespace Aquila
             // scheduled task and ask this instance to exit.
             var driver = _host.Services.GetRequiredService<IHardwareDriver>();
             if (driver.RequiresElevation && !ElevationService.EnsureElevated())
+            {
+                Shutdown(0);
+                return;
+            }
+
+            // Single instance: only the primary holds the mutex. A second launch (manual click while
+            // already running, or an overlapping logon/relaunch) exits immediately.
+            _instanceMutex = new System.Threading.Mutex(initiallyOwned: true, "Aquila.SingleInstance", out bool isPrimary);
+            if (!isPrimary)
             {
                 Shutdown(0);
                 return;
