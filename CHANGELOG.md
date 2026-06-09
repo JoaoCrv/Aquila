@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="2.1.0"></a>
+## [2.1.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.1.0) (2026-06-09)
+
+### Features
+
+* **about:** add support and contact links ([27a373f](https://www.github.com/JoaoCrv/Aquila/commit/27a373f58bc6cd8a47f58f696159fa061e1c347f))
+* **elevation:** elevate via scheduled task instead of admin manifest ([1164e4c](https://www.github.com/JoaoCrv/Aquila/commit/1164e4c73e6ab186fd961d803124f1d040d33597))
+* **startup:** start with Windows via elevation task logon trigger ([c1b90ed](https://www.github.com/JoaoCrv/Aquila/commit/c1b90ed0d17c40d2dd034ff5a91bb10ec0dae31d))
+
+### Bug Fixes
+
+* **dashboard:** apply saved position in OnSourceInitialized ([472aa02](https://www.github.com/JoaoCrv/Aquila/commit/472aa02bcf82bcccceb0bb3ec671128c7d422ebd))
+* **tray:** load tray icon from embedded exe icon ([ad46c30](https://www.github.com/JoaoCrv/Aquila/commit/ad46c306223a9e81d68ac2cc86c4cc437a3fa9e3))
+
 <a name="2.0.0"></a>
 ## [2.0.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.0.0) (2026-06-02)
 
