@@ -1,11 +1,35 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Aquila.ViewModels.Pages
 {
     public partial class AboutViewModel : ObservableObject
     {
+        // External links. Support points to PayPal.me for now; switch to SponsorUrl once GitHub
+        // Sponsors is approved. Contact is a web form (no email exposed).
+        private const string SupportUrl    = "https://paypal.me/joaocrv";
+        private const string SponsorUrl    = "https://github.com/sponsors/JoaoCrv";
+        private const string ContactFormUrl = "https://tally.so/r/gDzXEP";
+        private const string RepoUrl       = "https://github.com/JoaoCrv/Aquila";
+
         [ObservableProperty]
         private string _appVersion = string.Empty;
+
+        [RelayCommand]
+        private static void OpenSupport() => OpenUrl(SupportUrl);
+
+        [RelayCommand]
+        private static void OpenContact() => OpenUrl(ContactFormUrl);
+
+        [RelayCommand]
+        private static void OpenRepository() => OpenUrl(RepoUrl);
+
+        private static void OpenUrl(string url)
+        {
+            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+            catch { /* no browser available — ignore */ }
+        }
 
         public string ProjectSummary =>
             "Aquila is a free and open-source Windows hardware monitoring app built for clean secondary-screen dashboards.";
@@ -21,9 +45,6 @@ namespace Aquila.ViewModels.Pages
 
         public string PrivacySummary =>
             "Aquila does not show ads, does not include telemetry, and does not collect personal data. The only intended internet communication is the optional update flow through Velopack.";
-
-        public string SupportSummary =>
-            "The app is free to use. Optional donations may support continued development, but there are no paid features or advertising.";
 
         public string DependenciesSummary =>
             "Built with open-source projects including LibreHardwareMonitor, WPF-UI, and Velopack. See the README for the full dependency list and links.";
