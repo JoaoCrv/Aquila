@@ -39,37 +39,11 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, ILogger<Aq
         try
         {
             _driver.Populate(_state);
-            RecordHistory();
             DataUpdated?.Invoke();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during hardware poll");
-        }
-    }
-
-    private void RecordHistory()
-    {
-        var hw = _state.Hardware;
-        foreach (var cpu in hw.Cpus)
-        {
-            cpu.Load.Total.Record();
-            cpu.Temperature.Primary.Record();
-        }
-        hw.Memory.Load.Total.Record();
-        hw.TotalPower.Record();
-        hw.Motherboard.CpuFan?.Record();
-        foreach (var net in hw.Networks)
-        {
-            net.Throughput.Download.Record();
-            net.Throughput.Upload.Record();
-        }
-        foreach (var gpu in hw.Gpus)
-            gpu.Load.Core.Record();
-        foreach (var storage in hw.Storages)
-        {
-            storage.Throughput.ReadRate.Record();
-            storage.Throughput.WriteRate.Record();
         }
     }
 

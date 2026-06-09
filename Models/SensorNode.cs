@@ -16,7 +16,16 @@ public class SensorNode : INotifyPropertyChanged
     public float? Value
     {
         get => _value;
-        set { if (_value != value) { _value = value; OnPropertyChanged(); } }
+        set
+        {
+            // Record on every write (driver writes once per poll tick) so the sparkline's time axis
+            // stays regular even for unchanged values. Only raise INPC when the value actually
+            // changes, to avoid refreshing the many direct XAML bindings needlessly.
+            bool changed = _value != value;
+            _value = value;
+            Record();
+            if (changed) OnPropertyChanged();
+        }
     }
 
     public float? Min
@@ -51,7 +60,7 @@ public class SensorNode : INotifyPropertyChanged
 
     public ObservableCollection<double> History { get; } = [];
 
-    public void Record(int depth = 60)
+    private void Record(int depth = 60)
     {
         if (History.Count >= depth) History.RemoveAt(0);
         History.Add(Value ?? 0);
