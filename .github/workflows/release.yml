@@ -37,7 +37,7 @@ jobs:
         id: cert
         shell: pwsh
         run: |
-          $b64 = "${{ secrets.CERT_PFX_BASE64 }}"
+          $b64 = "${{ secrets.AQUILA_CERT_BASE64 }}"
           if ($b64) {
             [IO.File]::WriteAllBytes("aquila-cert.pfx", [Convert]::FromBase64String($b64))
             "AVAILABLE=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -55,11 +55,28 @@ jobs:
             "--mainExe",     "Aquila.exe"
           )
           if ("${{ steps.cert.outputs.AVAILABLE }}" -eq "true") {
-            $signParams = "/td sha256 /fd sha256 /f `"aquila-cert.pfx`" /p `"${{ secrets.CERT_PASSWORD }}`" /tr http://timestamp.comodoca.com"
+            $signParams = "/td sha256 /fd sha256 /f `"aquila-cert.pfx`" /p `"${{ secrets.AQUILA_CERT_PASS }}`" /tr http://timestamp.comodoca.com"
             $vpkArgs += "--signParams", $signParams
           }
           vpk @vpkArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        shell: pwsh
+        run: |
+          $version = "${{ steps.vars.outputs.VERSION }}"
+          $lines = Get-Content CHANGELOG.md
+          $out = New-Object System.Collections.Generic.List[string]
+          $capture = $false
+          foreach ($line in $lines) {
+            if ($line -match "^## \[$([regex]::Escape($version))\]") { $capture = $true; continue }
+            elseif ($capture -and $line -match "^## \[") { break }
+            if ($capture) { $out.Add($line) }
+          }
+          $body = ($out -join "`n").Trim()
+          if (-not $body) { $body = "Release $version" }
+          Set-Content -Path release-notes.md -Value $body -Encoding utf8
 
       - name: Create GitHub Release
         shell: pwsh
@@ -68,4 +85,4 @@ jobs:
         run: |
           gh release create "${{ github.ref_name }}" ./releases/* `
             --title "Aquila ${{ github.ref_name }}" `
-            --generate-notes
+            --notes-file release-notes.md
