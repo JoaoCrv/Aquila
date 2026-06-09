@@ -26,33 +26,7 @@
                                Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
                     <TextBlock Text="{Binding ViewModel.ProjectSummary, Mode=OneWay}"
                                TextWrapping="Wrap" />
-                </StackPanel>
-            </ui:Card>
-
-            <ui:Card Margin="0,0,0,8" Padding="16,14">
-                <StackPanel>
-                    <TextBlock Text="PROJECT" Style="{StaticResource SectionLabel}" />
-                    <TextBlock Text="{Binding ViewModel.Maintainer, Mode=OneWay}"
-                               Style="{StaticResource ChipName}" />
-                    <TextBlock Margin="0,4,0,8"
-                               Opacity="0.70"
-                               Text="{Binding ViewModel.RepositoryUrl, Mode=OneWay}"
-                               TextWrapping="Wrap" />
-                    <TextBlock Margin="0,10,0,0"
-                               Opacity="0.78"
-                               Text="{Binding ViewModel.DependenciesSummary, Mode=OneWay}"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </ui:Card>
-
-            <ui:Card Margin="0,0,0,8" Padding="16,14">
-                <StackPanel>
-                    <TextBlock Text="SUPPORT &amp; CONTACT" Style="{StaticResource SectionLabel}" />
-                    <TextBlock Margin="0,2,0,12"
-                               Opacity="0.70"
-                               Text="Aquila is free and open-source. If it's useful to you, consider supporting development. Questions or feedback are welcome."
-                               TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                         <ui:Button Command="{Binding ViewModel.OpenSupportCommand, Mode=OneWay}"
                                    Appearance="Primary" Padding="14,7" Margin="0,0,8,0">
                             <StackPanel Orientation="Horizontal">
@@ -75,6 +49,22 @@
                             </StackPanel>
                         </ui:Button>
                     </StackPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <ui:Card Margin="0,0,0,8" Padding="16,14">
+                <StackPanel>
+                    <TextBlock Text="PROJECT" Style="{StaticResource SectionLabel}" />
+                    <TextBlock Text="{Binding ViewModel.Maintainer, Mode=OneWay}"
+                               Style="{StaticResource ChipName}" />
+                    <TextBlock Margin="0,4,0,8"
+                               Opacity="0.70"
+                               Text="{Binding ViewModel.RepositoryUrl, Mode=OneWay}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Margin="0,10,0,0"
+                               Opacity="0.78"
+                               Text="{Binding ViewModel.DependenciesSummary, Mode=OneWay}"
+                               TextWrapping="Wrap" />
                 </StackPanel>
             </ui:Card>
 
