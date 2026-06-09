@@ -5,9 +5,6 @@ All notable changes to this project will be documented in this file. See [versio
 <a name="2.1.1"></a>
 ## [2.1.1](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.1.1) (2026-06-09)
 
-<a name="2.1.0"></a>
-## [2.1.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.1.0) (2026-06-09)
-
 ### Features
 
 * **about:** add support and contact links ([27a373f](https://www.github.com/JoaoCrv/Aquila/commit/27a373f58bc6cd8a47f58f696159fa061e1c347f))
