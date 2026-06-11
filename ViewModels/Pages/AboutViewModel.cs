@@ -6,18 +6,21 @@ namespace Aquila.ViewModels.Pages
 {
     public partial class AboutViewModel : ObservableObject
     {
-        // External links. Support points to PayPal.me for now; switch to SponsorUrl once GitHub
-        // Sponsors is approved. Contact is a web form (no email exposed).
-        private const string SupportUrl    = "https://paypal.me/joaocrv";
-        private const string SponsorUrl    = "https://github.com/sponsors/JoaoCrv";
+        // External links. Sponsor is GitHub Sponsors (Stripe + tiers); PayPal is the alternative for
+        // one-off donations without a GitHub account. Contact is a web form (no email exposed).
+        private const string SponsorUrl     = "https://github.com/sponsors/JoaoCrv";
+        private const string PayPalUrl      = "https://paypal.me/joaocrv";
         private const string ContactFormUrl = "https://tally.so/r/gDzXEP";
-        private const string RepoUrl       = "https://github.com/JoaoCrv/Aquila";
+        private const string RepoUrl        = "https://github.com/JoaoCrv/Aquila";
 
         [ObservableProperty]
         private string _appVersion = string.Empty;
 
         [RelayCommand]
-        private static void OpenSupport() => OpenUrl(SupportUrl);
+        private static void OpenSponsor() => OpenUrl(SponsorUrl);
+
+        [RelayCommand]
+        private static void OpenPayPal() => OpenUrl(PayPalUrl);
 
         [RelayCommand]
         private static void OpenContact() => OpenUrl(ContactFormUrl);

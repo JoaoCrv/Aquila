@@ -27,11 +27,18 @@
                     <TextBlock Text="{Binding ViewModel.ProjectSummary, Mode=OneWay}"
                                TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                        <ui:Button Command="{Binding ViewModel.OpenSupportCommand, Mode=OneWay}"
+                        <ui:Button Command="{Binding ViewModel.OpenSponsorCommand, Mode=OneWay}"
                                    Appearance="Primary" Padding="14,7" Margin="0,0,8,0">
                             <StackPanel Orientation="Horizontal">
                                 <ui:SymbolIcon Symbol="Heart24" FontSize="15" Margin="0,0,7,0" />
-                                <TextBlock Text="Support" VerticalAlignment="Center" />
+                                <TextBlock Text="Sponsor" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ui:Button>
+                        <ui:Button Command="{Binding ViewModel.OpenPayPalCommand, Mode=OneWay}"
+                                   Appearance="Secondary" Padding="14,7" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Wallet24" FontSize="15" Margin="0,0,7,0" />
+                                <TextBlock Text="PayPal" VerticalAlignment="Center" />
                             </StackPanel>
                         </ui:Button>
                         <ui:Button Command="{Binding ViewModel.OpenContactCommand, Mode=OneWay}"
