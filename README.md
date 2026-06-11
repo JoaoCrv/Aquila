@@ -11,7 +11,8 @@ Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive WPF 
 [![Download](https://img.shields.io/github/v/release/JoaoCrv/Aquila?label=Download&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/releases/latest)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge)](LICENSE)
 
-[![Support](https://img.shields.io/badge/%E2%9D%A4%20Support-PayPal-0070ba?style=for-the-badge)](https://paypal.me/joaocrv)
+[![Sponsor](https://img.shields.io/badge/%E2%9D%A4%20Sponsor-GitHub-ea4aaa?style=for-the-badge)](https://github.com/sponsors/JoaoCrv)
+[![PayPal](https://img.shields.io/badge/PayPal-Donate-0070ba?style=for-the-badge)](https://paypal.me/joaocrv)
 [![Contact](https://img.shields.io/badge/Contact-Form-5e60ce?style=for-the-badge)](https://tally.so/r/gDzXEP)
 
 </div>
