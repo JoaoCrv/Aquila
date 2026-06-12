@@ -10,13 +10,14 @@ public class LHMTranslater
 {
     public void Translate(IEnumerable<IHardware> hardware, AquilaState state)
     {
+        var all = hardware as IList<IHardware> ?? hardware.ToList();
+
         // índices para listas dinâmicas
         int cpuIndex = 0;
         int gpuIndex = 0;
-        int networkIndex = 0;
         int storageIndex = 0;
 
-        foreach (var hw in hardware)
+        foreach (var hw in all)
         {
             switch (hw.HardwareType)
             {
@@ -38,17 +39,49 @@ public class LHMTranslater
                     TranslateGpu(hw, GetOrCreate(state.Hardware.Gpus, gpuIndex++));
                     break;
 
-                case HardwareType.Network:
-                    TranslateNetwork(hw, GetOrCreate(state.Hardware.Networks, networkIndex++));
-                    break;
-
                 case HardwareType.Storage:
                     TranslateStorage(hw, GetOrCreate(state.Hardware.Storages, storageIndex++));
                     break;
             }
         }
 
+        // Networks: pre-filter to real, active adapters (drops WFP/QoS filter mirrors and idle
+        // virtual adapters), ordered by name so positions stay stable across ticks — which keeps
+        // each adapter's auto-recorded history (SensorNode) bound to the same node.
+        var realNetworks = all
+            .Where(hw => hw.HardwareType == HardwareType.Network && IsRealActiveNetwork(hw))
+            .OrderBy(hw => hw.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        int networkIndex = 0;
+        foreach (var hw in realNetworks)
+            TranslateNetwork(hw, GetOrCreate(state.Hardware.Networks, networkIndex++));
+
         FillDerived(state);
+    }
+
+    // Real physical adapter that has actually moved data. Excludes the Windows filter/scheduler
+    // mirror adapters (-QoS Packet Scheduler, -WFP ..., Native WiFi Filter, LightWeight Filter)
+    // which duplicate the real adapter's counters, and idle/virtual adapters with no traffic.
+    private static readonly string[] _nicFilterMarkers =
+    [
+        "-QoS Packet Scheduler", "-WFP", "LightWeight Filter", "Native WiFi Filter",
+    ];
+
+    private static bool IsRealActiveNetwork(IHardware hw)
+    {
+        var name = hw.Name ?? string.Empty;
+        if (_nicFilterMarkers.Any(m => name.Contains(m, StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        // Active = has moved data (accumulated total is stable, unlike instantaneous throughput).
+        foreach (var s in hw.Sensors)
+            if (s.SensorType == SensorType.Data &&
+                (s.Name == "Data Downloaded" || s.Name == "Data Uploaded") &&
+                s.Value is > 0)
+                return true;
+
+        return false;
     }
 
     private static void FillDerived(AquilaState state)
