@@ -73,7 +73,6 @@ namespace Aquila.ViewModels.Pages
 
         public Task InitializeAsync()
         {
-            Console.WriteLine("[ExplorerViewModel] Initializing hardware data..." );
             if (_aquilaService.Computer is not { } computer)
             {
                 GroupedHardware = [];
