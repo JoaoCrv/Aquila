@@ -1,15 +1,11 @@
-﻿using Aquila.Extensions;
 using Aquila.ViewModels.Pages;
-using System.Windows;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using Wpf.Ui.Abstractions.Controls;
 
 namespace Aquila.Views.Pages
 {
-    /// <summary>
-    /// Interaction logic for ExplorerPage.xaml
-    /// </summary>
-    public partial class ExplorerPage : Page, INavigableView<ExplorerViewModel>//, INavigationAware
+    public partial class ExplorerPage : Page, INavigableView<ExplorerViewModel>, INavigationAware
     {
         public ExplorerViewModel ViewModel { get; }
 
@@ -20,10 +16,13 @@ namespace Aquila.Views.Pages
             InitializeComponent();
         }
 
-        //public Task OnNavigatedToAsync()
-        //{
-        //    return ViewModel.InitializeAsync();
-        //}
+        // Rebuild the list when shown, so sensors are populated (the VM may be constructed before
+        // the first poll tick).
+        public Task OnNavigatedToAsync()
+        {
+            ViewModel.Refresh();
+            return Task.CompletedTask;
+        }
 
         public Task OnNavigatedFromAsync() => Task.CompletedTask;
     }

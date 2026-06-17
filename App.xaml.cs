@@ -77,6 +77,8 @@ namespace Aquila
                 services.AddSingleton<DashboardViewModel>();
                 services.AddSingleton<ExplorerPage>();
                 services.AddSingleton<ExplorerViewModel>();
+                services.AddSingleton<LhmExplorerPage>();
+                services.AddSingleton<LhmExplorerViewModel>();
                 services.AddSingleton<StoragePage>();
                 services.AddSingleton<StorageViewModel>();
                 services.AddSingleton<AboutPage>();

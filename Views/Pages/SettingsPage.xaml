@@ -102,6 +102,24 @@
                     FontSize="12"
                     Text="Writes detailed logs to Documents\Aquila\logs\. Useful for troubleshooting. Disabled by default."
                     TextWrapping="Wrap" />
+
+                <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Opacity="0.15" Margin="0,14" />
+
+                <TextBlock Text="LibreHardwareMonitor sensor explorer" />
+                <TextBlock
+                    Margin="0,2,0,8"
+                    Opacity="0.55"
+                    FontSize="12"
+                    Text="Browse the raw sensor tree exposed by LibreHardwareMonitor and export a full report. For diagnostics and finding sensor identifiers."
+                    TextWrapping="Wrap" />
+                <ui:Button
+                    Command="{Binding ViewModel.OpenLhmExplorerCommand}"
+                    Content="Open sensor explorer"
+                    HorizontalAlignment="Left">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="DataHistogram24" />
+                    </ui:Button.Icon>
+                </ui:Button>
             </StackPanel>
         </ui:Card>
 

@@ -4,6 +4,7 @@ using System.Windows;
 using Aquila.Services;
 using Aquila.Views.Windows;
 using Serilog.Events;
+using Wpf.Ui;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
@@ -16,6 +17,7 @@ namespace Aquila.ViewModels.Pages
         private readonly UpdateService _updateService;
         private readonly SettingsService _settings;
         private readonly AquilaService _aquila;
+        private readonly INavigationService _navigation;
         private bool _isInitialized = false;
         private bool _externalUpdate = false;
 
@@ -30,14 +32,18 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private PollingOption _selectedPollingInterval = null!;
 
-        public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila)
+        public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila, INavigationService navigation)
         {
             _updateService = updateService;
             _settings = settings;
             _aquila = aquila;
+            _navigation = navigation;
             _updateService.StatusChanged += OnUpdateStatusChanged;
             _settings.Changed += OnSettingsChangedExternally;
         }
+
+        [RelayCommand]
+        private void OpenLhmExplorer() => _navigation.Navigate(typeof(Views.Pages.LhmExplorerPage));
 
         private void OnSettingsChangedExternally()
         {

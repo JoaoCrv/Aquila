@@ -10,7 +10,7 @@ namespace Aquila.Services
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             aquilaService.Start();
-            await serviceProvider.GetRequiredService<ViewModels.Pages.ExplorerViewModel>().InitializeAsync();
+            await serviceProvider.GetRequiredService<ViewModels.Pages.LhmExplorerViewModel>().InitializeAsync();
 
             if (!Application.Current.Windows.OfType<MainWindow>().Any())
             {
