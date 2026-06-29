@@ -1,0 +1,12 @@
+<UserControl x:Class="Aquila.Controls.SensorBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignWidth="160">
+    <!-- Horizontal bar for one sensor. Reuses the shared ThinBar template; the code-behind only
+         maps the SensorNode onto Value/Maximum and applies the accent colour (sibling of
+         RadialGauge / MiniSparkline — all take a live SensorNode). -->
+    <ProgressBar x:Name="Bar" Style="{DynamicResource ThinBar}"/>
+</UserControl>
