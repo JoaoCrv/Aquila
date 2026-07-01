@@ -22,7 +22,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     public HardwareNode Hardware => _aquila.State.Hardware;
 
-    [ObservableProperty] private double _ramGaugeValue;
     [ObservableProperty] private List<GpuCardData> _gpuCards = [];
     [ObservableProperty] private List<FanRowItem> _fanRows = [];
 
@@ -121,8 +120,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void OnDataUpdated()
     {
-        RamGaugeValue = Math.Round(Hardware.Memory.Load.Total.Value ?? 0);
-
         UpdateGpus();
         UpdateFans();
 
@@ -132,21 +129,8 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Storage2));
         OnPropertyChanged(nameof(Storage3));
         OnPropertyChanged(nameof(Storage4));
-        OnPropertyChanged(nameof(MemPhysUsedFrac));
-        OnPropertyChanged(nameof(MemPhysFreeFrac));
-        OnPropertyChanged(nameof(MemVirtUsedFrac));
         NotifyDashboardToggle();
     }
-
-    private double MemPool =>
-        (Hardware.Memory.Data.Used.Value ?? 0) +
-        (Hardware.Memory.Data.Available.Value ?? 0) +
-        (Hardware.Memory.Virtual.Used.Value ?? 0) +
-        (Hardware.Memory.Virtual.Available.Value ?? 0);
-
-    public double MemPhysUsedFrac => MemPool > 0 ? (Hardware.Memory.Data.Used.Value ?? 0) / MemPool : 0;
-    public double MemPhysFreeFrac => MemPool > 0 ? (Hardware.Memory.Data.Available.Value ?? 0) / MemPool : 0;
-    public double MemVirtUsedFrac => MemPool > 0 ? (Hardware.Memory.Virtual.Used.Value ?? 0) / MemPool : 0;
 
     private void UpdateFans()
     {
