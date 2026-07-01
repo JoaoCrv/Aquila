@@ -23,7 +23,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public HardwareNode Hardware => _aquila.State.Hardware;
 
     [ObservableProperty] private double _ramGaugeValue;
-    [ObservableProperty] private List<CoreBarItem> _cpuCoreItems = [];
     [ObservableProperty] private List<GpuCardData> _gpuCards = [];
     [ObservableProperty] private List<FanRowItem> _fanRows = [];
 
@@ -50,19 +49,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     }
 
     public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
-
-    public string? CpuSummary
-    {
-        get
-        {
-            var cpu = Hardware.Cpus.FirstOrDefault();
-            var temp = cpu?.Temperature.Primary.Value;
-            var power = cpu?.Power.Package.Value;
-            return temp.HasValue && power.HasValue
-                ? $"{temp:F0}°C  •  {power:F0} W"
-                : null;
-        }
-    }
 
     public Visibility DashboardControls    => _settings.Current.DashboardMode         ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowCpuCard          => _settings.Current.ShowCpuCard          ? Visibility.Visible : Visibility.Collapsed;
@@ -135,17 +121,11 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void OnDataUpdated()
     {
-        var cpu = Hardware.Cpus.FirstOrDefault();
         RamGaugeValue = Math.Round(Hardware.Memory.Load.Total.Value ?? 0);
-        CpuCoreItems = cpu?.Load.Cores
-            .Where(c => c.Value.HasValue)
-            .Select((c, i) => new CoreBarItem($"#{i + 1}", c.Value ?? 0))
-            .ToList() ?? [];
 
         UpdateGpus();
         UpdateFans();
 
-        OnPropertyChanged(nameof(CpuSummary));
         OnPropertyChanged(nameof(Gpu1));
         OnPropertyChanged(nameof(Gpu2));
         OnPropertyChanged(nameof(Storage1));
@@ -243,13 +223,4 @@ public sealed class FanRowItem(SensorNode fan, SensorNode? control)
             return null;
         }
     }
-}
-
-public sealed class CoreBarItem(string label, double value)
-{
-    private const double MaxHeight = 92.0;
-    public string Label      => label;
-    public double Value      => value;
-    public double BarHeight  => MaxHeight * (value / 100.0);
-    public string ValueText  => $"{value:F0}%";
 }

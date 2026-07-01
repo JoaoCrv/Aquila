@@ -1,0 +1,94 @@
+<UserControl x:Class="Aquila.Controls.Cards.CpuCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:controls="clr-namespace:Aquila.Controls"
+             xmlns:helpers="clr-namespace:Aquila.Helpers"
+             mc:Ignorable="d"
+             d:DesignHeight="320" d:DesignWidth="340">
+    <!-- Self-contained CPU card: bind Cpu (and optionally Motherboard for the fan row) and it
+         renders the whole card. Live Summary/Cores are computed in code-behind; everything else
+         binds straight to the SensorNodes. The card's content uses itself as DataContext. -->
+    <UserControl.Resources>
+        <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
+        <helpers:ThermalBrushConverter x:Key="Thermal"/>
+        <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
+
+        <!-- Per-core load bar -->
+        <DataTemplate x:Key="CoreBarTemplate">
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" FontSize="10" Opacity="0.45"
+                           HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                        CornerRadius="4" Height="92" Margin="4,0"
+                        HorizontalAlignment="Stretch">
+                    <Border VerticalAlignment="Bottom" CornerRadius="4"
+                            Background="{DynamicResource Aquila.Cpu}" Opacity="0.85"
+                            Height="{Binding BarHeight}"
+                            HorizontalAlignment="Stretch"/>
+                </Border>
+                <TextBlock Text="{Binding ValueText}" FontSize="9" Opacity="0.50"
+                           HorizontalAlignment="Center" Margin="0,2,0,0"/>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
+             DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: header + stats + core bars + label -->
+            <StackPanel Grid.Row="0">
+                <TextBlock Text="CPU" Style="{StaticResource SectionLabel}"/>
+                <TextBlock Text="{Binding Cpu.Name, FallbackValue='Processor'}"
+                           Style="{StaticResource ChipName}" Margin="0,0,0,2"/>
+                <TextBlock Text="{Binding Summary}"
+                           FontSize="10" Opacity="0.45" Margin="0,0,0,8"
+                           Visibility="{Binding Summary, Converter={StaticResource NullToCollapsed}}"/>
+
+                <UniformGrid Columns="4" Margin="0,0,0,10">
+                    <controls:StatBox Label="Usage" Unit="%" Margin="0,0,3,0"
+                        Value="{Binding Cpu.Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                    <controls:StatBox Label="Temp" Unit="°C" Margin="3,0"
+                        Value="{Binding Cpu.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
+                        Accent="{Binding Cpu.Temperature.Primary.Value, Converter={StaticResource Thermal}}"/>
+                    <controls:StatBox Label="Eff. Clock" Unit="MHz" UnitSize="11" Margin="3,0"
+                        Value="{Binding Cpu.Clock.CoresAverage.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
+                        Accent="{DynamicResource Aquila.Cpu}"/>
+                    <controls:StatBox Label="Power" Unit="W" Margin="3,0,0,0"
+                        Value="{Binding Cpu.Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
+                        Accent="{DynamicResource Aquila.Power}"/>
+                </UniformGrid>
+
+                <StackPanel Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=260}">
+                    <TextBlock Text="CORE LOAD" Style="{StaticResource SectionLabel}"/>
+                    <ItemsControl ItemsSource="{Binding Cores}"
+                                  ItemTemplate="{StaticResource CoreBarTemplate}"
+                                  Margin="0,0,0,12">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </StackPanel>
+
+                <TextBlock Text="USAGE · 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"
+                           Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
+            </StackPanel>
+
+            <!-- Row 1: sparkline fills remaining space -->
+            <controls:SparklineChart Grid.Row="1" MinHeight="40"
+                Values="{Binding Cpu.Load.Total.History}"
+                SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
+                MaxY="100"
+                Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
+        </Grid>
+    </ui:Card>
+</UserControl>

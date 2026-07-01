@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:controls="clr-namespace:Aquila.Controls"
+    xmlns:cards="clr-namespace:Aquila.Controls.Cards"
     xmlns:vm="clr-namespace:Aquila.ViewModels.Pages"
     xmlns:nodes="clr-namespace:Aquila.Models.Nodes"
     xmlns:helpers="clr-namespace:Aquila.Helpers"
@@ -25,24 +26,6 @@
         <helpers:ZeroToCollapsedConverter x:Key="ZeroToCollapsedConverter"/>
         <helpers:ThermalBrushConverter x:Key="ThermalBrushConverter"/>
         <helpers:WidthThresholdConverter x:Key="WidthThresholdConverter"/>
-
-        <!-- Core bar DataTemplate -->
-        <DataTemplate x:Key="CoreBarTemplate" DataType="{x:Type vm:CoreBarItem}">
-            <StackPanel>
-                <TextBlock Text="{Binding Label}" FontSize="10" Opacity="0.45"
-                           HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                        CornerRadius="4" Height="92" Margin="4,0"
-                        HorizontalAlignment="Stretch">
-                    <Border VerticalAlignment="Bottom" CornerRadius="4"
-                            Background="{DynamicResource Aquila.Cpu}" Opacity="0.85"
-                            Height="{Binding BarHeight}"
-                            HorizontalAlignment="Stretch"/>
-                </Border>
-                <TextBlock Text="{Binding ValueText}" FontSize="9" Opacity="0.50"
-                           HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-        </DataTemplate>
 
         <!-- Storage card DataTemplate -->
         <DataTemplate x:Key="StorageCardTemplate" DataType="{x:Type nodes:StorageNode}">
@@ -308,142 +291,8 @@
         <controls:ResponsiveCardPanel Gap="8" MinCardWidth="320">
 
             <!-- ── CPU card ─────────────────────────────────────────── -->
-            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowCpuCard}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Row 0: header + stats + core bars + label -->
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="CPU" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding ViewModel.Hardware.Cpus[0].Name, FallbackValue='Processor'}"
-                                   Style="{StaticResource ChipName}" Margin="0,0,0,2"/>
-                        <TextBlock Text="{Binding ViewModel.CpuSummary}"
-                                   FontSize="10" Opacity="0.45" Margin="0,0,0,8"
-                                   Visibility="{Binding ViewModel.CpuSummary, Converter={StaticResource NullToCollapsedConverter}}"/>
-
-                        <UniformGrid Columns="4" Margin="0,0,0,10">
-                            <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}">
-                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Usage" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Cpu}">
-                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Clock.CoresAverage.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Eff. Clock" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Power}">
-                                        <Run Text="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-
-                        <StackPanel Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=260}">
-                            <TextBlock Text="CORE LOAD" Style="{StaticResource SectionLabel}"/>
-                            <ItemsControl ItemsSource="{Binding ViewModel.CpuCoreItems}"
-                                          ItemTemplate="{StaticResource CoreBarTemplate}"
-                                          Margin="0,0,0,12">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Rows="1"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
-                        </StackPanel>
-
-                        <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"
-                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                    </StackPanel>
-
-                    <!-- Row 1: sparkline fills remaining space -->
-                    <controls:SparklineChart Grid.Row="1" MinHeight="40"
-                        Values="{Binding ViewModel.Hardware.Cpus[0].Load.Total.History}"
-                        SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
-                        MaxY="100"
-                        Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-
-                    <!-- Row 2: fan section (hide when narrow) -->
-                    <StackPanel Grid.Row="2"
-                                Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=260}">
-                        <Border Style="{StaticResource Divider}"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0"
-                                        Visibility="{Binding ViewModel.Hardware.Motherboard.CpuFan, Converter={StaticResource NullToCollapsedConverter}}">
-                                <TextBlock Text="{Binding ViewModel.Hardware.Motherboard.CpuFan.Name, FallbackValue='CPU Fan'}"
-                                           Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFan.Value"/>
-                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFan.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1"
-                                        Visibility="{Binding ViewModel.Hardware.Motherboard.CpuFanSecondary, Converter={StaticResource NullToCollapsedConverter}}">
-                                <TextBlock Text="{Binding ViewModel.Hardware.Motherboard.CpuFanSecondary.Name, FallbackValue='CPU Fan 2'}"
-                                           Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFanSecondary.Value"/>
-                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuFanSecondary.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2"
-                                        Visibility="{Binding ViewModel.Hardware.Motherboard.CpuPump, Converter={StaticResource NullToCollapsedConverter}}">
-                                <TextBlock Text="{Binding ViewModel.Hardware.Motherboard.CpuPump.Name, FallbackValue='Pump'}"
-                                           Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                <TextBlock FontSize="13" FontWeight="SemiBold">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuPump.Value"/>
-                                            <Binding Path="ViewModel.Hardware.Motherboard.CpuPump.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                </Grid>
-            </ui:Card>
+            <cards:CpuCard Cpu="{Binding ViewModel.Hardware.Cpus[0]}"
+                           Visibility="{Binding ViewModel.ShowCpuCard}"/>
 
             <!-- ── GPU cards ─────────────────────────────────────────── -->
             <ContentControl Content="{Binding ViewModel.Gpu1}"
