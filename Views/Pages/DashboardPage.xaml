@@ -349,62 +349,9 @@
                 Visibility="{Binding ViewModel.ShowTemperaturesCard}"/>
 
             <!-- ── Fans card ─────────────────────────────────────────── -->
-            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowFansCard}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="FANS" Style="{StaticResource SectionLabel}"/>
-                        <ItemsControl ItemsSource="{Binding ViewModel.FanRows}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:FanRowItem}">
-                                    <Grid Margin="0,0,0,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="110"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="72"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{Binding Fan.Name}"
-                                                   Style="{StaticResource RowLabel}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <ProgressBar Grid.Column="1"
-                                                     Style="{StaticResource FanBar}"
-                                                     VerticalAlignment="Center"
-                                                     Value="{Binding BarValue, Mode=OneWay}"
-                                                     Maximum="{Binding BarMaximum, Mode=OneWay}"/>
-                                        <TextBlock Grid.Column="2"
-                                                   Style="{StaticResource RowValue}" FontSize="11"
-                                                   Opacity="0.55" Margin="6,0,4,0"
-                                                   VerticalAlignment="Center"
-                                                   Text="{Binding DutyText}"
-                                                   Visibility="{Binding DutyText, Converter={StaticResource NullToCollapsedConverter}}"/>
-                                        <TextBlock Grid.Column="3" Style="{StaticResource RowValue}" FontSize="12" HorizontalAlignment="Right">
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                                    <Binding Path="Fan.Value"/>
-                                                    <Binding Path="Fan.Unit"/>
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="CPU FAN ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
-                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                    </StackPanel>
-
-                    <controls:SparklineChart Grid.Row="1" MinHeight="40"
-                        Values="{Binding ViewModel.Hardware.Motherboard.CpuFan.History}"
-                        SeriesColor="{DynamicResource Aquila.Chart.NetDown}"
-                        Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                </Grid>
-            </ui:Card>
+            <cards:FansCard FanRows="{Binding ViewModel.FanRows}"
+                            CpuFan="{Binding ViewModel.Hardware.Motherboard.CpuFan}"
+                            Visibility="{Binding ViewModel.ShowFansCard}"/>
 
             <!-- ── Power card ────────────────────────────────────────── -->
             <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowPowerCard}">

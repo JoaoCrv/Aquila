@@ -190,21 +190,4 @@ public sealed class GpuCardData(GpuNode gpu)
     public SensorNode VramTotal   => gpu.Data.Total;
 }
 
-public sealed class FanRowItem(SensorNode fan, SensorNode? control)
-{
-    public SensorNode  Fan        => fan;
-    public SensorNode? Control    => control;
-    public double      BarValue   => control?.Value ?? fan.Value ?? 0;
-    public double      BarMaximum => control != null ? 100 : (fan.Max ?? 3000);
-
-    public string? DutyText
-    {
-        get
-        {
-            if (control?.Value is float cv) return $"{cv:F0}%";
-            if (fan.Value is float v && fan.Max is float max && max > 0)
-                return $"{v / max * 100:F0}%";
-            return null;
-        }
-    }
-}
+// FanRowItem lives in Aquila.Models (Models/FanRowItem.cs) — shared with the FansCard control.
