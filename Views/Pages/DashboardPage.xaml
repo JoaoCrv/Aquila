@@ -105,162 +105,6 @@
         </DataTemplate>
 
         <!-- GPU card DataTemplate -->
-        <DataTemplate x:Key="GpuCardTemplate" DataType="{x:Type vm:GpuCardData}">
-            <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Row 0: header + stats + usage label -->
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="GPU" Style="{StaticResource SectionLabel}"/>
-                        <TextBlock Text="{Binding Name}" Style="{StaticResource ChipName}" Margin="0,0,0,8"/>
-
-                        <UniformGrid Columns="4" Margin="0,0,0,10">
-                            <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}">
-                                        <Run Text="{Binding Load.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Usage" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}">
-                                        <Run Text="{Binding Temperature.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Temp" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Gpu}">
-                                        <Run Text="{Binding Clock.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="MHz" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Clock" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource StatBox}" Margin="3,0,0,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource StatBoxValue}"
-                                               Foreground="{DynamicResource Aquila.Gpu}">
-                                        <Run Text="{Binding Power.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                        <Run Text="W" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                    </TextBlock>
-                                    <TextBlock Text="Power" Style="{StaticResource StatBoxLabel}"/>
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-                        <TextBlock Text="USAGE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
-                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                    </StackPanel>
-
-                    <!-- Row 1: sparkline fills remaining space -->
-                    <controls:SparklineChart Grid.Row="1" MinHeight="40"
-                        Values="{Binding Load.History}"
-                        SeriesColor="{DynamicResource Aquila.Chart.Gpu}"
-                        MaxY="100"
-                        Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-
-                    <!-- Row 2: VRAM + fan (hide when narrow) -->
-                    <StackPanel Grid.Row="2">
-                        <StackPanel Margin="0,4,0,0"
-                                    Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=260}">
-                            <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock FontSize="20" FontWeight="Normal"
-                                           Foreground="{DynamicResource Aquila.Gpu}"
-                                           Text="{Binding VramUsed.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
-                                <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="/ {0:F0} {1}" FallbackValue="/ -- ">
-                                            <Binding Path="VramTotal.Value"/>
-                                            <Binding Path="VramUsed.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </StackPanel>
-                            <ProgressBar Style="{StaticResource GpuBar}" Height="8"
-                                         Value="{Binding VramUsed.Value, FallbackValue=0}"
-                                         Maximum="{Binding VramTotal.Value, FallbackValue=1}"/>
-                            <Grid Margin="0,5,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" FontSize="10" Opacity="0.40"
-                                           Text="{Binding VramUsed.Value, StringFormat='{}{0:F1} used', FallbackValue='used'}"/>
-                                <TextBlock Grid.Column="1" FontSize="10" Opacity="0.40">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0:F0} {1} total" FallbackValue="total">
-                                            <Binding Path="VramTotal.Value"/>
-                                            <Binding Path="VramUsed.Unit"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </Grid>
-                        </StackPanel>
-
-                        <StackPanel Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=260}">
-                            <StackPanel Visibility="{Binding Fan1.Value, Converter={StaticResource NullToCollapsedConverter}}">
-                                <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}"
-                                        Opacity="0.14" Margin="0,8"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <StackPanel.Style>
-                                            <Style TargetType="StackPanel">
-                                                <Setter Property="Grid.ColumnSpan" Value="1"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Fan2.Value}" Value="{x:Null}">
-                                                        <Setter Property="Grid.ColumnSpan" Value="2"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </StackPanel.Style>
-                                        <TextBlock Text="Fan 1" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                        <TextBlock FontSize="13" FontWeight="SemiBold">
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                                    <Binding Path="Fan1.Value"/>
-                                                    <Binding Path="Fan1.Unit"/>
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1"
-                                                Visibility="{Binding Fan2.Value, Converter={StaticResource NullToCollapsedConverter}}">
-                                        <TextBlock Text="Fan 2" Style="{StaticResource RowLabel}" Margin="0,0,0,2"/>
-                                        <TextBlock FontSize="13" FontWeight="SemiBold">
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0:F0} {1}" FallbackValue="--">
-                                                    <Binding Path="Fan2.Value"/>
-                                                    <Binding Path="Fan2.Unit"/>
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </ui:Card>
-        </DataTemplate>
-
     </Page.Resources>
 
     <StackPanel>
@@ -295,18 +139,10 @@
                            Visibility="{Binding ViewModel.ShowCpuCard}"/>
 
             <!-- ── GPU cards ─────────────────────────────────────────── -->
-            <ContentControl Content="{Binding ViewModel.Gpu1}"
-                            ContentTemplate="{StaticResource GpuCardTemplate}"
-                            HorizontalContentAlignment="Stretch"
-                            VerticalAlignment="Stretch"
-                            VerticalContentAlignment="Stretch"
-                            Visibility="{Binding ViewModel.Gpu1, Converter={StaticResource NullToCollapsedConverter}}"/>
-            <ContentControl Content="{Binding ViewModel.Gpu2}"
-                            ContentTemplate="{StaticResource GpuCardTemplate}"
-                            HorizontalContentAlignment="Stretch"
-                            VerticalAlignment="Stretch"
-                            VerticalContentAlignment="Stretch"
-                            Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}"/>
+            <cards:GpuCard Gpu="{Binding ViewModel.Gpu1}"
+                           Visibility="{Binding ViewModel.Gpu1, Converter={StaticResource NullToCollapsedConverter}}"/>
+            <cards:GpuCard Gpu="{Binding ViewModel.Gpu2}"
+                           Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}"/>
 
             <!-- ── RAM card ──────────────────────────────────────────── -->
             <cards:RamCard Memory="{Binding ViewModel.Hardware.Memory}"
@@ -357,8 +193,8 @@
             <cards:PowerCard
                 TotalPower="{Binding ViewModel.Hardware.TotalPower}"
                 CpuPower="{Binding ViewModel.Hardware.Cpus[0].Power.Package}"
-                Gpu1Power="{Binding ViewModel.Gpu1.Power}"
-                Gpu2Power="{Binding ViewModel.Gpu2.Power}"
+                Gpu1Power="{Binding ViewModel.Gpu1.Power.Package}"
+                Gpu2Power="{Binding ViewModel.Gpu2.Power.Package}"
                 Visibility="{Binding ViewModel.ShowPowerCard}"/>
 
         </controls:ResponsiveCardPanel>
