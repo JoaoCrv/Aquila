@@ -17,6 +17,7 @@
                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
             </TextBlock>
             <TextBlock Style="{StaticResource StatBoxLabel}"
+                       TextTrimming="CharacterEllipsis"
                        Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
         </StackPanel>
     </Border>

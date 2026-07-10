@@ -343,49 +343,10 @@
                             Visibility="{Binding ViewModel.Storage4, Converter={StaticResource NullToCollapsedConverter}}"/>
 
             <!-- ── Temperatures card ─────────────────────────────────── -->
-            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowTemperaturesCard}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="TEMPERATURES" Style="{StaticResource SectionLabel}"/>
-                        <ItemsControl ItemsSource="{Binding ViewModel.Hardware.Motherboard.Temperature}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <UniformGrid Columns="2"/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource StatBox}" Margin="0,0,6,6">
-                                        <StackPanel>
-                                            <TextBlock Style="{StaticResource StatBoxValue}"
-                                                       Foreground="{Binding Value, Converter={StaticResource ThermalBrushConverter}}">
-                                                <Run Text="{Binding Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                                                <Run Text="°C" FontSize="14" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                                            </TextBlock>
-                                            <TextBlock Text="{Binding Name}" Style="{StaticResource StatBoxLabel}"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="CPU DIE ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
-                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                    </StackPanel>
-
-                    <controls:SparklineChart Grid.Row="1" MinHeight="40"
-                        Values="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary.History}"
-                        SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
-                        MaxY="100"
-                        Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                </Grid>
-            </ui:Card>
+            <cards:TemperaturesCard
+                Temperatures="{Binding ViewModel.Hardware.Motherboard.Temperature}"
+                DieTemperature="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary}"
+                Visibility="{Binding ViewModel.ShowTemperaturesCard}"/>
 
             <!-- ── Fans card ─────────────────────────────────────────── -->
             <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowFansCard}">
