@@ -354,72 +354,12 @@
                             Visibility="{Binding ViewModel.ShowFansCard}"/>
 
             <!-- ── Power card ────────────────────────────────────────── -->
-            <ui:Card Padding="12,10" Visibility="{Binding ViewModel.ShowPowerCard}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="POWER" Style="{StaticResource SectionLabel}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock FontSize="26"
-                                       Text="{Binding ViewModel.Hardware.TotalPower.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                            <TextBlock Text="W total" FontSize="12" VerticalAlignment="Bottom"
-                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="5,0,0,4"/>
-                        </StackPanel>
-                        <Grid Margin="0,0,0,5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="36"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="44"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="CPU" Style="{StaticResource RowLabel}"/>
-                            <ProgressBar Grid.Column="1" Style="{StaticResource CpuBar}" VerticalAlignment="Center"
-                                         Value="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, FallbackValue=0}"
-                                         Maximum="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Max, FallbackValue=1}"/>
-                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                                       Text="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="36"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="44"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="GPU" Style="{StaticResource RowLabel}"/>
-                            <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
-                                         Value="{Binding ViewModel.Gpu1.Power.Value, FallbackValue=0}"
-                                         Maximum="{Binding ViewModel.Gpu1.Power.Max, FallbackValue=1}"/>
-                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                                       Text="{Binding ViewModel.Gpu1.Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                        </Grid>
-                        <Grid Margin="0,0,0,5"
-                              Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="36"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="44"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="GPU 2" Style="{StaticResource RowLabel}"/>
-                            <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
-                                         Value="{Binding ViewModel.Gpu2.Power.Value, FallbackValue=0}"
-                                         Maximum="{Binding ViewModel.Gpu2.Power.Max, FallbackValue=1}"/>
-                            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                                       Text="{Binding ViewModel.Gpu2.Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                        </Grid>
-                        <TextBlock Text="TOTAL ° 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
-                                   Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                    </StackPanel>
-
-                    <controls:SparklineChart Grid.Row="1" MinHeight="40"
-                        Values="{Binding ViewModel.Hardware.TotalPower.History}"
-                        SeriesColor="{DynamicResource Aquila.Power}"
-                        Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThresholdConverter}, ConverterParameter=280}"/>
-                </Grid>
-            </ui:Card>
+            <cards:PowerCard
+                TotalPower="{Binding ViewModel.Hardware.TotalPower}"
+                CpuPower="{Binding ViewModel.Hardware.Cpus[0].Power.Package}"
+                Gpu1Power="{Binding ViewModel.Gpu1.Power}"
+                Gpu2Power="{Binding ViewModel.Gpu2.Power}"
+                Visibility="{Binding ViewModel.ShowPowerCard}"/>
 
         </controls:ResponsiveCardPanel>
 
