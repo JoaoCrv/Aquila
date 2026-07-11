@@ -7,8 +7,6 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:controls="clr-namespace:Aquila.Controls"
     xmlns:cards="clr-namespace:Aquila.Controls.Cards"
-    xmlns:vm="clr-namespace:Aquila.ViewModels.Pages"
-    xmlns:nodes="clr-namespace:Aquila.Models.Nodes"
     xmlns:helpers="clr-namespace:Aquila.Helpers"
     Style="{StaticResource BasePageStyle}"
     Title="DashboardPage"

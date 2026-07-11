@@ -37,32 +37,12 @@
                     <controls:StatBox Label="Used" Unit="%" Margin="3,0,0,0"
                         Value="{Binding Storage.Load.UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                 </UniformGrid>
-                <Grid Margin="0,0,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Read" Style="{StaticResource RowLabel}"/>
-                    <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Aquila.Cpu}"
-                               Text="{Binding Storage.Throughput.ReadRate.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
-                </Grid>
-                <ProgressBar Style="{StaticResource CpuBar}" Margin="0,2,0,6"
-                             Value="{Binding Storage.Throughput.ReadRate.Value, FallbackValue=0}"
-                             Maximum="{Binding Storage.Throughput.ReadRate.Max, FallbackValue=1}"/>
-                <Grid Margin="0,0,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Write" Style="{StaticResource RowLabel}"/>
-                    <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Aquila.Ram}"
-                               Text="{Binding Storage.Throughput.WriteRate.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
-                </Grid>
-                <ProgressBar Style="{StaticResource RamBar}" Margin="0,2,0,6"
-                             Value="{Binding Storage.Throughput.WriteRate.Value, FallbackValue=0}"
-                             Maximum="{Binding Storage.Throughput.WriteRate.Max, FallbackValue=1}"/>
+                <controls:SensorMeter LabelPlacement="Top" ColorValue="True" Label="Read"
+                    Sensor="{Binding Storage.Throughput.ReadRate}" Accent="{DynamicResource Aquila.Cpu}"
+                    ValueText="{Binding Storage.Throughput.ReadRate.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
+                <controls:SensorMeter LabelPlacement="Top" ColorValue="True" Label="Write"
+                    Sensor="{Binding Storage.Throughput.WriteRate}" Accent="{DynamicResource Aquila.Ram}"
+                    ValueText="{Binding Storage.Throughput.WriteRate.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
                 <TextBlock Text="I/O · 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
                            Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
             </StackPanel>

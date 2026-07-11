@@ -33,46 +33,16 @@
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="5,0,0,4"/>
                 </StackPanel>
 
-                <Grid Margin="0,0,0,5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="36"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="44"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="CPU" Style="{StaticResource RowLabel}"/>
-                    <ProgressBar Grid.Column="1" Style="{StaticResource CpuBar}" VerticalAlignment="Center"
-                                 Value="{Binding CpuPower.Value, FallbackValue=0}"
-                                 Maximum="{Binding CpuPower.Max, FallbackValue=1}"/>
-                    <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                               Text="{Binding CpuPower.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                </Grid>
-                <Grid Margin="0,0,0,5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="36"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="44"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="GPU" Style="{StaticResource RowLabel}"/>
-                    <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
-                                 Value="{Binding Gpu1Power.Value, FallbackValue=0}"
-                                 Maximum="{Binding Gpu1Power.Max, FallbackValue=1}"/>
-                    <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                               Text="{Binding Gpu1Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                </Grid>
-                <Grid Margin="0,0,0,5"
-                      Visibility="{Binding Gpu2Power, Converter={StaticResource NullToCollapsed}}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="36"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="44"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="GPU 2" Style="{StaticResource RowLabel}"/>
-                    <ProgressBar Grid.Column="1" Style="{StaticResource GpuBar}" VerticalAlignment="Center"
-                                 Value="{Binding Gpu2Power.Value, FallbackValue=0}"
-                                 Maximum="{Binding Gpu2Power.Max, FallbackValue=1}"/>
-                    <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="12"
-                               Text="{Binding Gpu2Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                </Grid>
+                <controls:SensorMeter Margin="0,0,0,5" Label="CPU"
+                    Sensor="{Binding CpuPower}" Accent="{DynamicResource Aquila.Cpu}"
+                    ValueText="{Binding CpuPower.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                <controls:SensorMeter Margin="0,0,0,5" Label="GPU"
+                    Sensor="{Binding Gpu1Power}" Accent="{DynamicResource Aquila.Gpu}"
+                    ValueText="{Binding Gpu1Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                <controls:SensorMeter Margin="0,0,0,5" Label="GPU 2"
+                    Sensor="{Binding Gpu2Power}" Accent="{DynamicResource Aquila.Gpu}"
+                    ValueText="{Binding Gpu2Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"
+                    Visibility="{Binding Gpu2Power, Converter={StaticResource NullToCollapsed}}"/>
 
                 <TextBlock Text="TOTAL · 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
                            Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
