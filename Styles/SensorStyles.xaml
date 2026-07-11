@@ -110,28 +110,12 @@
          Named sensor bars — BasedOn ThinBar, colour from Aquila.* tokens
          ════════════════════════════════════════════════════════════════ -->
 
-    <Style x:Key="CpuBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Cpu}"/>
-    </Style>
-
     <Style x:Key="GpuBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
         <Setter Property="Foreground" Value="{DynamicResource Aquila.Gpu}"/>
     </Style>
 
     <Style x:Key="RamBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
         <Setter Property="Foreground" Value="{DynamicResource Aquila.Ram}"/>
-    </Style>
-
-    <Style x:Key="TempBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Temp}"/>
-    </Style>
-
-    <Style x:Key="GpuTempBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.GpuTemp}"/>
-    </Style>
-
-    <Style x:Key="PowerBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Power}"/>
     </Style>
 
     <Style x:Key="FanBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
