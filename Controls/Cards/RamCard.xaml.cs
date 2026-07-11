@@ -1,15 +1,17 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Aquila.Models.Nodes;
 
 namespace Aquila.Controls.Cards;
 
 /// <summary>
 /// Self-contained RAM dashboard card. Give it the <see cref="Memory"/> node and it renders
-/// everything — usage header, the physical/virtual composition bar, legend, usage sparkline and
-/// per-DIMM temperatures. The pool fractions that drive the composition bar are computed here, so the
-/// card has no ViewModel dependency and can be dropped into the dashboard or a future widget alike.
+/// everything — usage header, the physical/virtual composition bar (a <see cref="StackedBar"/>),
+/// legend, usage sparkline and per-DIMM temperatures. The composition segments are computed here, so
+/// the card has no ViewModel dependency and can be dropped into the dashboard or a future widget alike.
 /// </summary>
 public partial class RamCard : UserControl
 {
@@ -23,17 +25,9 @@ public partial class RamCard : UserControl
         DependencyProperty.Register(nameof(Memory), typeof(MemoryNode), typeof(RamCard),
             new PropertyMetadata(null, OnMemoryChanged));
 
-    public static readonly DependencyProperty PhysUsedFracProperty =
-        DependencyProperty.Register(nameof(PhysUsedFrac), typeof(double), typeof(RamCard),
-            new PropertyMetadata(0.0));
-
-    public static readonly DependencyProperty PhysFreeFracProperty =
-        DependencyProperty.Register(nameof(PhysFreeFrac), typeof(double), typeof(RamCard),
-            new PropertyMetadata(0.0));
-
-    public static readonly DependencyProperty VirtUsedFracProperty =
-        DependencyProperty.Register(nameof(VirtUsedFrac), typeof(double), typeof(RamCard),
-            new PropertyMetadata(0.0));
+    public static readonly DependencyProperty SegmentsProperty =
+        DependencyProperty.Register(nameof(Segments), typeof(IReadOnlyList<BarSegment>), typeof(RamCard),
+            new PropertyMetadata(null));
 
     /// <summary>The memory to display. Drives the whole card.</summary>
     public MemoryNode? Memory
@@ -42,25 +36,11 @@ public partial class RamCard : UserControl
         set => SetValue(MemoryProperty, value);
     }
 
-    /// <summary>Physical-used share of the memory pool (0..1), computed each tick.</summary>
-    public double PhysUsedFrac
+    /// <summary>Physical/virtual pool composition, computed each tick for the StackedBar.</summary>
+    public IReadOnlyList<BarSegment>? Segments
     {
-        get => (double)GetValue(PhysUsedFracProperty);
-        private set => SetValue(PhysUsedFracProperty, value);
-    }
-
-    /// <summary>Physical-free share of the memory pool (0..1), computed each tick.</summary>
-    public double PhysFreeFrac
-    {
-        get => (double)GetValue(PhysFreeFracProperty);
-        private set => SetValue(PhysFreeFracProperty, value);
-    }
-
-    /// <summary>Virtual-used share of the memory pool (0..1), computed each tick.</summary>
-    public double VirtUsedFrac
-    {
-        get => (double)GetValue(VirtUsedFracProperty);
-        private set => SetValue(VirtUsedFracProperty, value);
+        get => (IReadOnlyList<BarSegment>?)GetValue(SegmentsProperty);
+        private set => SetValue(SegmentsProperty, value);
     }
 
     private static void OnMemoryChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -78,13 +58,15 @@ public partial class RamCard : UserControl
         Refresh();
     }
 
-    // Recompute the pool fractions that drive the composition bar. Everything else binds straight to
-    // the SensorNodes and updates through their own INPC.
+    // Recompute the composition segments. Everything else binds straight to the SensorNodes and
+    // updates through their own INPC.
     private void Refresh()
     {
-        if (Memory is null)
+        // TryFindResource needs the control connected to the visual tree; Loaded catches up once it is
+        // (same guard as RadialGauge/SensorBar).
+        if (!IsLoaded || Memory is null)
         {
-            PhysUsedFrac = PhysFreeFrac = VirtUsedFrac = 0;
+            Segments = [];
             return;
         }
 
@@ -93,9 +75,17 @@ public partial class RamCard : UserControl
         double virtUsed = Memory.Virtual.Used.Value ?? 0;
         double virtFree = Memory.Virtual.Available.Value ?? 0;
         double pool = physUsed + physFree + virtUsed + virtFree;
+        if (pool <= 0) { Segments = []; return; }
 
-        PhysUsedFrac = pool > 0 ? physUsed / pool : 0;
-        PhysFreeFrac = pool > 0 ? physFree / pool : 0;
-        VirtUsedFrac = pool > 0 ? virtUsed / pool : 0;
+        var cpu = TryFindResource("Aquila.Cpu") as Brush ?? Brushes.Transparent;
+        var ram = TryFindResource("Aquila.Ram") as Brush ?? Brushes.Transparent;
+
+        Segments =
+        [
+            new(physUsed / pool, cpu),
+            new(physFree / pool, cpu, Opacity: 0.18),
+            new(virtUsed / pool, ram),
+            new(virtFree / pool, ram, Opacity: 0.18),
+        ];
     }
 }

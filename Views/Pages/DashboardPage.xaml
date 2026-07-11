@@ -18,12 +18,7 @@
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
         </Style>
 
-        <helpers:ThroughputConverter x:Key="ThroughputConverter"/>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
-        <helpers:ProgressBarWidthConverter x:Key="ProgressBarWidthConverter"/>
-        <helpers:ZeroToCollapsedConverter x:Key="ZeroToCollapsedConverter"/>
-        <helpers:ThermalBrushConverter x:Key="ThermalBrushConverter"/>
-        <helpers:WidthThresholdConverter x:Key="WidthThresholdConverter"/>
 
     </Page.Resources>
 
