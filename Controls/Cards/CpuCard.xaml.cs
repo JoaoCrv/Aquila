@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Aquila.Controls;
 using Aquila.Models.Nodes;
 
 namespace Aquila.Controls.Cards;
@@ -30,7 +31,7 @@ public partial class CpuCard : UserControl
             new PropertyMetadata(null));
 
     public static readonly DependencyProperty CoresProperty =
-        DependencyProperty.Register(nameof(Cores), typeof(IReadOnlyList<CoreBarItem>), typeof(CpuCard),
+        DependencyProperty.Register(nameof(Cores), typeof(IReadOnlyList<BarGroupItem>), typeof(CpuCard),
             new PropertyMetadata(null));
 
     /// <summary>The CPU to display. Drives the whole card.</summary>
@@ -48,9 +49,9 @@ public partial class CpuCard : UserControl
     }
 
     /// <summary>Per-core load bars, computed from the CPU each tick.</summary>
-    public IReadOnlyList<CoreBarItem>? Cores
+    public IReadOnlyList<BarGroupItem>? Cores
     {
-        get => (IReadOnlyList<CoreBarItem>?)GetValue(CoresProperty);
+        get => (IReadOnlyList<BarGroupItem>?)GetValue(CoresProperty);
         private set => SetValue(CoresProperty, value);
     }
 
@@ -86,17 +87,7 @@ public partial class CpuCard : UserControl
 
         Cores = Cpu.Load.Cores
             .Where(c => c.Value.HasValue)
-            .Select((c, i) => new CoreBarItem($"#{i + 1}", c.Value ?? 0))
+            .Select((c, i) => new BarGroupItem($"#{i + 1}", c.Value ?? 0))
             .ToList();
     }
-}
-
-/// <summary>One per-core load bar (label + value), used by the CPU card's core-load row.</summary>
-public sealed class CoreBarItem(string label, double value)
-{
-    private const double MaxHeight = 92.0;
-    public string Label     => label;
-    public double Value     => value;
-    public double BarHeight => MaxHeight * (value / 100.0);
-    public string ValueText => $"{value:F0}%";
 }

@@ -1,0 +1,50 @@
+<UserControl x:Class="Aquila.Controls.BarGroup"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:helpers="clr-namespace:Aquila.Helpers"
+             mc:Ignorable="d"
+             d:DesignWidth="260" d:DesignHeight="110">
+    <!-- N independent vertical bars side by side (e.g. CPU per-core load) — sibling of SensorBar/
+         StackedBar, but for a row of separately-scaled values instead of one sensor or a shared
+         whole. Bind Items (BarGroupItem: Label, Value, Max) and Accent; BarHeight caps the bars'
+         pixel height. Reuses ProgressBarWidthConverter (ratio * dimension) for each bar's height. -->
+    <UserControl.Resources>
+        <helpers:ProgressBarWidthConverter x:Key="Ratio"/>
+    </UserControl.Resources>
+
+    <ItemsControl ItemsSource="{Binding Items, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <UniformGrid Rows="1"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <StackPanel>
+                    <TextBlock Text="{Binding Label}" FontSize="10" Opacity="0.45"
+                               HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                            CornerRadius="4" Margin="4,0" HorizontalAlignment="Stretch"
+                            Height="{Binding BarHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                        <Border VerticalAlignment="Bottom" CornerRadius="4" Opacity="0.85"
+                                Background="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                HorizontalAlignment="Stretch">
+                            <Border.Height>
+                                <MultiBinding Converter="{StaticResource Ratio}">
+                                    <Binding Path="Value"/>
+                                    <Binding Source="0"/>
+                                    <Binding Path="Max"/>
+                                    <Binding Path="BarHeight" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                </MultiBinding>
+                            </Border.Height>
+                        </Border>
+                    </Border>
+                    <TextBlock Text="{Binding ValueText}" FontSize="9" Opacity="0.50"
+                               HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                </StackPanel>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

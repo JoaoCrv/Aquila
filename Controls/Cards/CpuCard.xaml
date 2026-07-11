@@ -15,24 +15,6 @@
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
         <helpers:ThermalBrushConverter x:Key="Thermal"/>
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
-
-        <!-- Per-core load bar -->
-        <DataTemplate x:Key="CoreBarTemplate">
-            <StackPanel>
-                <TextBlock Text="{Binding Label}" FontSize="10" Opacity="0.45"
-                           HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                        CornerRadius="4" Height="92" Margin="4,0"
-                        HorizontalAlignment="Stretch">
-                    <Border VerticalAlignment="Bottom" CornerRadius="4"
-                            Background="{DynamicResource Aquila.Cpu}" Opacity="0.85"
-                            Height="{Binding BarHeight}"
-                            HorizontalAlignment="Stretch"/>
-                </Border>
-                <TextBlock Text="{Binding ValueText}" FontSize="9" Opacity="0.50"
-                           HorizontalAlignment="Center" Margin="0,2,0,0"/>
-            </StackPanel>
-        </DataTemplate>
     </UserControl.Resources>
 
     <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
@@ -68,15 +50,7 @@
 
                 <StackPanel Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=260}">
                     <TextBlock Text="CORE LOAD" Style="{StaticResource SectionLabel}"/>
-                    <ItemsControl ItemsSource="{Binding Cores}"
-                                  ItemTemplate="{StaticResource CoreBarTemplate}"
-                                  Margin="0,0,0,12">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <UniformGrid Rows="1"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
+                    <controls:BarGroup Items="{Binding Cores}" Accent="{DynamicResource Aquila.Cpu}" Margin="0,0,0,12"/>
                 </StackPanel>
 
                 <TextBlock Text="USAGE · 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"
