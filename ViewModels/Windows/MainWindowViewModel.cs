@@ -42,6 +42,12 @@ namespace Aquila.ViewModels.Windows
             },
             new NavigationViewItem()
             {
+                Content = "Widgets",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Grid24 },
+                TargetPageType = typeof(WidgetsPage)
+            },
+            new NavigationViewItem()
+            {
                 Content = "Storage",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Storage24 },
                 TargetPageType = typeof(StoragePage)
