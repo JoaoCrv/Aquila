@@ -27,4 +27,10 @@ public class AppSettings
     public double DashboardWindowTop    { get; set; } = double.NaN;
     public double DashboardWindowWidth  { get; set; } = 900;
     public double DashboardWindowHeight { get; set; } = 600;
+
+    // Desktop widgets (#24). Off by default while the feature is built out. ShowScreenInfo draws a label
+    // per screen (name + resolution) — doubles as the "identify screen" overlay and as a way to see the
+    // surface before real widgets exist.
+    public bool DesktopSurfaceEnabled        { get; set; } = false;
+    public bool DesktopSurfaceShowScreenInfo { get; set; } = true;
 }
