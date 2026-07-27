@@ -80,9 +80,13 @@ internal sealed class ZOrderBottomAnchor : IDesktopAnchor
         _foregroundHook = SetWinEventHook(EventSystemForeground, EventSystemForeground,
             IntPtr.Zero, _foregroundCallback, 0, 0, WinEventOutOfContext);
 
-        // Steady path: poll the real state. Rainmeter does exactly this (TIMER_SHOWDESKTOP, 250 ms) —
-        // the foreground event only catches ENTERING show-desktop; the timer is what notices it ending.
-        _stateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        // Steady path: poll the real state. Rainmeter does the same (TIMER_SHOWDESKTOP) — the foreground
+        // event only catches ENTERING show-desktop, the timer is what notices it ending. Rainmeter polls
+        // at 250 ms; we use 100 ms because that interval is also the worst-case delay before the surface
+        // is raised over a shown desktop, and that delay is exactly how long the flicker lasts. The work
+        // per tick is a short z-order walk, so the extra frequency is cheap. Some flicker is unavoidable:
+        // the shell raises the desktop first and we can only react afterwards.
+        _stateTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _stateTimer.Tick += (_, _) => UpdateDesktopState();
         _stateTimer.Start();
 
