@@ -56,6 +56,8 @@ public sealed class DesktopWidgetService
         _widgets ??= LoadOrSeed(hardware);
         _byElement.Clear();
 
+        var migrated = false;
+
         foreach (var definition in _widgets)
         {
             // A sensor can vanish between runs (hardware changed, driver renamed it). Skip rather than
@@ -63,7 +65,7 @@ public sealed class DesktopWidgetService
             var sensor = SensorCatalog.FindByIdentifier(hardware, definition.SensorIdentifier);
             if (sensor is null) continue;
 
-            var surface = surfaces[Math.Clamp(definition.ScreenIndex, 0, surfaces.Count - 1)];
+            var surface = ResolveSurface(surfaces, definition, ref migrated);
             var element = Build(definition, sensor);
 
             Canvas.SetLeft(element, definition.X);
@@ -71,6 +73,44 @@ public sealed class DesktopWidgetService
             surface.Canvas.Children.Add(element);
             _byElement[element] = definition;
         }
+
+        if (migrated) _layout.Save(_widgets);
+    }
+
+    /// <summary>
+    /// Finds the surface a widget belongs on, by stable monitor key. Falls back — in order — to the legacy
+    /// screen index (migrating an older widgets.json), then to the primary screen, so a widget whose
+    /// monitor is unplugged reappears somewhere visible instead of being lost off-screen.
+    /// </summary>
+    private DesktopSurfaceService.Surface ResolveSurface(
+        IReadOnlyList<DesktopSurfaceService.Surface> surfaces, DesktopWidgetDefinition definition, ref bool migrated)
+    {
+        if (!string.IsNullOrEmpty(definition.ScreenKey))
+        {
+            var match = surfaces.FirstOrDefault(s => s.Key == definition.ScreenKey);
+            if (match.Canvas is not null) return match;
+        }
+        else if (definition.ScreenIndex >= 0 && definition.ScreenIndex < surfaces.Count)
+        {
+            // Layout written before screen keys existed — adopt the key for that index once, then the
+            // index is never consulted again.
+            var byIndex = surfaces[definition.ScreenIndex];
+            definition.ScreenKey = byIndex.Key;
+            migrated = true;
+            return byIndex;
+        }
+
+        var primary = PrimarySurface(surfaces);
+        // Don't rewrite ScreenKey here: the monitor may just be temporarily unplugged, and forgetting its
+        // real home would strand the widget on the primary screen for good.
+        return primary;
+    }
+
+    private static DesktopSurfaceService.Surface PrimarySurface(IReadOnlyList<DesktopSurfaceService.Surface> surfaces)
+    {
+        var primaryBounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds;
+        var primary = surfaces.FirstOrDefault(s => s.Bounds == primaryBounds);
+        return primary.Canvas is not null ? primary : surfaces[0];
     }
 
     private List<DesktopWidgetDefinition> LoadOrSeed(HardwareNode hardware)
@@ -78,10 +118,7 @@ public sealed class DesktopWidgetService
         var saved = _layout.Load();
         if (saved.Count > 0) return saved;
 
-        // The primary screen isn't necessarily first in Screen.AllScreens, so find its index rather than
-        // assuming 0 (the same reason #24 won't trust that order for screen numbering).
-        var primaryBounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds;
-        var screenIndex = Math.Max(0, _surfaces.Surfaces.ToList().FindIndex(s => s.Bounds == primaryBounds));
+        var screenKey = PrimarySurface(_surfaces.Surfaces).Key;
 
         var seeded = new List<DesktopWidgetDefinition>();
         foreach (var (kind, title, lookup, accent, x, y, width, height) in _starter)
@@ -95,7 +132,7 @@ public sealed class DesktopWidgetService
                 SensorIdentifier = identifier,
                 Title = title,
                 AccentKey = accent,
-                ScreenIndex = screenIndex,
+                ScreenKey = screenKey,
                 X = x, Y = y, Width = width, Height = height,
             });
         }

@@ -25,8 +25,14 @@ public class DesktopWidgetDefinition
     /// <summary>Resource key of the accent brush (e.g. "Aquila.Cpu"), so widgets follow theme changes.</summary>
     public string AccentKey { get; set; } = string.Empty;
 
-    /// <summary>Which screen the widget lives on. An index for now — #24's EDID-based identity replaces
-    /// this, since screen order is not stable across unplug/replug.</summary>
+    /// <summary>Which physical monitor the widget lives on — a stable identity derived from the monitor's
+    /// EDID manufacturer/product code and connection, not its index or DeviceName (both shift when
+    /// monitors are unplugged or rearranged). If the screen is gone, the widget falls back to the primary
+    /// one rather than disappearing.</summary>
+    public string ScreenKey { get; set; } = string.Empty;
+
+    /// <summary>Legacy: the screen index written before <see cref="ScreenKey"/> existed. Only read to
+    /// migrate an older widgets.json, then overwritten with the key on the next save.</summary>
     public int ScreenIndex { get; set; }
 
     public double X { get; set; }

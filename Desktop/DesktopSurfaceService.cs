@@ -24,13 +24,17 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
 
     /// <summary>What a caller needs to place content on one screen's surface, with no window type leaking
     /// out. <paramref name="Bounds"/> is in physical pixels; <paramref name="Canvas"/> coordinates are DIPs
-    /// relative to that screen's top-left.</summary>
-    public readonly record struct Surface(Canvas Canvas, System.Drawing.Rectangle Bounds, string Label);
+    /// relative to that screen's top-left. <paramref name="Key"/> is the stable monitor identity to store
+    /// in a saved layout (see <see cref="ScreenIdentity"/>) — never the index or DeviceName.</summary>
+    public readonly record struct Surface(Canvas Canvas, System.Drawing.Rectangle Bounds, string Label, string Key);
 
     /// <summary>The live surfaces, one per screen. Domain code (widgets) reaches IN through this; this
     /// service never reaches out into the domain.</summary>
     public IReadOnlyList<Surface> Surfaces =>
-        [.. _surfaces.Select(s => new Surface(s.Window.Surface, s.Window.ScreenBounds, s.Window.ScreenLabel))];
+        [.. _surfaces.Select(s => ToSurface(s.Window))];
+
+    private static Surface ToSurface(ScreenCanvasWindow w) =>
+        new(w.Surface, w.ScreenBounds, w.ScreenLabel, w.ScreenKey);
 
     public void Show(bool showScreenInfo = true, bool clickThrough = true)
     {
@@ -40,9 +44,9 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
         foreach (var screen in System.Windows.Forms.Screen.AllScreens)
         {
             var label = $"Screen {index}{(screen.Primary ? " (primary)" : "")}";
-            var window = new ScreenCanvasWindow(screen.Bounds, label, showScreenInfo, clickThrough);
-            window.WidgetMoved += (element, x, y) =>
-                WidgetMoved?.Invoke(new Surface(window.Surface, window.ScreenBounds, window.ScreenLabel), element, x, y);
+            var window = new ScreenCanvasWindow(screen.Bounds, label, ScreenIdentity.KeyFor(screen),
+                showScreenInfo, clickThrough);
+            window.WidgetMoved += (element, x, y) => WidgetMoved?.Invoke(ToSurface(window), element, x, y);
             window.Show();
 
             var anchor = anchorFactory();

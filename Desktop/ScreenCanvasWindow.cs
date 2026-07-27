@@ -21,6 +21,7 @@ internal sealed class ScreenCanvasWindow : Window
 {
     private readonly System.Drawing.Rectangle _deviceBounds;
     private readonly string _screenLabel;
+    private readonly string _screenKey;
     private readonly bool _clickThrough;
     private UIElement? _infoTile;
 
@@ -42,11 +43,15 @@ internal sealed class ScreenCanvasWindow : Window
 
     public string ScreenLabel => _screenLabel;
 
-    public ScreenCanvasWindow(System.Drawing.Rectangle deviceBounds, string screenLabel,
+    /// <summary>Stable monitor identity for saved layouts — see <see cref="ScreenIdentity"/>.</summary>
+    public string ScreenKey => _screenKey;
+
+    public ScreenCanvasWindow(System.Drawing.Rectangle deviceBounds, string screenLabel, string screenKey,
         bool showScreenInfo, bool clickThrough)
     {
         _deviceBounds = deviceBounds;
         _screenLabel = screenLabel;
+        _screenKey = screenKey;
         _clickThrough = clickThrough;
         Title = "Aquila Desktop Surface";
 
