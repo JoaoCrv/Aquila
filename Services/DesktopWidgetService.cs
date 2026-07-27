@@ -12,79 +12,130 @@ namespace Aquila.Services;
 /// sensors and #23 controls and reaches IN to <see cref="DesktopSurfaceService"/>'s canvases —
 /// <see cref="Aquila.Desktop"/> itself stays free of any Aquila type so it remains extractable.
 ///
-/// First widget slice of #24: a fixed set of widgets bound to real sensors, so live data on the desktop
-/// is proven end to end. The <see cref="WidgetPlacement"/> list below is deliberately shaped like what
-/// will later be persisted (kind + sensor + position) — the pin-from-Explorer flow and persistence
-/// replace where the list comes from, not how widgets are built.
+/// Widgets come from persisted <see cref="DesktopWidgetDefinition"/>s, so the layout survives restarts.
+/// On a machine with no layout yet, a small starter set is seeded from whatever sensors that hardware
+/// actually exposes. The pin-from-Explorer flow (#24) will add definitions to the same list — it changes
+/// where definitions come from, not how widgets are built.
 /// </summary>
-public sealed class DesktopWidgetService(AquilaService aquila, DesktopSurfaceService surfaces)
+public sealed class DesktopWidgetService
 {
-    private enum WidgetKind { RadialGauge, MiniSparkline, SensorMeter }
+    private readonly AquilaService _aquila;
+    private readonly DesktopSurfaceService _surfaces;
+    private readonly DesktopLayoutService _layout;
 
-    private readonly record struct WidgetPlacement(
-        WidgetKind Kind, string Title, Func<HardwareNode, SensorNode?> Sensor,
-        string AccentKey, double X, double Y, double Width, double Height);
+    private List<DesktopWidgetDefinition>? _widgets;
+    private readonly Dictionary<UIElement, DesktopWidgetDefinition> _byElement = [];
 
-    // Seed layout, top-left of the primary screen, below the screen-info label.
-    private static readonly WidgetPlacement[] _seed =
+    public DesktopWidgetService(AquilaService aquila, DesktopSurfaceService surfaces, DesktopLayoutService layout)
+    {
+        _aquila = aquila;
+        _surfaces = surfaces;
+        _layout = layout;
+        _surfaces.WidgetMoved += OnWidgetMoved;
+    }
+
+    /// <summary>Starter layout for a machine with no widgets.json yet — sensor lookups rather than fixed
+    /// identifiers, since those differ per machine; whatever isn't present is simply skipped.</summary>
+    private static readonly (DesktopWidgetKind Kind, string Title, Func<HardwareNode, SensorNode?> Sensor,
+        string AccentKey, double X, double Y, double Width, double Height)[] _starter =
     [
-        new(WidgetKind.RadialGauge,  "CPU Load",  h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,
+        (DesktopWidgetKind.RadialGauge,   "CPU Load",  h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,
             "Aquila.Cpu",   32, 150, 170, 190),
-        new(WidgetKind.MiniSparkline, "CPU Temp", h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
+        (DesktopWidgetKind.MiniSparkline, "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
             "Aquila.Temp",  32, 360, 240, 100),
-        new(WidgetKind.SensorMeter,  "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
+        (DesktopWidgetKind.SensorMeter,   "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
             "Aquila.Power", 32, 480, 240,  80),
     ];
 
     public void Populate()
     {
-        // Never assume Screen.AllScreens order puts the primary first — it isn't guaranteed (the same
-        // reason #24 won't trust that order for screen numbering). Match on the primary's bounds instead.
-        var primaryBounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds;
-        var live = surfaces.Surfaces;
-        var surface = live.FirstOrDefault(s => s.Bounds == primaryBounds);
-        if (surface.Canvas is null) surface = live.FirstOrDefault();
-        if (surface.Canvas is null) return; // surface not shown (feature disabled)
+        var surfaces = _surfaces.Surfaces;
+        if (surfaces.Count == 0) return; // surface not shown (feature disabled)
 
-        var hardware = aquila.State.Hardware;
+        var hardware = _aquila.State.Hardware;
+        _widgets ??= LoadOrSeed(hardware);
+        _byElement.Clear();
 
-        foreach (var placement in _seed)
+        foreach (var definition in _widgets)
         {
-            // Sensors vary by machine — skip anything this hardware doesn't expose rather than showing an
-            // empty widget.
-            var sensor = placement.Sensor(hardware);
+            // A sensor can vanish between runs (hardware changed, driver renamed it). Skip rather than
+            // showing an empty widget; the definition is kept so it comes back if the sensor does.
+            var sensor = SensorCatalog.FindByIdentifier(hardware, definition.SensorIdentifier);
             if (sensor is null) continue;
 
-            var widget = Build(placement, sensor);
-            Canvas.SetLeft(widget, placement.X);
-            Canvas.SetTop(widget, placement.Y);
-            surface.Canvas.Children.Add(widget);
+            var surface = surfaces[Math.Clamp(definition.ScreenIndex, 0, surfaces.Count - 1)];
+            var element = Build(definition, sensor);
+
+            Canvas.SetLeft(element, definition.X);
+            Canvas.SetTop(element, definition.Y);
+            surface.Canvas.Children.Add(element);
+            _byElement[element] = definition;
         }
+    }
+
+    private List<DesktopWidgetDefinition> LoadOrSeed(HardwareNode hardware)
+    {
+        var saved = _layout.Load();
+        if (saved.Count > 0) return saved;
+
+        // The primary screen isn't necessarily first in Screen.AllScreens, so find its index rather than
+        // assuming 0 (the same reason #24 won't trust that order for screen numbering).
+        var primaryBounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds;
+        var screenIndex = Math.Max(0, _surfaces.Surfaces.ToList().FindIndex(s => s.Bounds == primaryBounds));
+
+        var seeded = new List<DesktopWidgetDefinition>();
+        foreach (var (kind, title, lookup, accent, x, y, width, height) in _starter)
+        {
+            var identifier = lookup(hardware)?.Identifier;
+            if (string.IsNullOrEmpty(identifier)) continue;
+
+            seeded.Add(new DesktopWidgetDefinition
+            {
+                Kind = kind,
+                SensorIdentifier = identifier,
+                Title = title,
+                AccentKey = accent,
+                ScreenIndex = screenIndex,
+                X = x, Y = y, Width = width, Height = height,
+            });
+        }
+
+        _layout.Save(seeded);
+        return seeded;
+    }
+
+    private void OnWidgetMoved(DesktopSurfaceService.Surface surface, UIElement element, double x, double y)
+    {
+        if (!_byElement.TryGetValue(element, out var definition)) return;
+
+        definition.X = x;
+        definition.Y = y;
+        if (_widgets is not null) _layout.Save(_widgets);
     }
 
     /// <summary>Builds one #23 control bound to a live <see cref="SensorNode"/>. The controls watch the
     /// node's INPC, so assigning it here is all that's needed — they follow the existing AquilaService
     /// tick with no extra timer.</summary>
-    private static UIElement Build(WidgetPlacement placement, SensorNode sensor)
+    private static UIElement Build(DesktopWidgetDefinition definition, SensorNode sensor)
     {
-        FrameworkElement piece = placement.Kind switch
+        FrameworkElement piece = definition.Kind switch
         {
-            WidgetKind.RadialGauge => new RadialGauge { Sensor = sensor },
-            WidgetKind.MiniSparkline => new MiniSparkline { Sensor = sensor },
-            WidgetKind.SensorMeter => new SensorMeter { Sensor = sensor, LabelPlacement = MeterLabelPlacement.Inline },
-            _ => throw new NotSupportedException($"Unknown widget kind {placement.Kind}"),
+            DesktopWidgetKind.RadialGauge => new RadialGauge { Sensor = sensor },
+            DesktopWidgetKind.MiniSparkline => new MiniSparkline { Sensor = sensor },
+            DesktopWidgetKind.SensorMeter => new SensorMeter { Sensor = sensor, LabelPlacement = MeterLabelPlacement.Inline },
+            _ => throw new NotSupportedException($"Unknown widget kind {definition.Kind}"),
         };
 
         // SetResourceReference is the code equivalent of DynamicResource — accent brushes are swapped on
         // theme change (App.RefreshAccentBrushes), so a static lookup would freeze the old theme's colour.
         piece.SetResourceReference(
-            placement.Kind switch
+            definition.Kind switch
             {
-                WidgetKind.RadialGauge => RadialGauge.AccentProperty,
-                WidgetKind.MiniSparkline => MiniSparkline.AccentProperty,
+                DesktopWidgetKind.RadialGauge => RadialGauge.AccentProperty,
+                DesktopWidgetKind.MiniSparkline => MiniSparkline.AccentProperty,
                 _ => SensorMeter.AccentProperty,
             },
-            placement.AccentKey);
+            definition.AccentKey);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: give it its own dim backing panel and light text.
@@ -93,11 +144,11 @@ public sealed class DesktopWidgetService(AquilaService aquila, DesktopSurfaceSer
             Background = new SolidColorBrush(Color.FromArgb(0x99, 0x00, 0x00, 0x00)),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(10),
-            Width = placement.Width,
-            Height = placement.Height,
+            Width = definition.Width,
+            Height = definition.Height,
             Child = new LabeledTile
             {
-                Title = placement.Title,
+                Title = definition.Title,
                 Tile = piece,
                 Foreground = Brushes.White,
             },

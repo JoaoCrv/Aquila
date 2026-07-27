@@ -91,7 +91,7 @@
 
         <TextBlock Margin="0,24,0,0" Style="{StaticResource PageSectionHeader}" Text="Desktop widgets" />
         <TextBlock Margin="0,4,0,8" Opacity="0.55" FontSize="12"
-                   Text="Shows live sensors on the desktop itself — above the wallpaper, behind your windows, and click-through. In preview: the layout is fixed for now."
+                   Text="Shows live sensors on the desktop itself — above the wallpaper, behind your windows, and click-through."
                    TextWrapping="Wrap" />
 
         <ui:ToggleSwitch
@@ -119,7 +119,7 @@
             Margin="0,4,0,0"
             Opacity="0.55"
             FontSize="12"
-            Text="Drag widgets to reposition them. While this is on the desktop stops being click-through, so turn it off when you're done. Positions are not saved yet."
+            Text="Drag widgets to reposition them; positions are saved as you go. While this is on the desktop stops being click-through, so turn it off when you're done."
             TextWrapping="Wrap" />
 
         <ui:Card Margin="0,24,0,0" Padding="16,14">
