@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using static Aquila.Desktop.NativeMethods;
@@ -22,8 +24,18 @@ internal sealed class ScreenCanvasWindow : Window
     private readonly bool _clickThrough;
     private UIElement? _infoTile;
 
+    private bool _organizing;
+    private UIElement? _dragTarget;
+    private Vector _dragGrabOffset;
+    private readonly List<OrganizeAdorner> _adorners = [];
+
     /// <summary>Layer 1: where widget controls get added (as plain WPF children).</summary>
     public Canvas Surface { get; } = new();
+
+    /// <summary>Raised after a widget is dragged to a new position (canvas coordinates, DIPs). The seam
+    /// for persisting layout — this window deliberately doesn't know what a widget "is" or where its
+    /// position gets stored.</summary>
+    public event Action<UIElement, double, double>? WidgetMoved;
 
     /// <summary>The screen this canvas covers, in physical pixels.</summary>
     public System.Drawing.Rectangle ScreenBounds => _deviceBounds;
@@ -45,9 +57,118 @@ internal sealed class ScreenCanvasWindow : Window
         Background = Brushes.Transparent;
         ShowInTaskbar = false;
 
-        Content = Surface;
+        // AdornerDecorator so organization mode has an adorner layer to draw the dashed outlines in.
+        Content = new AdornerDecorator { Child = Surface };
+
+        Surface.MouseLeftButtonDown += OnSurfaceMouseLeftButtonDown;
+        Surface.MouseMove += OnSurfaceMouseMove;
+        Surface.MouseLeftButtonUp += OnSurfaceMouseLeftButtonUp;
 
         SetScreenInfoVisible(showScreenInfo);
+    }
+
+    /// <summary>
+    /// Enters/leaves organization mode (#30). Canvas level: click-through is lifted so widgets can be
+    /// grabbed, and each one gets a dashed outline. Widget level (the dragging below) is plain WPF —
+    /// no Win32 at all. Always driven from the app, never from the widget itself, which is why there's no
+    /// in-surface affordance to turn it on.
+    /// </summary>
+    public void SetOrganizing(bool organizing)
+    {
+        if (_organizing == organizing) return;
+        _organizing = organizing;
+
+        // Only the click-through bit is touched. WS_EX_NOACTIVATE stays on: mouse messages arrive without
+        // it, so dragging works while the surface still never steals focus.
+        if (_clickThrough) SetClickThrough(!organizing);
+
+        if (organizing) AddAdorners(); else RemoveAdorners();
+    }
+
+    private void AddAdorners()
+    {
+        var layer = AdornerLayer.GetAdornerLayer(Surface);
+        if (layer is null) return;
+
+        foreach (UIElement child in Surface.Children)
+        {
+            if (child == _infoTile) continue; // the screen label isn't a widget — not movable
+
+            var adorner = new OrganizeAdorner(child);
+            layer.Add(adorner);
+            _adorners.Add(adorner);
+        }
+    }
+
+    private void RemoveAdorners()
+    {
+        var layer = AdornerLayer.GetAdornerLayer(Surface);
+        foreach (var adorner in _adorners)
+            layer?.Remove(adorner);
+        _adorners.Clear();
+    }
+
+    private void OnSurfaceMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!_organizing) return;
+
+        var child = FindWidgetUnder(e.OriginalSource as DependencyObject);
+        if (child is null || child == _infoTile) return;
+
+        _dragTarget = child;
+        var pointer = e.GetPosition(Surface);
+        _dragGrabOffset = pointer - new Point(GetLeft(child), GetTop(child));
+        Surface.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void OnSurfaceMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragTarget is null) return;
+
+        var pointer = e.GetPosition(Surface);
+        var position = pointer - _dragGrabOffset;
+
+        // Keep the widget on its own screen — a canvas is exactly one monitor, so letting it be dragged
+        // past the edge would just hide it.
+        var size = _dragTarget.RenderSize;
+        Canvas.SetLeft(_dragTarget, Math.Clamp(position.X, 0, Math.Max(0, Surface.ActualWidth - size.Width)));
+        Canvas.SetTop(_dragTarget, Math.Clamp(position.Y, 0, Math.Max(0, Surface.ActualHeight - size.Height)));
+    }
+
+    private void OnSurfaceMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_dragTarget is null) return;
+
+        Surface.ReleaseMouseCapture();
+        WidgetMoved?.Invoke(_dragTarget, GetLeft(_dragTarget), GetTop(_dragTarget));
+        _dragTarget = null;
+    }
+
+    /// <summary>Walks up from whatever was hit to the direct child of the canvas — the widget as a whole,
+    /// not the gauge/text inside it.</summary>
+    private UIElement? FindWidgetUnder(DependencyObject? hit)
+    {
+        while (hit is not null && hit != Surface)
+        {
+            if (VisualTreeHelper.GetParent(hit) == Surface) return hit as UIElement;
+            hit = VisualTreeHelper.GetParent(hit);
+        }
+        return null;
+    }
+
+    /// <summary>Canvas.Left/Top are NaN until set; treat that as 0 so arithmetic stays sane.</summary>
+    private static double GetLeft(UIElement e) => double.IsNaN(Canvas.GetLeft(e)) ? 0 : Canvas.GetLeft(e);
+    private static double GetTop(UIElement e) => double.IsNaN(Canvas.GetTop(e)) ? 0 : Canvas.GetTop(e);
+
+    private void SetClickThrough(bool enabled)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        var exStyle = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
+        exStyle = enabled ? exStyle | WsExTransparent : exStyle & ~WsExTransparent;
+        SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(exStyle));
     }
 
     /// <summary>Shows/hides this screen's info label (see <see cref="ScreenInfoTile"/>) — the seed of the
@@ -87,12 +208,7 @@ internal sealed class ScreenCanvasWindow : Window
             Height = bottomRight.Y - topLeft.Y;
         }
 
-        if (_clickThrough)
-        {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var exStyle = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
-            SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(exStyle | WsExTransparent));
-        }
+        if (_clickThrough) SetClickThrough(true);
     }
 
 }

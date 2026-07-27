@@ -41,6 +41,8 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
         {
             var label = $"Screen {index}{(screen.Primary ? " (primary)" : "")}";
             var window = new ScreenCanvasWindow(screen.Bounds, label, showScreenInfo, clickThrough);
+            window.WidgetMoved += (element, x, y) =>
+                WidgetMoved?.Invoke(new Surface(window.Surface, window.ScreenBounds, window.ScreenLabel), element, x, y);
             window.Show();
 
             var anchor = anchorFactory();
@@ -63,6 +65,21 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
         foreach (var (window, _) in _surfaces)
             window.SetScreenInfoVisible(visible);
     }
+
+    /// <summary>
+    /// Enters/leaves organization mode (#30) on every surface: widgets become draggable and get a dashed
+    /// outline. One switch for all screens — the mode is a state of the app, not of an individual widget
+    /// or canvas.
+    /// </summary>
+    public void SetOrganizing(bool organizing)
+    {
+        foreach (var (window, _) in _surfaces)
+            window.SetOrganizing(organizing);
+    }
+
+    /// <summary>Raised when a widget is dragged to a new position, with the surface it belongs to. The
+    /// seam for persisting layout.</summary>
+    public event Action<Surface, System.Windows.UIElement, double, double>? WidgetMoved;
 
     public void Hide()
     {

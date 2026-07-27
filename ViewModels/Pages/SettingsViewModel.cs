@@ -94,6 +94,11 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private bool _desktopSurfaceShowScreenInfo;
 
+        /// <summary>Organization mode is a transient editing state, not a preference — deliberately not
+        /// persisted, so the desktop is never left click-blocking after a restart.</summary>
+        [ObservableProperty]
+        private bool _desktopSurfaceOrganizing;
+
         /// <summary>Gates the sub-options (they do nothing while the surface is off).</summary>
         public bool IsDesktopSurfaceEnabled => DesktopSurfaceEnabled;
 
@@ -248,8 +253,15 @@ namespace Aquila.ViewModels.Pages
             }
             else
             {
+                DesktopSurfaceOrganizing = false; // nothing left to arrange
                 _desktopSurface.Hide();
             }
+        }
+
+        partial void OnDesktopSurfaceOrganizingChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            _desktopSurface.SetOrganizing(value);
         }
 
         partial void OnDesktopSurfaceShowScreenInfoChanged(bool value)

@@ -110,6 +110,18 @@
             Text="Draws each screen's name and resolution on it — handy to tell your monitors apart."
             TextWrapping="Wrap" />
 
+        <ui:ToggleSwitch
+            Margin="0,8,0,0"
+            Content="Arrange widgets"
+            IsChecked="{Binding ViewModel.DesktopSurfaceOrganizing}"
+            IsEnabled="{Binding ViewModel.IsDesktopSurfaceEnabled}" />
+        <TextBlock
+            Margin="0,4,0,0"
+            Opacity="0.55"
+            FontSize="12"
+            Text="Drag widgets to reposition them. While this is on the desktop stops being click-through, so turn it off when you're done. Positions are not saved yet."
+            TextWrapping="Wrap" />
+
         <ui:Card Margin="0,24,0,0" Padding="16,14">
             <StackPanel>
                 <TextBlock Text="Diagnostics" Style="{StaticResource SectionLabel}" />
