@@ -64,6 +64,7 @@ namespace Aquila
                 // factory is the single swap point for a future "place inside Progman" strategy.
                 services.AddSingleton<Func<Desktop.IDesktopAnchor>>(_ => () => new Desktop.ZOrderBottomAnchor());
                 services.AddSingleton<Desktop.DesktopSurfaceService>();
+                services.AddSingleton<DesktopWidgetService>();
 
                 services.AddSingleton<ISnackbarService, SnackbarService>();
 

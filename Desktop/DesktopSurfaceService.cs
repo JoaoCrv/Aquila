@@ -1,3 +1,4 @@
+using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
 
 namespace Aquila.Desktop;
@@ -14,12 +15,22 @@ namespace Aquila.Desktop;
 /// <see cref="System.Windows.Forms.Screen"/> enumeration for now; EDID-based identity and screen
 /// disappear/recover handling are later slices (see #24).
 /// </summary>
-internal sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
+public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     ILogger<DesktopSurfaceService> logger) : IDisposable
 {
     private readonly List<(ScreenCanvasWindow Window, IDesktopAnchor Anchor)> _surfaces = [];
 
     public bool IsShown => _surfaces.Count > 0;
+
+    /// <summary>What a caller needs to place content on one screen's surface, with no window type leaking
+    /// out. <paramref name="Bounds"/> is in physical pixels; <paramref name="Canvas"/> coordinates are DIPs
+    /// relative to that screen's top-left.</summary>
+    public readonly record struct Surface(Canvas Canvas, System.Drawing.Rectangle Bounds, string Label);
+
+    /// <summary>The live surfaces, one per screen. Domain code (widgets) reaches IN through this; this
+    /// service never reaches out into the domain.</summary>
+    public IReadOnlyList<Surface> Surfaces =>
+        [.. _surfaces.Select(s => new Surface(s.Window.Surface, s.Window.ScreenBounds, s.Window.ScreenLabel))];
 
     public void Show(bool showScreenInfo = true, bool clickThrough = true)
     {

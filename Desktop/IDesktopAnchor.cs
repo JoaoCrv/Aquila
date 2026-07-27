@@ -13,7 +13,7 @@ namespace Aquila.Desktop;
 /// One anchor instance per window (each holds per-window native state — a message hook, a WinEvent
 /// hook). Created through the injected factory in <see cref="DesktopSurfaceService"/>.
 /// </summary>
-internal interface IDesktopAnchor : IDisposable
+public interface IDesktopAnchor : IDisposable
 {
     /// <summary>Anchors an already-shown window (its HWND must exist — call after Window.Show()).</summary>
     void Attach(Window window);

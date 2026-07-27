@@ -22,8 +22,13 @@ internal sealed class ScreenCanvasWindow : Window
     private readonly bool _clickThrough;
     private UIElement? _infoTile;
 
-    /// <summary>Layer 1: where widget controls get added (as plain WPF children). Empty for now.</summary>
+    /// <summary>Layer 1: where widget controls get added (as plain WPF children).</summary>
     public Canvas Surface { get; } = new();
+
+    /// <summary>The screen this canvas covers, in physical pixels.</summary>
+    public System.Drawing.Rectangle ScreenBounds => _deviceBounds;
+
+    public string ScreenLabel => _screenLabel;
 
     public ScreenCanvasWindow(System.Drawing.Rectangle deviceBounds, string screenLabel,
         bool showScreenInfo, bool clickThrough)

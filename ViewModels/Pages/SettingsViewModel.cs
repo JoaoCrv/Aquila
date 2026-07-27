@@ -18,6 +18,8 @@ namespace Aquila.ViewModels.Pages
         private readonly SettingsService _settings;
         private readonly AquilaService _aquila;
         private readonly INavigationService _navigation;
+        private readonly Desktop.DesktopSurfaceService _desktopSurface;
+        private readonly DesktopWidgetService _desktopWidgets;
         private bool _isInitialized = false;
         private bool _externalUpdate = false;
 
@@ -32,12 +34,15 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private PollingOption _selectedPollingInterval = null!;
 
-        public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila, INavigationService navigation)
+        public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
+            INavigationService navigation, Desktop.DesktopSurfaceService desktopSurface, DesktopWidgetService desktopWidgets)
         {
             _updateService = updateService;
             _settings = settings;
             _aquila = aquila;
             _navigation = navigation;
+            _desktopSurface = desktopSurface;
+            _desktopWidgets = desktopWidgets;
             _updateService.StatusChanged += OnUpdateStatusChanged;
             _settings.Changed += OnSettingsChangedExternally;
         }
@@ -82,6 +87,16 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private bool _enableVerboseLogging;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsDesktopSurfaceEnabled))]
+        private bool _desktopSurfaceEnabled;
+
+        [ObservableProperty]
+        private bool _desktopSurfaceShowScreenInfo;
+
+        /// <summary>Gates the sub-options (they do nothing while the surface is off).</summary>
+        public bool IsDesktopSurfaceEnabled => DesktopSurfaceEnabled;
+
         [ObservableProperty] private bool _showCpuCard;
         [ObservableProperty] private bool _showMemoryCard;
         [ObservableProperty] private bool _showNetworkCard;
@@ -123,6 +138,9 @@ namespace Aquila.ViewModels.Pages
             StartWithWindows    = ElevationService.HasLogonTrigger();
             DashboardMode       = _settings.Current.DashboardMode;
             EnableVerboseLogging  = _settings.Current.EnableVerboseLogging;
+
+            DesktopSurfaceEnabled        = _settings.Current.DesktopSurfaceEnabled;
+            DesktopSurfaceShowScreenInfo = _settings.Current.DesktopSurfaceShowScreenInfo;
 
             ShowCpuCard          = _settings.Current.ShowCpuCard;
             ShowMemoryCard       = _settings.Current.ShowMemoryCard;
@@ -213,6 +231,33 @@ namespace Aquila.ViewModels.Pages
             App.LogLevel.MinimumLevel = value ? LogEventLevel.Debug : LogEventLevel.Warning;
             _settings.Current.EnableVerboseLogging = value;
             _settings.Save();
+        }
+
+        partial void OnDesktopSurfaceEnabledChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            _settings.Current.DesktopSurfaceEnabled = value;
+            _settings.Save();
+
+            // Apply live, so the toggle is its own confirmation — no restart, and no more hand-editing
+            // settings.json (which a still-running instance would overwrite anyway).
+            if (value)
+            {
+                _desktopSurface.Show(showScreenInfo: DesktopSurfaceShowScreenInfo);
+                _desktopWidgets.Populate();
+            }
+            else
+            {
+                _desktopSurface.Hide();
+            }
+        }
+
+        partial void OnDesktopSurfaceShowScreenInfoChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            _settings.Current.DesktopSurfaceShowScreenInfo = value;
+            _settings.Save();
+            _desktopSurface.SetScreenInfoVisible(value);
         }
 
         partial void OnShowGpuCardChanged(bool value)          { if (!_isInitialized) return; _settings.Current.ShowGpuCard          = value; _settings.Save(); }

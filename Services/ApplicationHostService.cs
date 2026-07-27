@@ -31,6 +31,7 @@ namespace Aquila.Services
                 {
                     serviceProvider.GetRequiredService<Desktop.DesktopSurfaceService>()
                         .Show(showScreenInfo: settingsService.Current.DesktopSurfaceShowScreenInfo);
+                    serviceProvider.GetRequiredService<DesktopWidgetService>().Populate();
                 }
                 catch (Exception ex)
                 {
