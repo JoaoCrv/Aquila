@@ -38,6 +38,10 @@ internal sealed class ScreenCanvasWindow : Window
     /// position gets stored.</summary>
     public event Action<UIElement, double, double>? WidgetMoved;
 
+    /// <summary>Raised when a widget is right-clicked in organization mode, so the owner can offer
+    /// actions that need to know about the OTHER screens (this window only knows its own).</summary>
+    public event Action<ScreenCanvasWindow, UIElement>? WidgetRightClicked;
+
     /// <summary>The screen this canvas covers, in physical pixels.</summary>
     public System.Drawing.Rectangle ScreenBounds => _deviceBounds;
 
@@ -68,6 +72,7 @@ internal sealed class ScreenCanvasWindow : Window
         Surface.MouseLeftButtonDown += OnSurfaceMouseLeftButtonDown;
         Surface.MouseMove += OnSurfaceMouseMove;
         Surface.MouseLeftButtonUp += OnSurfaceMouseLeftButtonUp;
+        Surface.MouseRightButtonUp += OnSurfaceMouseRightButtonUp;
 
         SetScreenInfoVisible(showScreenInfo);
     }
@@ -148,6 +153,45 @@ internal sealed class ScreenCanvasWindow : Window
         Surface.ReleaseMouseCapture();
         WidgetMoved?.Invoke(_dragTarget, GetLeft(_dragTarget), GetTop(_dragTarget));
         _dragTarget = null;
+    }
+
+    private void OnSurfaceMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_organizing) return;
+
+        var child = FindWidgetUnder(e.OriginalSource as DependencyObject);
+        if (child is null || child == _infoTile) return;
+
+        WidgetRightClicked?.Invoke(this, child);
+        e.Handled = true;
+    }
+
+    /// <summary>Adds a widget that came from another screen's canvas, clamped into this one (screens
+    /// differ in size, so the old position may not exist here).</summary>
+    public void AdoptWidget(UIElement widget, double x, double y)
+    {
+        Surface.Children.Add(widget);
+
+        var size = widget.RenderSize;
+        Canvas.SetLeft(widget, Math.Clamp(x, 0, Math.Max(0, Surface.ActualWidth - size.Width)));
+        Canvas.SetTop(widget, Math.Clamp(y, 0, Math.Max(0, Surface.ActualHeight - size.Height)));
+
+        RefreshOrganizeAdorners();
+    }
+
+    public void ReleaseWidget(UIElement widget)
+    {
+        Surface.Children.Remove(widget);
+        RefreshOrganizeAdorners();
+    }
+
+    /// <summary>Re-syncs the dashed outlines with the current children — adorners are per-element, so they
+    /// have to be rebuilt whenever the set of widgets on this canvas changes.</summary>
+    public void RefreshOrganizeAdorners()
+    {
+        if (!_organizing) return;
+        RemoveAdorners();
+        AddAdorners();
     }
 
     /// <summary>Walks up from whatever was hit to the direct child of the canvas — the widget as a whole,

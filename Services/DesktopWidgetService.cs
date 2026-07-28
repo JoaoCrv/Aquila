@@ -32,6 +32,11 @@ public sealed class DesktopWidgetService
         _surfaces = surfaces;
         _layout = layout;
         _surfaces.WidgetMoved += OnWidgetMoved;
+        _surfaces.WidgetScreenChanged += OnWidgetScreenChanged;
+
+        // A display change rebuilds the canvases, so the widgets have to be placed again — and this is
+        // where a widget whose monitor just disappeared gets resolved onto the primary screen instead.
+        _surfaces.SurfacesRebuilt += Populate;
     }
 
     /// <summary>Starter layout for a machine with no widgets.json yet — sensor lookups rather than fixed
@@ -145,6 +150,18 @@ public sealed class DesktopWidgetService
     {
         if (!_byElement.TryGetValue(element, out var definition)) return;
 
+        definition.X = x;
+        definition.Y = y;
+        if (_widgets is not null) _layout.Save(_widgets);
+    }
+
+    private void OnWidgetScreenChanged(DesktopSurfaceService.Surface surface, UIElement element, double x, double y)
+    {
+        if (!_byElement.TryGetValue(element, out var definition)) return;
+
+        // Sending a widget to a screen is an explicit choice, so this DOES rewrite the stored monitor —
+        // unlike the fallback when a monitor is merely missing, which keeps the original.
+        definition.ScreenKey = surface.Key;
         definition.X = x;
         definition.Y = y;
         if (_widgets is not null) _layout.Save(_widgets);
