@@ -5,12 +5,12 @@ using System.Windows.Media;
 namespace Aquila.Desktop;
 
 /// <summary>
-/// The dashed outline drawn around each widget while organization mode is on — the app-wide "this is
+/// The dashed outline drawn around each widget while edit mode is on — the app-wide "this is
 /// editable now" vocabulary (#30), shared with the card editor's missing-sensor placeholder and screen
 /// recovery. An adorner rather than a border on the widget itself, so the widgets stay untouched: they're
-/// arbitrary elements supplied by the domain side, and organization mode must not depend on their type.
+/// arbitrary elements supplied by the domain side, and edit mode must not depend on their type.
 /// </summary>
-internal sealed class OrganizeAdorner(UIElement adornedElement) : Adorner(adornedElement)
+internal sealed class EditModeAdorner(UIElement adornedElement) : Adorner(adornedElement)
 {
     private static readonly Pen _pen = CreatePen();
 

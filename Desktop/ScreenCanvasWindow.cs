@@ -23,12 +23,11 @@ internal sealed class ScreenCanvasWindow : Window
     private readonly string _screenLabel;
     private readonly string _screenKey;
     private readonly bool _clickThrough;
-    private UIElement? _infoTile;
 
-    private bool _organizing;
+    private bool _editing;
     private UIElement? _dragTarget;
     private Vector _dragGrabOffset;
-    private readonly List<OrganizeAdorner> _adorners = [];
+    private readonly List<EditModeAdorner> _adorners = [];
 
     /// <summary>Layer 1: where widget controls get added (as plain WPF children).</summary>
     public Canvas Surface { get; } = new();
@@ -38,7 +37,7 @@ internal sealed class ScreenCanvasWindow : Window
     /// position gets stored.</summary>
     public event Action<UIElement, double, double>? WidgetMoved;
 
-    /// <summary>Raised when a widget is right-clicked in organization mode, so the owner can offer
+    /// <summary>Raised when a widget is right-clicked in edit mode, so the owner can offer
     /// actions that need to know about the OTHER screens (this window only knows its own).</summary>
     public event Action<ScreenCanvasWindow, UIElement>? WidgetRightClicked;
 
@@ -51,7 +50,7 @@ internal sealed class ScreenCanvasWindow : Window
     public string ScreenKey => _screenKey;
 
     public ScreenCanvasWindow(System.Drawing.Rectangle deviceBounds, string screenLabel, string screenKey,
-        bool showScreenInfo, bool clickThrough)
+        bool clickThrough)
     {
         _deviceBounds = deviceBounds;
         _screenLabel = screenLabel;
@@ -66,7 +65,7 @@ internal sealed class ScreenCanvasWindow : Window
         Background = Brushes.Transparent;
         ShowInTaskbar = false;
 
-        // AdornerDecorator so organization mode has an adorner layer to draw the dashed outlines in.
+        // AdornerDecorator so edit mode has an adorner layer to draw the dashed outlines in.
         Content = new AdornerDecorator { Child = Surface };
 
         Surface.MouseLeftButtonDown += OnSurfaceMouseLeftButtonDown;
@@ -74,25 +73,24 @@ internal sealed class ScreenCanvasWindow : Window
         Surface.MouseLeftButtonUp += OnSurfaceMouseLeftButtonUp;
         Surface.MouseRightButtonUp += OnSurfaceMouseRightButtonUp;
 
-        SetScreenInfoVisible(showScreenInfo);
     }
 
     /// <summary>
-    /// Enters/leaves organization mode (#30). Canvas level: click-through is lifted so widgets can be
+    /// Enters/leaves edit mode (#30). Canvas level: click-through is lifted so widgets can be
     /// grabbed, and each one gets a dashed outline. Widget level (the dragging below) is plain WPF —
     /// no Win32 at all. Always driven from the app, never from the widget itself, which is why there's no
     /// in-surface affordance to turn it on.
     /// </summary>
-    public void SetOrganizing(bool organizing)
+    public void SetEditing(bool editing)
     {
-        if (_organizing == organizing) return;
-        _organizing = organizing;
+        if (_editing == editing) return;
+        _editing = editing;
 
         // Only the click-through bit is touched. WS_EX_NOACTIVATE stays on: mouse messages arrive without
         // it, so dragging works while the surface still never steals focus.
-        if (_clickThrough) SetClickThrough(!organizing);
+        if (_clickThrough) SetClickThrough(!editing);
 
-        if (organizing) AddAdorners(); else RemoveAdorners();
+        if (editing) AddAdorners(); else RemoveAdorners();
     }
 
     private void AddAdorners()
@@ -102,9 +100,8 @@ internal sealed class ScreenCanvasWindow : Window
 
         foreach (UIElement child in Surface.Children)
         {
-            if (child == _infoTile) continue; // the screen label isn't a widget — not movable
 
-            var adorner = new OrganizeAdorner(child);
+            var adorner = new EditModeAdorner(child);
             layer.Add(adorner);
             _adorners.Add(adorner);
         }
@@ -120,10 +117,10 @@ internal sealed class ScreenCanvasWindow : Window
 
     private void OnSurfaceMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (!_organizing) return;
+        if (!_editing) return;
 
         var child = FindWidgetUnder(e.OriginalSource as DependencyObject);
-        if (child is null || child == _infoTile) return;
+        if (child is null) return;
 
         _dragTarget = child;
         var pointer = e.GetPosition(Surface);
@@ -157,10 +154,10 @@ internal sealed class ScreenCanvasWindow : Window
 
     private void OnSurfaceMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_organizing) return;
+        if (!_editing) return;
 
         var child = FindWidgetUnder(e.OriginalSource as DependencyObject);
-        if (child is null || child == _infoTile) return;
+        if (child is null) return;
 
         WidgetRightClicked?.Invoke(this, child);
         e.Handled = true;
@@ -176,20 +173,20 @@ internal sealed class ScreenCanvasWindow : Window
         Canvas.SetLeft(widget, Math.Clamp(x, 0, Math.Max(0, Surface.ActualWidth - size.Width)));
         Canvas.SetTop(widget, Math.Clamp(y, 0, Math.Max(0, Surface.ActualHeight - size.Height)));
 
-        RefreshOrganizeAdorners();
+        RefreshEditModeAdorners();
     }
 
     public void ReleaseWidget(UIElement widget)
     {
         Surface.Children.Remove(widget);
-        RefreshOrganizeAdorners();
+        RefreshEditModeAdorners();
     }
 
     /// <summary>Re-syncs the dashed outlines with the current children — adorners are per-element, so they
     /// have to be rebuilt whenever the set of widgets on this canvas changes.</summary>
-    public void RefreshOrganizeAdorners()
+    public void RefreshEditModeAdorners()
     {
-        if (!_organizing) return;
+        if (!_editing) return;
         RemoveAdorners();
         AddAdorners();
     }
@@ -218,24 +215,6 @@ internal sealed class ScreenCanvasWindow : Window
         var exStyle = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
         exStyle = enabled ? exStyle | WsExTransparent : exStyle & ~WsExTransparent;
         SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(exStyle));
-    }
-
-    /// <summary>Shows/hides this screen's info label (see <see cref="ScreenInfoTile"/>) — the seed of the
-    /// "identify screen" overlay in #24. Idempotent, so callers can toggle freely.</summary>
-    public void SetScreenInfoVisible(bool visible)
-    {
-        if (visible == (_infoTile is not null)) return;
-
-        if (visible)
-        {
-            _infoTile = ScreenInfoTile.Create(_screenLabel, _deviceBounds);
-            Surface.Children.Add(_infoTile);
-        }
-        else
-        {
-            Surface.Children.Remove(_infoTile);
-            _infoTile = null;
-        }
     }
 
     protected override void OnSourceInitialized(EventArgs e)

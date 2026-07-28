@@ -30,26 +30,23 @@ public partial class WidgetsViewModel : ObservableObject
         _widgets = widgets;
 
         ShowOnDesktop = _settings.Current.DesktopSurfaceEnabled;
-        LabelEachScreen = _settings.Current.DesktopSurfaceShowScreenInfo;
         _initialized = true;
 
-        // The floating toolbar is the only way out of arrange mode once the window is minimized.
-        _surface.OrganizeFinished += StopArranging;
+        // The floating toolbar is the only way out of edit mode once the window is minimized.
+        _surface.EditingFinished += StopEditing;
     }
 
     public HardwareNode Hardware => _aquila.State.Hardware;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanArrange))]
     private bool _showOnDesktop;
 
+    /// <summary>Desktop edit mode: drag, change, remove, and send widgets between screens. "Edit" rather
+    /// than "arrange" because arranging describes only the dragging part — and the same word is used
+    /// throughout the code (SetEditing, EditingFinished, EditModeAdorner) so the UI and the code can be
+    /// searched for with the same term.</summary>
     [ObservableProperty]
-    private bool _labelEachScreen;
-
-    [ObservableProperty]
-    private bool _isArranging;
-
-    public bool CanArrange => ShowOnDesktop;
+    private bool _isEditingOnDesktop;
 
     partial void OnShowOnDesktopChanged(bool value)
     {
@@ -60,48 +57,58 @@ public partial class WidgetsViewModel : ObservableObject
 
         if (value)
         {
-            _surface.Show(showScreenInfo: LabelEachScreen);
+            _surface.Show();
             _widgets.Populate();
         }
         else
         {
-            if (IsArranging) StopArranging();
+            if (IsEditingOnDesktop) StopEditing();
             _surface.Hide();
         }
     }
 
-    partial void OnLabelEachScreenChanged(bool value)
-    {
-        if (!_initialized) return;
+    /// <summary>Flashes a number on each monitor, like Windows' own Identify button — a momentary answer
+    /// to "which screen is which", not a label left permanently on the desktop.</summary>
+    [RelayCommand]
+    private void IdentifyScreens() => _surface.IdentifyScreens();
 
-        _settings.Current.DesktopSurfaceShowScreenInfo = value;
-        _settings.Save();
-        _surface.SetScreenInfoVisible(value);
+    /// <summary>Opens the editor to create a widget. The same dialog handles editing (from the desktop
+    /// context menu) and, later, arriving from the Explorer with a sensor already chosen.</summary>
+    [RelayCommand]
+    private void AddWidget()
+    {
+        var dialog = new Views.Windows.WidgetEditorWindow(Hardware) { Owner = FindMainWindow() };
+        if (dialog.ShowDialog() != true || dialog.Result is null) return;
+
+        // Adding a widget implies wanting to see it.
+        if (!ShowOnDesktop) ShowOnDesktop = true;
+
+        _widgets.Add(dialog.Result);
     }
 
     /// <summary>
-    /// Enters arrange mode and gets the app out of the way — you can't arrange a desktop you can't see.
+    /// Enters desktop edit mode and gets the app out of the way — you can't edit a desktop you can't see.
     /// The floating toolbar (owned by the surface service) is what brings it back, so minimizing can't
     /// strand the user.
     /// </summary>
     [RelayCommand]
-    private void StartArranging()
+    private void StartEditing()
     {
-        if (!ShowOnDesktop || IsArranging) return;
+        if (!ShowOnDesktop || IsEditingOnDesktop) return;
 
-        IsArranging = true;
-        _surface.SetOrganizing(true);
+        IsEditingOnDesktop = true;
+        _surface.SetEditing(true);
 
         if (FindMainWindow() is { } window)
             window.WindowState = WindowState.Minimized;
     }
 
-    private void StopArranging()
+    private void StopEditing()
     {
-        if (!IsArranging) return;
+        if (!IsEditingOnDesktop) return;
 
-        IsArranging = false;
-        _surface.SetOrganizing(false);
+        IsEditingOnDesktop = false;
+        _surface.SetEditing(false);
 
         if (FindMainWindow() is { } window)
         {

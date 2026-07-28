@@ -5,18 +5,18 @@ using System.Windows.Media;
 namespace Aquila.Desktop;
 
 /// <summary>
-/// The floating bar shown while organization mode is on. It exists because the app window is minimized
-/// on entering the mode (you can't arrange a desktop you can't see), which would otherwise leave the user
+/// The floating bar shown while edit mode is on. It exists because the app window is minimized
+/// on entering the mode (you can't edit a desktop you can't see), which would otherwise leave the user
 /// with no way back — the surface itself has no chrome and no taskbar entry.
 ///
 /// Topmost, so it can't be lost behind anything, and pinned to the top edge of the primary screen where
-/// it's least likely to sit on top of a widget being arranged.
+/// it's least likely to sit on top of a widget being edited.
 /// </summary>
-internal sealed class OrganizeToolbar : Window
+internal sealed class EditModeToolbar : Window
 {
     public event Action? Done;
 
-    public OrganizeToolbar()
+    public EditModeToolbar()
     {
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
@@ -29,7 +29,7 @@ internal sealed class OrganizeToolbar : Window
 
         var hint = new TextBlock
         {
-            Text = "Arranging widgets — drag to move, right-click to send to another screen",
+            Text = "Editing widgets — drag to move, right-click for more",
             Foreground = new SolidColorBrush(Color.FromArgb(0xCC, 0xFF, 0xFF, 0xFF)),
             FontSize = 13,
             VerticalAlignment = VerticalAlignment.Center,

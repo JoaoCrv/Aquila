@@ -21,12 +21,11 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
 {
     private readonly List<(ScreenCanvasWindow Window, IDesktopAnchor Anchor)> _surfaces = [];
 
-    private bool _showScreenInfo = true;
     private bool _clickThrough = true;
-    private bool _organizing;
+    private bool _editing;
     private bool _watchingDisplayChanges;
     private System.Windows.Threading.DispatcherTimer? _displayChangeDebounce;
-    private OrganizeToolbar? _toolbar;
+    private EditModeToolbar? _toolbar;
 
     public bool IsShown => _surfaces.Count > 0;
 
@@ -48,11 +47,10 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     private static Surface ToSurface(ScreenCanvasWindow w) =>
         new(w.Surface, w.ScreenBounds, w.ScreenLabel, w.ScreenKey);
 
-    public void Show(bool showScreenInfo = true, bool clickThrough = true)
+    public void Show(bool clickThrough = true)
     {
         if (IsShown) return;
 
-        _showScreenInfo = showScreenInfo;
         _clickThrough = clickThrough;
         StartWatchingDisplayChanges();
 
@@ -61,7 +59,7 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
         {
             var label = $"Screen {index}{(screen.Primary ? " (primary)" : "")}";
             var window = new ScreenCanvasWindow(screen.Bounds, label, ScreenIdentity.KeyFor(screen),
-                showScreenInfo, clickThrough);
+                clickThrough);
             window.WidgetMoved += (element, x, y) => WidgetMoved?.Invoke(ToSurface(window), element, x, y);
             window.WidgetRightClicked += OnWidgetRightClicked;
             window.Show();
@@ -121,49 +119,46 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
 
         logger.LogInformation("Display configuration changed, rebuilding desktop surfaces");
 
-        var organizing = _organizing;
+        var editing = _editing;
         Hide();
-        Show(_showScreenInfo, _clickThrough);
-        if (organizing) SetOrganizing(true);
+        Show(_clickThrough);
+        if (editing) SetEditing(true);
 
         SurfacesRebuilt?.Invoke();
     }
 
     /// <summary>
-    /// Shows/hides the per-screen info label on every live surface. Kept as a callable feature rather than
-    /// bring-up scaffolding: it's the basis for the "identify screen" overlay #24 needs, since the screen
-    /// picker can't trust `Screen.AllScreens` ordering to match the numbers Windows shows the user.
+    /// Flashes a big label on every screen at once, so the user can see which monitor is which — the same
+    /// overlay shown when hovering a "send to screen" entry, rather than a second mechanism doing the same
+    /// job. Replaced an always-on label drawn on the surface: identifying a screen is something you want
+    /// for a moment while deciding, not a permanent fixture on your desktop.
     /// </summary>
-    public void SetScreenInfoVisible(bool visible)
-    {
-        foreach (var (window, _) in _surfaces)
-            window.SetScreenInfoVisible(visible);
-    }
+    public void IdentifyScreens() =>
+        ScreenIdentifyOverlay.ShowAll(_surfaces.Select(s => (s.Window.ScreenBounds, s.Window.ScreenLabel)));
+
+    /// <summary>Raised when the user finishes editing from the floating toolbar, so the app can undo
+    /// whatever it did to get out of the way (typically un-minimize itself).</summary>
+    public event Action? EditingFinished;
 
     /// <summary>
-    /// Enters/leaves organization mode (#30) on every surface: widgets become draggable and get a dashed
-    /// outline. One switch for all screens — the mode is a state of the app, not of an individual widget
-    /// or canvas.
+    /// Enters/leaves edit mode (#30) on every surface: widgets become draggable and get a dashed outline.
+    /// One switch for all screens — the mode is a state of the app, not of an individual widget or canvas.
     /// </summary>
-    /// <summary>Raised when the user finishes organizing from the floating toolbar, so the app can undo
-    /// whatever it did to get out of the way (typically un-minimize itself).</summary>
-    public event Action? OrganizeFinished;
-
-    public void SetOrganizing(bool organizing)
+    public void SetEditing(bool editing)
     {
-        _organizing = organizing; // remembered so a display-change rebuild doesn't drop the user out of it
+        _editing = editing; // remembered so a display-change rebuild doesn't drop the user out of it
         foreach (var (window, _) in _surfaces)
-            window.SetOrganizing(organizing);
+            window.SetEditing(editing);
 
-        if (organizing) ShowToolbar(); else HideToolbar();
+        if (editing) ShowToolbar(); else HideToolbar();
     }
 
     private void ShowToolbar()
     {
         if (_toolbar is not null) return;
 
-        _toolbar = new OrganizeToolbar();
-        _toolbar.Done += () => OrganizeFinished?.Invoke();
+        _toolbar = new EditModeToolbar();
+        _toolbar.Done += () => EditingFinished?.Invoke();
         _toolbar.Show();
     }
 
@@ -180,43 +175,22 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     /// <summary>Raised after a widget is sent to another screen, with its new surface and position.</summary>
     public event Action<Surface, System.Windows.UIElement, double, double>? WidgetScreenChanged;
 
-    /// <summary>
-    /// Offers "send to [screen]" for a right-clicked widget. Lives here rather than in the canvas because
-    /// only this service knows the other screens. Hovering an entry lights up the physical monitor it
-    /// refers to (see <see cref="ScreenIdentifyOverlay"/>) — the screen list can't be trusted to be
-    /// self-explanatory, so the user gets to SEE which one they're choosing.
-    /// </summary>
-    private void OnWidgetRightClicked(ScreenCanvasWindow source, System.Windows.UIElement widget)
+    /// <summary>Raised when a widget is right-clicked in edit mode. The menu is built by the
+    /// caller, not here: actions like edit/remove are domain concepts, and this service must not learn
+    /// what a widget means.</summary>
+    public event Action<Surface, System.Windows.UIElement>? WidgetRightClicked;
+
+    private void OnWidgetRightClicked(ScreenCanvasWindow source, System.Windows.UIElement widget) =>
+        WidgetRightClicked?.Invoke(ToSurface(source), widget);
+
+    /// <summary>Moves a widget to another screen's canvas, keeping its position where it fits.</summary>
+    public void SendWidgetToScreen(System.Windows.UIElement widget, Surface target)
     {
-        if (_surfaces.Count < 2) return; // nowhere else to send it
+        HideScreenIdentify();
 
-        var menu = new System.Windows.Controls.ContextMenu();
-
-        foreach (var (window, _) in _surfaces)
-        {
-            var target = window;
-            var item = new System.Windows.Controls.MenuItem
-            {
-                Header = $"Send to {target.ScreenLabel}",
-                IsEnabled = target != source,
-            };
-
-            item.MouseEnter += (_, _) => ScreenIdentifyOverlay.Show(target.ScreenBounds, target.ScreenLabel);
-            item.MouseLeave += (_, _) => ScreenIdentifyOverlay.Hide();
-            item.Click += (_, _) => SendToScreen(widget, source, target);
-
-            menu.Items.Add(item);
-        }
-
-        menu.Closed += (_, _) => ScreenIdentifyOverlay.Hide();
-        menu.PlacementTarget = widget;
-        menu.IsOpen = true;
-    }
-
-    private void SendToScreen(System.Windows.UIElement widget, ScreenCanvasWindow from, ScreenCanvasWindow to)
-    {
-        ScreenIdentifyOverlay.Hide();
-        if (from == to) return;
+        var from = _surfaces.FirstOrDefault(s => s.Window.Surface.Children.Contains(widget)).Window;
+        var to = _surfaces.FirstOrDefault(s => s.Window.Surface == target.Canvas).Window;
+        if (from is null || to is null || from == to) return;
 
         var x = System.Windows.Controls.Canvas.GetLeft(widget);
         var y = System.Windows.Controls.Canvas.GetTop(widget);
@@ -226,6 +200,19 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
 
         WidgetScreenChanged?.Invoke(ToSurface(to), widget,
             System.Windows.Controls.Canvas.GetLeft(widget), System.Windows.Controls.Canvas.GetTop(widget));
+    }
+
+    /// <summary>Lights up a physical monitor with a big label, so a screen picker can show WHICH screen an
+    /// entry means instead of relying on a name the user can't map to hardware.</summary>
+    public void ShowScreenIdentify(Surface surface) => ScreenIdentifyOverlay.Show(surface.Bounds, surface.Label);
+
+    public void HideScreenIdentify() => ScreenIdentifyOverlay.Hide();
+
+    /// <summary>Re-syncs the edit-mode outlines after widgets are added or removed.</summary>
+    public void RefreshEditModeAdorners()
+    {
+        foreach (var (window, _) in _surfaces)
+            window.RefreshEditModeAdorners();
     }
 
     public void Hide()

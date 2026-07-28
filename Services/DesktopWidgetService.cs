@@ -37,6 +37,10 @@ public sealed class DesktopWidgetService
         // A display change rebuilds the canvases, so the widgets have to be placed again — and this is
         // where a widget whose monitor just disappeared gets resolved onto the primary screen instead.
         _surfaces.SurfacesRebuilt += Populate;
+
+        // The menu is built here, not in the surface service: edit/remove are domain concepts, and
+        // Aquila.Desktop must not learn what a widget means.
+        _surfaces.WidgetRightClicked += OnWidgetRightClicked;
     }
 
     /// <summary>Starter layout for a machine with no widgets.json yet — sensor lookups rather than fixed
@@ -146,6 +150,94 @@ public sealed class DesktopWidgetService
         return seeded;
     }
 
+    /// <summary>Adds a widget from a definition the editor produced, then re-lays everything out.</summary>
+    public void Add(DesktopWidgetDefinition definition)
+    {
+        _widgets ??= _layout.Load();
+
+        // New widgets land on the primary screen unless the caller already chose one.
+        if (string.IsNullOrEmpty(definition.ScreenKey) && _surfaces.Surfaces.Count > 0)
+            definition.ScreenKey = PrimarySurface(_surfaces.Surfaces).Key;
+
+        _widgets.Add(definition);
+        _layout.Save(_widgets);
+        Repopulate();
+    }
+
+    /// <summary>Persists an edit. The editor mutates the definition instance in place, so there's nothing
+    /// to copy — this just guards that it really is one of ours, then saves and re-lays out.</summary>
+    public void Update(DesktopWidgetDefinition definition)
+    {
+        if (_widgets is null || !_widgets.Contains(definition)) return;
+        _layout.Save(_widgets);
+        Repopulate();
+    }
+
+    public void Remove(DesktopWidgetDefinition definition)
+    {
+        if (_widgets is null || !_widgets.Remove(definition)) return;
+        _layout.Save(_widgets);
+        Repopulate();
+    }
+
+    /// <summary>Rebuilds every widget. Simpler and far less error-prone than patching one element in
+    /// place, and these are rare, user-initiated actions where a rebuild is imperceptible.</summary>
+    private void Repopulate()
+    {
+        foreach (var element in _byElement.Keys.ToList())
+            (VisualTreeHelper.GetParent(element) as Canvas)?.Children.Remove(element);
+
+        _byElement.Clear();
+        Populate();
+        _surfaces.RefreshEditModeAdorners();
+    }
+
+    private void OnWidgetRightClicked(DesktopSurfaceService.Surface surface, UIElement element)
+    {
+        if (!_byElement.TryGetValue(element, out var definition)) return;
+
+        var menu = new ContextMenu();
+
+        var edit = new MenuItem { Header = "Edit widget…" };
+        edit.Click += (_, _) => EditWidget(definition);
+        menu.Items.Add(edit);
+
+        var remove = new MenuItem { Header = "Remove widget" };
+        remove.Click += (_, _) => Remove(definition);
+        menu.Items.Add(remove);
+
+        var others = _surfaces.Surfaces.Where(s => s.Canvas != surface.Canvas).ToList();
+        if (others.Count > 0)
+        {
+            menu.Items.Add(new Separator());
+            foreach (var target in others)
+            {
+                var item = new MenuItem { Header = $"Send to {target.Label}" };
+                // Hovering lights up the actual monitor — a screen's name alone doesn't tell the user
+                // which piece of hardware it is.
+                item.MouseEnter += (_, _) => _surfaces.ShowScreenIdentify(target);
+                item.MouseLeave += (_, _) => _surfaces.HideScreenIdentify();
+                item.Click += (_, _) => _surfaces.SendWidgetToScreen(element, target);
+                menu.Items.Add(item);
+            }
+        }
+
+        menu.Closed += (_, _) => _surfaces.HideScreenIdentify();
+        menu.PlacementTarget = element;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>Opens the editor pre-filled from the stored definition — same dialog as adding.</summary>
+    public void EditWidget(DesktopWidgetDefinition definition)
+    {
+        var dialog = new Views.Windows.WidgetEditorWindow(_aquila.State.Hardware, definition)
+        {
+            Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive),
+        };
+
+        if (dialog.ShowDialog() == true) Update(definition);
+    }
+
     private void OnWidgetMoved(DesktopSurfaceService.Surface surface, UIElement element, double x, double y)
     {
         if (!_byElement.TryGetValue(element, out var definition)) return;
@@ -167,16 +259,48 @@ public sealed class DesktopWidgetService
         if (_widgets is not null) _layout.Save(_widgets);
     }
 
+    /// <summary>
+    /// SensorMeter takes the displayed number as a pre-formatted string (the Sensor property only drives
+    /// the bar) — same convention as StatBox, where the caller decides the format. The dashboard cards
+    /// hardcode both the format and the unit because each knows its sensor; a generic widget can't, so it
+    /// binds Value and bakes that sensor's own unit into the format string.
+    /// </summary>
+    private static SensorMeter BuildMeter(SensorNode sensor)
+    {
+        var meter = new SensorMeter
+        {
+            Sensor = sensor,
+            LabelPlacement = MeterLabelPlacement.Inline,
+            // The widget already carries a title, so the inline label column would just be an empty gap.
+            LabelWidth = new GridLength(0),
+            ValueWidth = new GridLength(64),
+        };
+
+        // Volts need decimals to mean anything; everything else reads better rounded.
+        var decimals = sensor.Unit == "V" ? "F2" : "F0";
+        var unit = string.IsNullOrWhiteSpace(sensor.Unit) ? "" : " " + sensor.Unit;
+
+        meter.SetBinding(SensorMeter.ValueTextProperty, new System.Windows.Data.Binding(nameof(SensorNode.Value))
+        {
+            Source = sensor,
+            StringFormat = $"{{0:{decimals}}}{unit}",
+            FallbackValue = "--",
+        });
+
+        return meter;
+    }
+
     /// <summary>Builds one #23 control bound to a live <see cref="SensorNode"/>. The controls watch the
     /// node's INPC, so assigning it here is all that's needed — they follow the existing AquilaService
-    /// tick with no extra timer.</summary>
-    private static UIElement Build(DesktopWidgetDefinition definition, SensorNode sensor)
+    /// tick with no extra timer. Public so the editor previews exactly what will land on the desktop,
+    /// rather than an approximation that can drift.</summary>
+    public static UIElement Build(DesktopWidgetDefinition definition, SensorNode sensor)
     {
         FrameworkElement piece = definition.Kind switch
         {
             DesktopWidgetKind.RadialGauge => new RadialGauge { Sensor = sensor },
             DesktopWidgetKind.MiniSparkline => new MiniSparkline { Sensor = sensor },
-            DesktopWidgetKind.SensorMeter => new SensorMeter { Sensor = sensor, LabelPlacement = MeterLabelPlacement.Inline },
+            DesktopWidgetKind.SensorMeter => BuildMeter(sensor),
             _ => throw new NotSupportedException($"Unknown widget kind {definition.Kind}"),
         };
 
