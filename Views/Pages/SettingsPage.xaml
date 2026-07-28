@@ -89,39 +89,6 @@
         <ui:ToggleSwitch Margin="0,4,0,0" Content="Power" IsChecked="{Binding ViewModel.ShowPowerCard}" />
         <ui:ToggleSwitch Margin="0,4,0,0" Content="Fans" IsChecked="{Binding ViewModel.ShowFansCard}" />
 
-        <TextBlock Margin="0,24,0,0" Style="{StaticResource PageSectionHeader}" Text="Desktop widgets" />
-        <TextBlock Margin="0,4,0,8" Opacity="0.55" FontSize="12"
-                   Text="Shows live sensors on the desktop itself — above the wallpaper, behind your windows, and click-through."
-                   TextWrapping="Wrap" />
-
-        <ui:ToggleSwitch
-            Content="Show widgets on the desktop"
-            IsChecked="{Binding ViewModel.DesktopSurfaceEnabled}" />
-
-        <ui:ToggleSwitch
-            Margin="0,8,0,0"
-            Content="Label each screen"
-            IsChecked="{Binding ViewModel.DesktopSurfaceShowScreenInfo}"
-            IsEnabled="{Binding ViewModel.IsDesktopSurfaceEnabled}" />
-        <TextBlock
-            Margin="0,4,0,0"
-            Opacity="0.55"
-            FontSize="12"
-            Text="Draws each screen's name and resolution on it — handy to tell your monitors apart."
-            TextWrapping="Wrap" />
-
-        <ui:ToggleSwitch
-            Margin="0,8,0,0"
-            Content="Arrange widgets"
-            IsChecked="{Binding ViewModel.DesktopSurfaceOrganizing}"
-            IsEnabled="{Binding ViewModel.IsDesktopSurfaceEnabled}" />
-        <TextBlock
-            Margin="0,4,0,0"
-            Opacity="0.55"
-            FontSize="12"
-            Text="Drag widgets to reposition them, or right-click one to send it to another screen; positions are saved as you go. While this is on the desktop stops being click-through, so turn it off when you're done."
-            TextWrapping="Wrap" />
-
         <ui:Card Margin="0,24,0,0" Padding="16,14">
             <StackPanel>
                 <TextBlock Text="Diagnostics" Style="{StaticResource SectionLabel}" />

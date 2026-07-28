@@ -26,6 +26,7 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     private bool _organizing;
     private bool _watchingDisplayChanges;
     private System.Windows.Threading.DispatcherTimer? _displayChangeDebounce;
+    private OrganizeToolbar? _toolbar;
 
     public bool IsShown => _surfaces.Count > 0;
 
@@ -144,11 +145,32 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     /// outline. One switch for all screens — the mode is a state of the app, not of an individual widget
     /// or canvas.
     /// </summary>
+    /// <summary>Raised when the user finishes organizing from the floating toolbar, so the app can undo
+    /// whatever it did to get out of the way (typically un-minimize itself).</summary>
+    public event Action? OrganizeFinished;
+
     public void SetOrganizing(bool organizing)
     {
         _organizing = organizing; // remembered so a display-change rebuild doesn't drop the user out of it
         foreach (var (window, _) in _surfaces)
             window.SetOrganizing(organizing);
+
+        if (organizing) ShowToolbar(); else HideToolbar();
+    }
+
+    private void ShowToolbar()
+    {
+        if (_toolbar is not null) return;
+
+        _toolbar = new OrganizeToolbar();
+        _toolbar.Done += () => OrganizeFinished?.Invoke();
+        _toolbar.Show();
+    }
+
+    private void HideToolbar()
+    {
+        _toolbar?.Close();
+        _toolbar = null;
     }
 
     /// <summary>Raised when a widget is dragged to a new position, with the surface it belongs to. The
@@ -208,6 +230,7 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
 
     public void Hide()
     {
+        HideToolbar();
         foreach (var (window, anchor) in _surfaces)
         {
             anchor.Dispose();

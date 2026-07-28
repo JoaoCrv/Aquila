@@ -34,7 +34,38 @@
             </StackPanel>
         </Border>
 
-        <controls:ResponsiveCardPanel Gap="8" MinCardWidth="220" Margin="20,0,20,20">
+        <!-- Desktop surface (#24): lives here rather than in Settings because this is where widgets are
+             managed, and one owner avoids two views holding the same state. -->
+        <ui:Card Margin="20,8,20,0" Padding="16,14">
+            <StackPanel>
+                <TextBlock Text="On the desktop" FontSize="14" FontWeight="SemiBold"/>
+                <TextBlock
+                    Text="Shows these widgets on the desktop itself — above the wallpaper, behind your windows, and click-through."
+                    FontSize="12" Opacity="0.6" Margin="0,2,0,10" TextWrapping="Wrap"/>
+
+                <ui:ToggleSwitch
+                    Content="Show widgets on the desktop"
+                    IsChecked="{Binding ViewModel.ShowOnDesktop}"/>
+
+                <ui:ToggleSwitch
+                    Margin="0,8,0,0"
+                    Content="Label each screen"
+                    IsChecked="{Binding ViewModel.LabelEachScreen}"
+                    IsEnabled="{Binding ViewModel.CanArrange}"/>
+
+                <ui:Button
+                    Margin="0,12,0,0"
+                    Content="Arrange on desktop"
+                    Icon="{ui:SymbolIcon ArrowMove24}"
+                    Command="{Binding ViewModel.StartArrangingCommand}"
+                    IsEnabled="{Binding ViewModel.CanArrange}"/>
+                <TextBlock
+                    Text="Minimizes Aquila so you can drag the widgets. A bar at the top of the screen brings it back."
+                    FontSize="12" Opacity="0.6" Margin="0,6,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </ui:Card>
+
+        <controls:ResponsiveCardPanel Gap="8" MinCardWidth="220" Margin="20,12,20,20">
 
             <!-- Radial Gauge -->
             <ui:Card Padding="12,10">
