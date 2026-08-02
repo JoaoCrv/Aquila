@@ -8,6 +8,10 @@ public record WidgetKindOption(DesktopWidgetKind Kind, string Name, string Descr
 
 public record AccentOption(string Key, string Name);
 
+/// <summary>A named colour for the background/border pickers. A short preset list rather than a full
+/// colour picker: it keeps the dialog simple, and these two surfaces only really need neutrals.</summary>
+public record ColorOption(string Name, string Hex);
+
 /// <summary>One sensor as offered in the picker. Carries the component for grouping and the live node so
 /// the list can show current values — picking by name alone is guesswork when a machine reports a dozen
 /// similarly-named temperatures.</summary>
@@ -43,7 +47,35 @@ public partial class WidgetEditorViewModel : ObservableObject
         new("Aquila.Critical", "Critical"),
     ];
 
+    public IReadOnlyList<ColorOption> Colors { get; } =
+    [
+        new("Black", "#000000"),
+        new("Charcoal", "#1E1E1E"),
+        new("Slate", "#2E3B4E"),
+        new("White", "#FFFFFF"),
+    ];
+
     public ObservableCollection<SensorOption> Sensors { get; } = [];
+
+    // --- Appearance ---
+
+    [ObservableProperty] private ColorOption? _selectedBackground;
+    [ObservableProperty] private double _backgroundOpacity = 60;   // shown as a percentage
+    [ObservableProperty] private double _cornerRadius = 8;
+    [ObservableProperty] private ColorOption? _selectedBorder;
+    [ObservableProperty] private double _borderOpacity = 25;
+    [ObservableProperty] private double _borderThickness;
+    [ObservableProperty] private double _widgetWidth = 170;
+    [ObservableProperty] private double _widgetHeight = 190;
+
+    partial void OnSelectedBackgroundChanged(ColorOption? value) => Apply();
+    partial void OnBackgroundOpacityChanged(double value) => Apply();
+    partial void OnCornerRadiusChanged(double value) => Apply();
+    partial void OnSelectedBorderChanged(ColorOption? value) => Apply();
+    partial void OnBorderOpacityChanged(double value) => Apply();
+    partial void OnBorderThicknessChanged(double value) => Apply();
+    partial void OnWidgetWidthChanged(double value) => Apply();
+    partial void OnWidgetHeightChanged(double value) => Apply();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanSave))]
@@ -59,27 +91,57 @@ public partial class WidgetEditorViewModel : ObservableObject
     [ObservableProperty]
     private string _title = string.Empty;
 
-    /// <summary>The widget exactly as it will appear on the desktop — built by the same code that builds
-    /// the real thing, so the preview can't drift from reality.</summary>
-    [ObservableProperty]
-    private System.Windows.UIElement? _preview;
+    /// <summary>
+    /// Raised after the form has been written into the definition, so the host can re-render it. There is
+    /// no preview inside this dialog on purpose: the definition IS the widget, so editing it updates the
+    /// real thing on the real desktop — the only place where its actual size and the way its transparency
+    /// reads against the user's own wallpaper are apparent.
+    /// </summary>
+    public event Action? Changed;
 
-    partial void OnSelectedKindChanged(WidgetKindOption? value) => RebuildPreview();
-    partial void OnSelectedSensorChanged(SensorOption? value) => RebuildPreview();
-    partial void OnSelectedAccentChanged(AccentOption? value) => RebuildPreview();
-    partial void OnTitleChanged(string value) => RebuildPreview();
-
-    private void RebuildPreview()
+    partial void OnSelectedKindChanged(WidgetKindOption? value)
     {
-        if (!_loaded || SelectedKind is null || SelectedSensor is null)
+        // Only for a new widget: changing the type of an existing one must not throw away a size the user
+        // deliberately set.
+        if (value is not null && !IsEditing)
         {
-            Preview = null;
-            return;
+            // Shapes want different proportions — a dial roughly square, a sparkline wide and short.
+            (WidgetWidth, WidgetHeight) = value.Kind switch
+            {
+                DesktopWidgetKind.RadialGauge => (170d, 190d),
+                DesktopWidgetKind.MiniSparkline => (240d, 100d),
+                _ => (240d, 80d),
+            };
         }
 
-        // A throwaway definition: previewing must never mutate the one being edited, or cancelling would
-        // still have changed it.
-        Preview = Aquila.Services.DesktopWidgetService.Build(ToDefinition(null), SelectedSensor.Sensor);
+        Apply();
+    }
+    partial void OnSelectedSensorChanged(SensorOption? value) => Apply();
+    partial void OnSelectedAccentChanged(AccentOption? value) => Apply();
+    partial void OnTitleChanged(string value) => Apply();
+
+    /// <summary>Writes the form into the live definition and tells the host to re-render it. Position and
+    /// screen are never touched — the editor changes what a widget IS, not where it sits.</summary>
+    private void Apply()
+    {
+        if (!_loaded || _target is null) return;
+
+        _target.Kind = SelectedKind?.Kind ?? _target.Kind;
+        _target.SensorIdentifier = SelectedSensor?.Identifier ?? string.Empty;
+        _target.AccentKey = SelectedAccent?.Key ?? "Aquila.Cpu";
+        _target.Title = string.IsNullOrWhiteSpace(Title) ? SelectedSensor?.Name ?? string.Empty : Title.Trim();
+
+        _target.BackgroundColor = SelectedBackground?.Hex ?? "#000000";
+        _target.BackgroundOpacity = BackgroundOpacity / 100;
+        _target.CornerRadius = CornerRadius;
+        _target.BorderColor = SelectedBorder?.Hex ?? "#FFFFFF";
+        _target.BorderOpacity = BorderOpacity / 100;
+        _target.BorderThickness = BorderThickness;
+
+        _target.Width = WidgetWidth;
+        _target.Height = WidgetHeight;
+
+        Changed?.Invoke();
     }
 
     [ObservableProperty]
@@ -93,7 +155,11 @@ public partial class WidgetEditorViewModel : ObservableObject
     private readonly List<SensorOption> _allSensors = [];
     private bool _loaded;
 
-    public void Load(HardwareNode hardware, DesktopWidgetDefinition? existing, string? presetSensorIdentifier)
+    /// <summary>The live definition this form edits — the single source of truth, already in the widget
+    /// list and already rendering. There is no copy to reconcile.</summary>
+    private DesktopWidgetDefinition? _target;
+
+    public void Load(HardwareNode hardware, DesktopWidgetDefinition target, bool isNew, string? presetSensorIdentifier)
     {
         _allSensors.Clear();
         foreach (var component in SensorCatalog.GetComponents(hardware))
@@ -103,20 +169,40 @@ public partial class WidgetEditorViewModel : ObservableObject
 
         ApplyFilter();
 
-        IsEditing = existing is not null;
+        _target = target;
+        IsEditing = !isNew;
 
-        SelectedKind = Kinds.FirstOrDefault(k => k.Kind == (existing?.Kind ?? DesktopWidgetKind.RadialGauge));
-        SelectedAccent = Accents.FirstOrDefault(a => a.Key == existing?.AccentKey) ?? Accents[0];
-        Title = existing?.Title ?? string.Empty;
+        // The form is filled from the definition itself, so "default" is defined in exactly one place.
+        SelectedKind = Kinds.FirstOrDefault(k => k.Kind == target.Kind) ?? Kinds[0];
+        SelectedAccent = Accents.FirstOrDefault(a => a.Key == target.AccentKey) ?? Accents[0];
+        Title = target.Title;
 
-        var identifier = existing?.SensorIdentifier ?? presetSensorIdentifier;
+        var identifier = string.IsNullOrEmpty(target.SensorIdentifier) ? presetSensorIdentifier : target.SensorIdentifier;
         SelectedSensor = _allSensors.FirstOrDefault(s => s.Identifier == identifier);
 
-        // Only now: the setters above each fire a rebuild, and doing it once at the end avoids building
-        // three throwaway previews on open.
+        SelectedBackground = MatchColor(target.BackgroundColor);
+        BackgroundOpacity = target.BackgroundOpacity * 100;
+        CornerRadius = target.CornerRadius;
+        SelectedBorder = MatchColor(target.BorderColor);
+        BorderOpacity = target.BorderOpacity * 100;
+        BorderThickness = target.BorderThickness;
+
+        if (!isNew)
+        {
+            WidgetWidth = target.Width;
+            WidgetHeight = target.Height;
+        }
+
+        // The setters above each fire a rebuild; letting them run only after this point means one preview
+        // on open instead of a dozen. The first one is raised by the window once it has subscribed.
         _loaded = true;
-        RebuildPreview();
     }
+
+
+    /// <summary>Keeps a hand-edited or unknown colour usable by falling back to the first preset, rather
+    /// than leaving the picker blank.</summary>
+    private ColorOption MatchColor(string hex) =>
+        Colors.FirstOrDefault(c => string.Equals(c.Hex, hex, StringComparison.OrdinalIgnoreCase)) ?? Colors[0];
 
     partial void OnSensorFilterChanged(string value) => ApplyFilter();
 
@@ -133,30 +219,5 @@ public partial class WidgetEditorViewModel : ObservableObject
         // Filtering must not silently drop the current choice — the user would save something they can't
         // see. Keep it selected if it survived the filter.
         if (keep is not null && Sensors.Contains(keep)) SelectedSensor = keep;
-    }
-
-    /// <summary>Writes the form into a definition. Existing widgets keep their position and screen — the
-    /// editor changes what a widget IS, not where it sits.</summary>
-    public DesktopWidgetDefinition ToDefinition(DesktopWidgetDefinition? existing)
-    {
-        var definition = existing ?? new DesktopWidgetDefinition { X = 32, Y = 150 };
-
-        definition.Kind = SelectedKind!.Kind;
-        definition.SensorIdentifier = SelectedSensor!.Identifier;
-        definition.AccentKey = SelectedAccent?.Key ?? "Aquila.Cpu";
-        definition.Title = string.IsNullOrWhiteSpace(Title) ? SelectedSensor!.Name : Title.Trim();
-
-        if (existing is null)
-        {
-            // Defaults that suit each shape — a dial wants to be square, a sparkline wide and short.
-            (definition.Width, definition.Height) = SelectedKind!.Kind switch
-            {
-                DesktopWidgetKind.RadialGauge => (170d, 190d),
-                DesktopWidgetKind.MiniSparkline => (240d, 100d),
-                _ => (240d, 80d),
-            };
-        }
-
-        return definition;
     }
 }

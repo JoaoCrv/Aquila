@@ -77,13 +77,11 @@ public partial class WidgetsViewModel : ObservableObject
     [RelayCommand]
     private void AddWidget()
     {
-        var dialog = new Views.Windows.WidgetEditorWindow(Hardware) { Owner = FindMainWindow() };
-        if (dialog.ShowDialog() != true || dialog.Result is null) return;
+        // The editor turns the surface on itself if it's off — it needs somewhere to preview. Reflecting
+        // that back here keeps the switch honest; Populate is idempotent, so the re-entry is harmless.
+        _widgets.OpenEditor(existing: null, presetSensorIdentifier: null);
 
-        // Adding a widget implies wanting to see it.
-        if (!ShowOnDesktop) ShowOnDesktop = true;
-
-        _widgets.Add(dialog.Result);
+        if (!ShowOnDesktop && _surface.IsShown) ShowOnDesktop = true;
     }
 
     /// <summary>

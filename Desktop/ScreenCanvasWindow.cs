@@ -41,6 +41,9 @@ internal sealed class ScreenCanvasWindow : Window
     /// actions that need to know about the OTHER screens (this window only knows its own).</summary>
     public event Action<ScreenCanvasWindow, UIElement>? WidgetRightClicked;
 
+    /// <summary>Raised after a widget is resized with the wheel, with its new size in DIPs.</summary>
+    public event Action<UIElement, double, double>? WidgetResized;
+
     /// <summary>The screen this canvas covers, in physical pixels.</summary>
     public System.Drawing.Rectangle ScreenBounds => _deviceBounds;
 
@@ -72,6 +75,7 @@ internal sealed class ScreenCanvasWindow : Window
         Surface.MouseMove += OnSurfaceMouseMove;
         Surface.MouseLeftButtonUp += OnSurfaceMouseLeftButtonUp;
         Surface.MouseRightButtonUp += OnSurfaceMouseRightButtonUp;
+        Surface.MouseWheel += OnSurfaceMouseWheel;
 
     }
 
@@ -160,6 +164,33 @@ internal sealed class ScreenCanvasWindow : Window
         if (child is null) return;
 
         WidgetRightClicked?.Invoke(this, child);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Wheel over a widget resizes it. Both dimensions scale together, which keeps each shape's
+    /// proportions — a dial stays round instead of turning into an ellipse — so no per-kind aspect rules
+    /// are needed. The size sliders in the editor remain the precise method; this is the quick one.
+    /// </summary>
+    private void OnSurfaceMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (!_editing) return;
+
+        var child = FindWidgetUnder(e.OriginalSource as DependencyObject);
+        if (child is not FrameworkElement widget) return;
+
+        var scale = e.Delta > 0 ? 1.08 : 1 / 1.08;
+        var width = Math.Clamp(widget.ActualWidth * scale, 80, 600);
+        var height = Math.Clamp(widget.ActualHeight * scale, 60, 500);
+
+        widget.Width = width;
+        widget.Height = height;
+
+        // Growing near an edge would push the widget off-screen, so keep it inside as it changes size.
+        Canvas.SetLeft(widget, Math.Clamp(GetLeft(widget), 0, Math.Max(0, Surface.ActualWidth - width)));
+        Canvas.SetTop(widget, Math.Clamp(GetTop(widget), 0, Math.Max(0, Surface.ActualHeight - height)));
+
+        WidgetResized?.Invoke(widget, width, height);
         e.Handled = true;
     }
 

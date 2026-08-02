@@ -39,4 +39,47 @@ public class DesktopWidgetDefinition
     public double Y { get; set; }
     public double Width { get; set; }
     public double Height { get; set; }
+
+    // --- Appearance ---
+    // Colours are stored as "#RRGGBB" and combined with the separate opacity, rather than as "#AARRGGBB":
+    // the user sets colour and transparency independently, and keeping them apart means changing one never
+    // silently resets the other. A widget sits on an unknown wallpaper, so a backing panel is the default.
+
+    public string BackgroundColor { get; set; } = "#000000";
+
+    /// <summary>0 = invisible, 1 = solid.</summary>
+    public double BackgroundOpacity { get; set; } = 0.6;
+
+    public double CornerRadius { get; set; } = 8;
+
+    public string BorderColor { get; set; } = "#FFFFFF";
+    public double BorderOpacity { get; set; } = 0.25;
+
+    /// <summary>0 hides the border entirely.</summary>
+    public double BorderThickness { get; set; } = 0;
+
+    public DesktopWidgetDefinition Clone() => (DesktopWidgetDefinition)MemberwiseClone();
+
+    /// <summary>
+    /// Restores this definition's values from another, IN PLACE. Editing mutates the live definition so
+    /// the desktop updates as you type; cancelling has to undo that without swapping the instance, because
+    /// the rendered element is tracked by reference.
+    /// </summary>
+    public void CopyFrom(DesktopWidgetDefinition other)
+    {
+        Kind = other.Kind;
+        SensorIdentifier = other.SensorIdentifier;
+        Title = other.Title;
+        AccentKey = other.AccentKey;
+        ScreenKey = other.ScreenKey;
+        ScreenIndex = other.ScreenIndex;
+        X = other.X; Y = other.Y;
+        Width = other.Width; Height = other.Height;
+        BackgroundColor = other.BackgroundColor;
+        BackgroundOpacity = other.BackgroundOpacity;
+        CornerRadius = other.CornerRadius;
+        BorderColor = other.BorderColor;
+        BorderOpacity = other.BorderOpacity;
+        BorderThickness = other.BorderThickness;
+    }
 }

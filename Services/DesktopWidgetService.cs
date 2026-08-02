@@ -32,6 +32,7 @@ public sealed class DesktopWidgetService
         _surfaces = surfaces;
         _layout = layout;
         _surfaces.WidgetMoved += OnWidgetMoved;
+        _surfaces.WidgetResized += OnWidgetResized;
         _surfaces.WidgetScreenChanged += OnWidgetScreenChanged;
 
         // A display change rebuilds the canvases, so the widgets have to be placed again — and this is
@@ -63,6 +64,14 @@ public sealed class DesktopWidgetService
 
         var hardware = _aquila.State.Hardware;
         _widgets ??= LoadOrSeed(hardware);
+
+        // Idempotent on purpose: remove anything placed before, so calling this twice (a display rebuild
+        // racing a settings toggle, say) can't leave duplicate widgets stacked on the canvas.
+        foreach (var element in _byElement.Keys.ToList())
+        {
+            (VisualTreeHelper.GetParent(element) as Canvas)?.Children.Remove(element);
+            DetachSensor(element);
+        }
         _byElement.Clear();
 
         var migrated = false;
@@ -150,29 +159,6 @@ public sealed class DesktopWidgetService
         return seeded;
     }
 
-    /// <summary>Adds a widget from a definition the editor produced, then re-lays everything out.</summary>
-    public void Add(DesktopWidgetDefinition definition)
-    {
-        _widgets ??= _layout.Load();
-
-        // New widgets land on the primary screen unless the caller already chose one.
-        if (string.IsNullOrEmpty(definition.ScreenKey) && _surfaces.Surfaces.Count > 0)
-            definition.ScreenKey = PrimarySurface(_surfaces.Surfaces).Key;
-
-        _widgets.Add(definition);
-        _layout.Save(_widgets);
-        Repopulate();
-    }
-
-    /// <summary>Persists an edit. The editor mutates the definition instance in place, so there's nothing
-    /// to copy — this just guards that it really is one of ours, then saves and re-lays out.</summary>
-    public void Update(DesktopWidgetDefinition definition)
-    {
-        if (_widgets is null || !_widgets.Contains(definition)) return;
-        _layout.Save(_widgets);
-        Repopulate();
-    }
-
     public void Remove(DesktopWidgetDefinition definition)
     {
         if (_widgets is null || !_widgets.Remove(definition)) return;
@@ -184,11 +170,7 @@ public sealed class DesktopWidgetService
     /// place, and these are rare, user-initiated actions where a rebuild is imperceptible.</summary>
     private void Repopulate()
     {
-        foreach (var element in _byElement.Keys.ToList())
-            (VisualTreeHelper.GetParent(element) as Canvas)?.Children.Remove(element);
-
-        _byElement.Clear();
-        Populate();
+        Populate(); // idempotent — clears what it placed before
         _surfaces.RefreshEditModeAdorners();
     }
 
@@ -228,14 +210,125 @@ public sealed class DesktopWidgetService
     }
 
     /// <summary>Opens the editor pre-filled from the stored definition — same dialog as adding.</summary>
-    public void EditWidget(DesktopWidgetDefinition definition)
-    {
-        var dialog = new Views.Windows.WidgetEditorWindow(_aquila.State.Hardware, definition)
-        {
-            Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive),
-        };
+    public void EditWidget(DesktopWidgetDefinition definition) => OpenEditor(definition, null);
 
-        if (dialog.ShowDialog() == true) Update(definition);
+    /// <summary>
+    /// The one way in to the editor, for all three entry points.
+    ///
+    /// There is no separate "preview": the widget list IS the state, and the desktop is a projection of
+    /// it, so editing mutates the real definition and the canvas re-renders. That removes the whole
+    /// duality of a preview element standing beside the real one — which is what previously produced a
+    /// duplicated widget and a broken binding. Cancelling restores a snapshot taken on entry; the file is
+    /// only written on accept, so a crash mid-edit can't leave behind a state the user never confirmed.
+    /// </summary>
+    public void OpenEditor(DesktopWidgetDefinition? existing, string? presetSensorIdentifier)
+    {
+        // There has to be a surface to edit on. Adding a widget implies wanting to see it anyway.
+        if (!_surfaces.IsShown)
+        {
+            _surfaces.Show();
+            Populate();
+        }
+
+        _widgets ??= _layout.Load();
+
+        // Adding and editing are the same operation on the same data: a new widget is simply a definition
+        // that starts empty and is added to the list up front, so it renders live like any other.
+        var isNew = existing is null;
+        var target = existing ?? NewDefinition(presetSensorIdentifier);
+        if (isNew) _widgets.Add(target);
+
+        var snapshot = target.Clone();
+
+        var main = Application.Current?.Windows.OfType<Views.Windows.MainWindow>().FirstOrDefault();
+        var restore = main?.WindowState ?? WindowState.Normal;
+        if (main is not null) main.WindowState = WindowState.Minimized;
+
+        var dialog = new Views.Windows.WidgetEditorWindow(_aquila.State.Hardware, target, isNew, presetSensorIdentifier);
+        dialog.ViewModel.Changed += () => RefreshWidget(target);
+
+        var accepted = dialog.ShowDialog() == true;
+
+        if (accepted)
+        {
+            _layout.Save(_widgets);
+        }
+        else if (isNew)
+        {
+            _widgets.Remove(target);
+            RemoveElementFor(target);
+        }
+        else
+        {
+            target.CopyFrom(snapshot);
+            RefreshWidget(target);
+        }
+
+        if (main is not null)
+        {
+            main.WindowState = restore;
+            main.Activate();
+        }
+    }
+
+    private DesktopWidgetDefinition NewDefinition(string? presetSensorIdentifier) => new()
+    {
+        SensorIdentifier = presetSensorIdentifier ?? string.Empty,
+        ScreenKey = _surfaces.Surfaces.Count > 0 ? PrimarySurface(_surfaces.Surfaces).Key : string.Empty,
+        X = 32,
+        Y = 150,
+    };
+
+    /// <summary>
+    /// Re-renders one definition in place — the whole render path for live editing. Rebuilding just this
+    /// widget rather than every one keeps it cheap enough to run on each keystroke.
+    /// </summary>
+    public void RefreshWidget(DesktopWidgetDefinition definition)
+    {
+        var surfaces = _surfaces.Surfaces;
+        if (surfaces.Count == 0) return;
+
+        RemoveElementFor(definition);
+
+        // An incomplete or unresolvable definition simply renders nothing — the editor can be open with no
+        // sensor picked yet, and that must not throw.
+        var sensor = SensorCatalog.FindByIdentifier(_aquila.State.Hardware, definition.SensorIdentifier);
+        if (sensor is null) return;
+
+        var migrated = false;
+        var surface = ResolveSurface(surfaces, definition, ref migrated);
+        var element = Build(definition, sensor);
+
+        Canvas.SetLeft(element, definition.X);
+        Canvas.SetTop(element, definition.Y);
+        surface.Canvas.Children.Add(element);
+        _byElement[element] = definition;
+
+        _surfaces.RefreshEditModeAdorners();
+    }
+
+    private void RemoveElementFor(DesktopWidgetDefinition definition)
+    {
+        var element = _byElement.FirstOrDefault(pair => pair.Value == definition).Key;
+        if (element is null) return;
+
+        (VisualTreeHelper.GetParent(element) as Canvas)?.Children.Remove(element);
+        DetachSensor(element);
+        _byElement.Remove(element);
+    }
+
+    /// <summary>Clears the Sensor on whichever piece is inside a built widget, so it unhooks itself.
+    /// Mirrors the structure Build produces: Border → LabeledTile → piece.</summary>
+    private static void DetachSensor(UIElement widget)
+    {
+        if (widget is not Border { Child: LabeledTile tile }) return;
+
+        switch (tile.Tile)
+        {
+            case RadialGauge gauge: gauge.Sensor = null; break;
+            case MiniSparkline sparkline: sparkline.Sensor = null; break;
+            case SensorMeter meter: meter.Sensor = null; break;
+        }
     }
 
     private void OnWidgetMoved(DesktopSurfaceService.Surface surface, UIElement element, double x, double y)
@@ -244,6 +337,15 @@ public sealed class DesktopWidgetService
 
         definition.X = x;
         definition.Y = y;
+        if (_widgets is not null) _layout.Save(_widgets);
+    }
+
+    private void OnWidgetResized(UIElement element, double width, double height)
+    {
+        if (!_byElement.TryGetValue(element, out var definition)) return;
+
+        definition.Width = width;
+        definition.Height = height;
         if (_widgets is not null) _layout.Save(_widgets);
     }
 
@@ -316,11 +418,13 @@ public sealed class DesktopWidgetService
             definition.AccentKey);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
-        // background for contrast: give it its own dim backing panel and light text.
+        // background for contrast: it carries its own backing panel, which the user can restyle.
         return new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(0x99, 0x00, 0x00, 0x00)),
-            CornerRadius = new CornerRadius(8),
+            Background = Tint(definition.BackgroundColor, definition.BackgroundOpacity),
+            BorderBrush = Tint(definition.BorderColor, definition.BorderOpacity),
+            BorderThickness = new Thickness(definition.BorderThickness),
+            CornerRadius = new CornerRadius(definition.CornerRadius),
             Padding = new Thickness(10),
             Width = definition.Width,
             Height = definition.Height,
@@ -331,5 +435,21 @@ public sealed class DesktopWidgetService
                 Foreground = Brushes.White,
             },
         };
+    }
+
+    /// <summary>Combines a stored "#RRGGBB" with a separate 0..1 opacity. Falls back to transparent rather
+    /// than throwing: a hand-edited widgets.json shouldn't be able to break the desktop.</summary>
+    private static Brush Tint(string hex, double opacity)
+    {
+        try
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hex);
+            color.A = (byte)Math.Clamp(opacity * 255, 0, 255);
+            return new SolidColorBrush(color);
+        }
+        catch
+        {
+            return Brushes.Transparent;
+        }
     }
 }

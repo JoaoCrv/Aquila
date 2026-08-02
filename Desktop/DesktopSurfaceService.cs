@@ -61,6 +61,7 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
             var window = new ScreenCanvasWindow(screen.Bounds, label, ScreenIdentity.KeyFor(screen),
                 clickThrough);
             window.WidgetMoved += (element, x, y) => WidgetMoved?.Invoke(ToSurface(window), element, x, y);
+            window.WidgetResized += (element, w, h) => WidgetResized?.Invoke(element, w, h);
             window.WidgetRightClicked += OnWidgetRightClicked;
             window.Show();
 
@@ -171,6 +172,9 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     /// <summary>Raised when a widget is dragged to a new position, with the surface it belongs to. The
     /// seam for persisting layout.</summary>
     public event Action<Surface, System.Windows.UIElement, double, double>? WidgetMoved;
+
+    /// <summary>Raised after a widget is resized with the wheel, with its new size.</summary>
+    public event Action<System.Windows.UIElement, double, double>? WidgetResized;
 
     /// <summary>Raised after a widget is sent to another screen, with its new surface and position.</summary>
     public event Action<Surface, System.Windows.UIElement, double, double>? WidgetScreenChanged;
