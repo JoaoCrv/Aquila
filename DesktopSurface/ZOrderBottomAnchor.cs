@@ -3,9 +3,9 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using static Aquila.Desktop.NativeMethods;
+using static Aquila.DesktopSurface.NativeMethods;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// The validated desktop-anchoring model (Rainmeter's "on desktop"), reimplemented from reading their

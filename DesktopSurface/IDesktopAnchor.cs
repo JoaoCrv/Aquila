@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// Strategy for how a screen-canvas window is anchored to the desktop. This is the extensibility seam:

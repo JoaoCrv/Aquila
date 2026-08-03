@@ -29,7 +29,7 @@ namespace Aquila.Services
                 // is not. Win32 z-order work is inherently version-sensitive (see #24).
                 try
                 {
-                    serviceProvider.GetRequiredService<Desktop.DesktopSurfaceService>().Show();
+                    serviceProvider.GetRequiredService<DesktopSurface.DesktopSurfaceService>().Show();
                     serviceProvider.GetRequiredService<DesktopWidgetService>().Populate();
                 }
                 catch (Exception ex)

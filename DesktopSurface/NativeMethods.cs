@@ -1,11 +1,11 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// The entire Win32 P/Invoke surface for the desktop-surface feature, deliberately quarantined in one
-/// internal file inside the domain-agnostic <see cref="Aquila.Desktop"/> namespace. Nothing here (or
+/// internal file inside the domain-agnostic <see cref="Aquila.DesktopSurface"/> namespace. Nothing here (or
 /// anywhere else in this folder) references the Aquila domain (AquilaState/SensorNode/widgets), so the
 /// whole folder stays a candidate for extraction into a standalone library — and so a future
 /// "place inside Progman" anchor (an alternative <see cref="IDesktopAnchor"/>) can be added without

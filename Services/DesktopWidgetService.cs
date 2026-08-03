@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Aquila.Controls;
-using Aquila.Desktop;
+using Aquila.DesktopSurface;
 using Aquila.Models;
 
 namespace Aquila.Services;
@@ -10,7 +10,7 @@ namespace Aquila.Services;
 /// <summary>
 /// Puts live widgets on the desktop surface. This is the DOMAIN side of the boundary: it knows about
 /// sensors and #23 controls and reaches IN to <see cref="DesktopSurfaceService"/>'s canvases —
-/// <see cref="Aquila.Desktop"/> itself stays free of any Aquila type so it remains extractable.
+/// <see cref="Aquila.DesktopSurface"/> itself stays free of any Aquila type so it remains extractable.
 ///
 /// Widgets come from persisted <see cref="DesktopWidgetDefinition"/>s, so the layout survives restarts.
 /// On a machine with no layout yet, a small starter set is seeded from whatever sensors that hardware
@@ -40,7 +40,7 @@ public sealed class DesktopWidgetService
         _surfaces.SurfacesRebuilt += Populate;
 
         // The menu is built here, not in the surface service: edit/remove are domain concepts, and
-        // Aquila.Desktop must not learn what a widget means.
+        // Aquila.DesktopSurface must not learn what a widget means.
         _surfaces.WidgetRightClicked += OnWidgetRightClicked;
     }
 

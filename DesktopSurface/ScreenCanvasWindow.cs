@@ -4,14 +4,14 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using static Aquila.Desktop.NativeMethods;
+using static Aquila.DesktopSurface.NativeMethods;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// The per-monitor "screen canvas" window that will host the dynamic background (layer 0) and the
 /// widgets (layer 1, on <see cref="Surface"/>). Built in code (not XAML) so the whole
-/// <see cref="Aquila.Desktop"/> folder stays self-contained and domain-free — ready to extract later.
+/// <see cref="Aquila.DesktopSurface"/> folder stays self-contained and domain-free — ready to extract later.
 ///
 /// Styles were brought up one at a time and each verified on screen (2026-07): per-screen positioning →
 /// borderless → transparency → no taskbar entry → click-through. (An earlier "everything at once" version

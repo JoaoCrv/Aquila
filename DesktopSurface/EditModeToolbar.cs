@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// The floating bar shown while edit mode is on. It exists because the app window is minimized

@@ -4,9 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
-using static Aquila.Desktop.NativeMethods;
+using static Aquila.DesktopSurface.NativeMethods;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// Big transient labels drawn on the physical monitors — the same idea as the Identify button in Windows'

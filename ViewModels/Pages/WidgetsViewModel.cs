@@ -17,12 +17,12 @@ public partial class WidgetsViewModel : ObservableObject
 {
     private readonly AquilaService _aquila;
     private readonly SettingsService _settings;
-    private readonly Desktop.DesktopSurfaceService _surface;
+    private readonly DesktopSurface.DesktopSurfaceService _surface;
     private readonly DesktopWidgetService _widgets;
     private bool _initialized;
 
     public WidgetsViewModel(AquilaService aquila, SettingsService settings,
-        Desktop.DesktopSurfaceService surface, DesktopWidgetService widgets)
+        DesktopSurface.DesktopSurfaceService surface, DesktopWidgetService widgets)
     {
         _aquila = aquila;
         _settings = settings;

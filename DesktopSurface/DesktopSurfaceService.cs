@@ -1,7 +1,7 @@
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// Owns the desktop-surface windows: one <see cref="ScreenCanvasWindow"/> per physical screen, each

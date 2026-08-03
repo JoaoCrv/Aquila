@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using static Aquila.Desktop.NativeMethods;
+using static Aquila.DesktopSurface.NativeMethods;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// A stable identity for a physical monitor, so a saved widget layout can find the same screen again.

@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace Aquila.Desktop;
+namespace Aquila.DesktopSurface;
 
 /// <summary>
 /// The dashed outline drawn around each widget while edit mode is on — the app-wide "this is
