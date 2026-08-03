@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="Aquila.Views.Pages.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -17,139 +17,234 @@
     <Page.Resources>
         <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
+        <!-- Windows-Settings shape: groups are expandable cards, and inside each one a setting is a row
+             with its name and explanation on the left and its control on the right. Shared styles keep
+             the rows consistent instead of each one drifting on its own margins. -->
+        <Style x:Key="SettingRow" TargetType="Grid">
+            <Setter Property="Margin" Value="0,12,0,0" />
+        </Style>
+        <Style x:Key="SettingHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style x:Key="GroupHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
     </Page.Resources>
 
     <StackPanel>
-        <TextBlock Style="{StaticResource PageSectionHeader}" Text="Personalization" />
-        <TextBlock Margin="0,12,0,0" Text="Theme" />
-        <RadioButton
-            Margin="0,12,0,0"
-            Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
-            CommandParameter="theme_light"
-            Content="Light"
-            GroupName="themeSelect"
-            IsChecked="{Binding ViewModel.CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=OneWay}" />
-        <RadioButton
-            Margin="0,8,0,0"
-            Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
-            CommandParameter="theme_dark"
-            Content="Dark"
-            GroupName="themeSelect"
-            IsChecked="{Binding ViewModel.CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=OneWay}" />
 
-        <TextBlock Margin="0,20,0,0" Text="Polling interval" />
-        <ComboBox Margin="0,8,0,0"
-                  ItemsSource="{Binding ViewModel.PollingIntervalOptions}"
-                  SelectedItem="{Binding ViewModel.SelectedPollingInterval}"
-                  DisplayMemberPath="Label"
-                  MinWidth="120"
-                  HorizontalAlignment="Left"/>
+        <!-- Personalization -->
+        <ui:CardExpander Icon="{ui:SymbolIcon Color24}" IsExpanded="True">
+            <ui:CardExpander.Header>
+                <StackPanel>
+                    <TextBlock Text="Personalization" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource GroupHint}" Text="Theme and how often sensors are read." />
+                </StackPanel>
+            </ui:CardExpander.Header>
 
-        <TextBlock Margin="0,24,0,0" Style="{StaticResource PageSectionHeader}" Text="Behaviour" />
-
-        <ui:ToggleSwitch
-            Margin="0,12,0,0"
-            Content="Minimize to tray"
-            IsChecked="{Binding ViewModel.MinimizeToTray}"
-            IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
-
-        <ui:ToggleSwitch
-            Margin="0,8,0,0"
-            Content="Start minimized"
-            IsChecked="{Binding ViewModel.StartMinimized}"
-            IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
-
-        <ui:ToggleSwitch
-            Margin="0,8,0,0"
-            Content="Start with Windows"
-            IsChecked="{Binding ViewModel.StartWithWindows}"
-            IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
-
-        <ui:ToggleSwitch
-            Margin="0,8,0,0"
-            Content="Dashboard mode"
-            IsChecked="{Binding ViewModel.DashboardMode}" />
-        <TextBlock
-            Margin="0,4,0,0"
-            Opacity="0.55"
-            FontSize="12"
-            Text="Opens a borderless dashboard window. The main app window stays in the tray for settings access."
-            TextWrapping="Wrap" />
-
-        <TextBlock Margin="0,24,0,0" Style="{StaticResource PageSectionHeader}" Text="Dashboard cards" />
-        <TextBlock Margin="0,4,0,8" Opacity="0.55" FontSize="12"
-                   Text="Hidden cards are excluded from the layout entirely." />
-
-        <ui:ToggleSwitch Content="CPU" IsChecked="{Binding ViewModel.ShowCpuCard}" />
-        <ui:ToggleSwitch Margin="0,4,0,0" Content="Memory" IsChecked="{Binding ViewModel.ShowMemoryCard}" />
-        <ui:ToggleSwitch Margin="0,4,0,0" Content="GPU" IsChecked="{Binding ViewModel.ShowGpuCard}" />
-        <ui:ToggleSwitch Margin="0,4,0,0" Content="Network" IsChecked="{Binding ViewModel.ShowNetworkCard}" />
-        <ui:ToggleSwitch Margin="0,4,0,0" Content="Storage" IsChecked="{Binding ViewModel.ShowStorageCard}" />
-        <ui:ToggleSwitch Margin="0,4,0,0" Content="Temperatures" IsChecked="{Binding ViewModel.ShowTemperaturesCard}" />
-        <ui:ToggleSwitch Margin="0,4,0,0" Content="Power" IsChecked="{Binding ViewModel.ShowPowerCard}" />
-        <ui:ToggleSwitch Margin="0,4,0,0" Content="Fans" IsChecked="{Binding ViewModel.ShowFansCard}" />
-
-        <ui:Card Margin="0,24,0,0" Padding="16,14">
             <StackPanel>
-                <TextBlock Text="Diagnostics" Style="{StaticResource SectionLabel}" />
-                <ui:ToggleSwitch
-                    Margin="0,8,0,0"
-                    Content="Verbose logging"
-                    IsChecked="{Binding ViewModel.EnableVerboseLogging}" />
-                <TextBlock
-                    Margin="0,4,0,0"
-                    Opacity="0.55"
-                    FontSize="12"
-                    Text="Writes detailed logs to Documents\Aquila\logs\. Useful for troubleshooting. Disabled by default."
-                    TextWrapping="Wrap" />
+                <Grid Style="{StaticResource SettingRow}" Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Theme" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Applies to the app window and the dashboard." />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <RadioButton
+                            Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
+                            CommandParameter="theme_light"
+                            Content="Light"
+                            GroupName="themeSelect"
+                            IsChecked="{Binding ViewModel.CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=OneWay}" />
+                        <RadioButton
+                            Margin="16,0,0,0"
+                            Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
+                            CommandParameter="theme_dark"
+                            Content="Dark"
+                            GroupName="themeSelect"
+                            IsChecked="{Binding ViewModel.CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=OneWay}" />
+                    </StackPanel>
+                </Grid>
 
-                <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Opacity="0.15" Margin="0,14" />
-
-                <TextBlock Text="LibreHardwareMonitor sensor explorer" />
-                <TextBlock
-                    Margin="0,2,0,8"
-                    Opacity="0.55"
-                    FontSize="12"
-                    Text="Browse the raw sensor tree exposed by LibreHardwareMonitor and export a full report. For diagnostics and finding sensor identifiers."
-                    TextWrapping="Wrap" />
-                <ui:Button
-                    Command="{Binding ViewModel.OpenLhmExplorerCommand}"
-                    Content="Open sensor explorer"
-                    HorizontalAlignment="Left">
-                    <ui:Button.Icon>
-                        <ui:SymbolIcon Symbol="DataHistogram24" />
-                    </ui:Button.Icon>
-                </ui:Button>
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Polling interval" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="How often hardware is read. Shorter is more responsive and uses a little more CPU." />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="120"
+                              ItemsSource="{Binding ViewModel.PollingIntervalOptions}"
+                              SelectedItem="{Binding ViewModel.SelectedPollingInterval}"
+                              DisplayMemberPath="Label" />
+                </Grid>
             </StackPanel>
-        </ui:Card>
+        </ui:CardExpander>
 
-        <ui:Card Margin="0,12,0,0" Padding="16,14">
+        <!-- Behaviour -->
+        <ui:CardExpander Margin="0,4,0,0" Icon="{ui:SymbolIcon Window24}">
+            <ui:CardExpander.Header>
+                <StackPanel>
+                    <TextBlock Text="Behaviour" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource GroupHint}" Text="Startup, the tray, and dashboard mode." />
+                </StackPanel>
+            </ui:CardExpander.Header>
+
             <StackPanel>
-                <TextBlock Text="Updates" Style="{StaticResource SectionLabel}" />
-                <TextBlock Text="{Binding ViewModel.AppVersion, Mode=OneWay}"
-                           Style="{StaticResource ChipName}"
-                           Margin="0,0,0,6" />
-                <TextBlock Margin="0,0,0,8"
-                           Opacity="0.60"
-                           Text="Aquila can check silently on startup and will notify you before any download or restart."
-                           TextWrapping="Wrap" />
-                <TextBlock Margin="0,0,0,12"
-                           Opacity="0.80"
-                           Text="{Binding ViewModel.UpdateStatusMessage, Mode=OneWay}"
-                           TextWrapping="Wrap" />
+                <Grid Style="{StaticResource SettingRow}" Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Minimize to tray" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Closing the window leaves Aquila running in the notification area." />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                     IsChecked="{Binding ViewModel.MinimizeToTray}"
+                                     IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
+                </Grid>
 
-                <StackPanel Orientation="Horizontal">
-                    <Button Command="{Binding ViewModel.CheckForUpdatesCommand, Mode=OneWay}"
-                            Content="Check for Updates"
-                            Padding="12,6" />
-                    <ui:ProgressRing Width="18"
-                                     Height="18"
-                                     Margin="10,0,0,0"
-                                     VerticalAlignment="Center"
-                                     IsIndeterminate="True"
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Start minimized" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Launch straight to the tray, without opening the window." />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                     IsChecked="{Binding ViewModel.StartMinimized}"
+                                     IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
+                </Grid>
+
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Start with Windows" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Runs at logon. Requires the elevation task, since reading some sensors needs administrator rights." />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                     IsChecked="{Binding ViewModel.StartWithWindows}"
+                                     IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
+                </Grid>
+
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Dashboard mode" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Opens a borderless dashboard window. The main app window stays in the tray for settings access." />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                     IsChecked="{Binding ViewModel.DashboardMode}" />
+                </Grid>
+            </StackPanel>
+        </ui:CardExpander>
+
+        <!-- Dashboard cards -->
+        <ui:CardExpander Margin="0,4,0,0" Icon="{ui:SymbolIcon Grid24}">
+            <ui:CardExpander.Header>
+                <StackPanel>
+                    <TextBlock Text="Dashboard cards" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource GroupHint}" Text="Choose what the dashboard shows. Hidden cards are excluded from the layout entirely." />
+                </StackPanel>
+            </ui:CardExpander.Header>
+
+            <StackPanel Margin="0,4,0,0">
+                <ui:ToggleSwitch Content="CPU" IsChecked="{Binding ViewModel.ShowCpuCard}" />
+                <ui:ToggleSwitch Margin="0,6,0,0" Content="Memory" IsChecked="{Binding ViewModel.ShowMemoryCard}" />
+                <ui:ToggleSwitch Margin="0,6,0,0" Content="GPU" IsChecked="{Binding ViewModel.ShowGpuCard}" />
+                <ui:ToggleSwitch Margin="0,6,0,0" Content="Network" IsChecked="{Binding ViewModel.ShowNetworkCard}" />
+                <ui:ToggleSwitch Margin="0,6,0,0" Content="Storage" IsChecked="{Binding ViewModel.ShowStorageCard}" />
+                <ui:ToggleSwitch Margin="0,6,0,0" Content="Temperatures" IsChecked="{Binding ViewModel.ShowTemperaturesCard}" />
+                <ui:ToggleSwitch Margin="0,6,0,0" Content="Power" IsChecked="{Binding ViewModel.ShowPowerCard}" />
+                <ui:ToggleSwitch Margin="0,6,0,0" Content="Fans" IsChecked="{Binding ViewModel.ShowFansCard}" />
+            </StackPanel>
+        </ui:CardExpander>
+
+        <!-- Diagnostics -->
+        <ui:CardExpander Margin="0,4,0,0" Icon="{ui:SymbolIcon Bug24}">
+            <ui:CardExpander.Header>
+                <StackPanel>
+                    <TextBlock Text="Diagnostics" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource GroupHint}" Text="Logging and the raw sensor tree, for troubleshooting." />
+                </StackPanel>
+            </ui:CardExpander.Header>
+
+            <StackPanel>
+                <Grid Style="{StaticResource SettingRow}" Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Verbose logging" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Writes detailed logs to Documents\Aquila\logs\. Disabled by default." />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
+                                     IsChecked="{Binding ViewModel.EnableVerboseLogging}" />
+                </Grid>
+
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Sensor explorer" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Browse the raw sensor tree from LibreHardwareMonitor and export a full report. Useful for finding sensor identifiers." />
+                    </StackPanel>
+                    <ui:Button Grid.Column="1" VerticalAlignment="Center"
+                               Command="{Binding ViewModel.OpenLhmExplorerCommand}"
+                               Content="Open"
+                               Icon="{ui:SymbolIcon DataHistogram24}" />
+                </Grid>
+            </StackPanel>
+        </ui:CardExpander>
+
+        <!-- Updates -->
+        <ui:CardExpander Margin="0,4,0,20" Icon="{ui:SymbolIcon ArrowSync24}">
+            <ui:CardExpander.Header>
+                <StackPanel>
+                    <TextBlock Text="Updates" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource GroupHint}" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+                </StackPanel>
+            </ui:CardExpander.Header>
+
+            <StackPanel Margin="0,4,0,0">
+                <TextBlock Style="{StaticResource SettingHint}" Margin="0"
+                           Text="Aquila can check silently on startup and will notify you before any download or restart." />
+                <TextBlock Margin="0,8,0,0" Opacity="0.8" TextWrapping="Wrap"
+                           Text="{Binding ViewModel.UpdateStatusMessage, Mode=OneWay}" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <ui:Button Command="{Binding ViewModel.CheckForUpdatesCommand, Mode=OneWay}"
+                               Content="Check for updates"
+                               Icon="{ui:SymbolIcon ArrowDownload24}" />
+                    <ui:ProgressRing Width="18" Height="18" Margin="10,0,0,0"
+                                     VerticalAlignment="Center" IsIndeterminate="True"
                                      Visibility="{Binding ViewModel.IsCheckingForUpdates, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}" />
                 </StackPanel>
             </StackPanel>
-        </ui:Card>
+        </ui:CardExpander>
     </StackPanel>
 </Page>
