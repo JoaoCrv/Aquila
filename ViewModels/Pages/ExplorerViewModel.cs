@@ -21,7 +21,13 @@ public partial class ExplorerViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FilteredComponents))]
+    [NotifyPropertyChangedFor(nameof(IsFiltering))]
     private string _searchText = string.Empty;
+
+    /// <summary>Drives the components open while a search is active: what survives a filter is what the
+    /// user is looking for, so making them open it by hand would be busywork. Clearing the box closes them
+    /// again.</summary>
+    public bool IsFiltering => !string.IsNullOrWhiteSpace(SearchText);
 
     public ExplorerViewModel(AquilaService aquila)
     {

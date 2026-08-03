@@ -50,7 +50,13 @@
             Margin="20,0,20,20">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <ui:CardExpander Margin="0,0,0,4" IsExpanded="True" CornerRadius="8">
+                    <!-- Collapsed by default: a machine reports a lot of components, and opening them all
+                         at once buries the list the user is trying to scan. A search opens them, since
+                         what survived the filter is what's being looked for. -->
+                    <ui:CardExpander Margin="0,0,0,4" CornerRadius="8"
+                                     IsExpanded="{Binding DataContext.ViewModel.IsFiltering,
+                                                  RelativeSource={RelativeSource AncestorType=Page},
+                                                  Mode=OneWay}">
                         <ui:CardExpander.Header>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"/>
