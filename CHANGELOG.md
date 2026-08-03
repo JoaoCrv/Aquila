@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="2.2.1"></a>
+## [2.2.1](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.2.1) (2026-08-03)
+
+### Bug Fixes
+
+* **desktop:** restore the desktop surface folder ([1bd4b12](https://www.github.com/JoaoCrv/Aquila/commit/1bd4b12ad6bd19b8a863b5df3159a466f63fdfc8))
+
 <a name="2.2.0"></a>
 ## [2.2.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.2.0) (2026-08-03)
 
