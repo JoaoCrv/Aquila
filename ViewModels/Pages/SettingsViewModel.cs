@@ -32,7 +32,8 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private PollingOption _selectedPollingInterval = null!;
 
-        public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila, INavigationService navigation)
+        public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
+            INavigationService navigation)
         {
             _updateService = updateService;
             _settings = settings;

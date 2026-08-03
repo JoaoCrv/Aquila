@@ -1,0 +1,234 @@
+<Window x:Class="Aquila.Views.Windows.WidgetEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Widget"
+        Width="560" Height="620"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        ResizeMode="NoResize"
+        Background="{DynamicResource ApplicationBackgroundBrush}"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+
+    <Window.Resources>
+        <CollectionViewSource x:Key="GroupedSensors" Source="{Binding ViewModel.Sensors}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Component"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Opacity" Value="0.7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- Deliberately narrow, centred and topmost: the app is minimized while this is open and the widget
+         previews on the real desktop, so the dialog must leave as much of it visible as possible. -->
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock x:Name="HeaderText" Text="Add widget" FontSize="20" FontWeight="SemiBold"/>
+            <TextBlock Text="The widget updates live on your desktop as you change it."
+                       FontSize="12" Opacity="0.6" Margin="0,2,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <TabControl Grid.Row="1" BorderThickness="0" Background="Transparent">
+
+            <TabItem Header="Widget">
+                <Grid Margin="0,14,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0">
+                        <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                        <ListBox ItemsSource="{Binding ViewModel.Kinds}"
+                                 SelectedItem="{Binding ViewModel.SelectedKind}"
+                                 BorderThickness="0" Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Margin" Value="0,0,6,0"/>
+                                    <Setter Property="Padding" Value="10,8"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Description}" FontSize="11" Opacity="0.6"
+                                                   TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Margin="0,16,0,0">
+                        <TextBlock Text="Sensor" Style="{StaticResource FieldLabel}"/>
+                        <ui:TextBox PlaceholderText="Search sensors…"
+                                    Text="{Binding ViewModel.SensorFilter, UpdateSourceTrigger=PropertyChanged}"/>
+                        <ListBox Margin="0,8,0,0" Height="205"
+                                 ItemsSource="{Binding Source={StaticResource GroupedSensors}}"
+                                 SelectedItem="{Binding ViewModel.SelectedSensor}">
+                            <ListBox.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                       Opacity="0.6" FontSize="11" Margin="0,8,0,2"/>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </ListBox.GroupStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                        <!-- Live value: names alone are ambiguous when a machine reports a
+                                             dozen similar temperatures. -->
+                                        <TextBlock Grid.Column="1" Opacity="0.6" Margin="12,0,0,0">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                    <Binding Path="Sensor.Value" FallbackValue="--"/>
+                                                    <Binding Path="Sensor.Unit"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+
+                    <Grid Grid.Row="2" Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="180"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Title" Style="{StaticResource FieldLabel}"/>
+                            <ui:TextBox PlaceholderText="Defaults to the sensor name"
+                                        Text="{Binding ViewModel.Title, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Accent" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Accents}"
+                                      SelectedItem="{Binding ViewModel.SelectedAccent}"
+                                      DisplayMemberPath="Name"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Appearance">
+                <StackPanel Margin="0,14,0,0">
+
+                    <TextBlock Text="Background" Style="{StaticResource FieldLabel}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0"
+                                  ItemsSource="{Binding ViewModel.Colors}"
+                                  SelectedItem="{Binding ViewModel.SelectedBackground}"
+                                  DisplayMemberPath="Name"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Slider Width="200" VerticalAlignment="Center"
+                                    Minimum="0" Maximum="100"
+                                    Value="{Binding ViewModel.BackgroundOpacity}"/>
+                            <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.7"
+                                       Text="{Binding ViewModel.BackgroundOpacity, StringFormat={}{0:F0}% opacity}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="Border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0"
+                                  ItemsSource="{Binding ViewModel.Colors}"
+                                  SelectedItem="{Binding ViewModel.SelectedBorder}"
+                                  DisplayMemberPath="Name"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Slider Width="200" VerticalAlignment="Center"
+                                    Minimum="0" Maximum="100"
+                                    Value="{Binding ViewModel.BorderOpacity}"/>
+                            <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.7"
+                                       Text="{Binding ViewModel.BorderOpacity, StringFormat={}{0:F0}% opacity}"/>
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock VerticalAlignment="Center" Opacity="0.7" FontSize="12"
+                                   Text="Thickness" Width="70"/>
+                        <Slider Width="200" VerticalAlignment="Center"
+                                Minimum="0" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding ViewModel.BorderThickness}"/>
+                        <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.7"
+                                   Text="{Binding ViewModel.BorderThickness, StringFormat={}{0:F0} px}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock VerticalAlignment="Center" Opacity="0.7" FontSize="12"
+                                   Text="Corners" Width="70"/>
+                        <Slider Width="200" VerticalAlignment="Center"
+                                Minimum="0" Maximum="24"
+                                Value="{Binding ViewModel.CornerRadius}"/>
+                        <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.7"
+                                   Text="{Binding ViewModel.CornerRadius, StringFormat={}{0:F0} px}"/>
+                    </StackPanel>
+
+                    <TextBlock Text="Size" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" Opacity="0.7" FontSize="12"
+                                   Text="Width" Width="70"/>
+                        <Slider Width="200" VerticalAlignment="Center"
+                                Minimum="80" Maximum="600"
+                                Value="{Binding ViewModel.WidgetWidth}"/>
+                        <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.7"
+                                   Text="{Binding ViewModel.WidgetWidth, StringFormat={}{0:F0} px}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock VerticalAlignment="Center" Opacity="0.7" FontSize="12"
+                                   Text="Height" Width="70"/>
+                        <Slider Width="200" VerticalAlignment="Center"
+                                Minimum="60" Maximum="500"
+                                Value="{Binding ViewModel.WidgetHeight}"/>
+                        <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.7"
+                                   Text="{Binding ViewModel.WidgetHeight, StringFormat={}{0:F0} px}"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,20,0,0">
+            <ui:Button Content="Cancel" MinWidth="110" Click="Cancel_Click"/>
+            <ui:Button x:Name="SaveButton" Content="Save" MinWidth="110" Margin="8,0,0,0"
+                       Appearance="Primary" Click="Save_Click"
+                       IsEnabled="{Binding ViewModel.CanSave}"/>
+        </StackPanel>
+    </Grid>
+</Window>

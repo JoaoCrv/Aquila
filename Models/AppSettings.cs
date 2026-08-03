@@ -27,4 +27,8 @@ public class AppSettings
     public double DashboardWindowTop    { get; set; } = double.NaN;
     public double DashboardWindowWidth  { get; set; } = 900;
     public double DashboardWindowHeight { get; set; } = 600;
+
+    // Desktop widgets (#24). Off by default while the feature is built out. The widget layout itself
+    // lives in widgets.json, not here — it's a document, not a preference.
+    public bool DesktopSurfaceEnabled { get; set; } = false;
 }

@@ -60,6 +60,13 @@ namespace Aquila
                 services.AddSingleton<UpdateService>();
                 services.AddSingleton<AquilaService>();
 
+                // Desktop widgets (#24) — domain-agnostic, isolated in Aquila.Desktop. The anchor
+                // factory is the single swap point for a future "place inside Progman" strategy.
+                services.AddSingleton<Func<Desktop.IDesktopAnchor>>(_ => () => new Desktop.ZOrderBottomAnchor());
+                services.AddSingleton<Desktop.DesktopSurfaceService>();
+                services.AddSingleton<DesktopLayoutService>();
+                services.AddSingleton<DesktopWidgetService>();
+
                 services.AddSingleton<ISnackbarService, SnackbarService>();
 
                 // TaskBar manipulation
