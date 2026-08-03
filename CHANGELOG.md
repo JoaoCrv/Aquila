@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="2.2.0"></a>
+## [2.2.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.2.0) (2026-08-03)
+
+### Features
+
+* **about:** add GitHub Sponsors button alongside PayPal ([da12fe8](https://www.github.com/JoaoCrv/Aquila/commit/da12fe89d061cdc0603a93972a4c98fcf32ab029))
+* **about:** move support/contact buttons into the header card ([599b210](https://www.github.com/JoaoCrv/Aquila/commit/599b21046695e561d28887ecfb55f92a444b0632))
+* **controls:** add BarGroup widget, adopt in CpuCard core load ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([6d889a7](https://www.github.com/JoaoCrv/Aquila/commit/6d889a7c4f89bb0af9c852691aa9baef70ac6863))
+* **controls:** add LabeledTile wrapper for titled pieces ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([3259dbd](https://www.github.com/JoaoCrv/Aquila/commit/3259dbd71504d3506b09f68d1172d9126448f1a9))
+* **controls:** add MiniSparkline live sparkline piece ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([4249a66](https://www.github.com/JoaoCrv/Aquila/commit/4249a667b32722548372763e13e79ec37073f96b))
+* **controls:** add RadialGauge built on AquilaCharts factory ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([4eec422](https://www.github.com/JoaoCrv/Aquila/commit/4eec422a6456ce8788bad3541f38a4ff4ea9de7e))
+* **controls:** add SensorBar live progress-bar piece ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([a8ace65](https://www.github.com/JoaoCrv/Aquila/commit/a8ace659e60f3461e5be99a13219cc98015f72de))
+* **controls:** add SensorMeter bar widget, adopt in Power/Storage ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([cfd96e3](https://www.github.com/JoaoCrv/Aquila/commit/cfd96e37ab51b52197a539b6be236c5cb8cd62a5))
+* **controls:** add StackedBar widget, adopt in RamCard; drop dead resources ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([8d19086](https://www.github.com/JoaoCrv/Aquila/commit/8d1908644885e54d756df8534058296b800c163f))
+* **controls:** extract FansCard, move FanRowItem to Models ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([5e6169f](https://www.github.com/JoaoCrv/Aquila/commit/5e6169f968589700b20c7b7ab00f5e3070c9d289))
+* **controls:** extract GpuCard, drop GpuCardData adapter ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([3c60f01](https://www.github.com/JoaoCrv/Aquila/commit/3c60f0189fa3ad60ed7b18fdd930fbbf763ceefb))
+* **controls:** extract NetworkCard reusable piece ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([1657473](https://www.github.com/JoaoCrv/Aquila/commit/1657473156f21b6968eeb9db163bd04b8666cc9e))
+* **controls:** extract PowerCard reusable piece ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([1c0a9d8](https://www.github.com/JoaoCrv/Aquila/commit/1c0a9d8969d6f817904ac888b934a5ca1cdbedf4))
+* **controls:** extract RamCard reusable piece ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([1a609ee](https://www.github.com/JoaoCrv/Aquila/commit/1a609ee1c4917f4f5eb908dc4c192350351c2674))
+* **controls:** extract StatBox + CpuCard reusable pieces ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([1985adb](https://www.github.com/JoaoCrv/Aquila/commit/1985adbd24203bfafd259cedeaa84a03bf1f5674))
+* **controls:** extract StorageCard reusable piece ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([50a9bb1](https://www.github.com/JoaoCrv/Aquila/commit/50a9bb1f60c910fe422e2cd2b925324abf704843))
+* **controls:** extract TemperaturesCard reusable piece ([#23](https://www.github.com/JoaoCrv/Aquila/issues/23)) ([ab01b05](https://www.github.com/JoaoCrv/Aquila/commit/ab01b05861b0643233d087a7abfd905f18bc5708))
+* **desktop:** add desktop surface, one bottom-most canvas per screen ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([6c76cd7](https://www.github.com/JoaoCrv/Aquila/commit/6c76cd76679ebd31c4753536650de9c3aed1bf06))
+* **desktop:** add organization mode to drag widgets ([#30](https://www.github.com/JoaoCrv/Aquila/issues/30)) ([a60ab53](https://www.github.com/JoaoCrv/Aquila/commit/a60ab53f546f6f0a4a9f211275676415d1113ee6))
+* **desktop:** add/edit widgets, and rework the desktop section ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([07ec682](https://www.github.com/JoaoCrv/Aquila/commit/07ec68261c06d809d8959becee60822133b36dd1))
+* **desktop:** identify screens by monitor identity, not index ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([72764ff](https://www.github.com/JoaoCrv/Aquila/commit/72764ff2286df6acafb9bcd6fcfaadc013b8fbf6))
+* **desktop:** move surface controls to the Widgets page, add arrange flow ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([77347b5](https://www.github.com/JoaoCrv/Aquila/commit/77347b5de9e9e97e3cd6f2d91f44dfa7fd568921))
+* **desktop:** persist the widget layout to widgets.json ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([048fb33](https://www.github.com/JoaoCrv/Aquila/commit/048fb334a27908329a4a4b861655cae442997320))
+* **desktop:** put live sensor widgets on the surface, add settings toggle ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([0d22e4a](https://www.github.com/JoaoCrv/Aquila/commit/0d22e4a3ee2433e345ce1836b9299791bbcdf551))
+* **desktop:** rebuild surfaces on display changes, add send-to-screen ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([d2a8956](https://www.github.com/JoaoCrv/Aquila/commit/d2a89565a89c097275261b7ec4a15c29c5a81552))
+* **desktop:** render widgets from their definitions, add wheel resize ([#24](https://www.github.com/JoaoCrv/Aquila/issues/24)) ([ae95e7f](https://www.github.com/JoaoCrv/Aquila/commit/ae95e7f2625721aae64ed28616d2784c6ae0c653))
+* **explorer:** live sensor view from state; raw LHM explorer to Settings ([#22](https://www.github.com/JoaoCrv/Aquila/issues/22)) ([fb21181](https://www.github.com/JoaoCrv/Aquila/commit/fb21181de2c012ef1a8579fb9d14826b0450dc68))
+* **explorer:** start collapsed, expand components while searching ([b504407](https://www.github.com/JoaoCrv/Aquila/commit/b504407b930bc85ceaff573b5227fadfd5940ecb))
+* **model:** add SensorCatalog to enumerate live sensors by component ([1d5848f](https://www.github.com/JoaoCrv/Aquila/commit/1d5848f1878292e7d9e353bba38b9ee6e67f8474))
+* **sensors:** record history automatically for every sensor ([#7](https://www.github.com/JoaoCrv/Aquila/issues/7)) ([e436da1](https://www.github.com/JoaoCrv/Aquila/commit/e436da148cac9b823a78a2da5173518d47c89531))
+* **settings:** group settings into expandable cards ([3bd3344](https://www.github.com/JoaoCrv/Aquila/commit/3bd3344ed7b13c00845fa82d566aaccb1ffc325f))
+* **widgets:** add Widgets gallery page, live preview of [#23](https://www.github.com/JoaoCrv/Aquila/issues/23) pieces ([#31](https://www.github.com/JoaoCrv/Aquila/issues/31)) ([615ffec](https://www.github.com/JoaoCrv/Aquila/commit/615ffec43e6e9a62dac5fbe536a6b85f43e673ec))
+
+### Bug Fixes
+
+* **ci:** correct signing secrets and use changelog for release notes ([a03a48f](https://www.github.com/JoaoCrv/Aquila/commit/a03a48fcc4b47d0f1d0052d5d5ab079c0c20e93e))
+* **network:** show only real, active adapters ([2bdb71f](https://www.github.com/JoaoCrv/Aquila/commit/2bdb71f91a089107441e7ac8ce57b318dab275e1))
+
 <a name="2.1.1"></a>
 ## [2.1.1](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.1.1) (2026-06-09)
 
