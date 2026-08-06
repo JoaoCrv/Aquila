@@ -11,18 +11,40 @@ namespace Aquila.ViewModels.Windows
         private string _applicationTitle = "Aquila";
 
         private readonly UiService _uiService;
+        private readonly UpdateService _updateService;
 
         public bool IsLoading => _uiService.IsLoading;
 
-        public MainWindowViewModel(UiService uiService)
+        public MainWindowViewModel(UiService uiService, UpdateService updateService)
         {
             _uiService = uiService;
+            _updateService = updateService;
 
             _uiService.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(UiService.IsLoading))
                     OnPropertyChanged(nameof(IsLoading));
             };
+
+            _updateService.StatusChanged += RefreshUpdateBadge;
+            RefreshUpdateBadge();
+        }
+
+        /// <summary>
+        /// Marks the Settings item when an update is waiting. Notifications are transient — miss the toast
+        /// and nothing tells you again; this persists until the update is installed, and points at the page
+        /// where you actually install it.
+        /// </summary>
+        private void RefreshUpdateBadge()
+        {
+            var settings = FooterMenuItems.OfType<NavigationViewItem>()
+                .FirstOrDefault(i => i.TargetPageType == typeof(SettingsPage));
+            if (settings is null) return;
+
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                settings.InfoBadge = _updateService.IsUpdateAvailable
+                    ? new InfoBadge { Severity = InfoBadgeSeverity.Attention }
+                    : null);
         }
 
         [ObservableProperty]

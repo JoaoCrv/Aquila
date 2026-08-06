@@ -77,6 +77,8 @@ namespace Aquila
 
                 // Main window with navigation
                 services.AddSingleton<INavigationWindow, MainWindow>();
+                // Same instance under both roles — it's the window that owns the tray icon.
+                services.AddSingleton<ITrayNotifier>(sp => (MainWindow)sp.GetRequiredService<INavigationWindow>());
                 services.AddSingleton<MainWindowViewModel>();
 
                 services.AddSingleton<DashboardWindow>();
@@ -189,7 +191,10 @@ namespace Aquila
 
             _host.Services.GetRequiredService<AquilaService>().SetInterval(settings.Current.PollingIntervalMs);
             _ = Services.GetRequiredService<UpdateService>()
-                .CheckForUpdatesSilentlyAndNotifyAsync(Services.GetService<ISnackbarService>(), TimeSpan.FromSeconds(2));
+                .CheckForUpdatesSilentlyAndNotifyAsync(
+                    Services.GetService<ISnackbarService>(),
+                    Services.GetService<ITrayNotifier>(),
+                    TimeSpan.FromSeconds(2));
             _host.Services.GetRequiredService<AquilaService>();
         }
 

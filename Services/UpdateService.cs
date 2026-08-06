@@ -24,7 +24,14 @@ namespace Aquila.Services
         public string StatusMessage { get; private set; } = DefaultStatusMessage;
         public UpdateInfo? PendingUpdateInfo { get; private set; }
 
-        public async Task CheckForUpdatesSilentlyAndNotifyAsync(ISnackbarService? snackbarService, TimeSpan? delay = null)
+        /// <summary>
+        /// Checks on startup and tells the user if there's an update. Which channel it uses depends on
+        /// whether the window is actually on screen: Aquila normally starts minimized to the tray (and is
+        /// hidden entirely in dashboard mode), so a snackbar drawn inside the main window would be shown to
+        /// nobody — which is exactly what used to happen.
+        /// </summary>
+        public async Task CheckForUpdatesSilentlyAndNotifyAsync(
+            ISnackbarService? snackbarService, ITrayNotifier? trayNotifier = null, TimeSpan? delay = null)
         {
             try
             {
@@ -33,12 +40,22 @@ namespace Aquila.Services
 
                 var checkResult = await CheckForUpdatesAsync(silent: true);
 
-                if (!checkResult.IsSuccess || !checkResult.IsUpdateAvailable || snackbarService is null)
+                if (!checkResult.IsSuccess || !checkResult.IsUpdateAvailable)
                     return;
 
-                snackbarService.Show(
-                    "Update available",
-                    "A new Aquila version is ready. Open Settings to install it.",
+                const string title = "Update available";
+                const string message = "A new Aquila version is ready. Open Settings to install it.";
+
+                // In-window while it's on screen, tray notification otherwise — never both, so the user
+                // isn't told twice.
+                if (trayNotifier is { IsWindowVisible: false })
+                {
+                    trayNotifier.Notify(title, message);
+                    return;
+                }
+
+                snackbarService?.Show(
+                    title, message,
                     ControlAppearance.Info,
                     new SymbolIcon { Symbol = SymbolRegular.Info24 },
                     TimeSpan.FromSeconds(8));

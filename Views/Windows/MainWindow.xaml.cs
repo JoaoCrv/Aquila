@@ -8,13 +8,18 @@ using Wpf.Ui.Controls;
 
 namespace Aquila.Views.Windows
 {
-    public partial class MainWindow : INavigationWindow
+    public partial class MainWindow : INavigationWindow, ITrayNotifier
     {
         public MainWindowViewModel ViewModel { get; }
 
         private readonly SettingsService _settings;
         private readonly System.Windows.Forms.NotifyIcon _trayIcon;
+        private readonly UpdateService _updateService;
         private bool _allowClose = false;
+        private Action? _balloonClick;
+
+        private System.Drawing.Icon _baseIcon = System.Drawing.SystemIcons.Application;
+        private System.Drawing.Icon? _badgedIcon;
 
         // Tracks normal-state bounds so we always have a valid non-maximized size to persist
         private double _normalLeft = double.NaN, _normalTop = double.NaN, _normalWidth = double.NaN, _normalHeight = double.NaN;
@@ -24,10 +29,12 @@ namespace Aquila.Views.Windows
             INavigationViewPageProvider navigationViewPageProvider,
             INavigationService navigationService,
             ISnackbarService snackbarService,
-            SettingsService settings)
+            SettingsService settings,
+            UpdateService updateService)
         {
             ViewModel = viewModel;
             _settings = settings;
+            _updateService = updateService;
             DataContext = this;
 
             SystemThemeWatcher.Watch(this);
@@ -38,6 +45,9 @@ namespace Aquila.Views.Windows
             snackbarService.SetSnackbarPresenter(SnackbarPresenter);
 
             _trayIcon = BuildTrayIcon();
+            _updateService.StatusChanged += RefreshTrayUpdateBadge;
+            RefreshTrayUpdateBadge();
+
             RestoreWindowBounds();
 
             ShowInTaskbar = !_settings.Current.DashboardMode;
@@ -73,6 +83,8 @@ namespace Aquila.Views.Windows
                 icon = System.Drawing.SystemIcons.Application;
             }
 
+            _baseIcon = icon; // kept so the badge can be added and removed without re-extracting
+
             var menu = new System.Windows.Forms.ContextMenuStrip();
             menu.Items.Add("Open Aquila", null, (_, _) => TrayOpen());
             menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
@@ -88,6 +100,14 @@ namespace Aquila.Views.Windows
 
             tray.MouseClick  += (_, e) => { if (e.Button == System.Windows.Forms.MouseButtons.Left) TrayClick(); };
             tray.DoubleClick += (_, _) => TrayOpen();
+            // Clicking a notification brings Aquila up — the least surprising outcome, and the only way
+            // back for someone running it hidden in the tray.
+            tray.BalloonTipClicked += (_, _) =>
+            {
+                var action = _balloonClick;
+                _balloonClick = null;
+                if (action is not null) action(); else TrayOpen();
+            };
 
             return tray;
         }
@@ -201,6 +221,63 @@ namespace Aquila.Views.Windows
             if (!_settings.Current.DashboardMode) return;
             if (IsVisible) { SaveWindowBounds(); ShowInTaskbar = false; Hide(); }
             else TrayOpen();
+        }
+
+        /// <summary>
+        /// Shows a notification from the tray icon. On Windows 10/11 this renders as a normal toast and
+        /// lands in the Action Centre, so it survives the user being away from the machine — unlike an
+        /// in-window snackbar, which is both invisible while the window is hidden and gone after a few
+        /// seconds.
+        /// </summary>
+        public void Notify(string title, string message, Action? onClick = null)
+        {
+            // One handler at a time: the click handler captures this specific notification's action, so a
+            // stale one would run the wrong thing.
+            _balloonClick = onClick;
+            _trayIcon.ShowBalloonTip(10_000, title, message, System.Windows.Forms.ToolTipIcon.Info);
+        }
+
+        public bool IsWindowVisible => IsVisible && WindowState != WindowState.Minimized;
+
+        /// <summary>
+        /// Marks the tray icon while an update is waiting, so the signal survives a missed notification and
+        /// is visible even with the window closed — which is how Aquila normally runs.
+        /// </summary>
+        private void RefreshTrayUpdateBadge()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var available = _updateService.IsUpdateAvailable;
+
+                _trayIcon.Text = available ? "Aquila — update available" : "Aquila";
+                _trayIcon.Icon = available ? (_badgedIcon ??= BuildBadgedIcon(_baseIcon)) : _baseIcon;
+            });
+        }
+
+        /// <summary>Draws a dot on the app icon. Generated once and cached: Icon.FromHandle wraps a native
+        /// HICON that the Icon does not own, so rebuilding it per call would leak a GDI handle each time.</summary>
+        private static System.Drawing.Icon BuildBadgedIcon(System.Drawing.Icon baseIcon)
+        {
+            using var bitmap = new System.Drawing.Bitmap(baseIcon.Width, baseIcon.Height,
+                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            using (var g = System.Drawing.Graphics.FromImage(bitmap))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.DrawIcon(baseIcon, new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height));
+
+                // Bottom-right, with a light ring so it stays legible against a dark taskbar or a dark icon.
+                var size = Math.Max(6f, bitmap.Width / 2.4f);
+                var dot = new System.Drawing.RectangleF(bitmap.Width - size, bitmap.Height - size, size, size);
+
+                using var ring = new System.Drawing.SolidBrush(System.Drawing.Color.White);
+                using var fill = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(0x2E, 0x9E, 0x4F));
+                g.FillEllipse(ring, System.Drawing.RectangleF.Inflate(dot, 1.5f, 1.5f));
+                g.FillEllipse(fill, dot);
+            }
+
+            var handle = bitmap.GetHicon();
+            return System.Drawing.Icon.FromHandle(handle);
         }
 
         private void TrayOpen()
