@@ -141,6 +141,32 @@ namespace Aquila
             var res = Current.Resources;
             foreach (var key in _accentKeys)
                 if (res[key + suffix] is Brush brush) res[key] = brush;
+
+            RefreshSchemeBrushes(suffix);
+        }
+
+        /// <summary>Roles a colour scheme answers. Named by meaning, so a different scheme can answer them
+        /// with entirely different hues without anything downstream changing.</summary>
+        private static readonly string[] _schemeRoles =
+        [
+            "Accent", "Normal", "Elevated", "Alert", "Critical",
+            "Series1", "Series2", "Series3", "Track"
+        ];
+
+        /// <summary>Which scheme is active. Becomes a setting once there is more than one to choose.</summary>
+        internal static string ActiveScheme { get; set; } = "Ember";
+
+        /// <summary>
+        /// Publishes the active scheme's colours onto the role keys that XAML binds to
+        /// (<c>Aquila.Scheme.Alert</c> and friends). Two dimensions collapse into one lookup here: which
+        /// scheme, and light or dark.
+        /// </summary>
+        private static void RefreshSchemeBrushes(string suffix)
+        {
+            var res = Current.Resources;
+            foreach (var role in _schemeRoles)
+                if (res[$"Aquila.Scheme.{ActiveScheme}.{role}{suffix}"] is Brush brush)
+                    res[$"Aquila.Scheme.{role}"] = brush;
         }
 
         /// <summary>

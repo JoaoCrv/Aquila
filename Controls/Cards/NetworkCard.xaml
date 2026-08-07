@@ -36,8 +36,9 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="↓ Download" Style="{StaticResource RowLabel}"/>
+                    <!-- Series, not intensity: download and upload need telling apart, not measuring. -->
                     <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Aquila.Cpu}"
+                               Foreground="{DynamicResource Aquila.Scheme.Series1}"
                                Text="{Binding Network.Throughput.Download.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
                 </Grid>
                 <Grid Margin="0,0,0,6">
@@ -47,7 +48,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="↑ Upload" Style="{StaticResource RowLabel}"/>
                     <TextBlock Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Aquila.Ram}"
+                               Foreground="{DynamicResource Aquila.Scheme.Series2}"
                                Text="{Binding Network.Throughput.Upload.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
                 </Grid>
                 <TextBlock Text="THROUGHPUT · 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"
@@ -57,9 +58,9 @@
             <!-- Row 1: sparkline fills remaining space -->
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding Network.Throughput.Download.History}"
-                SeriesColor="{DynamicResource Aquila.Chart.NetDown}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 SecondValues="{Binding Network.Throughput.Upload.History}"
-                SecondColor="{DynamicResource Aquila.Chart.NetUp}"
+                SecondColor="{DynamicResource Aquila.Scheme.Series2}"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
 
             <!-- Row 2: totals (hide when narrow) -->

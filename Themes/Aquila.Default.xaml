@@ -103,4 +103,28 @@
     <SolidColorBrush x:Key="Aquila.Chart.NetDown"    Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
     <SolidColorBrush x:Key="Aquila.Chart.NetUp"      Color="{StaticResource Aquila.Palette.Green.Bright}"/>
 
+    <!-- ═══════════════════════════════════════════════════════════════════
+         LAYER 4 — Colour scheme, by ROLE  (see Themes/Aquila.Ember.xaml)
+         What XAML actually binds to: {DynamicResource Aquila.Scheme.Alert}
+         and friends. App.RefreshSchemeBrushes() overwrites these from the
+         active scheme and theme.
+
+         They live HERE, in the always-merged dictionary, rather than in a
+         scheme file — a scheme file can be swapped out, and these keys must
+         never disappear from under a binding.
+
+         Values below are only the pre-refresh fallback, so the first frame
+         has something to draw.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <SolidColorBrush x:Key="Aquila.Scheme.Accent"    Color="#F5A623"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Normal"    Color="#FFB765"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Elevated"  Color="#F5A623"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Alert"     Color="#FF6B35"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Critical"  Color="#DA3B01"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Series1"   Color="#F5A623"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Series2"   Color="#FFD9A8"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Series3"   Color="#DA3B01"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Track"     Color="#21F5A623"/>
+
 </ResourceDictionary>
