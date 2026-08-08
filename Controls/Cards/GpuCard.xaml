@@ -12,7 +12,7 @@
          StatBox), a usage sparkline, VRAM usage and fan speeds. Pure bindings, no computed state.
          Content uses itself as DataContext. -->
     <UserControl.Resources>
-        <helpers:ThermalBrushConverter x:Key="Thermal"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
     </UserControl.Resources>
@@ -36,13 +36,13 @@
                         Value="{Binding Gpu.Load.Core.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                     <controls:StatBox Label="Temp" Unit="°C" Margin="3,0"
                         Value="{Binding Gpu.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{Binding Gpu.Temperature.Primary.Value, Converter={StaticResource Thermal}}"/>
+                        Accent="{Binding Gpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
                     <controls:StatBox Label="Clock" Unit="MHz" UnitSize="11" Margin="3,0"
                         Value="{Binding Gpu.Clock.Core.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{DynamicResource Aquila.Gpu}"/>
+                        Accent="{DynamicResource Aquila.Scheme.Accent}"/>
                     <controls:StatBox Label="Power" Unit="W" Margin="3,0,0,0"
                         Value="{Binding Gpu.Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{DynamicResource Aquila.Gpu}"/>
+                        Accent="{DynamicResource Aquila.Scheme.Accent}"/>
                 </UniformGrid>
                 <TextBlock Text="USAGE · 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
                            Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
@@ -51,7 +51,7 @@
             <!-- Row 1: sparkline fills remaining space -->
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding Gpu.Load.Core.History}"
-                SeriesColor="{DynamicResource Aquila.Chart.Gpu}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 MaxY="100"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
 
@@ -62,7 +62,7 @@
                     <TextBlock Text="VRAM" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock FontSize="20" FontWeight="Normal"
-                                   Foreground="{DynamicResource Aquila.Gpu}"
+                                   Foreground="{DynamicResource Aquila.Scheme.Accent}"
                                    Text="{Binding Gpu.Data.Used.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
                         <TextBlock FontSize="11" VerticalAlignment="Bottom" Margin="3,0,0,3"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}">

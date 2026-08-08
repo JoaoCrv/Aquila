@@ -14,7 +14,7 @@
       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
     <Page.Resources>
-        <helpers:ThermalBrushConverter x:Key="Thermal"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
     </Page.Resources>
 
     <!-- Fase 1 (preview): mostra cada peça reutilizável de 1 sensor (#23) a funcionar com dados
@@ -101,7 +101,7 @@
                         <controls:LabeledTile.Tile>
                             <controls:RadialGauge
                                 Sensor="{Binding ViewModel.Hardware.Cpus[0].Load.Total}"
-                                Accent="{DynamicResource Aquila.Cpu}"/>
+                                Accent="{DynamicResource Aquila.Scheme.Accent}"/>
                         </controls:LabeledTile.Tile>
                     </controls:LabeledTile>
                     <TextBlock Grid.Row="1" VerticalAlignment="Top"
@@ -123,7 +123,7 @@
                         <controls:LabeledTile.Tile>
                             <controls:MiniSparkline
                                 Sensor="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary}"
-                                Accent="{DynamicResource Aquila.Cpu}"/>
+                                Accent="{DynamicResource Aquila.Scheme.Accent}"/>
                         </controls:LabeledTile.Tile>
                     </controls:LabeledTile>
                     <TextBlock Grid.Row="1" VerticalAlignment="Top"
@@ -146,7 +146,7 @@
                             <controls:SensorMeter
                                 Label="CPU"
                                 Sensor="{Binding ViewModel.Hardware.Cpus[0].Power.Package}"
-                                Accent="{DynamicResource Aquila.Cpu}"
+                                Accent="{DynamicResource Aquila.Scheme.Accent}"
                                 ValueText="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                         </controls:LabeledTile.Tile>
                     </controls:LabeledTile>
@@ -170,7 +170,7 @@
                             <controls:StatBox
                                 Label="Temp" Unit="°C"
                                 Value="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                                Accent="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, Converter={StaticResource Thermal}}"/>
+                                Accent="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
                         </controls:LabeledTile.Tile>
                     </controls:LabeledTile>
                     <TextBlock Grid.Row="1" VerticalAlignment="Top"

@@ -14,7 +14,7 @@
 
          A scheme defines COLOURS PER ROLE. It deliberately does NOT define
          when each role applies: that 80 °C counts as "alert" is a property
-         of the metric, not of the palette (see ThermalBrushConverter). Keep
+         of the metric, not of the palette (see IntensityBrushConverter). Keep
          them apart, or restyling would silently change meaning — and a
          shared scheme would impose someone else's thresholds.
          ═══════════════════════════════════════════════════════════════════ -->

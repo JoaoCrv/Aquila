@@ -14,7 +14,7 @@
     <UserControl.Resources>
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
         <helpers:ZeroToCollapsedConverter x:Key="ZeroToCollapsed"/>
-        <helpers:ThermalBrushConverter x:Key="Thermal"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
     </UserControl.Resources>
 
@@ -56,25 +56,25 @@
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,3">
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
-                                    Background="{DynamicResource Aquila.Cpu}"/>
+                                    Background="{DynamicResource Aquila.Scheme.Series1}"/>
                             <TextBlock FontSize="11" Opacity="0.65"
                                        Text="{Binding Memory.Data.Used.Value, StringFormat='Física {0:F1} usada', FallbackValue='--'}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,3">
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
-                                    Background="{DynamicResource Aquila.Ram}"/>
+                                    Background="{DynamicResource Aquila.Scheme.Series2}"/>
                             <TextBlock FontSize="11" Opacity="0.65"
                                        Text="{Binding Memory.Virtual.Used.Value, StringFormat='Virtual {0:F1} usada', FallbackValue='--'}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
-                                    Background="{DynamicResource Aquila.Cpu}" Opacity="0.35"/>
+                                    Background="{DynamicResource Aquila.Scheme.Series1}" Opacity="0.35"/>
                             <TextBlock FontSize="11" Opacity="0.65"
                                        Text="{Binding Memory.Data.Available.Value, StringFormat='Física {0:F1} livre', FallbackValue='--'}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
                             <Border Width="8" Height="8" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,5,0"
-                                    Background="{DynamicResource Aquila.Ram}" Opacity="0.35"/>
+                                    Background="{DynamicResource Aquila.Scheme.Series2}" Opacity="0.35"/>
                             <TextBlock FontSize="11" Opacity="0.65"
                                        Text="{Binding Memory.Virtual.Available.Value, StringFormat='Virtual {0:F1} livre', FallbackValue='--'}"/>
                         </StackPanel>
@@ -89,7 +89,7 @@
             <!-- Row 1: sparkline fills remaining space -->
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding Memory.Load.Total.History}"
-                SeriesColor="{DynamicResource Aquila.Chart.Ram}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 MaxY="100"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
 
@@ -113,7 +113,7 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                         <StackPanel Grid.Column="1" HorizontalAlignment="Right">
                                             <TextBlock FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right"
-                                                       Foreground="{Binding Temperature.Value, Converter={StaticResource Thermal}}">
+                                                       Foreground="{Binding Temperature.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}">
                                                 <TextBlock.Text>
                                                     <MultiBinding StringFormat="{}{0:F1} {1}" FallbackValue="--">
                                                         <Binding Path="Temperature.Value"/>

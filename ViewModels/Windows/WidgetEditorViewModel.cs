@@ -37,14 +37,18 @@ public partial class WidgetEditorViewModel : ObservableObject
         new(DesktopWidgetKind.SensorMeter, "Meter", "A bar with the value beside it."),
     ];
 
+    /// <summary>
+    /// Colour choices, by role in the active scheme. These used to be hardware names — you had to pick
+    /// "CPU" to get blue, even for a network widget — which is exactly the confusion the scheme model
+    /// removed. Whatever scheme is active answers these roles with its own hues.
+    /// </summary>
     public IReadOnlyList<AccentOption> Accents { get; } =
     [
-        new("Aquila.Cpu", "CPU"),
-        new("Aquila.Gpu", "GPU"),
-        new("Aquila.Ram", "Memory"),
-        new("Aquila.Temp", "Temperature"),
-        new("Aquila.Power", "Power"),
-        new("Aquila.Critical", "Critical"),
+        new("Aquila.Scheme.Accent", "Accent"),
+        new("Aquila.Scheme.Series2", "Alternate"),
+        new("Aquila.Scheme.Series3", "Deep"),
+        new("Aquila.Scheme.Alert", "Alert"),
+        new("Aquila.Scheme.Critical", "Critical"),
     ];
 
     public IReadOnlyList<ColorOption> Colors { get; } =
@@ -128,7 +132,7 @@ public partial class WidgetEditorViewModel : ObservableObject
 
         _target.Kind = SelectedKind?.Kind ?? _target.Kind;
         _target.SensorIdentifier = SelectedSensor?.Identifier ?? string.Empty;
-        _target.AccentKey = SelectedAccent?.Key ?? "Aquila.Cpu";
+        _target.AccentKey = SelectedAccent?.Key ?? "Aquila.Scheme.Accent";
         _target.Title = string.IsNullOrWhiteSpace(Title) ? SelectedSensor?.Name ?? string.Empty : Title.Trim();
 
         _target.BackgroundColor = SelectedBackground?.Hex ?? "#000000";

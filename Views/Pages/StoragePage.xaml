@@ -15,7 +15,7 @@
     <Page.Resources>
         <helpers:NullToCollapsedConverter  x:Key="NullToCollapsedConverter"/>
         <helpers:ThroughputConverter       x:Key="ThroughputConverter"/>
-        <helpers:ThermalBrushConverter     x:Key="ThermalBrushConverter"/>
+        <helpers:IntensityBrushConverter   x:Key="Intensity"/>
         <helpers:DataGbConverter           x:Key="DataGbConverter"/>
     </Page.Resources>
 
@@ -53,7 +53,7 @@
 
                                 <!-- Drive letter badge -->
                                 <Border Grid.Column="0"
-                                        Background="{DynamicResource Aquila.Ram}"
+                                        Background="{DynamicResource Aquila.Scheme.Accent}"
                                         CornerRadius="6" Width="38" Height="38"
                                         Margin="0,0,12,0" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding DriveLetter}"
@@ -141,7 +141,7 @@
                                     </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
-                                                   Foreground="{Binding Temperature.Value, Converter={StaticResource ThermalBrushConverter}}">
+                                                   Foreground="{Binding Temperature.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}">
                                             <Run Text="{Binding Temperature.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                             <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                         </TextBlock>
@@ -161,7 +161,7 @@
                                     </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
-                                                   Foreground="{DynamicResource Aquila.Ram}"
+                                                   Foreground="{DynamicResource Aquila.Scheme.Accent}"
                                                    Text="{Binding DataRead.Value, Converter={StaticResource DataGbConverter}, FallbackValue='--'}"/>
                                         <TextBlock Text="Data Read" Style="{StaticResource StatBoxLabel}"/>
                                     </StackPanel>
@@ -179,7 +179,7 @@
                                     </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
-                                                   Foreground="{DynamicResource Aquila.Ram}"
+                                                   Foreground="{DynamicResource Aquila.Scheme.Accent}"
                                                    Text="{Binding DataWritten.Value, Converter={StaticResource DataGbConverter}, FallbackValue='--'}"/>
                                         <TextBlock Text="Data Written" Style="{StaticResource StatBoxLabel}"/>
                                     </StackPanel>
@@ -194,7 +194,7 @@
                                 <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
-                                                   Foreground="{DynamicResource Aquila.Ram}">
+                                                   Foreground="{DynamicResource Aquila.Scheme.Accent}">
                                             <Run Text="{Binding Life.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                             <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                         </TextBlock>
@@ -216,7 +216,7 @@
                                         Visibility="{Binding AvailableSpare.Value, Converter={StaticResource NullToCollapsedConverter}}">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
-                                                   Foreground="{DynamicResource Aquila.Ram}">
+                                                   Foreground="{DynamicResource Aquila.Scheme.Accent}">
                                             <Run Text="{Binding AvailableSpare.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                             <Run Text="%" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                         </TextBlock>
@@ -231,9 +231,9 @@
                                 Height="44"
                                 Margin="0,8,0,0"
                                 Values="{Binding ReadHistory}"
-                                SeriesColor="{DynamicResource Aquila.Chart.NetDown}"
+                                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                                 SecondValues="{Binding WriteHistory}"
-                                SecondColor="{DynamicResource Aquila.Chart.Cpu}"
+                                SecondColor="{DynamicResource Aquila.Scheme.Series1}"
                                 Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}"/>
 
                         </StackPanel>

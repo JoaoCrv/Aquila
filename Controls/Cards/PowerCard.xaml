@@ -34,13 +34,13 @@
                 </StackPanel>
 
                 <controls:SensorMeter Margin="0,0,0,5" Label="CPU"
-                    Sensor="{Binding CpuPower}" Accent="{DynamicResource Aquila.Cpu}"
+                    Sensor="{Binding CpuPower}" Accent="{DynamicResource Aquila.Scheme.Series1}"
                     ValueText="{Binding CpuPower.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                 <controls:SensorMeter Margin="0,0,0,5" Label="GPU"
-                    Sensor="{Binding Gpu1Power}" Accent="{DynamicResource Aquila.Gpu}"
+                    Sensor="{Binding Gpu1Power}" Accent="{DynamicResource Aquila.Scheme.Series2}"
                     ValueText="{Binding Gpu1Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
                 <controls:SensorMeter Margin="0,0,0,5" Label="GPU 2"
-                    Sensor="{Binding Gpu2Power}" Accent="{DynamicResource Aquila.Gpu}"
+                    Sensor="{Binding Gpu2Power}" Accent="{DynamicResource Aquila.Scheme.Series3}"
                     ValueText="{Binding Gpu2Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"
                     Visibility="{Binding Gpu2Power, Converter={StaticResource NullToCollapsed}}"/>
 
@@ -50,7 +50,7 @@
 
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding TotalPower.History}"
-                SeriesColor="{DynamicResource Aquila.Power}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
         </Grid>
     </ui:Card>

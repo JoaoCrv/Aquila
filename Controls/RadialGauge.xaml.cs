@@ -118,7 +118,7 @@ public partial class RadialGauge : UserControl
     private SKColor ResolveColor()
     {
         var brush = Accent as SolidColorBrush
-            ?? TryFindResource("Aquila.Cpu") as SolidColorBrush;
+            ?? TryFindResource("Aquila.Scheme.Accent") as SolidColorBrush;
         if (brush is null) return new SKColor(96, 205, 255);
         var c = brush.Color;
         return new SKColor(c.R, c.G, c.B, c.A);

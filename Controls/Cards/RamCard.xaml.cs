@@ -77,15 +77,15 @@ public partial class RamCard : UserControl
         double pool = physUsed + physFree + virtUsed + virtFree;
         if (pool <= 0) { Segments = []; return; }
 
-        var cpu = TryFindResource("Aquila.Cpu") as Brush ?? Brushes.Transparent;
-        var ram = TryFindResource("Aquila.Ram") as Brush ?? Brushes.Transparent;
+        var physical = TryFindResource("Aquila.Scheme.Series1") as Brush ?? Brushes.Transparent;
+        var virtualMem = TryFindResource("Aquila.Scheme.Series2") as Brush ?? Brushes.Transparent;
 
         Segments =
         [
-            new(physUsed / pool, cpu),
-            new(physFree / pool, cpu, Opacity: 0.18),
-            new(virtUsed / pool, ram),
-            new(virtFree / pool, ram, Opacity: 0.18),
+            new(physUsed / pool, physical),
+            new(physFree / pool, physical, Opacity: 0.18),
+            new(virtUsed / pool, virtualMem),
+            new(virtFree / pool, virtualMem, Opacity: 0.18),
         ];
     }
 }

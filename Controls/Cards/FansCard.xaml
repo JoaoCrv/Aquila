@@ -69,7 +69,7 @@
 
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding CpuFan.History}"
-                SeriesColor="{DynamicResource Aquila.Chart.NetDown}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
         </Grid>
     </ui:Card>

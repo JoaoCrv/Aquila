@@ -122,7 +122,7 @@ public partial class SensorMeter : UserControl
         InlineValueColumn.Width = ValueWidth;
 
         if (ColorValue)
-            TopValueText.Foreground = Accent ?? TryFindResource("Aquila.Cpu") as Brush;
+            TopValueText.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;
         else
             TopValueText.ClearValue(TextBlock.ForegroundProperty);
     }

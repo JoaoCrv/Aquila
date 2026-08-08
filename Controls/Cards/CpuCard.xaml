@@ -13,7 +13,7 @@
          binds straight to the SensorNodes. The card's content uses itself as DataContext. -->
     <UserControl.Resources>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
-        <helpers:ThermalBrushConverter x:Key="Thermal"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
     </UserControl.Resources>
 
@@ -39,18 +39,18 @@
                         Value="{Binding Cpu.Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                     <controls:StatBox Label="Temp" Unit="°C" Margin="3,0"
                         Value="{Binding Cpu.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{Binding Cpu.Temperature.Primary.Value, Converter={StaticResource Thermal}}"/>
+                        Accent="{Binding Cpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
                     <controls:StatBox Label="Eff. Clock" Unit="MHz" UnitSize="11" Margin="3,0"
                         Value="{Binding Cpu.Clock.CoresAverage.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{DynamicResource Aquila.Cpu}"/>
+                        Accent="{DynamicResource Aquila.Scheme.Accent}"/>
                     <controls:StatBox Label="Power" Unit="W" Margin="3,0,0,0"
                         Value="{Binding Cpu.Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{DynamicResource Aquila.Power}"/>
+                        Accent="{DynamicResource Aquila.Scheme.Accent}"/>
                 </UniformGrid>
 
                 <StackPanel Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=260}">
                     <TextBlock Text="CORE LOAD" Style="{StaticResource SectionLabel}"/>
-                    <controls:BarGroup Items="{Binding Cores}" Accent="{DynamicResource Aquila.Cpu}" Margin="0,0,0,12"/>
+                    <controls:BarGroup Items="{Binding Cores}" Accent="{DynamicResource Aquila.Scheme.Accent}" Margin="0,0,0,12"/>
                 </StackPanel>
 
                 <TextBlock Text="USAGE · 60s" Style="{StaticResource SectionLabel}" Margin="0,0,0,2"
@@ -60,7 +60,7 @@
             <!-- Row 1: sparkline fills remaining space -->
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding Cpu.Load.Total.History}"
-                SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 MaxY="100"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
         </Grid>

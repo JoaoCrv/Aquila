@@ -12,7 +12,7 @@
          Bind Temperatures (the sensors to list) and DieTemperature (the sensor to chart). Every
          value binds straight to the SensorNodes, so no computed state. Content uses itself as DataContext. -->
     <UserControl.Resources>
-        <helpers:ThermalBrushConverter x:Key="Thermal"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
     </UserControl.Resources>
 
@@ -37,7 +37,7 @@
                             <controls:StatBox Margin="0,0,6,6"
                                 Label="{Binding Name}" Unit="°C" UnitSize="14"
                                 Value="{Binding Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                                Accent="{Binding Value, Converter={StaticResource Thermal}}"/>
+                                Accent="{Binding Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -47,7 +47,7 @@
 
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding DieTemperature.History}"
-                SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 MaxY="100"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
         </Grid>

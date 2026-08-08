@@ -111,15 +111,15 @@
          ════════════════════════════════════════════════════════════════ -->
 
     <Style x:Key="GpuBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Gpu}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
     </Style>
 
     <Style x:Key="RamBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Ram}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
     </Style>
 
     <Style x:Key="FanBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Cpu}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
     </Style>
 
 </ResourceDictionary>

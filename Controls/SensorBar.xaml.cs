@@ -91,7 +91,7 @@ public partial class SensorBar : UserControl
             : (Sensor.Max ?? 100);
         if (max <= min) max = min + 1;
 
-        Bar.Foreground = Accent ?? TryFindResource("Aquila.Cpu") as Brush;
+        Bar.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;
         Bar.Minimum = min;
         Bar.Maximum = max;
         Bar.Value = System.Math.Clamp(Sensor.Value ?? 0, min, max);

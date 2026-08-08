@@ -12,7 +12,7 @@
          rows with bars, and a read+write I/O sparkline. Bind Storage. Pure bindings, no computed
          state. Content uses itself as DataContext. -->
     <UserControl.Resources>
-        <helpers:ThermalBrushConverter x:Key="Thermal"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
         <helpers:ThroughputConverter x:Key="Throughput"/>
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
     </UserControl.Resources>
@@ -33,15 +33,15 @@
                 <UniformGrid Columns="2" Margin="0,0,0,10">
                     <controls:StatBox Label="Temp" Unit="°C" Margin="0,0,3,0"
                         Value="{Binding Storage.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{Binding Storage.Temperature.Primary.Value, Converter={StaticResource Thermal}}"/>
+                        Accent="{Binding Storage.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
                     <controls:StatBox Label="Used" Unit="%" Margin="3,0,0,0"
                         Value="{Binding Storage.Load.UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                 </UniformGrid>
                 <controls:SensorMeter LabelPlacement="Top" ColorValue="True" Label="Read"
-                    Sensor="{Binding Storage.Throughput.ReadRate}" Accent="{DynamicResource Aquila.Cpu}"
+                    Sensor="{Binding Storage.Throughput.ReadRate}" Accent="{DynamicResource Aquila.Scheme.Series1}"
                     ValueText="{Binding Storage.Throughput.ReadRate.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
                 <controls:SensorMeter LabelPlacement="Top" ColorValue="True" Label="Write"
-                    Sensor="{Binding Storage.Throughput.WriteRate}" Accent="{DynamicResource Aquila.Ram}"
+                    Sensor="{Binding Storage.Throughput.WriteRate}" Accent="{DynamicResource Aquila.Scheme.Series2}"
                     ValueText="{Binding Storage.Throughput.WriteRate.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>
                 <TextBlock Text="I/O · 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"
                            Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
@@ -50,9 +50,9 @@
             <!-- Row 1: sparkline fills remaining space -->
             <controls:SparklineChart Grid.Row="1" MinHeight="40"
                 Values="{Binding Storage.Throughput.ReadRate.History}"
-                SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
+                SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                 SecondValues="{Binding Storage.Throughput.WriteRate.History}"
-                SecondColor="{DynamicResource Aquila.Chart.Ram}"
+                SecondColor="{DynamicResource Aquila.Scheme.Series1}"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
         </Grid>
     </ui:Card>

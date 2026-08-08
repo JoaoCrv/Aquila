@@ -408,6 +408,12 @@ public sealed class DesktopWidgetService
 
         // SetResourceReference is the code equivalent of DynamicResource — accent brushes are swapped on
         // theme change (App.RefreshAccentBrushes), so a static lookup would freeze the old theme's colour.
+        // A layout saved before colour schemes existed holds hardware-named keys that no longer resolve,
+        // which would leave the widget colourless; fall back to the scheme's accent instead.
+        var accentKey = definition.AccentKey.StartsWith("Aquila.Scheme.", StringComparison.Ordinal)
+            ? definition.AccentKey
+            : "Aquila.Scheme.Accent";
+
         piece.SetResourceReference(
             definition.Kind switch
             {
@@ -415,7 +421,7 @@ public sealed class DesktopWidgetService
                 DesktopWidgetKind.MiniSparkline => MiniSparkline.AccentProperty,
                 _ => SensorMeter.AccentProperty,
             },
-            definition.AccentKey);
+            accentKey);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.

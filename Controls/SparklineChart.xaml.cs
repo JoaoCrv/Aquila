@@ -19,7 +19,7 @@ namespace Aquila.Controls;
 /// <code>
 /// &lt;controls:SparklineChart Height="64"
 ///     Values="{Binding CpuUsageHistory}"
-///     SeriesColor="{DynamicResource Aquila.Chart.Cpu}"
+///     SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
 ///     MaxY="100"/&gt;
 /// </code>
 /// </example>

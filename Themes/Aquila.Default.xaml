@@ -30,7 +30,7 @@
 
     <!-- ═══════════════════════════════════════════════════════════════════
          LAYER 2 — Semantic tokens  (Dark / Light variants)
-         Consumed by AccentBrushProvider → published as Aquila.* DynamicResources.
+         Published as Aquila.* DynamicResources by App.RefreshAccentBrushes().
          ═══════════════════════════════════════════════════════════════════ -->
 
     <!-- CPU (blue) -->
@@ -80,10 +80,10 @@
     <!-- ═══════════════════════════════════════════════════════════════════
          LAYER 3 — Runtime keys  (no Dark/Light suffix)
          These are the keys consumed by {DynamicResource Aquila.*} in XAML
-         styles and ThermalBrushConverter.
+         styles and IntensityBrushConverter.
          Defaults point to the Dark palette so they work immediately on
-         first render, before AccentBrushProvider publishes its values.
-         AccentBrushProvider.Refresh() overrides these in Application.Resources
+         first render, before the refresh publishes its values.
+         App.RefreshAccentBrushes() overrides these in Application.Resources
          when the theme is set or changed.
          ═══════════════════════════════════════════════════════════════════ -->
 
