@@ -22,7 +22,8 @@ public class DesktopWidgetDefinition
     public string SensorIdentifier { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Resource key of the accent brush (e.g. "Aquila.Cpu"), so widgets follow theme changes.</summary>
+    /// <summary>Resource key of the accent brush — a colour-profile role, e.g. "Aquila.Scheme.Accent" —
+    /// held as a key rather than a colour so a widget follows theme and profile changes.</summary>
     public string AccentKey { get; set; } = string.Empty;
 
     /// <summary>Which physical monitor the widget lives on — a stable identity derived from the monitor's

@@ -15,7 +15,6 @@
     mc:Ignorable="d"
     Style="{StaticResource BasePageStyle}">
     <Page.Resources>
-        <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
         <!-- Windows-Settings shape: groups are expandable cards, and inside each one a setting is a row
@@ -45,11 +44,14 @@
             <ui:CardExpander.Header>
                 <StackPanel>
                     <TextBlock Text="Personalization" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource GroupHint}" Text="Theme and how often sensors are read." />
+                    <TextBlock Style="{StaticResource GroupHint}" Text="The theme dresses the window; the colour profile dresses the data. They are chosen separately." />
                 </StackPanel>
             </ui:CardExpander.Header>
 
             <StackPanel>
+                <!-- Style and brightness are two orthogonal choices, so they get two controls rather than
+                     one list of every combination — which would also put an ambiguous "System" among
+                     them. Adding a third style later costs one entry here instead of three. -->
                 <Grid Style="{StaticResource SettingRow}" Margin="0,4,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -57,24 +59,59 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Margin="0,0,16,0">
                         <TextBlock Text="Theme" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Applies to the app window and the dashboard." />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Aquila is our own look. Windows Fluent leaves the app plain, including your Windows accent colour." />
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <RadioButton
-                            Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
-                            CommandParameter="theme_light"
-                            Content="Light"
-                            GroupName="themeSelect"
-                            IsChecked="{Binding ViewModel.CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=OneWay}" />
-                        <RadioButton
-                            Margin="16,0,0,0"
-                            Command="{Binding ViewModel.ChangeThemeCommand, Mode=OneWay}"
-                            CommandParameter="theme_dark"
-                            Content="Dark"
-                            GroupName="themeSelect"
-                            IsChecked="{Binding ViewModel.CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=OneWay}" />
-                    </StackPanel>
+                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="160"
+                              ItemsSource="{Binding ViewModel.ThemeStyleOptions}"
+                              SelectedItem="{Binding ViewModel.SelectedThemeStyle}"
+                              DisplayMemberPath="Label" />
                 </Grid>
+
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Brightness" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Match Windows follows the system light/dark setting." />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="160"
+                              ItemsSource="{Binding ViewModel.ThemeOptions}"
+                              SelectedItem="{Binding ViewModel.SelectedTheme}"
+                              DisplayMemberPath="Label" />
+                </Grid>
+
+                <!-- Colour profile: one JSON file each, ours embedded and the user's in
+                     Documents\Aquila\profiles. Duplicate is the only way to edit one of ours, which is
+                     deliberate — a built-in that cannot be broken is always somewhere to get back to. -->
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="Colour profile" />
+                        <TextBlock Style="{StaticResource SettingHint}"
+                                   Text="{Binding ViewModel.ColorProfileDescription, Mode=OneWay}" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="160"
+                              ItemsSource="{Binding ViewModel.ColorProfiles}"
+                              SelectedItem="{Binding ViewModel.SelectedColorProfile}"
+                              DisplayMemberPath="DisplayName" />
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0" HorizontalAlignment="Right">
+                    <ui:Button Content="Duplicate to edit"
+                               Icon="{ui:SymbolIcon Copy24}"
+                               Command="{Binding ViewModel.DuplicateColorProfileCommand, Mode=OneWay}" />
+                    <ui:Button Margin="8,0,0,0" Content="Open folder"
+                               Icon="{ui:SymbolIcon FolderOpen24}"
+                               Command="{Binding ViewModel.OpenProfilesFolderCommand, Mode=OneWay}" />
+                    <ui:Button Margin="8,0,0,0" Content="Reload"
+                               Icon="{ui:SymbolIcon ArrowClockwise24}"
+                               Command="{Binding ViewModel.ReloadColorProfilesCommand, Mode=OneWay}" />
+                </StackPanel>
 
                 <Grid Style="{StaticResource SettingRow}">
                     <Grid.ColumnDefinitions>

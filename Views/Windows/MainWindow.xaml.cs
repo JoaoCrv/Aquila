@@ -37,7 +37,9 @@ namespace Aquila.Views.Windows
             _updateService = updateService;
             DataContext = this;
 
-            SystemThemeWatcher.Watch(this);
+            // No SystemThemeWatcher here: it applies plain Fluent light or dark the moment Windows
+            // switches, which would overwrite whichever theme the follow-Windows pair names.
+            // AppearanceService watches that switch instead and applies the chosen theme.
 
             InitializeComponent();
             SetPageService(navigationViewPageProvider);

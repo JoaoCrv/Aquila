@@ -12,11 +12,9 @@ using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using System.IO;
-using System.Windows.Media;
 using System.Windows.Threading;
 using Velopack;
 using Wpf.Ui;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.DependencyInjection;
 
 namespace Aquila
@@ -57,6 +55,10 @@ namespace Aquila
                 //Services
                 services.AddSingleton<UiService>();
                 services.AddSingleton<SettingsService>();
+                // Appearance: ColorProfileService owns the data colours, the theme owns the window's, and
+                // AppearanceService drives both so there is one order of application rather than two.
+                services.AddSingleton<ColorProfileService>();
+                services.AddSingleton<AppearanceService>();
                 services.AddSingleton<UpdateService>();
                 services.AddSingleton<AquilaService>();
 
@@ -127,48 +129,6 @@ namespace Aquila
             get { return _host.Services; }
         }
 
-        private static readonly string[] _accentKeys =
-        [
-            "Aquila.Cpu", "Aquila.Gpu", "Aquila.Ram", "Aquila.Temp", "Aquila.GpuTemp",
-            "Aquila.Power", "Aquila.Critical", "Aquila.Gauge.Background",
-            "Aquila.Chart.Cpu", "Aquila.Chart.Ram", "Aquila.Chart.Gpu",
-            "Aquila.Chart.NetDown", "Aquila.Chart.NetUp"
-        ];
-
-        private static void RefreshAccentBrushes()
-        {
-            var suffix = ApplicationThemeManager.GetAppTheme() == ApplicationTheme.Light ? ".Light" : ".Dark";
-            var res = Current.Resources;
-            foreach (var key in _accentKeys)
-                if (res[key + suffix] is Brush brush) res[key] = brush;
-
-            RefreshSchemeBrushes(suffix);
-        }
-
-        /// <summary>Roles a colour scheme answers. Named by meaning, so a different scheme can answer them
-        /// with entirely different hues without anything downstream changing.</summary>
-        private static readonly string[] _schemeRoles =
-        [
-            "Accent", "Normal", "Elevated", "Alert", "Critical",
-            "Series1", "Series2", "Series3", "Track"
-        ];
-
-        /// <summary>Which scheme is active. Becomes a setting once there is more than one to choose.</summary>
-        internal static string ActiveScheme { get; set; } = "Ember";
-
-        /// <summary>
-        /// Publishes the active scheme's colours onto the role keys that XAML binds to
-        /// (<c>Aquila.Scheme.Alert</c> and friends). Two dimensions collapse into one lookup here: which
-        /// scheme, and light or dark.
-        /// </summary>
-        private static void RefreshSchemeBrushes(string suffix)
-        {
-            var res = Current.Resources;
-            foreach (var role in _schemeRoles)
-                if (res[$"Aquila.Scheme.{ActiveScheme}.{role}{suffix}"] is Brush brush)
-                    res[$"Aquila.Scheme.{role}"] = brush;
-        }
-
         /// <summary>
         /// Occurs when the application is loading.
         /// </summary>
@@ -207,13 +167,12 @@ namespace Aquila
             if (settings.Current.EnableVerboseLogging)
                 LogLevel.MinimumLevel = LogEventLevel.Debug;
 
-            ApplicationThemeManager.Changed += (_, _) => Dispatcher.Invoke(RefreshAccentBrushes);
+            // Before StartAsync, which is what shows the main window: loads the colour profiles, applies
+            // the theme, and starts watching Windows' light/dark switch. Doing it after would render the
+            // first frame in the wrong theme and then correct it in view of the user.
+            _host.Services.GetRequiredService<AppearanceService>().Initialize();
 
             await _host.StartAsync();
-
-            var theme = settings.Current.Theme == "Light" ? ApplicationTheme.Light : ApplicationTheme.Dark;
-            ApplicationThemeManager.Apply(theme);
-            RefreshAccentBrushes();
 
             _host.Services.GetRequiredService<AquilaService>().SetInterval(settings.Current.PollingIntervalMs);
             _ = Services.GetRequiredService<UpdateService>()
@@ -229,6 +188,9 @@ namespace Aquila
         /// </summary>
         private async void OnExit(object sender, ExitEventArgs e)
         {
+            // SystemEvents holds a static handler; leaving it hooked keeps the service alive past shutdown.
+            _host.Services.GetRequiredService<AppearanceService>().Shutdown();
+
             await _host.StopAsync();
             _host.Dispose();
             Log.CloseAndFlush();

@@ -26,12 +26,31 @@
 
             <StackPanel Grid.Row="0">
                 <TextBlock Text="POWER" Style="{StaticResource SectionLabel}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <TextBlock FontSize="26"
-                               Text="{Binding TotalPower.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                    <TextBlock Text="W total" FontSize="12" VerticalAlignment="Bottom"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="5,0,0,4"/>
-                </StackPanel>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardIconChip}" Margin="0,0,9,0">
+                        <ui:SymbolIcon Symbol="Flash24" FontSize="14"
+                                       Foreground="{DynamicResource Aquila.Scheme.Accent}"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="System total" Style="{StaticResource ChipName}"/>
+                        <TextBlock Text="sum of reported sources" FontSize="10" Opacity="0.45" Margin="0,1,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="8,0,0,0">
+                        <TextBlock Style="{StaticResource CardBigValue}"
+                                   Text="{Binding TotalPower.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                        <TextBlock Style="{StaticResource CardBigUnit}" Text="W"/>
+                    </StackPanel>
+                </Grid>
 
                 <controls:SensorMeter Margin="0,0,0,5" Label="CPU"
                     Sensor="{Binding CpuPower}" Accent="{DynamicResource Aquila.Scheme.Series1}"

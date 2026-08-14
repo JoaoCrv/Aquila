@@ -1,0 +1,25 @@
+{
+  "id": "signal",
+  "name": "Signal",
+  "author": "Aquila",
+  "description": "Green through amber to red. The least subtle of the four and the quickest to read across a room, which is the point of a monitor you glance at rather than study.",
+
+  "palette": {
+    "dark":  [ "#6BCB77", "#A8D84A", "#F5C242", "#FF8A3D", "#FF4444" ],
+    "light": [ "#107C10", "#5E8F0E", "#B8860B", "#CA5010", "#C42B1C" ]
+  },
+
+  "roles": {
+    "accent": 1,
+    "normal": 2,
+    "elevated": 3,
+    "alert": 4,
+    "critical": 5,
+
+    "series1": 1,
+    "series2": 3,
+    "series3": 5,
+
+    "track": { "step": 1, "opacity": 0.15 }
+  }
+}

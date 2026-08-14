@@ -10,5 +10,8 @@ public static class AquilaPaths
     public static string Settings => Path.Combine(Root, "settings.json");
     public static string Widgets  => Path.Combine(Root, "widgets.json");
     public static string Logs     => Path.Combine(Root, "logs");
-    public static string Themes   => Path.Combine(Root, "themes");
+
+    /// <summary>Where the user's own colour profiles live, one JSON file each. Themes are not here on
+    /// purpose: those ship inside the app, while profiles are meant to be copied, edited and shared.</summary>
+    public static string Profiles => Path.Combine(Root, "profiles");
 }

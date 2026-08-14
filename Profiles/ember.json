@@ -1,0 +1,25 @@
+{
+  "id": "ember",
+  "name": "Ember",
+  "author": "Aquila",
+  "description": "Aquila's own profile, drawn from the logo. Warm and monochrome: colour measures how hot something is rather than naming which component it is — the icon already does that.",
+
+  "palette": {
+    "dark":  [ "#FFD9A8", "#FFB765", "#F5A623", "#FF6B35", "#DA3B01" ],
+    "light": [ "#B24500", "#CA5010", "#DA3B01", "#E85D04", "#9A2C00" ]
+  },
+
+  "roles": {
+    "accent": 3,
+    "normal": 2,
+    "elevated": 3,
+    "alert": 4,
+    "critical": 5,
+
+    "series1": 3,
+    "series2": 1,
+    "series3": 5,
+
+    "track": { "step": 3, "opacity": 0.13 }
+  }
+}

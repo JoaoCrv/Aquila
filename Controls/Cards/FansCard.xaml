@@ -27,6 +27,33 @@
 
             <StackPanel Grid.Row="0">
                 <TextBlock Text="FANS" Style="{StaticResource SectionLabel}"/>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardIconChip}" Margin="0,0,9,0">
+                        <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="14"
+                                       Foreground="{DynamicResource Aquila.Scheme.Accent}"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Cooling" Style="{StaticResource ChipName}"/>
+                        <TextBlock Text="CPU fan" FontSize="10" Opacity="0.45" Margin="0,1,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="8,0,0,0">
+                        <TextBlock Style="{StaticResource CardBigValue}"
+                                   Text="{Binding CpuFan.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                        <TextBlock Style="{StaticResource CardBigUnit}"
+                                   Text="{Binding CpuFan.Unit, FallbackValue='rpm'}"/>
+                    </StackPanel>
+                </Grid>
+
                 <ItemsControl ItemsSource="{Binding FanRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type models:FanRowItem}">

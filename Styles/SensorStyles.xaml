@@ -21,9 +21,69 @@
 
     <Style x:Key="SectionLabel" TargetType="TextBlock">
         <Setter Property="FontSize" Value="10"/>
-        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Opacity" Value="0.38"/>
         <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         Numerals
+
+         Readings are monospaced; labels and names are not. The split is the
+         convention, not an oversight: the typeface says which of the two a
+         piece of text is, so the eye finds the numbers without hunting.
+
+         The rule that keeps it from reading as a mistake: a reading and its
+         unit are ONE thing. "51" and "°C" are always set together — see
+         CardBigUnit, and the unit Run inside StatBox.
+
+         Tabular figures matter independently of the face. A value changes
+         every second, and proportional digits would shift whatever sits
+         beside them on every tick.
+
+         Consolas is the fallback because it is always present on Windows;
+         Cascadia Mono is not, and a missing font falls back silently to the
+         UI face — which would quietly undo all of the above.
+         ════════════════════════════════════════════════════════════════ -->
+
+    <Style x:Key="MonoValue" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+
+    <!-- The card's headline reading, promoted out of the stat row into the header. -->
+    <Style x:Key="CardBigValue" TargetType="TextBlock" BasedOn="{StaticResource MonoValue}">
+        <Setter Property="FontSize" Value="26"/>
+        <Setter Property="LineHeight" Value="27"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Unit beside a big value: present, but never competing with the number. Monospaced like the
+         number it belongs to — "31" and "%" are one reading, and splitting a single reading across two
+         typefaces is the one place the mixture reads as a mistake rather than as a convention. -->
+    <Style x:Key="CardBigUnit" TargetType="TextBlock" BasedOn="{StaticResource MonoValue}">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="Opacity" Value="0.40"/>
+        <Setter Property="Margin" Value="1,0,0,3"/>
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+    </Style>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         Card header icon
+
+         Colour identifies nothing here — the icon does. The chip is tinted
+         with the profile's track so it reads as part of the card rather
+         than as a status light.
+         ════════════════════════════════════════════════════════════════ -->
+
+    <Style x:Key="CardIconChip" TargetType="Border">
+        <Setter Property="Width" Value="26"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Background" Value="{DynamicResource Aquila.Scheme.Track}"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
     </Style>
 
     <Style x:Key="ChipName" TargetType="TextBlock">
@@ -38,7 +98,7 @@
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
-    <Style x:Key="RowValue" TargetType="TextBlock">
+    <Style x:Key="RowValue" TargetType="TextBlock" BasedOn="{StaticResource MonoValue}">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -51,7 +111,7 @@
         <Setter Property="Padding" Value="5,4"/>
     </Style>
 
-    <Style x:Key="StatBoxValue" TargetType="TextBlock">
+    <Style x:Key="StatBoxValue" TargetType="TextBlock" BasedOn="{StaticResource MonoValue}">
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -84,7 +144,9 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
-                    <Border CornerRadius="3" Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                    <!-- Track comes from the profile, not from a neutral: a bar reads as one object when
+                         its empty part is a dimmed version of its full part. -->
+                    <Border CornerRadius="3" Background="{DynamicResource Aquila.Scheme.Track}"
                             Height="{TemplateBinding Height}">
                         <Border x:Name="PART_Track" HorizontalAlignment="Left" CornerRadius="3"
                                 Background="{TemplateBinding Foreground}">

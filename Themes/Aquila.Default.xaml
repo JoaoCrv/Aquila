@@ -2,119 +2,25 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         LAYER 1 — Palette
-         Raw colour constants. Never referenced in XAML directly; consumed
-         only by the semantic tokens in Layer 2.
-         ═══════════════════════════════════════════════════════════════════ -->
+         COLOUR PROFILE ROLES — the keys the whole UI binds to.
 
-    <Color x:Key="Aquila.Palette.Blue.Bright">#60CDFF</Color>
-    <Color x:Key="Aquila.Palette.Blue.Deep">#0078D4</Color>
+         Everything that paints data resolves one of these, always through
+         {DynamicResource}: Aquila.Scheme.Alert and friends. ColorProfileService
+         overwrites them in Application.Resources whenever the profile or the
+         theme changes.
 
-    <Color x:Key="Aquila.Palette.Purple.Bright">#9D6EF5</Color>
-    <Color x:Key="Aquila.Palette.Purple.Deep">#7B4FBF</Color>
+         They live HERE, in the dictionary that is always merged, rather than
+         in a profile — profiles are files on disk that users add and delete,
+         and a key that binds to nothing is a control that renders blank.
+         This file is the guarantee that every role always exists.
 
-    <Color x:Key="Aquila.Palette.Green.Bright">#6BCB77</Color>
-    <Color x:Key="Aquila.Palette.Green.Deep">#107C10</Color>
+         The values below are only the pre-load fallback, so the first frame
+         has something to draw before the active profile is published. They
+         mirror Ember, the default profile (Profiles/ember.json).
 
-    <Color x:Key="Aquila.Palette.Orange.Bright">#F5A623</Color>
-    <Color x:Key="Aquila.Palette.Orange.Deep">#CA5010</Color>
-
-    <Color x:Key="Aquila.Palette.DeepOrange.Bright">#FF6B35</Color>
-    <Color x:Key="Aquila.Palette.DeepOrange.Deep">#DA3B01</Color>
-
-    <Color x:Key="Aquila.Palette.Amber.Bright">#F5A623</Color>
-    <Color x:Key="Aquila.Palette.Amber.Deep">#CA5010</Color>
-
-    <Color x:Key="Aquila.Palette.Red.Bright">#FF4444</Color>
-    <Color x:Key="Aquila.Palette.Red.Deep">#C42B1C</Color>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         LAYER 2 — Semantic tokens  (Dark / Light variants)
-         Published as Aquila.* DynamicResources by App.RefreshAccentBrushes().
-         ═══════════════════════════════════════════════════════════════════ -->
-
-    <!-- CPU (blue) -->
-    <SolidColorBrush x:Key="Aquila.Cpu.Dark"              Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Cpu.Light"             Color="{StaticResource Aquila.Palette.Blue.Deep}"/>
-
-    <!-- GPU (blue — same as CPU by default, independent token) -->
-    <SolidColorBrush x:Key="Aquila.Gpu.Dark"              Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Gpu.Light"             Color="{StaticResource Aquila.Palette.Blue.Deep}"/>
-
-    <!-- RAM / Success (green) -->
-    <SolidColorBrush x:Key="Aquila.Ram.Dark"              Color="{StaticResource Aquila.Palette.Green.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Ram.Light"             Color="{StaticResource Aquila.Palette.Green.Deep}"/>
-
-    <!-- Temperature / Warning (orange) -->
-    <SolidColorBrush x:Key="Aquila.Temp.Dark"             Color="{StaticResource Aquila.Palette.Orange.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Temp.Light"            Color="{StaticResource Aquila.Palette.Orange.Deep}"/>
-
-    <!-- GPU Temperature (deep orange) -->
-    <SolidColorBrush x:Key="Aquila.GpuTemp.Dark"          Color="{StaticResource Aquila.Palette.DeepOrange.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.GpuTemp.Light"         Color="{StaticResource Aquila.Palette.DeepOrange.Deep}"/>
-
-    <!-- Power / Consumption (purple) -->
-    <SolidColorBrush x:Key="Aquila.Power.Dark"            Color="{StaticResource Aquila.Palette.Purple.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Power.Light"           Color="{StaticResource Aquila.Palette.Purple.Deep}"/>
-
-    <!-- Critical / Danger (red) -->
-    <SolidColorBrush x:Key="Aquila.Critical.Dark"         Color="{StaticResource Aquila.Palette.Red.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Critical.Light"        Color="{StaticResource Aquila.Palette.Red.Deep}"/>
-
-    <!-- Gauge background (translucent green) -->
-    <SolidColorBrush x:Key="Aquila.Gauge.Background.Dark"  Color="#1A6BCB77"/>
-    <SolidColorBrush x:Key="Aquila.Gauge.Background.Light" Color="#33107C10"/>
-
-    <!-- Chart series (sparklines) -->
-    <SolidColorBrush x:Key="Aquila.Chart.Cpu.Dark"         Color="{StaticResource Aquila.Palette.Orange.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.Cpu.Light"        Color="{StaticResource Aquila.Palette.Orange.Deep}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.Gpu.Dark"         Color="{StaticResource Aquila.Palette.Purple.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.Gpu.Light"        Color="{StaticResource Aquila.Palette.Purple.Deep}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.NetDown.Dark"     Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.NetDown.Light"    Color="{StaticResource Aquila.Palette.Blue.Deep}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.Ram.Dark"         Color="{StaticResource Aquila.Palette.Green.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.Ram.Light"        Color="{StaticResource Aquila.Palette.Green.Deep}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.NetUp.Dark"       Color="{StaticResource Aquila.Palette.Green.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.NetUp.Light"      Color="{StaticResource Aquila.Palette.Green.Deep}"/>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         LAYER 3 — Runtime keys  (no Dark/Light suffix)
-         These are the keys consumed by {DynamicResource Aquila.*} in XAML
-         styles and IntensityBrushConverter.
-         Defaults point to the Dark palette so they work immediately on
-         first render, before the refresh publishes its values.
-         App.RefreshAccentBrushes() overrides these in Application.Resources
-         when the theme is set or changed.
-         ═══════════════════════════════════════════════════════════════════ -->
-
-    <SolidColorBrush x:Key="Aquila.Cpu"              Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Gpu"              Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Ram"              Color="{StaticResource Aquila.Palette.Green.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Temp"             Color="{StaticResource Aquila.Palette.Orange.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.GpuTemp"          Color="{StaticResource Aquila.Palette.DeepOrange.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Power"            Color="{StaticResource Aquila.Palette.Purple.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Critical"         Color="{StaticResource Aquila.Palette.Red.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Gauge.Background" Color="#1A6BCB77"/>
-
-    <!-- Chart series defaults -->
-    <SolidColorBrush x:Key="Aquila.Chart.Cpu"        Color="{StaticResource Aquila.Palette.Orange.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.Ram"        Color="{StaticResource Aquila.Palette.Green.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.Gpu"        Color="{StaticResource Aquila.Palette.Purple.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.NetDown"    Color="{StaticResource Aquila.Palette.Blue.Bright}"/>
-    <SolidColorBrush x:Key="Aquila.Chart.NetUp"      Color="{StaticResource Aquila.Palette.Green.Bright}"/>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         LAYER 4 — Colour scheme, by ROLE  (see Themes/Aquila.Ember.xaml)
-         What XAML actually binds to: {DynamicResource Aquila.Scheme.Alert}
-         and friends. App.RefreshSchemeBrushes() overwrites these from the
-         active scheme and theme.
-
-         They live HERE, in the always-merged dictionary, rather than in a
-         scheme file — a scheme file can be swapped out, and these keys must
-         never disappear from under a binding.
-
-         Values below are only the pre-refresh fallback, so the first frame
-         has something to draw.
+         The hardware-named tokens that used to live here — Aquila.Cpu,
+         Aquila.Chart.Gpu and the rest — are gone. Their colours were not
+         lost: they are Profiles/classic.json, selectable like any other.
          ═══════════════════════════════════════════════════════════════════ -->
 
     <SolidColorBrush x:Key="Aquila.Scheme.Accent"    Color="#F5A623"/>

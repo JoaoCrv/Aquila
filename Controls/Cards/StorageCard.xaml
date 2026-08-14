@@ -28,15 +28,37 @@
             <!-- Row 0: name + stats + I/O rows -->
             <StackPanel Grid.Row="0">
                 <TextBlock Text="STORAGE" Style="{StaticResource SectionLabel}"/>
-                <TextBlock Text="{Binding Storage.Name}" Style="{StaticResource ChipName}" Margin="0,0,0,10"
-                           TextTrimming="CharacterEllipsis"/>
-                <UniformGrid Columns="2" Margin="0,0,0,10">
-                    <controls:StatBox Label="Temp" Unit="°C" Margin="0,0,3,0"
-                        Value="{Binding Storage.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{Binding Storage.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
-                    <controls:StatBox Label="Used" Unit="%" Margin="3,0,0,0"
-                        Value="{Binding Storage.Load.UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                </UniformGrid>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardIconChip}" Margin="0,0,9,0">
+                        <ui:SymbolIcon Symbol="Storage24" FontSize="15"
+                                       Foreground="{DynamicResource Aquila.Scheme.Accent}"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Storage.Name}" Style="{StaticResource ChipName}"/>
+                        <!-- Temperature moves here rather than sitting alone in a full-width box: with
+                             used space promoted to the headline, a single stat box left the card mostly
+                             empty and reading lighter than every other one on the page. -->
+                        <TextBlock FontSize="11" Margin="0,1,0,0"
+                                   Style="{StaticResource MonoValue}" FontWeight="Normal"
+                                   Foreground="{Binding Storage.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"
+                                   Text="{Binding Storage.Temperature.Primary.Value, StringFormat='{}{0:F0} °C', FallbackValue=''}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="8,0,0,0">
+                        <TextBlock Style="{StaticResource CardBigValue}"
+                                   Text="{Binding Storage.Load.UsedSpace.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                        <TextBlock Style="{StaticResource CardBigUnit}" Text="%"/>
+                    </StackPanel>
+                </Grid>
                 <controls:SensorMeter LabelPlacement="Top" ColorValue="True" Label="Read"
                     Sensor="{Binding Storage.Throughput.ReadRate}" Accent="{DynamicResource Aquila.Scheme.Series1}"
                     ValueText="{Binding Storage.Throughput.ReadRate.Value, Converter={StaticResource Throughput}, FallbackValue='--'}"/>

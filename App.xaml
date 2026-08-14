@@ -11,8 +11,10 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+                <!-- The theme overlay (Themes/Aquila.Dark.xaml or .Light.xaml) is not merged here: it is
+                     chosen at runtime and swapped by AppearanceService. Aquila.Default.xaml is, because it
+                     holds the profile role keys that must exist before anything renders. -->
                 <ResourceDictionary Source="Themes/Aquila.Default.xaml" />
-                <ResourceDictionary Source="Themes/Aquila.Ember.xaml" />
                 <ResourceDictionary Source="Styles/SensorStyles.xaml" />
                 <ResourceDictionary Source="Styles/PageStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
