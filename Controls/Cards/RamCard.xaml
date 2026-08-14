@@ -55,7 +55,7 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 Margin="8,0,0,0">
                         <TextBlock Style="{StaticResource CardBigValue}"
-                                   Text="{Binding Memory.Data.Used.Value, StringFormat='{}{0:F1}', FallbackValue='--'}"/>
+                                   Text="{Binding Memory.Data.Used.Value, StringFormat='{}{0:F1}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}" Text="GB"/>
                     </StackPanel>
                 </Grid>

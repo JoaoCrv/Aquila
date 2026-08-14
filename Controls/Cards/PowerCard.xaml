@@ -47,20 +47,27 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 Margin="8,0,0,0">
                         <TextBlock Style="{StaticResource CardBigValue}"
-                                   Text="{Binding TotalPower.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                   Text="{Binding TotalPower.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}" Text="W"/>
                     </StackPanel>
                 </Grid>
 
+                <!-- All three share one ceiling — the highest total draw seen so far. Left to scale
+                     themselves, each bar filled relative to its own peak, so a 16 W source could draw a
+                     longer bar than a 35 W one sitting directly above it. Rows stacked together are read
+                     against each other whether or not they were meant to be. -->
                 <controls:SensorMeter Margin="0,0,0,5" Label="CPU"
                     Sensor="{Binding CpuPower}" Accent="{DynamicResource Aquila.Scheme.Series1}"
-                    ValueText="{Binding CpuPower.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                    Maximum="{Binding TotalPower.Max}"
+                    ValueText="{Binding CpuPower.Value, StringFormat='{}{0:F0}W', FallbackValue='--', TargetNullValue='--'}"/>
                 <controls:SensorMeter Margin="0,0,0,5" Label="GPU"
                     Sensor="{Binding Gpu1Power}" Accent="{DynamicResource Aquila.Scheme.Series2}"
-                    ValueText="{Binding Gpu1Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
+                    Maximum="{Binding TotalPower.Max}"
+                    ValueText="{Binding Gpu1Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--', TargetNullValue='--'}"/>
                 <controls:SensorMeter Margin="0,0,0,5" Label="GPU 2"
                     Sensor="{Binding Gpu2Power}" Accent="{DynamicResource Aquila.Scheme.Series3}"
-                    ValueText="{Binding Gpu2Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"
+                    Maximum="{Binding TotalPower.Max}"
+                    ValueText="{Binding Gpu2Power.Value, StringFormat='{}{0:F0}W', FallbackValue='--', TargetNullValue='--'}"
                     Visibility="{Binding Gpu2Power, Converter={StaticResource NullToCollapsed}}"/>
 
                 <TextBlock Text="TOTAL · 60s" Style="{StaticResource SectionLabel}" Margin="0,4,0,2"

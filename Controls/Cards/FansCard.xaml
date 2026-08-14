@@ -48,9 +48,9 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 Margin="8,0,0,0">
                         <TextBlock Style="{StaticResource CardBigValue}"
-                                   Text="{Binding CpuFan.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                   Text="{Binding CpuFan.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}"
-                                   Text="{Binding CpuFan.Unit, FallbackValue='rpm'}"/>
+                                   Text="{Binding CpuFan.Unit, FallbackValue='rpm', TargetNullValue='rpm'}"/>
                     </StackPanel>
                 </Grid>
 

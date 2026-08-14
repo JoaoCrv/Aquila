@@ -30,7 +30,7 @@
     <SolidColorBrush x:Key="Aquila.Scheme.Critical"  Color="#DA3B01"/>
     <SolidColorBrush x:Key="Aquila.Scheme.Series1"   Color="#F5A623"/>
     <SolidColorBrush x:Key="Aquila.Scheme.Series2"   Color="#FFD9A8"/>
-    <SolidColorBrush x:Key="Aquila.Scheme.Series3"   Color="#DA3B01"/>
+    <SolidColorBrush x:Key="Aquila.Scheme.Series3"   Color="#FFB765"/>
     <SolidColorBrush x:Key="Aquila.Scheme.Track"     Color="#21F5A623"/>
 
 </ResourceDictionary>

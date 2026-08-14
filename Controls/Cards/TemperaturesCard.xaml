@@ -50,7 +50,7 @@
                                 Margin="8,0,0,0">
                         <TextBlock Style="{StaticResource CardBigValue}"
                                    Foreground="{Binding DieTemperature.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"
-                                   Text="{Binding DieTemperature.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
+                                   Text="{Binding DieTemperature.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}" Text="°C"/>
                     </StackPanel>
                 </Grid>
