@@ -5,8 +5,9 @@ namespace Aquila.Services;
 /// <summary>How hard the machine is being pushed, and by what.</summary>
 /// <param name="Level">0–1, on the shared scale of <see cref="Thresholds.Level"/>.</param>
 /// <param name="Source">Which reading produced it, e.g. "GPU temperature".</param>
-/// <param name="Value">That reading's own value, in its own unit, for display.</param>
-public readonly record struct PressureReading(double Level, string Source, double Value);
+/// <param name="Value">That reading's own value, for display.</param>
+/// <param name="Unit">The unit that value is in, so an explanation can be written without guessing it.</param>
+public readonly record struct PressureReading(double Level, string Source, double Value, string Unit);
 
 /// <summary>
 /// One number for the state of the machine, derived from several sensors.
@@ -38,16 +39,19 @@ public sealed class SystemPressure(IReadOnlyList<PressureSource>? sources = null
 
     public PressureReading Evaluate(HardwareNode hardware)
     {
-        var worst = new PressureReading(0, string.Empty, 0);
+        var worst = new PressureReading(0, string.Empty, 0, string.Empty);
 
         foreach (var source in _sources)
         {
+            var node = source.Pick(hardware);
+
             // A sensor the machine does not report is not a quiet one — it is absent, and must not be
             // read as zero pressure. Skipping keeps a missing GPU from looking like an idle one.
-            if (source.Pick(hardware)?.Value is not float value) continue;
+            if (node?.Value is not float value) continue;
 
             var level = source.Scale.Level(value);
-            if (level > worst.Level) worst = new PressureReading(level, source.Label, value);
+            if (level > worst.Level)
+                worst = new PressureReading(level, source.Label, value, node.Unit ?? string.Empty);
         }
 
         return worst;

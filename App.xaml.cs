@@ -82,6 +82,7 @@ namespace Aquila
                 // Same instance under both roles — it's the window that owns the tray icon.
                 services.AddSingleton<ITrayNotifier>(sp => (MainWindow)sp.GetRequiredService<INavigationWindow>());
                 services.AddSingleton<MainWindowViewModel>();
+                services.AddSingleton<TitleBarViewModel>();
 
                 services.AddSingleton<DashboardWindow>();
                 services.AddTransient<DashboardPage>(); // transient: DashboardWindow and MainWindow each get their own instance; ViewModel is the shared singleton

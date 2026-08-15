@@ -27,12 +27,16 @@ namespace Aquila.ViewModels.Windows
         [RelayCommand]
         private void ToggleTheme() => _appearance.ToggleBrightness();
 
+        /// <summary>The title bar's own data. Kept apart so this view model stays about the window.</summary>
+        public TitleBarViewModel TitleBar { get; }
+
         public MainWindowViewModel(UiService uiService, UpdateService updateService,
-            AppearanceService appearance)
+            AppearanceService appearance, TitleBarViewModel titleBar)
         {
             _uiService = uiService;
             _updateService = updateService;
             _appearance = appearance;
+            TitleBar = titleBar;
 
             // Also fires when the theme changes from Settings, or when Windows switches while we are
             // following it — the button has to agree with the window whoever moved it.

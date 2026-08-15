@@ -34,6 +34,13 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
     /// </summary>
     public static readonly Thresholds DriveTemperature = new(55, 65, 75);
 
+    /// <summary>
+    /// For a value that has already been through <see cref="Level"/> and scaled to 0–100. The steps are
+    /// the thirds that mapping produces, so colouring a normalised reading needs no second opinion about
+    /// what counts as alert — the sensor's own scale already decided that.
+    /// </summary>
+    public static readonly Thresholds Pressure = new(100d / 3, 200d / 3, 100);
+
     public string Role(double value) =>
         value >= Critical ? "Critical" :
         value >= Alert ? "Alert" :
@@ -76,6 +83,7 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
         if (string.Equals(text, nameof(Percent), StringComparison.OrdinalIgnoreCase)) return Percent;
         if (string.Equals(text, nameof(Temperature), StringComparison.OrdinalIgnoreCase)) return Temperature;
         if (string.Equals(text, nameof(DriveTemperature), StringComparison.OrdinalIgnoreCase)) return DriveTemperature;
+        if (string.Equals(text, nameof(Pressure), StringComparison.OrdinalIgnoreCase)) return Pressure;
 
         var parts = text.Split(',');
         if (parts.Length != 3) return null;

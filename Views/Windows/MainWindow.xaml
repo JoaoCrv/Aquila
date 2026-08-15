@@ -25,6 +25,7 @@
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <helpers:ResponsivePaddingConverter x:Key="ResponsivePaddingConverter" />
+            <helpers:IntensityBrushConverter x:Key="Intensity" />
 
             <!-- Nav rail: the selected page takes the profile's accent, so the rail belongs to the same
                  colour system as the data instead of staying neutral grey. Done with a trigger on
@@ -117,13 +118,26 @@
                  this string is a fixed brand mark and never bound — the same trick on a label would
                  break the moment its text came from data. -->
             <ui:TitleBar.Header>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-                    <Image Source="/Assets/Images/icon.png"
-                           Width="20" Height="20" Stretch="Uniform"
-                           RenderOptions.BitmapScalingMode="HighQuality"
-                           VerticalAlignment="Center" Margin="0,0,9,0" />
-                    <TextBlock Text="A Q U I L A" VerticalAlignment="Center"
-                               FontSize="13" FontWeight="SemiBold" />
+                <StackPanel VerticalAlignment="Center" Margin="16,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Assets/Images/icon.png"
+                               Width="20" Height="20" Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               VerticalAlignment="Center" Margin="0,0,9,0" />
+                        <TextBlock Text="A Q U I L A" VerticalAlignment="Center"
+                                   FontSize="13" FontWeight="SemiBold" />
+                    </StackPanel>
+
+                    <!-- Ember ribbon: how hard the machine is being pushed, under the wordmark.
+                         Reuses ThinBar so the track comes from the colour profile like every other bar.
+                         The value is already normalised, which is why it is coloured with the Pressure
+                         scale rather than judged a second time — the sensor's own thresholds decided
+                         what counts as alert before it got here. The tooltip names the sensor
+                         responsible, which a maximum can always do and an average never could. -->
+                    <ProgressBar Style="{StaticResource ThinBar}" Height="2" Margin="0,5,0,0"
+                                 Value="{Binding ViewModel.TitleBar.PressurePercent, Mode=OneWay}"
+                                 Foreground="{Binding ViewModel.TitleBar.PressurePercent, Converter={StaticResource Intensity}, ConverterParameter=Pressure, Mode=OneWay}"
+                                 ToolTip="{Binding ViewModel.TitleBar.PressureTooltip, Mode=OneWay}" />
                 </StackPanel>
             </ui:TitleBar.Header>
 
