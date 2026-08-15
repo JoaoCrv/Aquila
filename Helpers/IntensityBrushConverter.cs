@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using Aquila.Models;
 
 namespace Aquila.Helpers
 {
@@ -13,16 +14,14 @@ namespace Aquila.Helpers
     /// palette, so restyling can't silently change meaning and a shared scheme can't impose someone else's
     /// limits.
     ///
-    /// Thresholds come from the ConverterParameter as "elevated,alert,critical", in the value's own units:
-    ///   <c>Converter={StaticResource Intensity}, ConverterParameter='50,70,85'</c> for temperatures in °C,
-    ///   or '60,80,92' for a percentage. Below the first threshold the value reads as Normal.
+    /// Thresholds come from the ConverterParameter, either as a preset name — <c>ConverterParameter=Temperature</c>
+    /// or <c>ConverterParameter=Percent</c> — or spelled out as "elevated,alert,critical" in the value's
+    /// own units (<c>ConverterParameter='50,70,85'</c>). Prefer the names: numbers written at a call site
+    /// are a copy of <see cref="Thresholds"/> that can drift from it. Below the first step, Normal.
     /// </summary>
     [ValueConversion(typeof(float), typeof(Brush))]
     public sealed class IntensityBrushConverter : IValueConverter
     {
-        /// <summary>Percentage-shaped defaults, for the common case of a 0–100 load.</summary>
-        private static readonly double[] _defaults = [60, 80, 92];
-
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             // A missing reading is not a cold one: leave it at Normal rather than implying "all good".
@@ -38,31 +37,12 @@ namespace Aquila.Helpers
 
             if (double.IsNaN(reading)) return Resolve("Normal");
 
-            var steps = Parse(parameter as string) ?? _defaults;
+            // Thresholds now live in one place, shared with SystemPressure, so a card and the title bar
+            // cannot disagree about whether the same reading is hot. A malformed parameter falls back
+            // rather than throwing — a typo in XAML should not take the dashboard down.
+            var steps = Thresholds.Parse(parameter as string) ?? Thresholds.Percent;
 
-            var role = reading >= steps[2] ? "Critical"
-                     : reading >= steps[1] ? "Alert"
-                     : reading >= steps[0] ? "Elevated"
-                     :                       "Normal";
-
-            return Resolve(role);
-        }
-
-        /// <summary>Parses "elevated,alert,critical". A malformed parameter falls back to the defaults
-        /// rather than throwing — a typo in XAML should not take the dashboard down.</summary>
-        private static double[]? Parse(string? parameter)
-        {
-            if (string.IsNullOrWhiteSpace(parameter)) return null;
-
-            var parts = parameter.Split(',');
-            if (parts.Length != 3) return null;
-
-            var steps = new double[3];
-            for (int i = 0; i < 3; i++)
-                if (!double.TryParse(parts[i], NumberStyles.Any, CultureInfo.InvariantCulture, out steps[i]))
-                    return null;
-
-            return steps;
+            return Resolve(steps.Role(reading));
         }
 
         private static Brush Resolve(string role) =>

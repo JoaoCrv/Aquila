@@ -15,7 +15,20 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, ILogger<Aq
     private readonly DispatcherTimer _timer = new();
     private bool _disposed;
 
+    private readonly SystemPressure _pressure = new();
+
     public AquilaState State => _state;
+
+    /// <summary>
+    /// How hard the machine is being pushed, recomputed each tick.
+    ///
+    /// A derived value, published by the service rather than stored on the nodes — the same split as an
+    /// API's computed field over its table. <see cref="AquilaState"/> stays a faithful record of what the
+    /// hardware reported; anything that interprets those numbers belongs out here, where a second reading
+    /// with different judgement can exist alongside this one.
+    /// </summary>
+    public PressureReading Pressure { get; private set; }
+
     public event Action? DataUpdated;
 
     // TODO: replace with IHardwareDriver.RawTree when multi-driver support is added
@@ -39,6 +52,9 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, ILogger<Aq
         try
         {
             _driver.Populate(_state);
+            // Before the event: subscribers read Pressure in the same handler that reads the sensors,
+            // and must not see last tick's value beside this tick's numbers.
+            Pressure = _pressure.Evaluate(_state.Hardware);
             DataUpdated?.Invoke();
         }
         catch (Exception ex)

@@ -170,7 +170,7 @@
                             <controls:StatBox
                                 Label="Temp" Unit="°C"
                                 Value="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                                Accent="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
+                                Accent="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Temperature}"/>
                         </controls:LabeledTile.Tile>
                     </controls:LabeledTile>
                     <TextBlock Grid.Row="1" VerticalAlignment="Top"

@@ -15,6 +15,7 @@
     <UserControl.Resources>
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
     </UserControl.Resources>
 
     <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
@@ -67,9 +68,14 @@
                                 <TextBlock Grid.Column="0" Text="{Binding Fan.Name}"
                                            Style="{StaticResource RowLabel}"
                                            TextTrimming="CharacterEllipsis"/>
+                                <!-- Coloured by how hard the fan is working, like every other reading in
+                                     the app. A fixed accent made a pump at 99% look exactly like a case
+                                     fan at 59%, which is the one thing the row exists to distinguish:
+                                     a fan near 100% has no headroom left. -->
                                 <ProgressBar Grid.Column="1"
                                              Style="{StaticResource FanBar}"
                                              VerticalAlignment="Center"
+                                             Foreground="{Binding BarPercent, Converter={StaticResource Intensity}, ConverterParameter=Percent}"
                                              Value="{Binding BarValue, Mode=OneWay}"
                                              Maximum="{Binding BarMaximum, Mode=OneWay}"/>
                                 <TextBlock Grid.Column="2"

@@ -100,15 +100,32 @@
         <!-- 50px, as in the mockup: the height the brand, the ember hairline and the vitals strip will
              need. Raising it now means the caption buttons are judged at their final size rather than
              re-tuned once the bar grows. -->
+        <!-- No Title: the wordmark in Header replaces it. Leaving both would print "Aquila" twice. -->
         <ui:TitleBar
             x:Name="TitleBar"
-            Title="{Binding ViewModel.ApplicationTitle}"
             Grid.Row="0"
-            Height="50"
-            CloseWindowByDoubleClickOnIcon="True">
-            <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="/Assets/Images/icon.png" />
-            </ui:TitleBar.Icon>
+            Height="50">
+
+            <!-- The whole brand lives in Header, logo included. ui:TitleBar.Icon was tried and clipped
+                 the image: its template does not scale the source to the control's size, so asking for
+                 20x20 cropped a larger bitmap instead of shrinking it. A plain Image with an explicit
+                 Stretch is predictable, and it also gives exact control of the gap to the wordmark.
+                 The cost is CloseWindowByDoubleClickOnIcon, which needs TitleBar.Icon to exist.
+
+                 The spaces inside the wordmark ARE the letter-spacing: WPF has no such property, and the
+                 alternative is an attached property that splits text into Runs. Acceptable only because
+                 this string is a fixed brand mark and never bound — the same trick on a label would
+                 break the moment its text came from data. -->
+            <ui:TitleBar.Header>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <Image Source="/Assets/Images/icon.png"
+                           Width="20" Height="20" Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           VerticalAlignment="Center" Margin="0,0,9,0" />
+                    <TextBlock Text="A Q U I L A" VerticalAlignment="Center"
+                               FontSize="13" FontWeight="SemiBold" />
+                </StackPanel>
+            </ui:TitleBar.Header>
 
             <!-- TrailingContent sits immediately before the caption buttons, so the bar fills from the
                  right in the mockup's order. Sized to match them exactly — anything in this row that is
