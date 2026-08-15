@@ -163,6 +163,53 @@
             </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
 
+        <!-- Vitals: the readings worth having on every page, not just the dashboard. Each pill pairs a
+             bar with its own number — length from the raw reading so the two agree, colour from the
+             normalised one so it means the same on a load as on a temperature.
+
+             Laid over the title bar rather than inside it. TitleBar.CenterContent was tried first and
+             cannot centre: its column is auto-sized, so it hugs the Header and there is no spare width
+             to sit in the middle of. Here the strip centres on the window itself.
+
+             IsHitTestVisible=False is what makes that safe — the middle of a title bar is where people
+             grab a window, and without it these pills would swallow the drag. -->
+        <ItemsControl Grid.Row="0"
+                      ItemsSource="{Binding ViewModel.TitleBar.Vitals, Mode=OneWay}"
+                      IsHitTestVisible="False"
+                      VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border MinWidth="104" Margin="3,0" Padding="10,5" CornerRadius="6"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    Visibility="{Binding HasValue, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}"
+                                                   FontSize="9" FontWeight="Bold" Opacity="0.45"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Text}"
+                                                   Style="{StaticResource MonoValue}" FontSize="11.5" />
+                                    </Grid>
+                                    <ProgressBar Style="{StaticResource ThinBar}" Height="2" Margin="0,4,0,0"
+                                                 Value="{Binding Percent}"
+                                                 Foreground="{Binding Level, Converter={StaticResource Intensity}, ConverterParameter=Pressure}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <Grid Grid.Row="0" Grid.RowSpan="2" Background="#80000000" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
             <ui:ProgressRing IsIndeterminate="True" VerticalAlignment="Center" HorizontalAlignment="Center"/>
         </Grid>

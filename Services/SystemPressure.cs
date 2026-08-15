@@ -32,8 +32,8 @@ public sealed class SystemPressure(IReadOnlyList<PressureSource>? sources = null
     [
         new("CPU load",        h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,           Thresholds.Percent),
         new("CPU temperature", h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,  Thresholds.Temperature),
-        new("GPU load",        h => h.Gpus.Count > 0 ? h.Gpus[0].Load.Core : null,            Thresholds.Percent),
-        new("GPU temperature", h => h.Gpus.Count > 0 ? h.Gpus[0].Temperature.Primary : null,  Thresholds.Temperature),
+        new("GPU load",        h => h.PrimaryGpu?.Load.Core,                                  Thresholds.Percent),
+        new("GPU temperature", h => h.PrimaryGpu?.Temperature.Primary,                        Thresholds.Temperature),
         new("Memory",          h => h.Memory.Load.Total,                                      Thresholds.Percent),
     ];
 
