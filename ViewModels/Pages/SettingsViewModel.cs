@@ -122,7 +122,6 @@ namespace Aquila.ViewModels.Pages
         private bool _startWithWindows;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(IsNotDashboardMode))]
         private bool _dashboardMode;
 
         [ObservableProperty]
@@ -137,7 +136,6 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty] private bool _showGpuCard;
         [ObservableProperty] private bool _showStorageCard;
 
-        public bool IsNotDashboardMode => !DashboardMode;
 
         public Task OnNavigatedToAsync()
         {
@@ -346,16 +344,19 @@ namespace Aquila.ViewModels.Pages
         {
             if (!_isInitialized || _externalUpdate) return;
             _settings.Current.DashboardMode = value;
+
+            // A preset seeds, it does not lock or undo. Turning it on sets up the appliance in one
+            // decision — which is the whole point of it. Turning it off leaves the three settings where
+            // they are: someone who wanted "start with Windows" before trying this mode should not lose
+            // it by trying it, and the switches stay editable so what the preset did is visible and
+            // reversible by hand.
             if (value)
             {
                 MinimizeToTray   = true;
+                StartMinimized   = true;
                 StartWithWindows = true;
             }
-            else
-            {
-                MinimizeToTray   = false;
-                StartWithWindows = false;
-            }
+
             _settings.Save();
             Application.Current.Dispatcher.BeginInvoke(() =>
             {

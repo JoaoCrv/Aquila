@@ -2,6 +2,11 @@ namespace Aquila.Models;
 
 public class AppSettings
 {
+    /// <summary>Schema version of this file, so a one-time fix-up can tell "already applied" from
+    /// "the user has since changed their mind". Without it a migration keyed on the state it repairs
+    /// re-applies itself on every launch, and overwrites the very choice it was meant to preserve.</summary>
+    public int    SettingsVersion   { get; set; } = 0;
+
     /// <summary>"Light", "Dark", or "System" to follow Windows. Brightness only — kept separate from
     /// <see cref="ThemeStyle"/> so "System" keeps meaning exactly one thing, and so the two never have to
     /// be enumerated as a combinatorial list.</summary>

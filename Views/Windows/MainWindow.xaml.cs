@@ -116,7 +116,11 @@ namespace Aquila.Views.Windows
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            if (!_allowClose && (_settings.Current.MinimizeToTray || _settings.Current.DashboardMode))
+            // Keyed on one setting only. Dashboard mode used to force this too, which meant a window
+            // could refuse to close because of a choice made about a different window; and with
+            // minimize-to-tray off, closing is what closing means. Exiting for real is the tray's Exit,
+            // and that ends everything — dashboard and desktop widgets included.
+            if (!_allowClose && _settings.Current.MinimizeToTray)
             {
                 e.Cancel = true;
                 SaveWindowBounds();

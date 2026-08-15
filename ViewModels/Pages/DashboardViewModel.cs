@@ -49,8 +49,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
 
 
-    public Visibility DashboardControls    => _settings.Current.DashboardMode         ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility ShowCpuCard          => _settings.Current.ShowCpuCard          ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ShowCpuCard        => _settings.Current.ShowCpuCard          ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowMemoryCard       => _settings.Current.ShowMemoryCard       ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowNetworkCard      => _settings.Current.ShowNetworkCard      ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowTemperaturesCard => _settings.Current.ShowTemperaturesCard ? Visibility.Visible : Visibility.Collapsed;
@@ -74,27 +73,22 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public string DashboardToggleTooltip =>
         IsDashboardWindowVisible ? "Close dashboard" : "Open dashboard";
 
+    /// <summary>
+    /// Shows or hides the dashboard window, and nothing else.
+    ///
+    /// It used to switch dashboard mode on the way past, which quietly moved the whole application into
+    /// the tray and set it to start with Windows. That is right for someone setting Aquila up as an
+    /// appliance and wrong for someone opening a dashboard while they play a game — and both press the
+    /// same button. Configuring the app is a decision, made once, in Settings; this is an action.
+    /// </summary>
     [RelayCommand]
     private void ToggleDashboard()
     {
         var dw = App.Services.GetRequiredService<DashboardWindow>();
-        if (dw.IsVisible)
-        {
-            dw.Hide();
-            _settings.Current.DashboardMode  = false;
-            _settings.Current.MinimizeToTray = false;
-            _settings.Save();
-        }
-        else
-        {
-            if (!_settings.Current.DashboardMode)
-            {
-                _settings.Current.DashboardMode  = true;
-                _settings.Current.MinimizeToTray = true;
-                _settings.Save();
-            }
-            dw.Show();
-        }
+
+        if (dw.IsVisible) dw.Hide();
+        else { dw.Show(); dw.Activate(); }
+
         NotifyDashboardToggle();
     }
 
@@ -150,7 +144,6 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     private void OnSettingsChanged()
     {
-        OnPropertyChanged(nameof(DashboardControls));
         OnPropertyChanged(nameof(ShowCpuCard));
         OnPropertyChanged(nameof(ShowMemoryCard));
         OnPropertyChanged(nameof(ShowNetworkCard));

@@ -150,8 +150,7 @@
                         <TextBlock Style="{StaticResource SettingHint}" Text="Closing the window leaves Aquila running in the notification area." />
                     </StackPanel>
                     <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.MinimizeToTray}"
-                                     IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
+                                     IsChecked="{Binding ViewModel.MinimizeToTray}" />
                 </Grid>
 
                 <Grid Style="{StaticResource SettingRow}">
@@ -164,8 +163,7 @@
                         <TextBlock Style="{StaticResource SettingHint}" Text="Launch straight to the tray, without opening the window." />
                     </StackPanel>
                     <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.StartMinimized}"
-                                     IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
+                                     IsChecked="{Binding ViewModel.StartMinimized}" />
                 </Grid>
 
                 <Grid Style="{StaticResource SettingRow}">
@@ -178,8 +176,7 @@
                         <TextBlock Style="{StaticResource SettingHint}" Text="Runs at logon. Requires the elevation task, since reading some sensors needs administrator rights." />
                     </StackPanel>
                     <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.StartWithWindows}"
-                                     IsEnabled="{Binding ViewModel.IsNotDashboardMode}" />
+                                     IsChecked="{Binding ViewModel.StartWithWindows}" />
                 </Grid>
 
                 <Grid Style="{StaticResource SettingRow}">
@@ -188,8 +185,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Dashboard mode" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Opens a borderless dashboard window. The main app window stays in the tray for settings access." />
+                        <TextBlock Text="Start in dashboard mode" />
+                        <TextBlock Style="{StaticResource SettingHint}" Text="Runs Aquila as an appliance: the dashboard opens at logon and the main window waits in the tray. Turning this on also enables the three settings above; you can change them afterwards." />
                     </StackPanel>
                     <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
                                      IsChecked="{Binding ViewModel.DashboardMode}" />
