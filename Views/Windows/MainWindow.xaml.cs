@@ -188,7 +188,9 @@ namespace Aquila.Views.Windows
 
         public void ApplyDashboardMode(bool on)
         {
-            ShowInTaskbar = !on;
+            // Same rule: never take the taskbar button away from a window that is on screen. Switching
+            // into dashboard mode from Settings would otherwise strand the very window being used.
+            ShowInTaskbar = !on || IsVisible;
             if (on)
             {
                 var dw = App.Services.GetRequiredService<DashboardWindow>();
@@ -218,11 +220,20 @@ namespace Aquila.Views.Windows
             }
         }
 
+        /// <summary>
+        /// Left click on the tray icon. Hides only when the window is already the one in front:
+        /// a visible-but-buried window is what sends someone to the tray in the first place, so
+        /// answering that click by dismissing it is the opposite of what was asked for.
+        ///
+        /// No longer restricted to dashboard mode. It previously did nothing at all in normal mode,
+        /// which left a single click on a tray icon as dead space.
+        /// </summary>
         private void TrayClick()
         {
-            if (!_settings.Current.DashboardMode) return;
-            if (IsVisible) { SaveWindowBounds(); ShowInTaskbar = false; Hide(); }
-            else TrayOpen();
+            if (!IsVisible || WindowState == WindowState.Minimized) { TrayOpen(); return; }
+
+            if (IsActive) { SaveWindowBounds(); Hide(); }
+            else { Activate(); WindowState = WindowState.Normal; }
         }
 
         /// <summary>
@@ -284,7 +295,11 @@ namespace Aquila.Views.Windows
 
         private void TrayOpen()
         {
-            ShowInTaskbar = !_settings.Current.DashboardMode;
+            // Always in the taskbar once it has been opened on purpose — including in dashboard mode.
+            // Without a taskbar button the first click on another window buries this one with no way
+            // back except the tray, which looks exactly like the window having closed itself.
+            // Suppressing the button is only correct while the window is hidden.
+            ShowInTaskbar = true;
             Show();
             Activate();
             WindowState = WindowState.Normal;
