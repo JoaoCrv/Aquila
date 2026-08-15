@@ -62,6 +62,10 @@ namespace Aquila.ViewModels.Pages
             _externalUpdate = true;
             DashboardMode  = _settings.Current.DashboardMode;
             MinimizeToTray = _settings.Current.MinimizeToTray;
+            // The title bar's toggle writes the same setting this combo shows. Without this the page
+            // would keep displaying "Match Windows" long after the toggle had pinned a brightness.
+            SelectedTheme  = ThemeOptions.FirstOrDefault(o => o.Id == _settings.Current.Theme)
+                             ?? SelectedTheme;
             _externalUpdate = false;
         }
 

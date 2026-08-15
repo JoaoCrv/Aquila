@@ -25,6 +25,48 @@
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <helpers:ResponsivePaddingConverter x:Key="ResponsivePaddingConverter" />
+
+            <!-- Nav rail: the selected page takes the profile's accent, so the rail belongs to the same
+                 colour system as the data instead of staying neutral grey. Done with a trigger on
+                 IsActive rather than a template override — NavigationViewItem exposes no colour
+                 properties, and replacing WPF-UI's template wholesale is a large blob of XAML that
+                 breaks silently on upgrade. If the accent does not take, the template is painting over
+                 Foreground and only then is a template worth writing. -->
+            <Style TargetType="ui:NavigationViewItem" BasedOn="{StaticResource {x:Type ui:NavigationViewItem}}">
+                <!-- Label to match the smaller glyph (see RailIconSize). If the template hardcodes the
+                     label's size this has no effect, and the labels simply stay as they are — worth one
+                     setter to find out, since the alternative is a full template. -->
+                <Setter Property="FontSize" Value="10" />
+                <Style.Triggers>
+                    <Trigger Property="IsActive" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}" />
+                        <!-- Tinted with the profile's track, not a neutral grey: in the mockup the
+                             selected item belongs to the same colour family as its own icon, which is
+                             what stops the selection reading as a separate grey chip behind it. -->
+                        <Setter Property="Background" Value="{DynamicResource Aquila.Scheme.Track}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Caption buttons: full bar height, small glyph — the mockup's arrangement, where the hit
+                 area stretches and only the symbol inside it is small.
+                 VerticalAlignment="Center" was tried first and had no effect: WPF-UI's template pins the
+                 buttons to the top, and a local value there beats a style setter. Giving them the bar's
+                 own height sidesteps that instead of fighting it, and the button centres its content by
+                 default — so the glyph lands in the middle without a hand-computed margin that would
+                 have to be re-tuned every time the bar's height changed. -->
+            <Style TargetType="ui:TitleBarButton" BasedOn="{StaticResource {x:Type ui:TitleBarButton}}">
+                <Setter Property="Width" Value="44" />
+                <Setter Property="Height" Value="50" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <!-- No FontSize here: it was tried and does nothing. WPF-UI's template fixes the glyph's
+                     size on the element itself, and a local value in a template always beats a style
+                     setter. Width, Height and alignment above DO apply, because they are set on the
+                     button rather than inside it.
+                     Changing the glyphs would mean turning off ShowMinimize/ShowMaximize/ShowClose and
+                     drawing all three ourselves — which also means owning maximize/restore state and the
+                     close path that feeds minimize-to-tray. Not worth it for a pixel. -->
+            </Style>
         </ResourceDictionary>
     </ui:FluentWindow.Resources>
     <Grid>
@@ -42,6 +84,9 @@
                 <Style TargetType="ui:NavigationView" BasedOn="{StaticResource {x:Type ui:NavigationView}}">
                     <Setter Property="PaneDisplayMode"     Value="LeftFluent" />
                     <Setter Property="IsBackButtonVisible" Value="Collapsed" />
+                    <!-- No hamburger: in LeftFluent the rail never expands, so the toggle offers nothing.
+                         The mockup has none either. -->
+                    <Setter Property="IsPaneToggleVisible" Value="False" />
                     <Setter Property="Padding"             Value="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource ResponsivePaddingConverter}, ConverterParameter=nav}" />
                 </Style>
             </ui:NavigationView.Style>
@@ -52,14 +97,39 @@
             </ui:NavigationView.ContentOverlay>
         </ui:NavigationView>
 
+        <!-- 50px, as in the mockup: the height the brand, the ember hairline and the vitals strip will
+             need. Raising it now means the caption buttons are judged at their final size rather than
+             re-tuned once the bar grows. -->
         <ui:TitleBar
             x:Name="TitleBar"
             Title="{Binding ViewModel.ApplicationTitle}"
             Grid.Row="0"
+            Height="50"
             CloseWindowByDoubleClickOnIcon="True">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon Source="/Assets/Images/icon.png" />
             </ui:TitleBar.Icon>
+
+            <!-- TrailingContent sits immediately before the caption buttons, so the bar fills from the
+                 right in the mockup's order. Sized to match them exactly — anything in this row that is
+                 not the same height reads as pasted in. -->
+            <ui:TitleBar.TrailingContent>
+                <!-- ui:Button with Appearance="Transparent" rather than a plain Button: the default
+                     button style paints a filled box, which beside the caption buttons would look like
+                     a control someone forgot to remove. -->
+                <ui:Button
+                    Width="44" Height="50" Padding="0"
+                    Appearance="Transparent" BorderThickness="0"
+                    Cursor="Hand"
+                    Command="{Binding ViewModel.ToggleThemeCommand, Mode=OneWay}"
+                    ToolTip="{Binding ViewModel.ThemeToggleTooltip, Mode=OneWay}">
+                    <!-- Sized against the caption glyphs beside it, not on its own: a toggle noticeably
+                         larger than the close button reads as a different class of control. -->
+                    <ui:SymbolIcon FontSize="12"
+                                   Symbol="{Binding ViewModel.ThemeToggleIcon, Mode=OneWay}"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </ui:Button>
+            </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
 
         <Grid Grid.Row="0" Grid.RowSpan="2" Background="#80000000" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">

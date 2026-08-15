@@ -48,6 +48,7 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
 
     public string CurrentDateTime => DateTime.Now.ToString("ddd, d MMM  HH:mm");
 
+
     public Visibility DashboardControls    => _settings.Current.DashboardMode         ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowCpuCard          => _settings.Current.ShowCpuCard          ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ShowMemoryCard       => _settings.Current.ShowMemoryCard       ? Visibility.Visible : Visibility.Collapsed;
@@ -59,8 +60,16 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
     public bool IsDashboardWindowVisible =>
         Application.Current.Windows.OfType<DashboardWindow>().Any(w => w.IsVisible);
 
+    /// <summary>
+    /// A screen, not an arrow: the button opens a dashboard on a display, and the old ArrowExpand /
+    /// Dismiss pair said "expand" and "close" without ever saying what.
+    ///
+    /// The two states keep the same family rather than collapsing to one icon, because the dashboard
+    /// window may be sitting on a second screen the user is not looking at — the button is then the
+    /// only thing that knows whether it is open.
+    /// </summary>
     public SymbolRegular DashboardToggleIcon =>
-        IsDashboardWindowVisible ? SymbolRegular.Dismiss24 : SymbolRegular.ArrowExpand24;
+        IsDashboardWindowVisible ? SymbolRegular.DualScreenDismiss24 : SymbolRegular.Desktop24;
 
     public string DashboardToggleTooltip =>
         IsDashboardWindowVisible ? "Close dashboard" : "Open dashboard";

@@ -12,13 +12,35 @@ namespace Aquila.ViewModels.Windows
 
         private readonly UiService _uiService;
         private readonly UpdateService _updateService;
+        private readonly AppearanceService _appearance;
 
         public bool IsLoading => _uiService.IsLoading;
 
-        public MainWindowViewModel(UiService uiService, UpdateService updateService)
+        /// <summary>What the toggle offers, not what is showing: on a dark window it holds a sun,
+        /// because the sun is where the click leads.</summary>
+        public SymbolRegular ThemeToggleIcon =>
+            _appearance.IsDark ? SymbolRegular.WeatherSunny24 : SymbolRegular.WeatherMoon24;
+
+        public string ThemeToggleTooltip =>
+            _appearance.IsDark ? "Switch to light" : "Switch to dark";
+
+        [RelayCommand]
+        private void ToggleTheme() => _appearance.ToggleBrightness();
+
+        public MainWindowViewModel(UiService uiService, UpdateService updateService,
+            AppearanceService appearance)
         {
             _uiService = uiService;
             _updateService = updateService;
+            _appearance = appearance;
+
+            // Also fires when the theme changes from Settings, or when Windows switches while we are
+            // following it — the button has to agree with the window whoever moved it.
+            _appearance.Changed += () =>
+            {
+                OnPropertyChanged(nameof(ThemeToggleIcon));
+                OnPropertyChanged(nameof(ThemeToggleTooltip));
+            };
 
             _uiService.PropertyChanged += (s, e) =>
             {
@@ -47,31 +69,44 @@ namespace Aquila.ViewModels.Windows
                     : null);
         }
 
+        /// <summary>
+        /// Rail glyph size. WPF-UI's default fills the item; the mockup runs 19px, and the smaller glyph
+        /// is most of what makes that rail read as quiet rather than busy — the navigation is not the
+        /// subject of this window, the data is.
+        ///
+        /// Set on the icon itself rather than through a style: these items are built in code, so the
+        /// size lands as a local value and cannot be overridden by the control template.
+        /// </summary>
+        private const double RailIconSize = 16;
+
+        private static SymbolIcon RailIcon(SymbolRegular symbol) =>
+            new() { Symbol = symbol, FontSize = RailIconSize };
+
         [ObservableProperty]
         private ObservableCollection<object> _menuItems =
         [
             new NavigationViewItem()
             {
                 Content = "Home",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
+                Icon = RailIcon(SymbolRegular.Home24),
                 TargetPageType = typeof(DashboardPage)
             },
             new NavigationViewItem()
             {
                 Content = "Explorer",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
+                Icon = RailIcon(SymbolRegular.DataHistogram24),
                 TargetPageType = typeof(ExplorerPage)
             },
             new NavigationViewItem()
             {
                 Content = "Widgets",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Grid24 },
+                Icon = RailIcon(SymbolRegular.Grid24),
                 TargetPageType = typeof(WidgetsPage)
             },
             new NavigationViewItem()
             {
                 Content = "Storage",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Storage24 },
+                Icon = RailIcon(SymbolRegular.Storage24),
                 TargetPageType = typeof(StoragePage)
             }
         ];
@@ -82,16 +117,16 @@ namespace Aquila.ViewModels.Windows
             new NavigationViewItem()
             {
                 Content = "About",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Info24 },
+                Icon = RailIcon(SymbolRegular.Info24),
                 TargetPageType = typeof(AboutPage)
             },
             new NavigationViewItem()
             {
                 Content = "Settings",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Settings24 },
+                Icon = RailIcon(SymbolRegular.Settings24),
                 TargetPageType = typeof(SettingsPage)
             }
-            
+
         ];
 
     }

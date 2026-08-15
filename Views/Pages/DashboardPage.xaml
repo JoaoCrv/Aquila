@@ -20,32 +20,60 @@
 
         <helpers:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
 
+        <!-- Header chip. Bordered, unlike the old plain fill: with a page title now beside them these
+             have to read as belonging to the header rather than floating over the cards. -->
+        <Style x:Key="HeaderChip" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
     </Page.Resources>
 
     <StackPanel>
 
-        <!-- Header -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,6">
-            <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                    CornerRadius="5" Padding="10,4" Margin="0,0,6,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <ui:SymbolIcon Symbol="Timer24" FontSize="13" Margin="0,0,5,0" Opacity="0.45"/>
-                    <TextBlock Text="{Binding ViewModel.SystemUptime}" FontSize="12" Opacity="0.65"/>
-                </StackPanel>
-            </Border>
-            <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                    CornerRadius="5" Padding="10,4" Margin="0,0,6,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <ui:SymbolIcon Symbol="CalendarLtr24" FontSize="13" Margin="0,0,5,0" Opacity="0.45"/>
-                    <TextBlock Text="{Binding ViewModel.CurrentDateTime}" FontSize="12" Opacity="0.65"/>
-                </StackPanel>
-            </Border>
-            <ui:Button Command="{Binding ViewModel.ToggleDashboardCommand}"
-                       ToolTip="{Binding ViewModel.DashboardToggleTooltip}"
-                       Appearance="Secondary" Padding="7,4">
-                <ui:SymbolIcon Symbol="{Binding ViewModel.DashboardToggleIcon}" FontSize="13"/>
-            </ui:Button>
-        </StackPanel>
+        <!-- Header: the page's name on the left, its standing facts on the right.
+             The chips used to sit alone against the right edge, which made them read as a notification
+             hovering over the cards rather than as the page's own header. A title anchors them. -->
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- "Home", matching the rail. The mockup says "Dashboard", but the two must agree or the
+                 page you clicked to is not the page you appear to be on. -->
+            <TextBlock Grid.Column="0" Text="Home" VerticalAlignment="Center"
+                       FontSize="22" FontWeight="SemiBold"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource HeaderChip}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="Timer24" FontSize="13" Margin="0,0,6,0" Opacity="0.45"/>
+                        <TextBlock Style="{StaticResource MonoValue}" FontSize="11.5"
+                                   Text="{Binding ViewModel.SystemUptime}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource HeaderChip}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="CalendarLtr24" FontSize="13" Margin="0,0,6,0" Opacity="0.45"/>
+                        <TextBlock Style="{StaticResource MonoValue}" FontSize="11.5"
+                                   Text="{Binding ViewModel.CurrentDateTime}"/>
+                    </StackPanel>
+                </Border>
+
+                <ui:Button Command="{Binding ViewModel.ToggleDashboardCommand}"
+                           ToolTip="{Binding ViewModel.DashboardToggleTooltip}"
+                           Appearance="Secondary" Padding="7,5">
+                    <ui:SymbolIcon Symbol="{Binding ViewModel.DashboardToggleIcon}" FontSize="13"/>
+                </ui:Button>
+            </StackPanel>
+        </Grid>
 
         <controls:ResponsiveCardPanel Gap="8" MinCardWidth="320">
 

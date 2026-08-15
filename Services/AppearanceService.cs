@@ -121,6 +121,21 @@ public sealed class AppearanceService(
         ApplyProfile();
     }
 
+    /// <summary>
+    /// Flips between light and dark and pins the result.
+    ///
+    /// Deliberately leaves "System" behind rather than cycling back into it: someone reaching for the
+    /// toggle wants this brightness now, and a three-way cycle would make the next click's outcome
+    /// depend on what Windows happens to be set to. Following the system again is a deliberate choice,
+    /// and it stays in Settings where deliberate choices live.
+    /// </summary>
+    public void ToggleBrightness()
+    {
+        settings.Current.Theme = IsDark ? "Light" : "Dark";
+        settings.Save();
+        Apply();
+    }
+
     /// <summary>Re-publishes the active profile without touching the theme — for when only the profile
     /// changed.</summary>
     public void ApplyProfile()
