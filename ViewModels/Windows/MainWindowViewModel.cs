@@ -98,7 +98,10 @@ namespace Aquila.ViewModels.Windows
             new NavigationViewItem()
             {
                 Content = "Explorer",
-                Icon = RailIcon(SymbolRegular.DataHistogram24),
+                // A magnifier, as in the mockup: the page is for finding a sensor among hundreds. The
+                // histogram it used to carry described the data, not the act, and collided with the bar
+                // chart meaning elsewhere in the app.
+                Icon = RailIcon(SymbolRegular.Search24),
                 TargetPageType = typeof(ExplorerPage)
             },
             new NavigationViewItem()

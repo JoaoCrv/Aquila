@@ -22,6 +22,15 @@ public sealed partial class VitalItem(string label) : ObservableObject
     [ObservableProperty] private double _percent;
     [ObservableProperty] private double _level;
     [ObservableProperty] private bool _hasValue;
+
+    /// <summary>
+    /// Re-raises the properties that feed a brush, so the colour is worked out again.
+    ///
+    /// Needed because IntensityBrushConverter resolves the brush when it converts and hands back a fixed
+    /// one; the binding only runs again when its source value changes. A reading that is standing still —
+    /// an integrated GPU parked at 0% — would keep the previous profile's colour indefinitely.
+    /// </summary>
+    public void Repaint() => OnPropertyChanged(nameof(Level));
 }
 
 /// <summary>
@@ -34,6 +43,7 @@ public sealed partial class VitalItem(string label) : ObservableObject
 public partial class TitleBarViewModel : ObservableObject, IDisposable
 {
     private readonly AquilaService _aquila;
+    private readonly AppearanceService _appearance;
 
     /// <summary>What the strip shows, and the scale each is judged on. Four, because the strip is the
     /// most contested space in the window and the vitals are the first thing to hide when it narrows.</summary>
@@ -47,14 +57,30 @@ public partial class TitleBarViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<VitalItem> Vitals { get; } = [];
 
-    public TitleBarViewModel(AquilaService aquila)
+    public TitleBarViewModel(AquilaService aquila, AppearanceService appearance)
     {
         _aquila = aquila;
+        _appearance = appearance;
 
         foreach (var spec in _specs) Vitals.Add(new VitalItem(spec.Label));
 
         _aquila.DataUpdated += Refresh;
+        _appearance.Changed += Repaint;
         Refresh();
+    }
+
+    /// <summary>
+    /// Forces every colour here to be worked out again after the profile or theme changed.
+    ///
+    /// Elsewhere in the app this fixes itself within a second, because the readings move and moving
+    /// values re-run their bindings. Up here two of them do not: a machine at rest leaves the ribbon and
+    /// the quieter pills sitting on numbers that never change, wearing the old profile's colours until
+    /// something happens to disturb them.
+    /// </summary>
+    private void Repaint()
+    {
+        OnPropertyChanged(nameof(PressurePercent));
+        foreach (var item in Vitals) item.Repaint();
     }
 
     /// <summary>
@@ -106,5 +132,9 @@ public partial class TitleBarViewModel : ObservableObject, IDisposable
         }
     }
 
-    public void Dispose() => _aquila.DataUpdated -= Refresh;
+    public void Dispose()
+    {
+        _aquila.DataUpdated -= Refresh;
+        _appearance.Changed -= Repaint;
+    }
 }

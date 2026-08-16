@@ -27,26 +27,21 @@
             <helpers:ResponsivePaddingConverter x:Key="ResponsivePaddingConverter" />
             <helpers:IntensityBrushConverter x:Key="Intensity" />
 
-            <!-- Nav rail: the selected page takes the profile's accent, so the rail belongs to the same
-                 colour system as the data instead of staying neutral grey. Done with a trigger on
-                 IsActive rather than a template override — NavigationViewItem exposes no colour
-                 properties, and replacing WPF-UI's template wholesale is a large blob of XAML that
-                 breaks silently on upgrade. If the accent does not take, the template is painting over
-                 Foreground and only then is a template worth writing. -->
+            <!-- Nav rail. Size only — no colours here on purpose.
+                 The rail is chrome, so it follows the THEME's accent, which WPF-UI already manages and
+                 repaints correctly on every change: the ember accent under Aquila, the user's own Windows
+                 accent under Fluent.
+
+                 Colouring it from the colour PROFILE was tried and removed. It crossed the line this app
+                 keeps everywhere else — profiles dress the data, themes dress the window — and it did not
+                 work either: a DynamicResource inside a Style setter stops re-resolving once the style has
+                 been applied, so the selected page kept whichever accent was current when the rail was
+                 first drawn, and going from light back to dark left it on the light ramp's orange.
+
+                 FontSize matches the smaller glyph (see RailIconSize). If the template fixes the label's
+                 size this has no effect and the labels simply stay as they are. -->
             <Style TargetType="ui:NavigationViewItem" BasedOn="{StaticResource {x:Type ui:NavigationViewItem}}">
-                <!-- Label to match the smaller glyph (see RailIconSize). If the template hardcodes the
-                     label's size this has no effect, and the labels simply stay as they are — worth one
-                     setter to find out, since the alternative is a full template. -->
                 <Setter Property="FontSize" Value="10" />
-                <Style.Triggers>
-                    <Trigger Property="IsActive" Value="True">
-                        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}" />
-                        <!-- Tinted with the profile's track, not a neutral grey: in the mockup the
-                             selected item belongs to the same colour family as its own icon, which is
-                             what stops the selection reading as a separate grey chip behind it. -->
-                        <Setter Property="Background" Value="{DynamicResource Aquila.Scheme.Track}" />
-                    </Trigger>
-                </Style.Triggers>
             </Style>
 
             <!-- Caption buttons: full bar height, small glyph — the mockup's arrangement, where the hit
@@ -70,7 +65,18 @@
             </Style>
         </ResourceDictionary>
     </ui:FluentWindow.Resources>
-    <Grid>
+    <!-- The Aquila theme's own ground: a warm near-black over the Mica, strong enough that the material
+         stops being the thing you see. It is what brings the ambers close to a flame, which is the point
+         — the palette comes from the logo, and on Windows' pale grey material it read as ordinary orange.
+
+         The Fluent style leaves this Transparent (see Aquila.Default.xaml) and so gets plain Mica. Same
+         rule Fluent already follows for the accent and the surfaces: nothing of ours on top.
+
+         Painted here rather than on the window, because WPF-UI sets Window.Background to Transparent so
+         the backdrop can show and never puts it back — a brush set on the window is overwritten by that
+         local value and never reaches the screen. It also only works because NavigationView and TitleBar
+         are transparent (see their styles); either of them opaque buries the material entirely. -->
+    <Grid Background="{DynamicResource Aquila.Window.Scrim}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -83,6 +89,10 @@
             MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}">
             <ui:NavigationView.Style>
                 <Style TargetType="ui:NavigationView" BasedOn="{StaticResource {x:Type ui:NavigationView}}">
+                    <!-- Transparent so the window's backdrop reaches the scrim on the root Grid. This
+                         control fills everything below the title bar with its own background by default,
+                         and while it did, no material showed through anywhere. -->
+                    <Setter Property="Background"          Value="Transparent" />
                     <Setter Property="PaneDisplayMode"     Value="LeftFluent" />
                     <Setter Property="IsBackButtonVisible" Value="Collapsed" />
                     <!-- No hamburger: in LeftFluent the rail never expands, so the toggle offers nothing.
@@ -105,7 +115,8 @@
         <ui:TitleBar
             x:Name="TitleBar"
             Grid.Row="0"
-            Height="50">
+            Height="50"
+            Background="Transparent">
 
             <!-- The whole brand lives in Header, logo included. ui:TitleBar.Icon was tried and clipped
                  the image: its template does not scale the source to the control's size, so asking for

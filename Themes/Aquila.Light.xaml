@@ -18,6 +18,9 @@
 
     <Color x:Key="Aquila.Theme.Accent">#CA5010</Color>
 
+    <!-- Scrim over the window's Mica — see the note in Aquila.Dark.xaml. -->
+    <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="#B3FBF8F5"/>
+
     <!-- Surfaces, lightest to darkest -->
     <SolidColorBrush x:Key="ApplicationBackgroundBrush"             Color="#FBF8F5"/>
     <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"      Color="#FBF8F5"/>

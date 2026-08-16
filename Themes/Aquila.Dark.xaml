@@ -24,7 +24,25 @@
          accent family (hover, pressed, text, selection) from this one value.
          Declaring it here rather than in C# is what makes a theme file
          self-contained. -->
-    <Color x:Key="Aquila.Theme.Accent">#F5A623</Color>
+    <!-- A deeper ember than the amber this used to be. #F5A623 is where the logo's gradient starts, and
+         as chrome it read as pale next to the light theme's #CA5010 — the same control changing weight
+         between the two brightnesses rather than just its lightness.
+
+         Sharing a hue with step 4 of the data ramp is fine here, and only here: this accent dresses the
+         window — rail, focus, buttons — and never a reading. Colour means intensity on the data, and
+         nothing on the chrome. -->
+    <Color x:Key="Aquila.Theme.Accent">#FF6B35</Color>
+
+    <!-- Scrim over the window's Mica. Alpha D1 is ~82%, as in the mockup: enough of our own colour to
+         stop the wallpaper deciding how warm the app looks, enough material left to keep its depth. -->
+    <!-- Scrim over the window's Mica, at ~70%. Our colour leads and the material is left as depth rather
+         than as the thing you see — which is the point of it: the palette is drawn from the logo, and on
+         Windows' pale grey material the ambers read as ordinary orange instead of as flame.
+
+         Tinting the material itself is not possible: WPF-UI drives the modern DWM backdrop, which takes a
+         type and no colour. The alpha lives in the brush because opacity on a DynamicResource would fade
+         every control above it too. -->
+    <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="#B315110E"/>
 
     <!-- Surfaces, darkest to lightest -->
     <SolidColorBrush x:Key="ApplicationBackgroundBrush"             Color="#15110E"/>

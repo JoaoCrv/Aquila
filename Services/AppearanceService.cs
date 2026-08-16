@@ -2,6 +2,7 @@ using System.Windows.Media;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Wpf.Ui.Appearance;
+using Wpf.Ui.Controls;
 
 namespace Aquila.Services;
 
@@ -62,8 +63,9 @@ public sealed class AppearanceService(
         _watching = false;
     }
 
-    /// <summary>Applies the theme and the profile together. One entry point, so the order — which
-    /// matters — lives in one place.</summary>
+    /// <summary>
+    /// Applies the theme and the profile. Five steps, and the ORDER is the whole trick — see step 4.
+    /// </summary>
     public void Apply()
     {
         IsDark = settings.Current.Theme switch
@@ -73,52 +75,68 @@ public sealed class AppearanceService(
             _ => !IsSystemLight(),
         };
 
-        var app = Application.Current;
-        var applicationTheme = IsDark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+        var theme = IsDark ? ApplicationTheme.Dark : ApplicationTheme.Light;
 
-        // First, because it rebuilds WPF-UI's merged dictionaries — anything applied before this point
-        // would be thrown away. Note it does NOT clear the accent: see the Fluent branch below.
-        ApplicationThemeManager.Apply(applicationTheme);
+        ApplicationThemeManager.Apply(theme);   // 1. WPF-UI's base look
+        SwapOverlay();                          // 2. our theme file on top, or none under Fluent
+        ApplyAccent();                          // 3. our accent, or the system's
+
+        // 4. Again — and this is the part that is not obvious. Step 1 swaps WPF-UI's dictionaries, and
+        //    every control re-reads its brushes at that instant, while the accent is still the previous
+        //    theme's. Step 3 then writes the new one correctly, but nothing looks again, so the rail kept
+        //    the colour it had already taken. Startup escaped it only because no window existed yet.
+        //    updateAccent: false, or this pass would overwrite what it is here to publish.
+        ApplicationThemeManager.Apply(theme, WindowBackdropType.Mica, updateAccent: false);
+
+        ApplyProfile();                         // 5. the profile's colours, for the data
+    }
+
+    /// <summary>Puts our theme file over WPF-UI's, or takes it off. Fluent gets nothing of ours.</summary>
+    private void SwapOverlay()
+    {
+        var merged = Application.Current.Resources.MergedDictionaries;
 
         if (_overlay is not null)
         {
-            app.Resources.MergedDictionaries.Remove(_overlay);
+            merged.Remove(_overlay);
             _overlay = null;
         }
 
-        // "Fluent" means the WPF-UI base and nothing else — no overlay, and the user's own Windows accent
-        // colour. That is the whole point of offering it.
-        if (settings.Current.ThemeStyle == "Fluent")
+        if (settings.Current.ThemeStyle == "Fluent") return;
+
+        try
         {
-            // Restoring the accent has to be explicit. ApplicationAccentColorManager writes its brushes
-            // into the TOP level of Application.Resources, where they shadow the merged theme dictionary
-            // — so once an Aquila accent has been applied, reapplying the base theme can never undo it,
-            // and the ember orange would survive in the navigation and every accented control.
-            ApplicationAccentColorManager.ApplySystemAccent();
+            _overlay = new ResourceDictionary
+            {
+                Source = new Uri(IsDark ? DarkOverlay : LightOverlay, UriKind.Absolute),
+            };
+            merged.Add(_overlay);
         }
+        catch (Exception ex)
+        {
+            // The Fluent base is already applied underneath, so a failure here leaves the window plain
+            // rather than broken.
+            logger.LogWarning(ex, "The Aquila theme could not be loaded; falling back to the plain base");
+            _overlay = null;
+        }
+    }
+
+    /// <summary>
+    /// The accent, stated rather than derived.
+    ///
+    /// No overlay means Fluent — or a theme file that failed to load — and both want the user's own
+    /// Windows accent, so one condition covers both. Otherwise the same colour is given four times, on
+    /// purpose: the overload that takes a theme instead treats the colour as a base and works the rest
+    /// out, lightening for dark and darkening for light. That is why one accent came out pale amber in
+    /// dark and deep orange in light, and why changing it barely moved anything — the derivation was
+    /// overruling the theme file.
+    /// </summary>
+    private void ApplyAccent()
+    {
+        if (_overlay?["Aquila.Theme.Accent"] is Color accent)
+            ApplicationAccentColorManager.Apply(accent, accent, accent, accent);
         else
-        {
-            try
-            {
-                _overlay = new ResourceDictionary
-                {
-                    Source = new Uri(IsDark ? DarkOverlay : LightOverlay, UriKind.Absolute),
-                };
-                app.Resources.MergedDictionaries.Add(_overlay);
-
-                if (_overlay["Aquila.Theme.Accent"] is Color accent)
-                    ApplicationAccentColorManager.Apply(accent, applicationTheme, false, false);
-            }
-            catch (Exception ex)
-            {
-                // The Fluent base is already applied underneath, so a failure here leaves the window plain
-                // rather than broken.
-                logger.LogWarning(ex, "The Aquila theme could not be loaded; falling back to the plain base");
-                _overlay = null;
-            }
-        }
-
-        ApplyProfile();
+            ApplicationAccentColorManager.ApplySystemAccent();
     }
 
     /// <summary>

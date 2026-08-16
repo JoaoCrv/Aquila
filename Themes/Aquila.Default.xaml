@@ -23,6 +23,14 @@
          lost: they are Profiles/classic.json, selectable like any other.
          ═══════════════════════════════════════════════════════════════════ -->
 
+    <!-- Window scrim, over the backdrop. Transparent here on purpose: this is what the FLUENT style
+         gets, and Fluent means plain Windows material with nothing of ours on top — the same rule that
+         already gives it no overlay and no accent of ours. The Aquila themes replace it with a tint.
+
+         It must exist here regardless: a theme overlay can be swapped out, and a key that vanishes from
+         under a DynamicResource would leave the window with no background at all. -->
+    <SolidColorBrush x:Key="Aquila.Window.Scrim"     Color="Transparent"/>
+
     <SolidColorBrush x:Key="Aquila.Scheme.Accent"    Color="#F5A623"/>
     <SolidColorBrush x:Key="Aquila.Scheme.Normal"    Color="#FFB765"/>
     <SolidColorBrush x:Key="Aquila.Scheme.Elevated"  Color="#F5A623"/>
