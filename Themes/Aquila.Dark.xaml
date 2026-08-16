@@ -50,7 +50,9 @@
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#12100D"/>
     <SolidColorBrush x:Key="LayerFillColorDefaultBrush"             Color="#1F1A16"/>
 
-    <!-- Cards -->
+    <!-- Cards. Secondary is NOT the hover fill despite the name — it is what CardExpander paints behind
+         its expanded CONTENT, so it belongs slightly under the card rather than above it. Hover lives in
+         a style of ours; see MainWindow.xaml. -->
     <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"    Color="#1F1A16"/>
     <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"  Color="#1A1512"/>
     <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="#2B2420"/>

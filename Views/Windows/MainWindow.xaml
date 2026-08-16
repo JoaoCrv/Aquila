@@ -44,6 +44,7 @@
                 <Setter Property="FontSize" Value="10" />
             </Style>
 
+
             <!-- Caption buttons: full bar height, small glyph — the mockup's arrangement, where the hit
                  area stretches and only the symbol inside it is small.
                  VerticalAlignment="Center" was tried first and had no effect: WPF-UI's template pins the

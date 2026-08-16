@@ -3,7 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:helpers="clr-namespace:Aquila.Helpers"
     xmlns:local="clr-namespace:Aquila.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -14,192 +13,179 @@
     d:DesignWidth="800"
     mc:Ignorable="d"
     Style="{StaticResource BasePageStyle}">
+
+    <!-- One CardControl per setting, under plain text section headings — the shape WPF-UI's own gallery
+         uses, and the shape Windows Settings uses.
+
+         It replaced a hand-built version of the same thing: rows made of Grids inside one expander per
+         group, with our own hover trigger, our own MinHeight so the highlight covered the row, and our own
+         CardExpander style. CardControl derives from ButtonBase, so hover, padding, corners and the icon
+         slot all come with it and those four workarounds are gone.
+
+         Expanders are kept only where a section really is a list of related switches rather than a single
+         setting — the dashboard cards, and updates with its status text. -->
+
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
-        <!-- Windows-Settings shape: groups are expandable cards, and inside each one a setting is a row
-             with its name and explanation on the left and its control on the right. Shared styles keep
-             the rows consistent instead of each one drifting on its own margins. -->
-        <Style x:Key="SettingRow" TargetType="Grid">
-            <Setter Property="Margin" Value="0,12,0,0" />
-        </Style>
         <Style x:Key="SettingHint" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Opacity" Value="0.6" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Margin" Value="0,2,0,0" />
         </Style>
-        <Style x:Key="GroupHint" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Opacity" Value="0.6" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="0,2,0,0" />
+
+        <Style x:Key="SectionHeading" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="2,20,0,8" />
+        </Style>
+
+        <!-- BasedOn is not optional here. An implicit style without it REPLACES the default style rather
+             than extending it, template included — the cards lost their chrome entirely and rendered as
+             bare content: a combo box with no header, no icon and no card around it. -->
+        <Style TargetType="ui:CardControl" BasedOn="{StaticResource {x:Type ui:CardControl}}">
+            <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
     </Page.Resources>
 
     <StackPanel>
 
-        <!-- Personalization -->
-        <ui:CardExpander Icon="{ui:SymbolIcon Color24}" IsExpanded="True">
-            <ui:CardExpander.Header>
+        <!-- ── Appearance ──────────────────────────────────────────────────────────────────────── -->
+        <TextBlock Style="{StaticResource SectionHeading}" Margin="2,0,0,8" Text="Appearance" />
+
+        <!-- Style and brightness are two orthogonal choices, so they get two controls rather than one
+             list of every combination — which would also put an ambiguous "System" among them. Adding a
+             third style later costs one entry instead of three. -->
+        <ui:CardControl Icon="{ui:SymbolIcon Color24}">
+            <ui:CardControl.Header>
                 <StackPanel>
-                    <TextBlock Text="Personalization" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource GroupHint}" Text="The theme dresses the window; the colour profile dresses the data. They are chosen separately." />
+                    <TextBlock Text="Theme" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Aquila is our own look. Windows Fluent leaves the app plain, including your Windows accent colour." />
                 </StackPanel>
-            </ui:CardExpander.Header>
+            </ui:CardControl.Header>
+            <ComboBox MinWidth="160"
+                      ItemsSource="{Binding ViewModel.ThemeStyleOptions}"
+                      SelectedItem="{Binding ViewModel.SelectedThemeStyle}"
+                      DisplayMemberPath="Label" />
+        </ui:CardControl>
 
-            <StackPanel>
-                <!-- Style and brightness are two orthogonal choices, so they get two controls rather than
-                     one list of every combination — which would also put an ambiguous "System" among
-                     them. Adding a third style later costs one entry here instead of three. -->
-                <Grid Style="{StaticResource SettingRow}" Margin="0,4,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Theme" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Aquila is our own look. Windows Fluent leaves the app plain, including your Windows accent colour." />
-                    </StackPanel>
-                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="160"
-                              ItemsSource="{Binding ViewModel.ThemeStyleOptions}"
-                              SelectedItem="{Binding ViewModel.SelectedThemeStyle}"
-                              DisplayMemberPath="Label" />
-                </Grid>
-
-                <Grid Style="{StaticResource SettingRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Brightness" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Match Windows follows the system light/dark setting." />
-                    </StackPanel>
-                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="160"
-                              ItemsSource="{Binding ViewModel.ThemeOptions}"
-                              SelectedItem="{Binding ViewModel.SelectedTheme}"
-                              DisplayMemberPath="Label" />
-                </Grid>
-
-                <!-- Colour profile: one JSON file each, ours embedded and the user's in
-                     Documents\Aquila\profiles. Duplicate is the only way to edit one of ours, which is
-                     deliberate — a built-in that cannot be broken is always somewhere to get back to. -->
-                <Grid Style="{StaticResource SettingRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Colour profile" />
-                        <TextBlock Style="{StaticResource SettingHint}"
-                                   Text="{Binding ViewModel.ColorProfileDescription, Mode=OneWay}" />
-                    </StackPanel>
-                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="160"
-                              ItemsSource="{Binding ViewModel.ColorProfiles}"
-                              SelectedItem="{Binding ViewModel.SelectedColorProfile}"
-                              DisplayMemberPath="DisplayName" />
-                </Grid>
-
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0" HorizontalAlignment="Right">
-                    <ui:Button Content="Duplicate to edit"
-                               Icon="{ui:SymbolIcon Copy24}"
-                               Command="{Binding ViewModel.DuplicateColorProfileCommand, Mode=OneWay}" />
-                    <ui:Button Margin="8,0,0,0" Content="Open folder"
-                               Icon="{ui:SymbolIcon FolderOpen24}"
-                               Command="{Binding ViewModel.OpenProfilesFolderCommand, Mode=OneWay}" />
-                    <ui:Button Margin="8,0,0,0" Content="Reload"
-                               Icon="{ui:SymbolIcon ArrowClockwise24}"
-                               Command="{Binding ViewModel.ReloadColorProfilesCommand, Mode=OneWay}" />
+        <ui:CardControl Icon="{ui:SymbolIcon WeatherSunny24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Brightness" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Match Windows follows the system light/dark setting." />
                 </StackPanel>
+            </ui:CardControl.Header>
+            <ComboBox MinWidth="160"
+                      ItemsSource="{Binding ViewModel.ThemeOptions}"
+                      SelectedItem="{Binding ViewModel.SelectedTheme}"
+                      DisplayMemberPath="Label" />
+        </ui:CardControl>
 
-                <Grid Style="{StaticResource SettingRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Polling interval" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="How often hardware is read. Shorter is more responsive and uses a little more CPU." />
-                    </StackPanel>
-                    <ComboBox Grid.Column="1" VerticalAlignment="Center" MinWidth="120"
-                              ItemsSource="{Binding ViewModel.PollingIntervalOptions}"
-                              SelectedItem="{Binding ViewModel.SelectedPollingInterval}"
-                              DisplayMemberPath="Label" />
-                </Grid>
+        <!-- Colour profile: one JSON file each, ours embedded and the user's in Documents\Aquila\profiles.
+             Duplicate is the only way to edit one of ours, which is deliberate — a built-in that cannot be
+             broken is always somewhere to get back to. -->
+        <ui:CardControl Icon="{ui:SymbolIcon PaintBrush24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Colour profile" />
+                    <TextBlock Style="{StaticResource SettingHint}"
+                               Text="{Binding ViewModel.ColorProfileDescription, Mode=OneWay}" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ComboBox MinWidth="160"
+                      ItemsSource="{Binding ViewModel.ColorProfiles}"
+                      SelectedItem="{Binding ViewModel.SelectedColorProfile}"
+                      DisplayMemberPath="DisplayName" />
+        </ui:CardControl>
+
+        <ui:CardControl Icon="{ui:SymbolIcon Options24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Manage profiles" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Built-in profiles are read-only. Duplicate one to make it yours, then edit the JSON and reload." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ui:Button Content="Duplicate to edit"
+                           Icon="{ui:SymbolIcon Copy24}"
+                           Command="{Binding ViewModel.DuplicateColorProfileCommand, Mode=OneWay}" />
+                <ui:Button Margin="8,0,0,0" Content="Open folder"
+                           Icon="{ui:SymbolIcon FolderOpen24}"
+                           Command="{Binding ViewModel.OpenProfilesFolderCommand, Mode=OneWay}" />
+                <ui:Button Margin="8,0,0,0" Content="Reload"
+                           Icon="{ui:SymbolIcon ArrowClockwise24}"
+                           Command="{Binding ViewModel.ReloadColorProfilesCommand, Mode=OneWay}" />
             </StackPanel>
-        </ui:CardExpander>
+        </ui:CardControl>
 
-        <!-- Behaviour -->
-        <ui:CardExpander Margin="0,4,0,0" Icon="{ui:SymbolIcon Window24}">
-            <ui:CardExpander.Header>
+        <ui:CardControl Icon="{ui:SymbolIcon Timer24}">
+            <ui:CardControl.Header>
                 <StackPanel>
-                    <TextBlock Text="Behaviour" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource GroupHint}" Text="Startup, the tray, and dashboard mode." />
+                    <TextBlock Text="Polling interval" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="How often hardware is read. Shorter is more responsive and uses a little more CPU." />
                 </StackPanel>
-            </ui:CardExpander.Header>
+            </ui:CardControl.Header>
+            <ComboBox MinWidth="120"
+                      ItemsSource="{Binding ViewModel.PollingIntervalOptions}"
+                      SelectedItem="{Binding ViewModel.SelectedPollingInterval}"
+                      DisplayMemberPath="Label" />
+        </ui:CardControl>
 
-            <StackPanel>
-                <Grid Style="{StaticResource SettingRow}" Margin="0,4,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Minimize to tray" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Closing the window leaves Aquila running in the notification area." />
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.MinimizeToTray}" />
-                </Grid>
+        <!-- ── Behaviour ───────────────────────────────────────────────────────────────────────── -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="Behaviour" />
 
-                <Grid Style="{StaticResource SettingRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Start minimized" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Launch straight to the tray, without opening the window." />
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.StartMinimized}" />
-                </Grid>
+        <ui:CardControl Icon="{ui:SymbolIcon Window24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Minimize to tray" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Closing the window leaves Aquila running in the notification area." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.MinimizeToTray}" />
+        </ui:CardControl>
 
-                <Grid Style="{StaticResource SettingRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Start with Windows" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Runs at logon. Requires the elevation task, since reading some sensors needs administrator rights." />
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.StartWithWindows}" />
-                </Grid>
+        <ui:CardControl Icon="{ui:SymbolIcon ArrowMinimize24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Start minimized" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Launch straight to the tray, without opening the window." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.StartMinimized}" />
+        </ui:CardControl>
 
-                <Grid Style="{StaticResource SettingRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Start in dashboard mode" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Runs Aquila as an appliance: the dashboard opens at logon and the main window waits in the tray. Turning this on also enables the three settings above; you can change them afterwards." />
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.DashboardMode}" />
-                </Grid>
-            </StackPanel>
-        </ui:CardExpander>
+        <ui:CardControl Icon="{ui:SymbolIcon Power24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Start with Windows" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Runs at logon. Requires the elevation task, since reading some sensors needs administrator rights." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.StartWithWindows}" />
+        </ui:CardControl>
 
-        <!-- Dashboard cards -->
-        <ui:CardExpander Margin="0,4,0,0" Icon="{ui:SymbolIcon Grid24}">
+        <ui:CardControl Icon="{ui:SymbolIcon Desktop24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Start in dashboard mode" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Runs Aquila as an appliance: the dashboard opens at logon and the main window waits in the tray. Turning this on also enables the three settings above; you can change them afterwards." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.DashboardMode}" />
+        </ui:CardControl>
+
+        <!-- ── Dashboard ───────────────────────────────────────────────────────────────────────── -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="Dashboard" />
+
+        <!-- Still an expander: eight switches over the same thing are one decision made eight times, not
+             eight settings. As separate cards they would be the longest section on the page. -->
+        <ui:CardExpander Icon="{ui:SymbolIcon Grid24}">
             <ui:CardExpander.Header>
                 <StackPanel>
-                    <TextBlock Text="Dashboard cards" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource GroupHint}" Text="Choose what the dashboard shows. Hidden cards are excluded from the layout entirely." />
+                    <TextBlock Text="Visible cards" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Hidden cards are excluded from the layout entirely." />
                 </StackPanel>
             </ui:CardExpander.Header>
 
@@ -215,52 +201,41 @@
             </StackPanel>
         </ui:CardExpander>
 
-        <!-- Diagnostics -->
-        <ui:CardExpander Margin="0,4,0,0" Icon="{ui:SymbolIcon Bug24}">
-            <ui:CardExpander.Header>
+        <!-- ── Diagnostics ─────────────────────────────────────────────────────────────────────── -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="Diagnostics" />
+
+        <ui:CardControl Icon="{ui:SymbolIcon Bug24}">
+            <ui:CardControl.Header>
                 <StackPanel>
-                    <TextBlock Text="Diagnostics" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource GroupHint}" Text="Logging and the raw sensor tree, for troubleshooting." />
+                    <TextBlock Text="Verbose logging" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Writes detailed logs to Documents\Aquila\logs\. Disabled by default." />
                 </StackPanel>
-            </ui:CardExpander.Header>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.EnableVerboseLogging}" />
+        </ui:CardControl>
 
-            <StackPanel>
-                <Grid Style="{StaticResource SettingRow}" Margin="0,4,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Verbose logging" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Writes detailed logs to Documents\Aquila\logs\. Disabled by default." />
-                    </StackPanel>
-                    <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                     IsChecked="{Binding ViewModel.EnableVerboseLogging}" />
-                </Grid>
+        <ui:CardControl Icon="{ui:SymbolIcon DataHistogram24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Sensor explorer" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Browse the raw sensor tree from LibreHardwareMonitor and export a full report. Useful for finding sensor identifiers." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:Button Command="{Binding ViewModel.OpenLhmExplorerCommand}"
+                       Content="Open"
+                       Icon="{ui:SymbolIcon DataHistogram24}" />
+        </ui:CardControl>
 
-                <Grid Style="{StaticResource SettingRow}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Sensor explorer" />
-                        <TextBlock Style="{StaticResource SettingHint}" Text="Browse the raw sensor tree from LibreHardwareMonitor and export a full report. Useful for finding sensor identifiers." />
-                    </StackPanel>
-                    <ui:Button Grid.Column="1" VerticalAlignment="Center"
-                               Command="{Binding ViewModel.OpenLhmExplorerCommand}"
-                               Content="Open"
-                               Icon="{ui:SymbolIcon DataHistogram24}" />
-                </Grid>
-            </StackPanel>
-        </ui:CardExpander>
+        <!-- ── Updates ─────────────────────────────────────────────────────────────────────────── -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="Updates" />
 
-        <!-- Updates -->
-        <ui:CardExpander Margin="0,4,0,20" Icon="{ui:SymbolIcon ArrowSync24}">
+        <!-- An expander, because this one carries a status message that changes and would not fit beside
+             a header. -->
+        <ui:CardExpander Margin="0,0,0,20" Icon="{ui:SymbolIcon ArrowSync24}">
             <ui:CardExpander.Header>
                 <StackPanel>
-                    <TextBlock Text="Updates" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource GroupHint}" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
+                    <TextBlock Text="Updates" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="{Binding ViewModel.AppVersion, Mode=OneWay}" />
                 </StackPanel>
             </ui:CardExpander.Header>
 

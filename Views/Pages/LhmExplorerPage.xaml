@@ -139,8 +139,9 @@
                                                                 <Style TargetType="Border">
                                                                     <Setter Property="Background" Value="Transparent"/>
                                                                     <Style.Triggers>
+                                                                        <!-- Fluent's hover token — see the note in ExplorerPage. -->
                                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                                                            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                                                                         </Trigger>
                                                                     </Style.Triggers>
                                                                 </Style>
