@@ -1,0 +1,71 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         AQUILA DARK — the default theme.
+
+         A theme dresses the WINDOW: background, cards, borders, accent. What
+         the data is painted with comes from the active colour profile, and
+         the two are chosen independently. Nothing in here mentions a sensor.
+
+         It is merged on top of WPF-UI's Fluent dark base, so it only has to
+         name the keys it disagrees with; everything unlisted stays Fluent.
+         That keeps a theme small enough to be read in one sitting and to
+         survive a WPF-UI upgrade.
+
+         The neutrals carry a trace of the logo's warmth instead of being
+         pure grey. It reads as a deliberate surface rather than a tint, and
+         it lets the data colours sit on something related to them without
+         competing for attention. Text is left alone on purpose: warming it
+         costs contrast, and there is nothing to gain.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Read by AppearanceService and handed to WPF-UI, which derives its whole
+         accent family (hover, pressed, text, selection) from this one value.
+         Declaring it here rather than in C# is what makes a theme file
+         self-contained. -->
+    <!-- A deeper ember than the amber this used to be. #F5A623 is where the logo's gradient starts, and
+         as chrome it read as pale next to the light theme's #CA5010 — the same control changing weight
+         between the two brightnesses rather than just its lightness.
+
+         Sharing a hue with step 4 of the data ramp is fine here, and only here: this accent dresses the
+         window — rail, focus, buttons — and never a reading. Colour means intensity on the data, and
+         nothing on the chrome. -->
+    <Color x:Key="Aquila.Theme.Accent">#FF6B35</Color>
+
+    <!-- Scrim over the window's Mica. Alpha D1 is ~82%, as in the mockup: enough of our own colour to
+         stop the wallpaper deciding how warm the app looks, enough material left to keep its depth. -->
+    <!-- Scrim over the window's Mica, at ~70%. Our colour leads and the material is left as depth rather
+         than as the thing you see — which is the point of it: the palette is drawn from the logo, and on
+         Windows' pale grey material the ambers read as ordinary orange instead of as flame.
+
+         Tinting the material itself is not possible: WPF-UI drives the modern DWM backdrop, which takes a
+         type and no colour. The alpha lives in the brush because opacity on a DynamicResource would fade
+         every control above it too. -->
+    <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="#B315110E"/>
+
+    <!-- Surfaces, darkest to lightest -->
+    <SolidColorBrush x:Key="ApplicationBackgroundBrush"             Color="#15110E"/>
+    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"      Color="#15110E"/>
+    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#12100D"/>
+    <SolidColorBrush x:Key="LayerFillColorDefaultBrush"             Color="#1F1A16"/>
+
+    <!-- Cards. Secondary is NOT the hover fill despite the name — it is what CardExpander paints behind
+         its expanded CONTENT, so it belongs slightly under the card rather than above it. Hover lives in
+         a style of ours; see MainWindow.xaml. -->
+    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"    Color="#1F1A16"/>
+    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"  Color="#1A1512"/>
+    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="#2B2420"/>
+
+    <!-- Controls -->
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="#251F1A"/>
+    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"         Color="#201A16"/>
+    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush"          Color="#1B1613"/>
+    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="#302823"/>
+    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="#3A302A"/>
+    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="#302823"/>
+
+    <!-- Separators -->
+    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush"         Color="#2B2420"/>
+
+</ResourceDictionary>

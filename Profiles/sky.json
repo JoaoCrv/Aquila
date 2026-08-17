@@ -1,0 +1,25 @@
+{
+  "id": "sky",
+  "name": "Sky",
+  "author": "Aquila",
+  "description": "Cool and monochrome. Ember's structure with the temperature taken out — deepening blue as load climbs, for anyone who finds a screen full of orange too loud.",
+
+  "palette": {
+    "dark":  [ "#CFE8FF", "#8ECDFF", "#4DA6FF", "#1E7FE0", "#0B4FA8" ],
+    "light": [ "#2F86D9", "#1E6FBE", "#14589E", "#0E4682", "#08305C" ]
+  },
+
+  "roles": {
+    "accent": 3,
+    "normal": 2,
+    "elevated": 3,
+    "alert": 4,
+    "critical": 5,
+
+    "series1": 3,
+    "series2": 1,
+    "series3": 5,
+
+    "track": { "step": 3, "opacity": 0.15 }
+  }
+}

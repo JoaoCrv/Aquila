@@ -28,24 +28,47 @@
             <!-- Row 0: header + stats + core bars + label -->
             <StackPanel Grid.Row="0">
                 <TextBlock Text="CPU" Style="{StaticResource SectionLabel}"/>
-                <TextBlock Text="{Binding Cpu.Name, FallbackValue='Processor'}"
-                           Style="{StaticResource ChipName}" Margin="0,0,0,2"/>
-                <TextBlock Text="{Binding Summary}"
-                           FontSize="10" Opacity="0.45" Margin="0,0,0,8"
-                           Visibility="{Binding Summary, Converter={StaticResource NullToCollapsed}}"/>
 
-                <UniformGrid Columns="4" Margin="0,0,0,10">
-                    <controls:StatBox Label="Usage" Unit="%" Margin="0,0,3,0"
-                        Value="{Binding Cpu.Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
-                    <controls:StatBox Label="Temp" Unit="°C" Margin="3,0"
+                <!-- Header: what it is on the left, how hard it is working on the right. The headline
+                     reading is promoted out of the stat row so a glance answers the first question
+                     without reading four boxes; the row below then holds only the detail. -->
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardIconChip}" Margin="0,0,9,0">
+                        <ui:SymbolIcon Symbol="DeveloperBoard24" FontSize="14"
+                                       Foreground="{DynamicResource Aquila.Scheme.Accent}"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Cpu.Name, FallbackValue='Processor'}"
+                                   Style="{StaticResource ChipName}"/>
+                        <TextBlock Text="{Binding Summary}"
+                                   FontSize="10" Opacity="0.45" Margin="0,1,0,0"
+                                   TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding Summary, Converter={StaticResource NullToCollapsed}}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="8,0,0,0">
+                        <TextBlock Style="{StaticResource CardBigValue}"
+                                   Text="{Binding Cpu.Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
+                        <TextBlock Style="{StaticResource CardBigUnit}" Text="%"/>
+                    </StackPanel>
+                </Grid>
+
+                <UniformGrid Columns="3" Margin="0,0,0,10">
+                    <controls:StatBox Label="Temp" Unit="°C" Margin="0,0,3,0"
                         Value="{Binding Cpu.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{Binding Cpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
+                        Accent="{Binding Cpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Temperature}"/>
                     <controls:StatBox Label="Eff. Clock" Unit="MHz" UnitSize="11" Margin="3,0"
-                        Value="{Binding Cpu.Clock.CoresAverage.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{DynamicResource Aquila.Scheme.Accent}"/>
+                        Value="{Binding Cpu.Clock.CoresAverage.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                     <controls:StatBox Label="Power" Unit="W" Margin="3,0,0,0"
-                        Value="{Binding Cpu.Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{DynamicResource Aquila.Scheme.Accent}"/>
+                        Value="{Binding Cpu.Power.Package.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                 </UniformGrid>
 
                 <StackPanel Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=260}">

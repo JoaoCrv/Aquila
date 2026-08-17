@@ -25,9 +25,59 @@
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <helpers:ResponsivePaddingConverter x:Key="ResponsivePaddingConverter" />
+            <helpers:IntensityBrushConverter x:Key="Intensity" />
+
+            <!-- Nav rail. Size only — no colours here on purpose.
+                 The rail is chrome, so it follows the THEME's accent, which WPF-UI already manages and
+                 repaints correctly on every change: the ember accent under Aquila, the user's own Windows
+                 accent under Fluent.
+
+                 Colouring it from the colour PROFILE was tried and removed. It crossed the line this app
+                 keeps everywhere else — profiles dress the data, themes dress the window — and it did not
+                 work either: a DynamicResource inside a Style setter stops re-resolving once the style has
+                 been applied, so the selected page kept whichever accent was current when the rail was
+                 first drawn, and going from light back to dark left it on the light ramp's orange.
+
+                 FontSize matches the smaller glyph (see RailIconSize). If the template fixes the label's
+                 size this has no effect and the labels simply stay as they are. -->
+            <Style TargetType="ui:NavigationViewItem" BasedOn="{StaticResource {x:Type ui:NavigationViewItem}}">
+                <Setter Property="FontSize" Value="10" />
+            </Style>
+
+
+            <!-- Caption buttons: full bar height, small glyph — the mockup's arrangement, where the hit
+                 area stretches and only the symbol inside it is small.
+                 VerticalAlignment="Center" was tried first and had no effect: WPF-UI's template pins the
+                 buttons to the top, and a local value there beats a style setter. Giving them the bar's
+                 own height sidesteps that instead of fighting it, and the button centres its content by
+                 default — so the glyph lands in the middle without a hand-computed margin that would
+                 have to be re-tuned every time the bar's height changed. -->
+            <Style TargetType="ui:TitleBarButton" BasedOn="{StaticResource {x:Type ui:TitleBarButton}}">
+                <Setter Property="Width" Value="44" />
+                <Setter Property="Height" Value="50" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <!-- No FontSize here: it was tried and does nothing. WPF-UI's template fixes the glyph's
+                     size on the element itself, and a local value in a template always beats a style
+                     setter. Width, Height and alignment above DO apply, because they are set on the
+                     button rather than inside it.
+                     Changing the glyphs would mean turning off ShowMinimize/ShowMaximize/ShowClose and
+                     drawing all three ourselves — which also means owning maximize/restore state and the
+                     close path that feeds minimize-to-tray. Not worth it for a pixel. -->
+            </Style>
         </ResourceDictionary>
     </ui:FluentWindow.Resources>
-    <Grid>
+    <!-- The Aquila theme's own ground: a warm near-black over the Mica, strong enough that the material
+         stops being the thing you see. It is what brings the ambers close to a flame, which is the point
+         — the palette comes from the logo, and on Windows' pale grey material it read as ordinary orange.
+
+         The Fluent style leaves this Transparent (see Aquila.Default.xaml) and so gets plain Mica. Same
+         rule Fluent already follows for the accent and the surfaces: nothing of ours on top.
+
+         Painted here rather than on the window, because WPF-UI sets Window.Background to Transparent so
+         the backdrop can show and never puts it back — a brush set on the window is overwritten by that
+         local value and never reaches the screen. It also only works because NavigationView and TitleBar
+         are transparent (see their styles); either of them opaque buries the material entirely. -->
+    <Grid Background="{DynamicResource Aquila.Window.Scrim}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -40,8 +90,15 @@
             MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}">
             <ui:NavigationView.Style>
                 <Style TargetType="ui:NavigationView" BasedOn="{StaticResource {x:Type ui:NavigationView}}">
+                    <!-- Transparent so the window's backdrop reaches the scrim on the root Grid. This
+                         control fills everything below the title bar with its own background by default,
+                         and while it did, no material showed through anywhere. -->
+                    <Setter Property="Background"          Value="Transparent" />
                     <Setter Property="PaneDisplayMode"     Value="LeftFluent" />
                     <Setter Property="IsBackButtonVisible" Value="Collapsed" />
+                    <!-- No hamburger: in LeftFluent the rail never expands, so the toggle offers nothing.
+                         The mockup has none either. -->
+                    <Setter Property="IsPaneToggleVisible" Value="False" />
                     <Setter Property="Padding"             Value="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource ResponsivePaddingConverter}, ConverterParameter=nav}" />
                 </Style>
             </ui:NavigationView.Style>
@@ -52,15 +109,118 @@
             </ui:NavigationView.ContentOverlay>
         </ui:NavigationView>
 
+        <!-- 50px, as in the mockup: the height the brand, the ember hairline and the vitals strip will
+             need. Raising it now means the caption buttons are judged at their final size rather than
+             re-tuned once the bar grows. -->
+        <!-- No Title: the wordmark in Header replaces it. Leaving both would print "Aquila" twice. -->
         <ui:TitleBar
             x:Name="TitleBar"
-            Title="{Binding ViewModel.ApplicationTitle}"
             Grid.Row="0"
-            CloseWindowByDoubleClickOnIcon="True">
-            <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="/Assets/Images/icon.png" />
-            </ui:TitleBar.Icon>
+            Height="50"
+            Background="Transparent">
+
+            <!-- The whole brand lives in Header, logo included. ui:TitleBar.Icon was tried and clipped
+                 the image: its template does not scale the source to the control's size, so asking for
+                 20x20 cropped a larger bitmap instead of shrinking it. A plain Image with an explicit
+                 Stretch is predictable, and it also gives exact control of the gap to the wordmark.
+                 The cost is CloseWindowByDoubleClickOnIcon, which needs TitleBar.Icon to exist.
+
+                 The spaces inside the wordmark ARE the letter-spacing: WPF has no such property, and the
+                 alternative is an attached property that splits text into Runs. Acceptable only because
+                 this string is a fixed brand mark and never bound — the same trick on a label would
+                 break the moment its text came from data. -->
+            <ui:TitleBar.Header>
+                <StackPanel VerticalAlignment="Center" Margin="16,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Assets/Images/icon.png"
+                               Width="20" Height="20" Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               VerticalAlignment="Center" Margin="0,0,9,0" />
+                        <TextBlock Text="A Q U I L A" VerticalAlignment="Center"
+                                   FontSize="13" FontWeight="SemiBold" />
+                    </StackPanel>
+
+                    <!-- Ember ribbon: how hard the machine is being pushed, under the wordmark.
+                         Reuses ThinBar so the track comes from the colour profile like every other bar.
+                         The value is already normalised, which is why it is coloured with the Pressure
+                         scale rather than judged a second time — the sensor's own thresholds decided
+                         what counts as alert before it got here. The tooltip names the sensor
+                         responsible, which a maximum can always do and an average never could. -->
+                    <ProgressBar Style="{StaticResource ThinBar}" Height="2" Margin="0,5,0,0"
+                                 Value="{Binding ViewModel.TitleBar.PressurePercent, Mode=OneWay}"
+                                 Foreground="{Binding ViewModel.TitleBar.PressurePercent, Converter={StaticResource Intensity}, ConverterParameter=Pressure, Mode=OneWay}"
+                                 ToolTip="{Binding ViewModel.TitleBar.PressureTooltip, Mode=OneWay}" />
+                </StackPanel>
+            </ui:TitleBar.Header>
+
+            <!-- TrailingContent sits immediately before the caption buttons, so the bar fills from the
+                 right in the mockup's order. Sized to match them exactly — anything in this row that is
+                 not the same height reads as pasted in. -->
+            <ui:TitleBar.TrailingContent>
+                <!-- ui:Button with Appearance="Transparent" rather than a plain Button: the default
+                     button style paints a filled box, which beside the caption buttons would look like
+                     a control someone forgot to remove. -->
+                <ui:Button
+                    Width="44" Height="50" Padding="0"
+                    Appearance="Transparent" BorderThickness="0"
+                    Cursor="Hand"
+                    Command="{Binding ViewModel.ToggleThemeCommand, Mode=OneWay}"
+                    ToolTip="{Binding ViewModel.ThemeToggleTooltip, Mode=OneWay}">
+                    <!-- Sized against the caption glyphs beside it, not on its own: a toggle noticeably
+                         larger than the close button reads as a different class of control. -->
+                    <ui:SymbolIcon FontSize="12"
+                                   Symbol="{Binding ViewModel.ThemeToggleIcon, Mode=OneWay}"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </ui:Button>
+            </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
+
+        <!-- Vitals: the readings worth having on every page, not just the dashboard. Each pill pairs a
+             bar with its own number — length from the raw reading so the two agree, colour from the
+             normalised one so it means the same on a load as on a temperature.
+
+             Laid over the title bar rather than inside it. TitleBar.CenterContent was tried first and
+             cannot centre: its column is auto-sized, so it hugs the Header and there is no spare width
+             to sit in the middle of. Here the strip centres on the window itself.
+
+             IsHitTestVisible=False is what makes that safe — the middle of a title bar is where people
+             grab a window, and without it these pills would swallow the drag. -->
+        <ItemsControl Grid.Row="0"
+                      ItemsSource="{Binding ViewModel.TitleBar.Vitals, Mode=OneWay}"
+                      IsHitTestVisible="False"
+                      VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border MinWidth="104" Margin="3,0" Padding="10,5" CornerRadius="6"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    Visibility="{Binding HasValue, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}"
+                                                   FontSize="9" FontWeight="Bold" Opacity="0.45"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Text}"
+                                                   Style="{StaticResource MonoValue}" FontSize="11.5" />
+                                    </Grid>
+                                    <ProgressBar Style="{StaticResource ThinBar}" Height="2" Margin="0,4,0,0"
+                                                 Value="{Binding Percent}"
+                                                 Foreground="{Binding Level, Converter={StaticResource Intensity}, ConverterParameter=Pressure}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <Grid Grid.Row="0" Grid.RowSpan="2" Background="#80000000" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
             <ui:ProgressRing IsIndeterminate="True" VerticalAlignment="Center" HorizontalAlignment="Center"/>

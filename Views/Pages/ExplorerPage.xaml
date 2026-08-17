@@ -78,8 +78,11 @@
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="Transparent"/>
                                                 <Style.Triggers>
+                                                    <!-- Fluent's own hover token: a translucent overlay that
+                                                         brightens what is under it, rather than a solid
+                                                         colour that has to be chosen to suit each surface. -->
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                                        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
                                                     </Trigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -94,10 +97,13 @@
                                                 Text="{Binding Label}"
                                                 FontSize="13"
                                                 VerticalAlignment="Center"/>
+                                            <!-- Tabular figures, like every other live reading in the app:
+                                                 these tick every second, and proportional digits make the
+                                                 whole column shuffle sideways on each update. -->
                                             <TextBlock
                                                 Grid.Column="1"
+                                                Style="{StaticResource MonoValue}"
                                                 FontSize="13"
-                                                FontWeight="SemiBold"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center">
                                                 <TextBlock.Text>

@@ -21,7 +21,8 @@
                        Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
             <controls:SensorBar Grid.Column="1" VerticalAlignment="Center"
                 Sensor="{Binding Sensor, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                Accent="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                Accent="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                Maximum="{Binding Maximum, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
             <TextBlock Grid.Column="2" Style="{StaticResource RowValue}"
                        Text="{Binding ValueText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
         </Grid>
@@ -39,7 +40,8 @@
             </Grid>
             <controls:SensorBar Margin="0,2,0,6"
                 Sensor="{Binding Sensor, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                Accent="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                Accent="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                Maximum="{Binding Maximum, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
         </StackPanel>
     </Grid>
 </UserControl>

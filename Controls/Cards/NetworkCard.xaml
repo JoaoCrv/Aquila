@@ -27,9 +27,32 @@
             <!-- Row 0: header + throughput rows -->
             <StackPanel Grid.Row="0">
                 <TextBlock Text="NETWORK" Style="{StaticResource SectionLabel}"/>
-                <TextBlock Text="{Binding Network.Name, FallbackValue='Adapter'}"
-                           FontSize="12" FontWeight="Normal" Opacity="0.55"
-                           TextTrimming="CharacterEllipsis" Margin="0,0,0,10"/>
+
+                <!-- Download is the headline; upload sits in the rows below with it. -->
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardIconChip}" Margin="0,0,9,0">
+                        <ui:SymbolIcon Symbol="Globe24" FontSize="14"
+                                       Foreground="{DynamicResource Aquila.Scheme.Accent}"/>
+                    </Border>
+
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                               Text="{Binding Network.Name, FallbackValue='Adapter'}"
+                               Style="{StaticResource ChipName}"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="8,0,0,0">
+                        <TextBlock Style="{StaticResource CardBigValue}"
+                                   Text="{Binding Network.Throughput.Download.Value, Converter={StaticResource Throughput}, ConverterParameter=value, FallbackValue='--'}"/>
+                        <TextBlock Style="{StaticResource CardBigUnit}"
+                                   Text="{Binding Network.Throughput.Download.Value, Converter={StaticResource Throughput}, ConverterParameter=unit}"/>
+                    </StackPanel>
+                </Grid>
                 <Grid Margin="0,0,0,4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>

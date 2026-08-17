@@ -17,77 +17,63 @@
         <helpers:IntensityBrushConverter x:Key="Intensity"/>
     </Page.Resources>
 
-    <!-- Fase 1 (preview): mostra cada peça reutilizável de 1 sensor (#23) a funcionar com dados
-         reais desta máquina, lidos do AquilaService já existente — sem fonte de dados própria.
-         Sem fluxo de "fixar" ainda; isso fica para quando o #24/#31 avançarem. -->
-    <StackPanel>
+    <StackPanel Margin="20,0,20,20">
 
-        <!-- Header -->
-        <Border Padding="20,12,20,4">
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Widgets" FontSize="18" FontWeight="SemiBold"/>
-                <TextBlock
-                    Text="Live preview of each reusable widget piece, using this machine's own sensors"
-                    FontSize="12"
-                    Opacity="0.6"
-                    Margin="0,2,0,0"/>
-            </StackPanel>
-        </Border>
+        <TextBlock Text="Widgets" FontSize="18" FontWeight="SemiBold" Margin="2,12,0,0"/>
 
-        <!-- Desktop surface (#24): lives here rather than in Settings because this is where widgets are
-             managed, and one owner avoids two views holding the same state. Windows-Settings shape —
-             one primary switch, and the options it governs only appear once it's on, so the page isn't
-             cluttered with controls that would do nothing. -->
-        <StackPanel Margin="20,8,20,0">
-            <!-- One card: the switch both enables the feature and expands the actions it governs, the way
-                 Windows Settings does it. IsExpanded is bound one-way — the switch drives the card, never
-                 the reverse, so collapsing could never silently turn the feature off. -->
-            <ui:CardExpander
-                Icon="{ui:SymbolIcon Desktop24}"
-                IsExpanded="{Binding ViewModel.ShowOnDesktop, Mode=OneWay}">
-                <ui:CardExpander.Header>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                            <TextBlock Text="Show widgets on the desktop" FontWeight="SemiBold"/>
-                            <TextBlock
-                                Text="Above the wallpaper, behind your windows, and click-through."
-                                FontSize="12" Opacity="0.6" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center"
-                                         IsChecked="{Binding ViewModel.ShowOnDesktop}"/>
-                    </Grid>
-                </ui:CardExpander.Header>
+        <!-- Desktop surface (#24). It lives here rather than in Settings because this is where widgets are
+             managed, and one owner avoids two views holding the same state. -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="Desktop"/>
 
-                <StackPanel Margin="0,4,0,0">
-                    <StackPanel Orientation="Horizontal">
-                        <ui:Button
-                            Content="Add widget"
-                            Icon="{ui:SymbolIcon Add24}"
-                            Appearance="Primary"
-                            Command="{Binding ViewModel.AddWidgetCommand}"/>
-                        <ui:Button
-                            Margin="8,0,0,0"
-                            Content="Edit widgets"
-                            Icon="{ui:SymbolIcon Edit24}"
-                            Command="{Binding ViewModel.StartEditingCommand}"/>
-                        <ui:Button
-                            Margin="8,0,0,0"
-                            Content="Identify screens"
-                            Icon="{ui:SymbolIcon Tv24}"
-                            Command="{Binding ViewModel.IdentifyScreensCommand}"/>
-                    </StackPanel>
-                    <TextBlock
-                        Text="Editing minimizes Aquila so you can see the desktop; a bar at the top brings it back. There you can drag widgets, and right-click one to change, remove, or send it to another screen."
-                        FontSize="12" Opacity="0.55" Margin="0,10,0,0" TextWrapping="Wrap"/>
+        <ui:CardControl Icon="{ui:SymbolIcon Desktop24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Show widgets on the desktop"/>
+                    <TextBlock Style="{StaticResource SettingHint}"
+                               Text="Above the wallpaper, behind your windows, and click-through."/>
                 </StackPanel>
-            </ui:CardExpander>
-        </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.ShowOnDesktop}"/>
+        </ui:CardControl>
 
-        <controls:ResponsiveCardPanel Gap="8" MinCardWidth="220" Margin="20,12,20,20">
+        <!-- Disabled rather than hidden while the surface is off. These used to be revealed by expanding
+             the card, which kept the page tidy but also kept the feature invisible until someone happened
+             to turn the switch on. Greyed out, they say what the surface is for before it is enabled. -->
+        <ui:CardControl Icon="{ui:SymbolIcon Options24}"
+                        IsEnabled="{Binding ViewModel.ShowOnDesktop}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Manage widgets"/>
+                    <TextBlock Style="{StaticResource SettingHint}"
+                               Text="Editing minimizes Aquila so you can see the desktop; a bar at the top brings it back. There you can drag widgets, and right-click one to change, remove, or send it to another screen."/>
+                </StackPanel>
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ui:Button
+                    Content="Add widget"
+                    Icon="{ui:SymbolIcon Add24}"
+                    Appearance="Primary"
+                    Command="{Binding ViewModel.AddWidgetCommand}"/>
+                <ui:Button
+                    Margin="8,0,0,0"
+                    Content="Edit widgets"
+                    Icon="{ui:SymbolIcon Edit24}"
+                    Command="{Binding ViewModel.StartEditingCommand}"/>
+                <ui:Button
+                    Margin="8,0,0,0"
+                    Content="Identify screens"
+                    Icon="{ui:SymbolIcon Tv24}"
+                    Command="{Binding ViewModel.IdentifyScreensCommand}"/>
+            </StackPanel>
+        </ui:CardControl>
+
+        <!-- Preview only (#23): each reusable piece running on this machine's own sensors, read from the
+             AquilaService that already exists. No pinning flow here; that belongs to #24/#31. -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="Pieces"/>
+        <TextBlock Style="{StaticResource SettingHint}" Margin="2,-4,0,8"
+                   Text="Each reusable widget piece, live, using this machine's own sensors."/>
+
+        <controls:ResponsiveCardPanel Gap="8" MinCardWidth="220">
 
             <!-- Radial Gauge -->
             <ui:Card Padding="12,10">
@@ -170,7 +156,7 @@
                             <controls:StatBox
                                 Label="Temp" Unit="°C"
                                 Value="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                                Accent="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}"/>
+                                Accent="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Temperature}"/>
                         </controls:LabeledTile.Tile>
                     </controls:LabeledTile>
                     <TextBlock Grid.Row="1" VerticalAlignment="Top"

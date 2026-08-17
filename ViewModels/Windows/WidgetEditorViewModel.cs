@@ -46,7 +46,7 @@ public partial class WidgetEditorViewModel : ObservableObject
     [
         new("Aquila.Scheme.Accent", "Accent"),
         new("Aquila.Scheme.Series2", "Alternate"),
-        new("Aquila.Scheme.Series3", "Deep"),
+        new("Aquila.Scheme.Series3", "Tertiary"),
         new("Aquila.Scheme.Alert", "Alert"),
         new("Aquila.Scheme.Critical", "Critical"),
     ];

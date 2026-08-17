@@ -50,11 +50,11 @@ public sealed class DesktopWidgetService
         string AccentKey, double X, double Y, double Width, double Height)[] _starter =
     [
         (DesktopWidgetKind.RadialGauge,   "CPU Load",  h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,
-            "Aquila.Cpu",   32, 150, 170, 190),
+            "Aquila.Scheme.Accent",  32, 150, 170, 190),
         (DesktopWidgetKind.MiniSparkline, "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
-            "Aquila.Temp",  32, 360, 240, 100),
+            "Aquila.Scheme.Series1", 32, 360, 240, 100),
         (DesktopWidgetKind.SensorMeter,   "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
-            "Aquila.Power", 32, 480, 240,  80),
+            "Aquila.Scheme.Normal",  32, 480, 240,  80),
     ];
 
     public void Populate()
@@ -406,8 +406,9 @@ public sealed class DesktopWidgetService
             _ => throw new NotSupportedException($"Unknown widget kind {definition.Kind}"),
         };
 
-        // SetResourceReference is the code equivalent of DynamicResource — accent brushes are swapped on
-        // theme change (App.RefreshAccentBrushes), so a static lookup would freeze the old theme's colour.
+        // SetResourceReference is the code equivalent of DynamicResource — role brushes are swapped when
+        // the theme or profile changes (ColorProfileService.Apply), so a static lookup would freeze the
+        // colours of whichever profile happened to be active when the widget was built.
         // A layout saved before colour schemes existed holds hardware-named keys that no longer resolve,
         // which would leave the widget colourless; fall back to the scheme's accent instead.
         var accentKey = definition.AccentKey.StartsWith("Aquila.Scheme.", StringComparison.Ordinal)

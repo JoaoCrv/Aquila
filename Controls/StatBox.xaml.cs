@@ -19,7 +19,16 @@ public partial class StatBox : UserControl
 
     public static readonly DependencyProperty ValueProperty =
         DependencyProperty.Register(nameof(Value), typeof(string), typeof(StatBox),
-            new PropertyMetadata("--"));
+            new PropertyMetadata("--", null, CoerceValue));
+
+    /// <summary>
+    /// Keeps the box from rendering a bare unit. A sensor that exists but reports null is not a broken
+    /// binding, so FallbackValue never fires; StringFormat simply yields an empty string and the caption
+    /// is left with "W" and nothing in front of it. Coercing here fixes every caller at once, rather
+    /// than relying on each of them to remember TargetNullValue.
+    /// </summary>
+    private static object CoerceValue(DependencyObject d, object baseValue) =>
+        string.IsNullOrWhiteSpace(baseValue as string) ? "--" : baseValue;
 
     public static readonly DependencyProperty UnitProperty =
         DependencyProperty.Register(nameof(Unit), typeof(string), typeof(StatBox),

@@ -2,7 +2,24 @@ namespace Aquila.Models;
 
 public class AppSettings
 {
-    public string Theme             { get; set; } = "Light";
+    /// <summary>Schema version of this file, so a one-time fix-up can tell "already applied" from
+    /// "the user has since changed their mind". Without it a migration keyed on the state it repairs
+    /// re-applies itself on every launch, and overwrites the very choice it was meant to preserve.</summary>
+    public int    SettingsVersion   { get; set; } = 0;
+
+    /// <summary>"Light", "Dark", or "System" to follow Windows. Brightness only — kept separate from
+    /// <see cref="ThemeStyle"/> so "System" keeps meaning exactly one thing, and so the two never have to
+    /// be enumerated as a combinatorial list.</summary>
+    public string Theme             { get; set; } = "System";
+
+    /// <summary>"Aquila" for our own look, "Fluent" for the untouched WPF-UI base — for anyone who would
+    /// rather the app matched the rest of Windows, including its accent colour.</summary>
+    public string ThemeStyle        { get; set; } = "Aquila";
+
+    /// <summary>Id of the active colour profile. Independent of the theme: one dresses the data, the
+    /// other the window, and the user is expected to mix them freely.</summary>
+    public string ColorProfileId    { get; set; } = "ember";
+
     public int    PollingIntervalMs { get; set; } = 1000;
     public bool   MinimizeToTray   { get; set; } = false;
     public bool   StartMinimized   { get; set; } = false;

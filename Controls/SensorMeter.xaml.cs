@@ -55,6 +55,21 @@ public partial class SensorMeter : UserControl
         DependencyProperty.Register(nameof(ValueWidth), typeof(GridLength), typeof(SensorMeter),
             new PropertyMetadata(new GridLength(44), (d, _) => ((SensorMeter)d).Apply()));
 
+    public static readonly DependencyProperty MaximumProperty =
+        DependencyProperty.Register(nameof(Maximum), typeof(double), typeof(SensorMeter),
+            new PropertyMetadata(double.NaN));
+
+    /// <summary>
+    /// Shared scale ceiling, passed through to the bar. Unset (NaN) leaves each bar on its own observed
+    /// maximum — right for a bar standing alone, wrong for several stacked in one card, where the eye
+    /// compares their lengths and a 16 W row can end up longer than a 35 W one.
+    /// </summary>
+    public double Maximum
+    {
+        get => (double)GetValue(MaximumProperty);
+        set => SetValue(MaximumProperty, value);
+    }
+
     /// <summary>Live sensor that drives the bar.</summary>
     public SensorNode? Sensor
     {

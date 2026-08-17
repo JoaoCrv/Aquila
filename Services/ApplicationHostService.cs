@@ -19,7 +19,10 @@ namespace Aquila.Services
                 nav.ShowWindow();
                 nav.Navigate(typeof(Views.Pages.DashboardPage));
 
-                if (settingsService.Current.StartMinimized || settingsService.Current.DashboardMode)
+                // One setting, the one that says so. Dashboard mode used to force this as well, which is
+                // the same hidden coupling that made closing behave oddly — the preset now sets
+                // StartMinimized outright, where the user can see it and turn it off.
+                if (settingsService.Current.StartMinimized)
                     ((System.Windows.Window)nav).Hide();
             }
 

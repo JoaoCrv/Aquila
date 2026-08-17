@@ -1,0 +1,46 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         AQUILA LIGHT — the light half of the default theme.
+
+         Our own theme is the one that has to exist in both variants: it is
+         what a new install opens with, and starting someone in the dark
+         because we never built the light side would contradict the choice
+         they already made in Windows. Themes added later need only one
+         variant — they simply take one side of the pair instead of both.
+
+         Same idea as Aquila Dark, inverted: warm paper rather than warm
+         soot, and an accent deepened until it holds against it. The bright
+         ember of the dark theme is unreadable on white, which is why the
+         value here is not the same colour dimmed.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <Color x:Key="Aquila.Theme.Accent">#CA5010</Color>
+
+    <!-- Scrim over the window's Mica — see the note in Aquila.Dark.xaml. -->
+    <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="#B3FBF8F5"/>
+
+    <!-- Surfaces, lightest to darkest -->
+    <SolidColorBrush x:Key="ApplicationBackgroundBrush"             Color="#FBF8F5"/>
+    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"      Color="#FBF8F5"/>
+    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#F4EFE9"/>
+    <SolidColorBrush x:Key="LayerFillColorDefaultBrush"             Color="#FFFFFF"/>
+
+    <!-- Cards -->
+    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"    Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"  Color="#F6F1EC"/>
+    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="#E8DFD7"/>
+
+    <!-- Controls -->
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"         Color="#F4EEE9"/>
+    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush"          Color="#EDE6DF"/>
+    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="#E3D9D1"/>
+    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="#D6CAC0"/>
+    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="#E3D9D1"/>
+
+    <!-- Separators -->
+    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush"         Color="#E8DFD7"/>
+
+</ResourceDictionary>

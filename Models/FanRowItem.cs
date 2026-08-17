@@ -11,6 +11,16 @@ public sealed class FanRowItem(SensorNode fan, SensorNode? control)
     public double      BarValue   => control?.Value ?? fan.Value ?? 0;
     public double      BarMaximum => control != null ? 100 : (fan.Max ?? 3000);
 
+    /// <summary>
+    /// How full the bar is, 0–100, whatever it is measuring.
+    ///
+    /// Exists so colour can mean the same thing on every row. A fan reporting a control signal fills the
+    /// bar with a percentage; one reporting only RPM fills it with a speed against its own observed
+    /// ceiling. Colouring the raw <see cref="BarValue"/> would read 1256 rpm as a percentage and call
+    /// every such fan critical.
+    /// </summary>
+    public double BarPercent => BarMaximum > 0 ? BarValue / BarMaximum * 100 : 0;
+
     public string? DutyText
     {
         get

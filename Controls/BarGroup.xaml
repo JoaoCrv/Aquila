@@ -25,7 +25,7 @@
                 <StackPanel>
                     <TextBlock Text="{Binding Label}" FontSize="10" Opacity="0.45"
                                HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                    <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                    <Border Background="{DynamicResource Aquila.Scheme.Track}"
                             CornerRadius="4" Margin="4,0" HorizontalAlignment="Stretch"
                             Height="{Binding BarHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <Border VerticalAlignment="Bottom" CornerRadius="4" Opacity="0.85"

@@ -28,6 +28,11 @@ public partial class SparklineChart : UserControl
     private LineSeries<double>? _primary;
     private LineSeries<double>? _secondary;
 
+    // Alpha at the TOP of the area gradient, where it meets the line. Higher than the old flat fill
+    // used, because the gradient gives it all back to transparency before reaching the axis.
+    private const byte PrimaryFillAlpha = 80;
+    private const byte SecondaryFillAlpha = 55;
+
     // ── Dependency properties ──────────────────────────────────────
 
     public static readonly DependencyProperty ValuesProperty =
@@ -124,13 +129,13 @@ public partial class SparklineChart : UserControl
 
         if (_primary == null)
         {
-            _primary = MakeLine(values, color, 35);
+            _primary = MakeLine(values, color, PrimaryFillAlpha);
 
             var series = new List<ISeries> { _primary };
 
             if (SecondValues is { } sv)
             {
-                _secondary = MakeLine(sv, ToSKColor(SecondColor), 25);
+                _secondary = MakeLine(sv, ToSKColor(SecondColor), SecondaryFillAlpha);
                 series.Add(_secondary);
             }
 
@@ -143,12 +148,12 @@ public partial class SparklineChart : UserControl
         {
             // Hot-path: only recolour (Values binding stays the same object).
             _primary.Values = values;
-            ApplyColor(_primary, color, 35);
+            ApplyColor(_primary, color, PrimaryFillAlpha);
 
             if (_secondary != null && SecondValues is { } sv)
             {
                 _secondary.Values = sv;
-                ApplyColor(_secondary, ToSKColor(SecondColor), 25);
+                ApplyColor(_secondary, ToSKColor(SecondColor), SecondaryFillAlpha);
             }
         }
     }
@@ -172,11 +177,23 @@ public partial class SparklineChart : UserControl
 
     // ── Helpers ────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Area fill: a vertical gradient from the series colour down to nothing.
+    ///
+    /// A flat semi-transparent fill only looks like a chart when the line is low. Let the value sit
+    /// high and steady — memory at half, a die temperature parked at 51 °C — and the area becomes a
+    /// uniform slab that reads as a filled box rather than as data. Fading it down keeps the eye on
+    /// the line, which is the part that carries the information.
+    /// </summary>
+    private static LinearGradientPaint AreaFill(SKColor color, byte topAlpha) =>
+        new(color.WithAlpha(topAlpha), color.WithAlpha(0),
+            new SKPoint(0.5f, 0f), new SKPoint(0.5f, 1f));
+
     private static LineSeries<double> MakeLine(
         IReadOnlyCollection<double> values, SKColor color, byte fillAlpha) => new()
     {
         Values          = values,
-        Fill            = new SolidColorPaint(color.WithAlpha(fillAlpha)),
+        Fill            = AreaFill(color, fillAlpha),
         Stroke          = new SolidColorPaint(color) { StrokeThickness = 1.5f },
         GeometryFill    = null,
         GeometryStroke  = null,
@@ -189,7 +206,7 @@ public partial class SparklineChart : UserControl
     private static void ApplyColor(LineSeries<double> line, SKColor color, byte fillAlpha)
     {
         DisposePaints(line);
-        line.Fill   = new SolidColorPaint(color.WithAlpha(fillAlpha));
+        line.Fill   = AreaFill(color, fillAlpha);
         line.Stroke = new SolidColorPaint(color) { StrokeThickness = 1.5f };
     }
 

@@ -141,7 +141,7 @@
                                     </Border.ToolTip>
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
-                                                   Foreground="{Binding Temperature.Value, Converter={StaticResource Intensity}, ConverterParameter='50,70,85'}">
+                                                   Foreground="{Binding Temperature.Value, Converter={StaticResource Intensity}, ConverterParameter=DriveTemperature}">
                                             <Run Text="{Binding Temperature.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                                             <Run Text="°C" FontSize="13" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                         </TextBlock>
