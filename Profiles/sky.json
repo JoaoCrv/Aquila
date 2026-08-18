@@ -16,9 +16,11 @@
     "alert": 4,
     "critical": 5,
 
+    // Series stay off steps 4 and 5, which alert and critical own — a series that borrows the
+    // alarm colour reads as an alarm. Same three steps as Ember, which this profile mirrors.
     "series1": 3,
     "series2": 1,
-    "series3": 5,
+    "series3": 2,
 
     "track": { "step": 3, "opacity": 0.15 }
   }

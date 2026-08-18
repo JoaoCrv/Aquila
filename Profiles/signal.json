@@ -16,9 +16,12 @@
     "alert": 4,
     "critical": 5,
 
+    // Series stay off steps 4 and 5, which alert and critical own. It matters most here: on a
+    // traffic-light ramp, step 5 IS red, so a third series would have looked like a fault.
+    // 1 and 3 keep the strongest contrast for the common two-series case; 2 sits between them.
     "series1": 1,
     "series2": 3,
-    "series3": 5,
+    "series3": 2,
 
     "track": { "step": 1, "opacity": 0.15 }
   }
