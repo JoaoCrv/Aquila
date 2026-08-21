@@ -1,10 +1,16 @@
 namespace Aquila.Models;
 
+/// <summary>
+/// The widget shapes the desktop can show. Names are persisted in widgets.json by name, not by number,
+/// so entries may be added freely but not renamed without breaking existing layouts.
+/// </summary>
 public enum DesktopWidgetKind
 {
     RadialGauge,
     MiniSparkline,
     SensorMeter,
+    StatBox,
+    SparklineChart,
 }
 
 /// <summary>
@@ -19,12 +25,42 @@ public enum DesktopWidgetKind
 public class DesktopWidgetDefinition
 {
     public DesktopWidgetKind Kind { get; set; }
-    public string SensorIdentifier { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
 
-    /// <summary>Resource key of the accent brush — a colour-profile role, e.g. "Aquila.Scheme.Accent" —
-    /// held as a key rather than a colour so a widget follows theme and profile changes.</summary>
+    /// <summary>
+    /// What this widget draws, in order. One entry for a dial or a number; a chart may have more.
+    ///
+    /// A list rather than a first sensor with optional extras beside it. That was tried and the editor it
+    /// produced was confusing: a "sensor" and a "second sensor" are the same thing wearing different
+    /// names, and nothing on screen explained why one of them could be cleared and the other could not.
+    /// A list is also how people describe a chart — these readings, in this order.
+    /// </summary>
+    public List<WidgetSeries> Series { get; set; } = [];
+
+    /// <summary>Legacy: the single sensor written before <see cref="Series"/> existed. Read once to
+    /// migrate an older widgets.json, then left empty.</summary>
+    public string SensorIdentifier { get; set; } = string.Empty;
+
+    /// <summary>Legacy, alongside <see cref="SensorIdentifier"/>.</summary>
     public string AccentKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Folds a pre-list layout into <see cref="Series"/>. Keyed on Series being empty rather than on the
+    /// old fields having values, so a widget the user has since emptied is not resurrected on every load.
+    /// </summary>
+    public void MigrateSeries()
+    {
+        if (Series.Count > 0 || string.IsNullOrEmpty(SensorIdentifier)) return;
+
+        Series.Add(new WidgetSeries
+        {
+            SensorIdentifier = SensorIdentifier,
+            AccentKey = AccentKey,
+        });
+
+        SensorIdentifier = string.Empty;
+        AccentKey = string.Empty;
+    }
 
     /// <summary>Which physical monitor the widget lives on — a stable identity derived from the monitor's
     /// EDID manufacturer/product code and connection, not its index or DeviceName (both shift when
@@ -40,6 +76,10 @@ public class DesktopWidgetDefinition
     public double Y { get; set; }
     public double Width { get; set; }
     public double Height { get; set; }
+
+    /// <summary>Which widget draws on top where two overlap — higher is nearer the front. Without it the
+    /// order is whatever the layout file happens to list, which the user has no way to change.</summary>
+    public int ZIndex { get; set; }
 
     // --- Appearance ---
     // Colours are stored as "#RRGGBB" and combined with the separate opacity, rather than as "#AARRGGBB":
@@ -59,28 +99,22 @@ public class DesktopWidgetDefinition
     /// <summary>0 hides the border entirely.</summary>
     public double BorderThickness { get; set; } = 0;
 
-    public DesktopWidgetDefinition Clone() => (DesktopWidgetDefinition)MemberwiseClone();
-
-    /// <summary>
-    /// Restores this definition's values from another, IN PLACE. Editing mutates the live definition so
-    /// the desktop updates as you type; cancelling has to undo that without swapping the instance, because
-    /// the rendered element is tracked by reference.
-    /// </summary>
-    public void CopyFrom(DesktopWidgetDefinition other)
+    public DesktopWidgetDefinition Clone()
     {
-        Kind = other.Kind;
-        SensorIdentifier = other.SensorIdentifier;
-        Title = other.Title;
-        AccentKey = other.AccentKey;
-        ScreenKey = other.ScreenKey;
-        ScreenIndex = other.ScreenIndex;
-        X = other.X; Y = other.Y;
-        Width = other.Width; Height = other.Height;
-        BackgroundColor = other.BackgroundColor;
-        BackgroundOpacity = other.BackgroundOpacity;
-        CornerRadius = other.CornerRadius;
-        BorderColor = other.BorderColor;
-        BorderOpacity = other.BorderOpacity;
-        BorderThickness = other.BorderThickness;
+        var copy = (DesktopWidgetDefinition)MemberwiseClone();
+        copy.Series = Series.Select(s => s.Clone()).ToList();
+        return copy;
     }
+}
+
+/// <summary>One reading inside a widget: which sensor, and the colour role it is drawn in.</summary>
+public class WidgetSeries
+{
+    public string SensorIdentifier { get; set; } = string.Empty;
+
+    /// <summary>A colour-profile role, e.g. "Aquila.Scheme.Series1" — held as a key rather than a colour
+    /// so the series follows theme and profile changes.</summary>
+    public string AccentKey { get; set; } = string.Empty;
+
+    public WidgetSeries Clone() => (WidgetSeries)MemberwiseClone();
 }

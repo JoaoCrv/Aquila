@@ -42,6 +42,19 @@ namespace Aquila.Services
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        /// <summary>
+        /// Commits an open widget edit session on the way out.
+        ///
+        /// Nothing is written to disk while edit mode is open, so closing the app mid-edit would otherwise
+        /// lose everything done since it was entered — and edit mode minimizes the window, so it can sit
+        /// open for a long time. Between losing deliberate work to a shutdown the user may not have chosen
+        /// and keeping changes they were going to keep anyway, keeping them is the smaller mistake. Does
+        /// nothing when no session is open.
+        /// </summary>
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            serviceProvider.GetRequiredService<DesktopWidgetService>().EndEditSession(save: true);
+            return Task.CompletedTask;
+        }
     }
 }

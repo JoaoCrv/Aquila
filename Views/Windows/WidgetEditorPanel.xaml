@@ -1,0 +1,368 @@
+<ui:FluentWindow x:Class="Aquila.Views.Windows.WidgetEditorPanel"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Widget"
+        Width="380"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica"
+        WindowCornerPreference="Round"
+        WindowStartupLocation="Manual">
+
+    <!--
+        The properties panel, docked to a screen edge while edit mode is on — the arrangement of an image
+        editor rather than a dialog.
+
+        It replaced a modal window, and the reason is not fashion: the whole point of edit mode is that the
+        widgets are visible on the real desktop, and a modal that must be dismissed before you can touch
+        one of them fights that. Here selecting a widget fills the panel, and every change lands on the
+        desktop as it is made.
+
+        There is no OK or Cancel. Dragging a widget already saved without asking, so a colour change asking
+        for confirmation would have been the odd one out.
+    -->
+
+    <Window.Resources>
+        <CollectionViewSource x:Key="GroupedSensors" Source="{Binding ViewModel.Sensors}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Component"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Opacity" Value="0.7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <!-- The reading opposite a label, e.g. "8 px". Same weight as the label: it reports the slider,
+             it is not a heading of its own. -->
+        <Style x:Key="FieldValue" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
+            <Setter Property="Margin" Value="8,0,0,4"/>
+        </Style>
+
+        <Style TargetType="ui:CardExpander" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- No Border of its own: the panel IS a window, so its background, its rounded corners and its
+         border come from the same FluentWindow style the main window uses. Painting them by hand meant
+         a flat rectangle sitting next to a Mica one, and two places to change whenever the theme did. -->
+    <Grid Margin="14,10,14,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- The whole panel is a drag handle: it has no title bar of its own, and being pinned to one
+                 edge would eventually cover the very widget being edited. -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Header_Drag">
+                <TextBlock Text="Widget" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="SubtitleText" FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                           Text="Click a widget on the desktop to edit it."/>
+            </StackPanel>
+
+            <!-- Everything below is hidden until something is selected: an editor full of controls that
+                 change nothing is worse than an empty panel saying so. -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Visibility="{Binding ViewModel.HasTarget, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+
+                    <ui:CardExpander Icon="{ui:SymbolIcon Grid24}" IsExpanded="True">
+                        <ui:CardExpander.Header>
+                            <TextBlock Text="Widget" FontWeight="SemiBold"/>
+                        </ui:CardExpander.Header>
+
+                        <Grid Margin="0,14,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0">
+                                <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                                <ListBox ItemsSource="{Binding ViewModel.Kinds}"
+                                         SelectedItem="{Binding ViewModel.SelectedKind}"
+                                         BorderThickness="0" Background="Transparent"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <!-- Columns, not Rows="1". One row worked while there were three kinds and
+                                         broke at five: each cell fell to about 70px and every description wrapped
+                                         to four lines. Fixing the column count instead lets the list fill downwards
+                                         as kinds are added — two of them, because the panel is a narrow column and
+                                         three cells across it are narrower than the word "MiniSparkline". -->
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Margin" Value="0,0,6,0"/>
+                                            <Setter Property="Padding" Value="10,8"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Description}" FontSize="11" Opacity="0.6"
+                                                           TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+
+                            <!-- No accent picker here any more: colour belongs to a reading, not to the widget,
+                                 and each row above carries its own. -->
+                            <StackPanel Grid.Row="1" Margin="0,16,0,0">
+                                <TextBlock Text="Title" Style="{StaticResource FieldLabel}"/>
+                                <ui:TextBox PlaceholderText="Defaults to the sensor name"
+                                            Text="{Binding ViewModel.Title, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                    </ui:CardExpander>
+
+                    <ui:CardExpander Icon="{ui:SymbolIcon DataHistogram24}" IsExpanded="True">
+                        <ui:CardExpander.Header>
+                            <TextBlock Text="Data" FontWeight="SemiBold"/>
+                        </ui:CardExpander.Header>
+
+                        <!-- A plain stack: in a scrolling panel nothing can stretch to fill, so the
+                             Grid that used to make the list take the leftover height had none to take. The
+                             list carries its own height instead. -->
+                        <StackPanel Margin="0,14,0,0">
+
+                            <TextBlock Text="Sensor" Style="{StaticResource FieldLabel}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox Grid.Column="0" PlaceholderText="Search sensors…"
+                                            Text="{Binding ViewModel.SensorFilter, UpdateSourceTrigger=PropertyChanged}"/>
+                                <!-- Picking and pressing are deliberately separate. A click that added straight
+                                     from the list would be far too easy to do by accident while scrolling two
+                                     hundred sensors. The label says which of the two things the press does. -->
+                                <ui:Button Grid.Column="2" Appearance="Primary"
+                                           Content="{Binding ViewModel.AddLabel}"
+                                           IsEnabled="{Binding ViewModel.CanAdd}"
+                                           Command="{Binding ViewModel.AddSeriesCommand}"/>
+                            </Grid>
+                            <!-- A height of its own, and a scrollbar of its own. Left to measure freely
+                                 inside the panel's scroller it would grow to two hundred rows and push
+                                 everything below it off the bottom. -->
+                            <ListBox Margin="0,8,0,0" Height="240"
+                                     ItemsSource="{Binding Source={StaticResource GroupedSensors}}"
+                                     SelectedItem="{Binding ViewModel.SelectedSensor}">
+                                <ListBox.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                           Opacity="0.6" FontSize="11" Margin="0,8,0,2"/>
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                    </GroupStyle>
+                                </ListBox.GroupStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                            <!-- Live value: names alone are ambiguous when a machine reports a
+                                                 dozen similar temperatures. -->
+                                            <TextBlock Grid.Column="1" Opacity="0.6" Margin="12,0,0,0">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                        <Binding Path="Sensor.Value" FallbackValue="--"/>
+                                                        <Binding Path="Sensor.Unit"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,4"
+                                       Text="{Binding ViewModel.SeriesHint}"/>
+
+                            <!-- What the widget draws, in the order it was added. Each row keeps its own
+                                 colour, because two readings in one role colour are one reading. -->
+                            <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="4"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Text="{Binding Sensor.Display}"/>
+                                            <ComboBox Grid.Column="2"
+                                                      ItemsSource="{Binding Accents}"
+                                                      SelectedItem="{Binding Accent}"
+                                                      DisplayMemberPath="Name"/>
+                                            <ui:Button Grid.Column="4"
+                                                       Icon="{ui:SymbolIcon Dismiss24}"
+                                                       ToolTip="Remove this reading"
+                                                       Command="{Binding DataContext.ViewModel.RemoveSeriesCommand,
+                                                                 RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ui:CardExpander>
+
+                    <ui:CardExpander Icon="{ui:SymbolIcon Color24}">
+                        <ui:CardExpander.Header>
+                            <TextBlock Text="Appearance" FontWeight="SemiBold"/>
+                        </ui:CardExpander.Header>
+
+                    <!-- Label left, reading right, control full width underneath. The dialog this came from
+                         put them side by side, which needed about 490px of fixed widths; the panel has around
+                         320, so the second half was simply off the edge. Nothing here has a fixed width now. -->
+                    <StackPanel Margin="0,14,0,0">
+
+                            <TextBlock Text="Background" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Colors}"
+                                      SelectedItem="{Binding ViewModel.SelectedBackground}"
+                                      DisplayMemberPath="Name"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.BackgroundOpacity, StringFormat={}{0:F0}%}"/>
+                                <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="100"
+                                    Value="{Binding ViewModel.BackgroundOpacity}"/>
+
+                            <TextBlock Text="Border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Colors}"
+                                      SelectedItem="{Binding ViewModel.SelectedBorder}"
+                                      DisplayMemberPath="Name"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.BorderOpacity, StringFormat={}{0:F0}%}"/>
+                                <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="100"
+                                    Value="{Binding ViewModel.BorderOpacity}"/>
+
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.BorderThickness, StringFormat={}{0:F0} px}"/>
+                                <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True"
+                                    Value="{Binding ViewModel.BorderThickness}"/>
+
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.CornerRadius, StringFormat={}{0:F0} px}"/>
+                                <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="24"
+                                    Value="{Binding ViewModel.CornerRadius}"/>
+                    </StackPanel>
+                    </ui:CardExpander>
+
+                    <!-- Where it sits and how big it is, in exact numbers. Dragging and the wheel are the
+                         quick way; these are for lining widgets up deliberately, and for fetching one back
+                         when it has ended up somewhere off-screen. -->
+                    <ui:CardExpander Icon="{ui:SymbolIcon Ruler24}">
+                        <ui:CardExpander.Header>
+                            <TextBlock Text="Layout" FontWeight="SemiBold"/>
+                        </ui:CardExpander.Header>
+
+                        <StackPanel Margin="0,14,0,0">
+
+                            <TextBlock Text="Position" Style="{StaticResource FieldLabel}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="X" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Y" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                              Value="{Binding ViewModel.WidgetX, Mode=TwoWay}"/>
+                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                              Value="{Binding ViewModel.WidgetY, Mode=TwoWay}"/>
+                            </Grid>
+
+                            <TextBlock Text="Size" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Height" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                              Minimum="40" Maximum="4000"
+                                              Value="{Binding ViewModel.WidgetWidth, Mode=TwoWay}"/>
+                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                              Minimum="40" Maximum="4000"
+                                              Value="{Binding ViewModel.WidgetHeight, Mode=TwoWay}"/>
+                            </Grid>
+
+                            <!-- Which widget draws on top where two overlap. "Layer" rather than "Z-index":
+                                 the number is a z-index, but the thing being chosen is what sits in front. -->
+                            <DockPanel Margin="0,16,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.Layer, StringFormat={}{0:F0}}"/>
+                                <TextBlock Text="Layer" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="10"
+                                    TickFrequency="1" IsSnapToTickEnabled="True"
+                                    Value="{Binding ViewModel.Layer}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                       Opacity="0.5" TextWrapping="Wrap"
+                                       Text="0 sits at the back. Where two widgets overlap, the higher layer draws in front."/>
+                        </StackPanel>
+                    </ui:CardExpander>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                        Margin="0,12,0,0">
+                <ui:Button Content="Add widget" Appearance="Primary"
+                           Icon="{ui:SymbolIcon Add24}"
+                           Click="Add_Click"/>
+                <ui:Button Margin="8,0,0,0" Content="Remove"
+                           Icon="{ui:SymbolIcon Delete24}"
+                           IsEnabled="{Binding ViewModel.HasTarget}"
+                           Click="Remove_Click"/>
+            </StackPanel>
+    </Grid>
+</ui:FluentWindow>

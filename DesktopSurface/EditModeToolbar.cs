@@ -14,7 +14,11 @@ namespace Aquila.DesktopSurface;
 /// </summary>
 internal sealed class EditModeToolbar : Window
 {
-    public event Action? Done;
+    /// <summary>Leave edit mode and keep the changes.</summary>
+    public event Action? Save;
+
+    /// <summary>Leave edit mode and throw the changes away.</summary>
+    public event Action? Discard;
 
     public EditModeToolbar()
     {
@@ -29,25 +33,36 @@ internal sealed class EditModeToolbar : Window
 
         var hint = new TextBlock
         {
-            Text = "Editing widgets — drag to move, right-click for more",
+            Text = "Editing widgets — nothing is saved until you press Save",
             Foreground = new SolidColorBrush(Color.FromArgb(0xCC, 0xFF, 0xFF, 0xFF)),
             FontSize = 13,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 20, 0),
         };
 
-        var done = new Button
+        var discard = new Button
         {
-            Content = "Done",
+            Content = "Discard",
+            Padding = new Thickness(14, 6, 14, 6),
+            Margin = new Thickness(0, 0, 8, 0),
+            Cursor = System.Windows.Input.Cursors.Hand,
+        };
+        discard.Click += (_, _) => Discard?.Invoke();
+
+        var save = new Button
+        {
+            Content = "Save",
             Padding = new Thickness(18, 6, 18, 6),
             FontWeight = FontWeights.SemiBold,
             Cursor = System.Windows.Input.Cursors.Hand,
         };
-        done.Click += (_, _) => Done?.Invoke();
+        save.Click += (_, _) => Save?.Invoke();
 
+        // Discard first, Save last: the destructive one is the one further from where the hand rests.
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         row.Children.Add(hint);
-        row.Children.Add(done);
+        row.Children.Add(discard);
+        row.Children.Add(save);
 
         Content = new Border
         {

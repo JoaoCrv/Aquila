@@ -11,7 +11,7 @@ namespace Aquila.Controls;
 /// number from <see cref="SensorNode.Value"/>. A thin wrapper over <see cref="SparklineChart"/> so
 /// the dashboard and desktop widgets share one piece (sibling of <see cref="RadialGauge"/>).
 /// </summary>
-public partial class MiniSparkline : UserControl
+public partial class MiniSparkline : UserControl, ISensorPiece
 {
     public MiniSparkline()
     {

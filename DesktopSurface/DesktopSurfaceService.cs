@@ -63,6 +63,7 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
             window.WidgetMoved += (element, x, y) => WidgetMoved?.Invoke(ToSurface(window), element, x, y);
             window.WidgetResized += (element, w, h) => WidgetResized?.Invoke(element, w, h);
             window.WidgetRightClicked += OnWidgetRightClicked;
+            window.WidgetSelected += (_, element) => WidgetSelected?.Invoke(element);
             window.Show();
 
             var anchor = anchorFactory();
@@ -138,8 +139,10 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
         ScreenIdentifyOverlay.ShowAll(_surfaces.Select(s => (s.Window.ScreenBounds, s.Window.ScreenLabel)));
 
     /// <summary>Raised when the user finishes editing from the floating toolbar, so the app can undo
-    /// whatever it did to get out of the way (typically un-minimize itself).</summary>
-    public event Action? EditingFinished;
+    /// whatever it did to get out of the way (typically un-minimize itself). True to keep the changes made
+    /// during the session, false to throw them away — this layer only reports which button was pressed and
+    /// has no idea what either one means.</summary>
+    public event Action<bool>? EditingFinished;
 
     /// <summary>
     /// Enters/leaves edit mode (#30) on every surface: widgets become draggable and get a dashed outline.
@@ -159,7 +162,8 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
         if (_toolbar is not null) return;
 
         _toolbar = new EditModeToolbar();
-        _toolbar.Done += () => EditingFinished?.Invoke();
+        _toolbar.Save += () => EditingFinished?.Invoke(true);
+        _toolbar.Discard += () => EditingFinished?.Invoke(false);
         _toolbar.Show();
     }
 
@@ -183,6 +187,10 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     /// caller, not here: actions like edit/remove are domain concepts, and this service must not learn
     /// what a widget means.</summary>
     public event Action<Surface, System.Windows.UIElement>? WidgetRightClicked;
+
+    /// <summary>Raised when a widget is pressed in edit mode. What "selected" means is the caller's
+    /// business — this service only reports that one was reached for.</summary>
+    public event Action<System.Windows.UIElement>? WidgetSelected;
 
     private void OnWidgetRightClicked(ScreenCanvasWindow source, System.Windows.UIElement widget) =>
         WidgetRightClicked?.Invoke(ToSurface(source), widget);

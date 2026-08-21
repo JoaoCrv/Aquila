@@ -15,7 +15,7 @@ public enum MeterLabelPlacement { Inline, Top }
 /// below (Top, e.g. StorageCard). <see cref="Label"/>/<see cref="ValueText"/> are plain strings the
 /// caller formats, the same convention as <see cref="StatBox"/>.
 /// </summary>
-public partial class SensorMeter : UserControl
+public partial class SensorMeter : UserControl, ISensorPiece
 {
     public SensorMeter()
     {

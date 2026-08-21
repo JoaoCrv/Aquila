@@ -39,12 +39,20 @@ public sealed class DesktopLayoutService(ILogger<DesktopLayoutService> logger)
         }
     }
 
+    /// <summary>
+    /// The exact text <see cref="Save"/> would write. Exposed so "has anything changed?" can be answered by
+    /// comparing two layouts as they would be stored — anything this serializer ignores is, by definition,
+    /// not a change worth prompting about, and no hand-written comparison can drift away from it.
+    /// </summary>
+    public static string Serialize(IEnumerable<DesktopWidgetDefinition> widgets) =>
+        JsonSerializer.Serialize(widgets, _json);
+
     public void Save(IEnumerable<DesktopWidgetDefinition> widgets)
     {
         try
         {
             Directory.CreateDirectory(AquilaPaths.Root);
-            File.WriteAllText(AquilaPaths.Widgets, JsonSerializer.Serialize(widgets, _json));
+            File.WriteAllText(AquilaPaths.Widgets, Serialize(widgets));
         }
         catch (Exception ex)
         {

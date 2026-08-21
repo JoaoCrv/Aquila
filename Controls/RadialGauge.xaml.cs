@@ -12,7 +12,7 @@ namespace Aquila.Controls;
 /// AIDA64-style radial gauge for a single sensor, built on the LiveCharts gauge (AquilaCharts).
 /// Bind <see cref="Sensor"/> to a live SensorNode; the gauge animates as the value changes.
 /// </summary>
-public partial class RadialGauge : UserControl
+public partial class RadialGauge : UserControl, ISensorPiece
 {
     private ObservableValue? _point;
     private SKColor _lastColor;

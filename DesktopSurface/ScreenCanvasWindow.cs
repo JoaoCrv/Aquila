@@ -41,6 +41,11 @@ internal sealed class ScreenCanvasWindow : Window
     /// actions that need to know about the OTHER screens (this window only knows its own).</summary>
     public event Action<ScreenCanvasWindow, UIElement>? WidgetRightClicked;
 
+    /// <summary>Raised when a widget is pressed in edit mode, before any drag begins. Selection and
+    /// dragging share the gesture on purpose: you reach for a widget to move it or to change it, and
+    /// making those two different gestures would mean explaining which is which.</summary>
+    public event Action<ScreenCanvasWindow, UIElement>? WidgetSelected;
+
     /// <summary>Raised after a widget is resized with the wheel, with its new size in DIPs.</summary>
     public event Action<UIElement, double, double>? WidgetResized;
 
@@ -125,6 +130,8 @@ internal sealed class ScreenCanvasWindow : Window
 
         var child = FindWidgetUnder(e.OriginalSource as DependencyObject);
         if (child is null) return;
+
+        WidgetSelected?.Invoke(this, child);
 
         _dragTarget = child;
         var pointer = e.GetPosition(Surface);

@@ -33,7 +33,7 @@ public partial class WidgetsViewModel : ObservableObject
         _initialized = true;
 
         // The floating toolbar is the only way out of edit mode once the window is minimized.
-        _surface.EditingFinished += StopEditing;
+        _surface.EditingFinished += save => StopEditing(save);
     }
 
     public HardwareNode Hardware => _aquila.State.Hardware;
@@ -62,7 +62,9 @@ public partial class WidgetsViewModel : ObservableObject
         }
         else
         {
-            if (IsEditingOnDesktop) StopEditing();
+            // Turning the surface off mid-edit keeps the work: the user asked to hide the widgets, not to
+            // throw away what they had just done to them.
+            if (IsEditingOnDesktop) StopEditing(save: true);
             _surface.Hide();
         }
     }
@@ -72,16 +74,21 @@ public partial class WidgetsViewModel : ObservableObject
     [RelayCommand]
     private void IdentifyScreens() => _surface.IdentifyScreens();
 
-    /// <summary>Opens the editor to create a widget. The same dialog handles editing (from the desktop
-    /// context menu) and, later, arriving from the Explorer with a sensor already chosen.</summary>
+    /// <summary>
+    /// Creates a widget and takes the user to it. Adding one means going to the desktop to place and dress
+    /// it, so this enters edit mode rather than leaving the new widget behind on a screen nobody is looking
+    /// at — the same trip they would have made a second later anyway.
+    /// </summary>
     [RelayCommand]
     private void AddWidget()
     {
-        // The editor turns the surface on itself if it's off — it needs somewhere to preview. Reflecting
-        // that back here keeps the switch honest; Populate is idempotent, so the re-entry is harmless.
-        _widgets.OpenEditor(existing: null, presetSensorIdentifier: null);
+        // The surface first, because there has to be somewhere to put the widget; then the session, because
+        // a widget added outside one would be written to disk immediately and Discard could not take it
+        // back; then the widget itself. Populate is idempotent, so turning the surface on twice is harmless.
+        if (!ShowOnDesktop) ShowOnDesktop = true;
 
-        if (!ShowOnDesktop && _surface.IsShown) ShowOnDesktop = true;
+        StartEditing();
+        _widgets.AddWidget(presetSensorIdentifier: null);
     }
 
     /// <summary>
@@ -96,17 +103,32 @@ public partial class WidgetsViewModel : ObservableObject
 
         IsEditingOnDesktop = true;
         _surface.SetEditing(true);
+        _widgets.BeginEditSession();
 
         if (FindMainWindow() is { } window)
             window.WindowState = WindowState.Minimized;
     }
 
-    private void StopEditing()
+    /// <summary>Leaves edit mode, keeping the session's changes or throwing them away. Nothing was written
+    /// while it was open, so this is the one moment either outcome is decided.</summary>
+    private void StopEditing(bool save)
     {
         if (!IsEditingOnDesktop) return;
 
+        // Asked only when there is something to lose. A confirmation that appears when nothing changed
+        // teaches the user to dismiss it without reading, which is when it stops protecting anything.
+        if (!save && _widgets.HasUnsavedChanges &&
+            MessageBox.Show(
+                "Discard every change made since edit mode was entered?",
+                "Discard changes",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No) != MessageBoxResult.Yes)
+            return;
+
         IsEditingOnDesktop = false;
         _surface.SetEditing(false);
+        _widgets.EndEditSession(save);
 
         if (FindMainWindow() is { } window)
         {
