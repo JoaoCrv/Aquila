@@ -14,6 +14,47 @@ public enum DesktopWidgetKind
 }
 
 /// <summary>
+/// How the area under a chart line is filled. Persisted by name, like <see cref="DesktopWidgetKind"/>.
+///
+/// Three, not a checkbox: over a busy wallpaper no fill at all reads best, over a plain one a flat block is
+/// punchier, and the gradient sits between them. Which one wins depends on the desktop underneath, which is
+/// exactly the sort of thing the app cannot guess.
+/// </summary>
+public enum ChartFill
+{
+    None,
+    Flat,
+    Gradient,
+}
+
+/// <summary>
+/// How far round the dial goes. A preset rather than two free angles, because the start and the sweep have
+/// to agree — a 270° arc starting at the top leaves the gap in the wrong place, and letting the user
+/// discover that by dragging two sliders against each other is not flexibility, it is homework.
+/// </summary>
+public enum GaugeSweep
+{
+    /// <summary>180°, flat side down. Reads as a speedometer.</summary>
+    Half,
+
+    /// <summary>270° with the gap at the bottom. The default, and what most dials look like.</summary>
+    Dial,
+
+    /// <summary>A closed 360° ring, starting at the top.</summary>
+    Ring,
+}
+
+/// <summary>Where the meter's reading sits relative to its bar.</summary>
+public enum MeterLayout
+{
+    /// <summary>Value to the right of the bar, on the same line.</summary>
+    Beside,
+
+    /// <summary>Value above the bar, which leaves the bar the full width.</summary>
+    Above,
+}
+
+/// <summary>
 /// One persisted desktop widget (#24): which piece, which sensor, and where it sits. Stored as data
 /// rather than code so the layout survives restarts and, later, so the pin-from-Explorer flow can create
 /// widgets without touching the widget-building code.
@@ -92,6 +133,57 @@ public class DesktopWidgetDefinition
     public double BackgroundOpacity { get; set; } = 0.6;
 
     public double CornerRadius { get; set; } = 8;
+
+    // --- Line, for the kinds drawn as one (sparkline, chart) ---
+    // Ignored by the others, rather than kept somewhere separate: a widget's appearance is one record, and
+    // splitting it by which kind reads which field would mean a second thing to migrate.
+
+    /// <summary>Line width in DIPs. 1.5 is LiveCharts-thin; on a large display it nearly disappears.</summary>
+    public double LineThickness { get; set; } = 1.5;
+
+    public ChartFill Fill { get; set; } = ChartFill.Gradient;
+
+    /// <summary>0 draws straight segments between readings, 1 a fully rounded curve.</summary>
+    public double LineSmoothness { get; set; } = 0.5;
+
+    /// <summary>Diameter of the dot drawn at each reading. 0 hides them, which is the default — on a
+    /// 60-point sparkline they merge into a caterpillar.</summary>
+    public double PointSize { get; set; }
+
+    // --- Bar, for the meter ---
+
+    /// <summary>Bar height in DIPs. 6 is the dashboard's hairline, which is right in a dense card and thin
+    /// on a widget with a whole panel to itself.</summary>
+    public double BarThickness { get; set; } = 6;
+
+    /// <summary>Corner radius of the bar. Half the thickness or more gives a pill; 0 gives square ends.</summary>
+    public double BarCorner { get; set; } = 3;
+
+    public MeterLayout Layout { get; set; } = MeterLayout.Beside;
+
+    /// <summary>Point size of the meter's reading. Its own field rather than sharing the dial's: 24pt in
+    /// the middle of a dial is right, and 24pt next to a 6px bar is a caption wearing the bar as a belt.
+    /// One number that has to suit both is a number that suits neither.</summary>
+    public double BarValueSize { get; set; } = 13;
+
+    // --- Dial, for the radial gauge ---
+
+    /// <summary>Thickness of the arc in DIPs. 14 suits the 170x190 default; a gauge dragged out to twice
+    /// that leaves a thin ribbon in a lot of empty space.</summary>
+    public double ArcThickness { get; set; } = 14;
+
+    /// <summary>Rounding on the ends of the arc. 0 by default, and not only for looks: a rounded cap is
+    /// drawn at a fixed size, so on a very short arc it is wider than the arc and jitters around zero.</summary>
+    public double ArcCorner { get; set; }
+
+    public GaugeSweep Sweep { get; set; } = GaugeSweep.Dial;
+
+    /// <summary>Point size of the number in the dial's centre.</summary>
+    public double ValueSize { get; set; } = 24;
+
+    /// <summary>Whether that number is drawn at all — an arc on its own is a perfectly good glanceable
+    /// widget, and the title above it already says what is being measured.</summary>
+    public bool ShowValue { get; set; } = true;
 
     public string BorderColor { get; set; } = "#FFFFFF";
     public double BorderOpacity { get; set; } = 0.25;

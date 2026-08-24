@@ -11,7 +11,7 @@ namespace Aquila.Controls;
 /// number from <see cref="SensorNode.Value"/>. A thin wrapper over <see cref="SparklineChart"/> so
 /// the dashboard and desktop widgets share one piece (sibling of <see cref="RadialGauge"/>).
 /// </summary>
-public partial class MiniSparkline : UserControl, ISensorPiece
+public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle
 {
     public MiniSparkline()
     {
@@ -40,6 +40,14 @@ public partial class MiniSparkline : UserControl, ISensorPiece
         get => (Brush?)GetValue(AccentProperty);
         set => SetValue(AccentProperty, value);
     }
+
+    // Straight through to the chart inside, with no properties of its own. Spark exists from
+    // InitializeComponent onwards, so there is no window in which a value could be set and lost — which is
+    // exactly the trap Render falls into, having to wait for IsLoaded before it can touch anything.
+    public double LineThickness { get => Spark.LineThickness; set => Spark.LineThickness = value; }
+    public Models.ChartFill Fill { get => Spark.Fill; set => Spark.Fill = value; }
+    public double Smoothness { get => Spark.Smoothness; set => Spark.Smoothness = value; }
+    public double PointSize { get => Spark.PointSize; set => Spark.PointSize = value; }
 
     private static void OnSensorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {

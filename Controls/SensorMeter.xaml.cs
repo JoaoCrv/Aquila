@@ -15,7 +15,7 @@ public enum MeterLabelPlacement { Inline, Top }
 /// below (Top, e.g. StorageCard). <see cref="Label"/>/<see cref="ValueText"/> are plain strings the
 /// caller formats, the same convention as <see cref="StatBox"/>.
 /// </summary>
-public partial class SensorMeter : UserControl, ISensorPiece
+public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
 {
     public SensorMeter()
     {
@@ -127,6 +127,63 @@ public partial class SensorMeter : UserControl, ISensorPiece
         set => SetValue(ValueWidthProperty, value);
     }
 
+    public static readonly DependencyProperty BarThicknessProperty =
+        DependencyProperty.Register(nameof(BarThickness), typeof(double), typeof(SensorMeter),
+            new PropertyMetadata(6d, (d, _) => ((SensorMeter)d).Apply()));
+
+    public static readonly DependencyProperty BarCornerProperty =
+        DependencyProperty.Register(nameof(BarCorner), typeof(double), typeof(SensorMeter),
+            new PropertyMetadata(3d, (d, _) => ((SensorMeter)d).Apply()));
+
+    public static readonly DependencyProperty ShowValueProperty =
+        DependencyProperty.Register(nameof(ShowValue), typeof(bool), typeof(SensorMeter),
+            new PropertyMetadata(true, (d, _) => ((SensorMeter)d).Apply()));
+
+    public static readonly DependencyProperty ValueSizeProperty =
+        DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(SensorMeter),
+            new PropertyMetadata(13d, (d, _) => ((SensorMeter)d).Apply()));
+
+    /// <summary>Height of the bar in DIPs.</summary>
+    public double BarThickness
+    {
+        get => (double)GetValue(BarThicknessProperty);
+        set => SetValue(BarThicknessProperty, value);
+    }
+
+    /// <summary>Corner radius of the bar. Half the thickness or more reads as a pill, 0 as square ends.</summary>
+    public double BarCorner
+    {
+        get => (double)GetValue(BarCornerProperty);
+        set => SetValue(BarCornerProperty, value);
+    }
+
+    /// <summary>Whether the reading is drawn beside (or above) the bar.</summary>
+    public bool ShowValue
+    {
+        get => (bool)GetValue(ShowValueProperty);
+        set => SetValue(ShowValueProperty, value);
+    }
+
+    /// <summary>Point size of that reading.</summary>
+    public double ValueSize
+    {
+        get => (double)GetValue(ValueSizeProperty);
+        set => SetValue(ValueSizeProperty, value);
+    }
+
+    /// <summary>
+    /// The widget-facing name for <see cref="LabelPlacement"/>, projected rather than stored.
+    ///
+    /// Two properties holding the same fact is how they end up disagreeing. The dashboard cards say
+    /// Inline/Top because they are placing a label; a widget has its title elsewhere and is only choosing
+    /// where the number goes, so it says Beside/Above.
+    /// </summary>
+    public MeterLayout Layout
+    {
+        get => LabelPlacement == MeterLabelPlacement.Top ? MeterLayout.Above : MeterLayout.Beside;
+        set => LabelPlacement = value == MeterLayout.Above ? MeterLabelPlacement.Top : MeterLabelPlacement.Inline;
+    }
+
     private void Apply()
     {
         bool inline = LabelPlacement == MeterLabelPlacement.Inline;
@@ -134,7 +191,24 @@ public partial class SensorMeter : UserControl, ISensorPiece
         TopLayout.Visibility = inline ? Visibility.Collapsed : Visibility.Visible;
 
         InlineLabelColumn.Width = LabelWidth;
-        InlineValueColumn.Width = ValueWidth;
+
+        // The value column collapses with the value, so hiding the number gives the bar the width back
+        // rather than leaving a 44px gap where it used to be.
+        InlineValueColumn.Width = ShowValue ? ValueWidth : new GridLength(0);
+        InlineValueText.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
+        InlineValueText.FontSize = ValueSize;
+
+        // In the Top layout the number shares a row with the label. A widget leaves that label empty, so
+        // with the number gone the whole row is blank margin — collapse it too.
+        TopRow.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
+        TopValueText.FontSize = ValueSize;
+
+        InlineBar.BarThickness = BarThickness;
+        TopBar.BarThickness = BarThickness;
+
+        // Set once, here: the property is inherited, so it reaches the ProgressBar nested inside each
+        // SensorBar without either of them having to know about it.
+        BarShape.SetCornerRadius(this, new CornerRadius(BarCorner));
 
         if (ColorValue)
             TopValueText.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;

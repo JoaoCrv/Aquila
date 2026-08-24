@@ -28,6 +28,17 @@ public sealed record WidgetKindInfo(
     IReadOnlyList<DependencyProperty> AccentProperties)
 {
     public int MaxSeries => AccentProperties.Count;
+
+    /// <summary>Whether this kind is drawn as a line, and so has line settings worth showing. Declared here
+    /// with everything else about a kind rather than worked out by asking a freshly built piece what
+    /// interfaces it implements — the editor needs the answer before it builds anything.</summary>
+    public bool HasLine { get; init; }
+
+    /// <summary>Whether this kind is drawn as a dial, and so has dial settings worth showing.</summary>
+    public bool HasDial { get; init; }
+
+    /// <summary>Whether this kind is drawn as a bar, and so has bar settings worth showing.</summary>
+    public bool HasBar { get; init; }
 }
 
 public static class WidgetCatalog
@@ -39,21 +50,21 @@ public static class WidgetCatalog
             "A dial. Best for a percentage, like load.",
             170, 190,
             series => new RadialGauge { Sensor = series[0] },
-            [RadialGauge.AccentProperty]),
+            [RadialGauge.AccentProperty]) { HasDial = true },
 
         new(DesktopWidgetKind.MiniSparkline,
             "Sparkline",
             "A small line chart of the recent history.",
             240, 100,
             series => new MiniSparkline { Sensor = series[0] },
-            [MiniSparkline.AccentProperty]),
+            [MiniSparkline.AccentProperty]) { HasLine = true },
 
         new(DesktopWidgetKind.SensorMeter,
             "Meter",
             "A bar with the value beside it.",
             240, 80,
             series => BuildMeter(series[0]),
-            [SensorMeter.AccentProperty]),
+            [SensorMeter.AccentProperty]) { HasBar = true },
 
         new(DesktopWidgetKind.StatBox,
             "Number",
@@ -67,7 +78,7 @@ public static class WidgetCatalog
             "The same trend as a sparkline, with room to read it. Takes two readings.",
             300, 160,
             BuildChart,
-            [SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty]),
+            [SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty]) { HasLine = true },
     ];
 
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which

@@ -102,11 +102,17 @@ public partial class WidgetsViewModel : ObservableObject
         if (!ShowOnDesktop || IsEditingOnDesktop) return;
 
         IsEditingOnDesktop = true;
-        _surface.SetEditing(true);
-        _widgets.BeginEditSession();
+
+        // Everything else out of the way FIRST, then our own window, then the toolbar and the panel. The
+        // last two are the only way back out of edit mode, so they must not be standing when the screen is
+        // swept — and our own minimize stays explicit rather than trusting the shell to have obliged.
+        DesktopSurface.DesktopReveal.MinimizeAll();
 
         if (FindMainWindow() is { } window)
             window.WindowState = WindowState.Minimized;
+
+        _surface.SetEditing(true);
+        _widgets.BeginEditSession();
     }
 
     /// <summary>Leaves edit mode, keeping the session's changes or throwing them away. Nothing was written
@@ -129,6 +135,10 @@ public partial class WidgetsViewModel : ObservableObject
         IsEditingOnDesktop = false;
         _surface.SetEditing(false);
         _widgets.EndEditSession(save);
+
+        // Put back what entering edit mode swept aside. Wanting to see the desktop for twenty seconds is
+        // not a reason to have to rebuild a whole workspace afterwards.
+        DesktopSurface.DesktopReveal.RestoreAll();
 
         if (FindMainWindow() is { } window)
         {

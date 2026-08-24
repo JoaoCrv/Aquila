@@ -3,6 +3,9 @@ using System.Linq;
 using Aquila.Models;
 using Aquila.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Wpf.Ui;
+using Wpf.Ui.Controls;
 
 namespace Aquila.ViewModels.Pages;
 
@@ -14,6 +17,8 @@ namespace Aquila.ViewModels.Pages;
 public partial class ExplorerViewModel : ObservableObject
 {
     private readonly AquilaService _aquila;
+    private readonly DesktopWidgetService _widgets;
+    private readonly ISnackbarService? _snackbar;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FilteredComponents))]
@@ -29,10 +34,37 @@ public partial class ExplorerViewModel : ObservableObject
     /// again.</summary>
     public bool IsFiltering => !string.IsNullOrWhiteSpace(SearchText);
 
-    public ExplorerViewModel(AquilaService aquila)
+    public ExplorerViewModel(AquilaService aquila, DesktopWidgetService widgets, ISnackbarService? snackbar = null)
     {
         _aquila = aquila;
+        _widgets = widgets;
+        _snackbar = snackbar;
         Refresh();
+    }
+
+    /// <summary>
+    /// Puts a sensor straight onto the desktop (#24). The widget appears with sensible defaults; moving and
+    /// dressing it is edit mode's job, on the Widgets page.
+    ///
+    /// It is confirmed with a snackbar rather than silently, because the desktop is very likely behind this
+    /// window — without a word here, clicking pin would look like it did nothing at all.
+    /// </summary>
+    [RelayCommand]
+    private void Pin(SensorEntry? entry)
+    {
+        var identifier = entry?.Sensor.Identifier;
+        if (string.IsNullOrEmpty(identifier)) return;
+
+        var title = _widgets.PinWidget(identifier);
+
+        _snackbar?.Show(
+            title is null ? "Could not pin" : "Pinned to desktop",
+            title is null
+                ? "That sensor is no longer being reported."
+                : $"{title} is now on the desktop. Use Widgets to move or restyle it.",
+            title is null ? ControlAppearance.Caution : ControlAppearance.Success,
+            new SymbolIcon { Symbol = title is null ? SymbolRegular.Warning24 : SymbolRegular.Pin24 },
+            TimeSpan.FromSeconds(5));
     }
 
     // Build the component/sensor list once. The SensorNodes are live objects, so their values keep

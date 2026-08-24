@@ -110,6 +110,77 @@ public partial class WidgetEditorViewModel : ObservableObject
     partial void OnWidgetHeightChanged(double value) => Apply();
     partial void OnWidgetXChanged(double value) => Apply();
     partial void OnWidgetYChanged(double value) => Apply();
+    partial void OnLineThicknessChanged(double value) => Apply();
+    partial void OnSelectedFillChanged(ChartFill value) => Apply();
+    partial void OnSmoothnessChanged(double value) => Apply();
+    partial void OnPointSizeChanged(double value) => Apply();
+
+    /// <summary>The line settings, for the kinds drawn as one. Style changes every one of them — none
+    /// touches what the widget draws, only how the line looks doing it.</summary>
+    [ObservableProperty] private double _lineThickness = 1.5;
+    [ObservableProperty] private ChartFill _selectedFill = ChartFill.Gradient;
+    [ObservableProperty] private double _smoothness = 0.5;
+    [ObservableProperty] private double _pointSize;
+
+    /// <summary>The three fill styles, straight off the enum so the list can never fall behind it.</summary>
+    public IReadOnlyList<ChartFill> Fills { get; } = Enum.GetValues<ChartFill>();
+
+    /// <summary>Whether this kind has a line at all. A dial has none, and a section of settings that do
+    /// nothing is worse than no section.</summary>
+    public bool ShowsLineOptions => SelectedKind?.HasLine == true;
+
+    partial void OnArcThicknessChanged(double value)
+    {
+        // The ceiling moves with the thickness, so a value that no longer fits comes down with it. Setting
+        // ArcCorner runs its own handler, which applies — hence the early return rather than a second one.
+        if (ArcCorner > MaxArcCorner)
+        {
+            ArcCorner = MaxArcCorner;
+            return;
+        }
+
+        Apply();
+    }
+
+    /// <summary>Half the arc's thickness — the roundest a cap can be before it starts eating the arc.
+    /// The slider's ceiling, so there is no stretch of travel that quietly does nothing.</summary>
+    public double MaxArcCorner => ArcThickness / 2;
+    partial void OnArcCornerChanged(double value) => Apply();
+    partial void OnSelectedSweepChanged(GaugeSweep value) => Apply();
+    partial void OnValueSizeChanged(double value) => Apply();
+    partial void OnShowValueChanged(bool value) => Apply();
+
+    /// <summary>The dial settings. Style, like the line ones — none of them changes what is measured.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MaxArcCorner))]
+    private double _arcThickness = 14;
+    [ObservableProperty] private double _arcCorner;
+    [ObservableProperty] private GaugeSweep _selectedSweep = GaugeSweep.Dial;
+    [ObservableProperty] private double _valueSize = 24;
+    [ObservableProperty] private bool _showValue = true;
+
+    public IReadOnlyList<GaugeSweep> Sweeps { get; } = Enum.GetValues<GaugeSweep>();
+
+    /// <summary>Whether this kind is a dial at all.</summary>
+    public bool ShowsDialOptions => SelectedKind?.HasDial == true;
+
+    partial void OnBarThicknessChanged(double value) => Apply();
+    partial void OnBarCornerChanged(double value) => Apply();
+    partial void OnSelectedLayoutChanged(MeterLayout value) => Apply();
+    partial void OnBarValueSizeChanged(double value) => Apply();
+
+    /// <summary>The bar settings. ShowValue is shared with the dial (both mean "print the number"); the
+    /// size is not, because the two need very different ones.</summary>
+    [ObservableProperty] private double _barThickness = 6;
+    [ObservableProperty] private double _barCorner = 3;
+    [ObservableProperty] private MeterLayout _selectedLayout = MeterLayout.Beside;
+    [ObservableProperty] private double _barValueSize = 13;
+
+    public IReadOnlyList<MeterLayout> Layouts { get; } = Enum.GetValues<MeterLayout>();
+
+    /// <summary>Whether this kind is a bar at all.</summary>
+    public bool ShowsBarOptions => SelectedKind?.HasBar == true;
+
     partial void OnLayerChanged(double value) => Apply();
 
     /// <summary>Which widget wins where two overlap. A double because that is what a Slider binds to; the
@@ -193,6 +264,9 @@ public partial class WidgetEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(CanAdd));
         OnPropertyChanged(nameof(SeriesHint));
         OnPropertyChanged(nameof(AddLabel));
+        OnPropertyChanged(nameof(ShowsLineOptions));
+        OnPropertyChanged(nameof(ShowsDialOptions));
+        OnPropertyChanged(nameof(ShowsBarOptions));
     }
 
     [ObservableProperty]
@@ -263,6 +337,22 @@ public partial class WidgetEditorViewModel : ObservableObject
         _target.X = WidgetX;
         _target.Y = WidgetY;
         _target.ZIndex = (int)Layer;
+
+        _target.LineThickness = LineThickness;
+        _target.Fill = SelectedFill;
+        _target.LineSmoothness = Smoothness;
+        _target.PointSize = PointSize;
+
+        _target.ArcThickness = ArcThickness;
+        _target.ArcCorner = ArcCorner;
+        _target.Sweep = SelectedSweep;
+        _target.ValueSize = ValueSize;
+        _target.ShowValue = ShowValue;
+
+        _target.BarThickness = BarThickness;
+        _target.BarCorner = BarCorner;
+        _target.Layout = SelectedLayout;
+        _target.BarValueSize = BarValueSize;
 
         Changed?.Invoke(change);
     }
@@ -373,6 +463,22 @@ public partial class WidgetEditorViewModel : ObservableObject
         BorderOpacity = target.BorderOpacity * 100;
         BorderThickness = target.BorderThickness;
         Layer = target.ZIndex;
+
+        LineThickness = target.LineThickness;
+        SelectedFill = target.Fill;
+        Smoothness = target.LineSmoothness;
+        PointSize = target.PointSize;
+
+        ArcThickness = target.ArcThickness;
+        ArcCorner = target.ArcCorner;
+        SelectedSweep = target.Sweep;
+        ValueSize = target.ValueSize;
+        ShowValue = target.ShowValue;
+
+        BarThickness = target.BarThickness;
+        BarCorner = target.BarCorner;
+        SelectedLayout = target.Layout;
+        BarValueSize = target.BarValueSize;
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.

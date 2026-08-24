@@ -418,7 +418,13 @@ public sealed class DesktopWidgetService
         Canvas.SetTop(border, definition.Y);
         Panel.SetZIndex(border, definition.ZIndex);
 
-        if (border.Child is LabeledTile tile) tile.Title = definition.Title;
+        if (border.Child is LabeledTile tile)
+        {
+            tile.Title = definition.Title;
+            ApplyLineStyle(tile.Tile, definition);
+            ApplyDialStyle(tile.Tile, definition);
+            ApplyBarStyle(tile.Tile, definition);
+        }
 
         // The adorners are drawn around the widget's bounds, so a resize moves them.
         _surfaces.RefreshEditModeAdorners();
@@ -457,6 +463,58 @@ public sealed class DesktopWidgetService
     {
         Remove(definition);
         _panel?.Edit(null);
+    }
+
+    /// <summary>
+    /// Puts a sensor on the desktop straight away — no editor, no edit mode.
+    ///
+    /// Pinning is "put this where I can see it", not "let me rearrange my desktop". Sweeping every window
+    /// aside and opening a properties panel because someone clicked a pin would be startling, and it is the
+    /// wrong trade for a one-click action: the widget lands with sensible defaults, and edit mode is one
+    /// click away on the Widgets page for anyone who wants to move or dress it.
+    ///
+    /// Returns the widget's title so the caller can say what happened, or null if the sensor is unknown.
+    /// </summary>
+    public string? PinWidget(string sensorIdentifier)
+    {
+        if (string.IsNullOrEmpty(sensorIdentifier)) return null;
+
+        var hardware = _aquila.State.Hardware;
+        var sensor = SensorCatalog.FindByIdentifier(hardware, sensorIdentifier);
+        if (sensor is null) return null;
+
+        // It has to land somewhere visible, and the surface is where widgets live.
+        if (!_surfaces.IsShown)
+        {
+            _surfaces.Show();
+            Populate();
+        }
+
+        _widgets ??= _layout.Load();
+
+        var definition = NewDefinition(sensorIdentifier);
+
+        // A dial needs a bounded scale to mean anything, so only a percentage gets one; everything else
+        // gets the trend, which reads honestly whatever the units are.
+        definition.Kind = sensor.Unit == "%" ? DesktopWidgetKind.RadialGauge : DesktopWidgetKind.MiniSparkline;
+        definition.Title = sensor.Name ?? string.Empty;
+
+        // Nothing goes through the editor here, so the size has to be taken from the catalog rather than
+        // being filled in when a kind is picked — a widget left at 0x0 would draw nothing at all.
+        var kind = WidgetCatalog.For(definition.Kind);
+        definition.Width = kind.DefaultWidth;
+        definition.Height = kind.DefaultHeight;
+
+        // Below whatever is already on that screen, so pinning three sensors in a row does not stack three
+        // widgets in the same spot.
+        var occupied = _widgets.Where(w => w.ScreenKey == definition.ScreenKey).ToList();
+        if (occupied.Count > 0) definition.Y = occupied.Max(w => w.Y + w.Height) + 16;
+
+        _widgets.Add(definition);
+        SaveUnlessEditing();
+        RefreshWidget(definition);
+
+        return definition.Title;
     }
 
     private DesktopWidgetDefinition NewDefinition(string? presetSensorIdentifier) => new()
@@ -505,6 +563,44 @@ public sealed class DesktopWidgetService
         (VisualTreeHelper.GetParent(element) as Canvas)?.Children.Remove(element);
         DetachSensor(element);
         _byElement.Remove(element);
+    }
+
+    /// <summary>Hands the line settings to a piece that has a line. A dial or a number is not one and does
+    /// not implement the interface, so it is skipped without anything having to know which kinds those
+    /// are — the same structural test <see cref="DetachSensor"/> uses.</summary>
+    private static void ApplyLineStyle(object? piece, DesktopWidgetDefinition definition)
+    {
+        if (piece is not IChartStyle line) return;
+
+        line.LineThickness = definition.LineThickness;
+        line.Fill = definition.Fill;
+        line.Smoothness = definition.LineSmoothness;
+        line.PointSize = definition.PointSize;
+    }
+
+    /// <summary>Hands the dial settings to a piece that is one. Same structural test as
+    /// <see cref="ApplyLineStyle"/>: a sparkline is not a dial and is skipped by not implementing it.</summary>
+    private static void ApplyDialStyle(object? piece, DesktopWidgetDefinition definition)
+    {
+        if (piece is not IGaugeStyle dial) return;
+
+        dial.ArcThickness = definition.ArcThickness;
+        dial.ArcCorner = definition.ArcCorner;
+        dial.Sweep = definition.Sweep;
+        dial.ValueSize = definition.ValueSize;
+        dial.ShowValue = definition.ShowValue;
+    }
+
+    /// <summary>Hands the bar settings to a piece that is one. Same structural test as its two siblings.</summary>
+    private static void ApplyBarStyle(object? piece, DesktopWidgetDefinition definition)
+    {
+        if (piece is not IMeterStyle bar) return;
+
+        bar.BarThickness = definition.BarThickness;
+        bar.BarCorner = definition.BarCorner;
+        bar.ShowValue = definition.ShowValue;
+        bar.ValueSize = definition.BarValueSize;
+        bar.Layout = definition.Layout;
     }
 
     /// <summary>
@@ -596,6 +692,10 @@ public sealed class DesktopWidgetService
         // colours of whichever profile happened to be active when the widget was built.
         for (var i = 0; i < resolved.Count; i++)
             piece.SetResourceReference(kind.AccentProperties[i], roles[i]);
+
+        ApplyLineStyle(piece, definition);
+        ApplyDialStyle(piece, definition);
+        ApplyBarStyle(piece, definition);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.

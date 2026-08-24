@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:Aquila.Controls"
                     xmlns:helpers="clr-namespace:Aquila.Helpers">
 
     <!-- ════════════════════════════════════════════════════════════════
@@ -146,9 +147,11 @@
                 <ControlTemplate TargetType="ProgressBar">
                     <!-- Track comes from the profile, not from a neutral: a bar reads as one object when
                          its empty part is a dimmed version of its full part. -->
-                    <Border CornerRadius="3" Background="{DynamicResource Aquila.Scheme.Track}"
-                            Height="{TemplateBinding Height}">
-                        <Border x:Name="PART_Track" HorizontalAlignment="Left" CornerRadius="3"
+                    <Border Background="{DynamicResource Aquila.Scheme.Track}"
+                            Height="{TemplateBinding Height}"
+                            CornerRadius="{Binding Path=(controls:BarShape.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
+                        <Border x:Name="PART_Track" HorizontalAlignment="Left"
+                                CornerRadius="{Binding Path=(controls:BarShape.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
                                 Background="{TemplateBinding Foreground}">
                             <Border.Width>
                                 <MultiBinding>

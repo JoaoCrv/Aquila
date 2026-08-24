@@ -77,6 +77,14 @@ public partial class SensorBar : UserControl
         Render();
     }
 
+    /// <summary>Height of the bar itself. Straight through to the ProgressBar: setting Height on this
+    /// UserControl would size the wrapper and leave the 6px bar sitting inside it.</summary>
+    public double BarThickness
+    {
+        get => Bar.Height;
+        set => Bar.Height = value;
+    }
+
     private void Render()
     {
         if (!IsLoaded || Sensor is null)

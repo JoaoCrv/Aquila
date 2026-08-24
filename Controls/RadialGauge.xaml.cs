@@ -12,10 +12,18 @@ namespace Aquila.Controls;
 /// AIDA64-style radial gauge for a single sensor, built on the LiveCharts gauge (AquilaCharts).
 /// Bind <see cref="Sensor"/> to a live SensorNode; the gauge animates as the value changes.
 /// </summary>
-public partial class RadialGauge : UserControl, ISensorPiece
+public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
 {
     private ObservableValue? _point;
     private SKColor _lastColor;
+
+    /// <summary>The look the current series was built with. Thickness, text size and whether the number is
+    /// drawn are all baked into the series when it is generated, so changing any of them means building it
+    /// again — but only then, or the gauge would animate from zero on every tick.</summary>
+    private (double Thickness, double Corner, double ValueSize, bool ShowValue) _lastStyle;
+
+    /// <summary>Shows or hides the value arc without rebuilding it.</summary>
+    private Action<bool>? _setArcVisible;
 
     public RadialGauge()
     {
@@ -30,6 +38,61 @@ public partial class RadialGauge : UserControl, ISensorPiece
     public static readonly DependencyProperty AccentProperty =
         DependencyProperty.Register(nameof(Accent), typeof(Brush), typeof(RadialGauge),
             new PropertyMetadata(null, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty ArcThicknessProperty =
+        DependencyProperty.Register(nameof(ArcThickness), typeof(double), typeof(RadialGauge),
+            new PropertyMetadata(14d, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty ArcCornerProperty =
+        DependencyProperty.Register(nameof(ArcCorner), typeof(double), typeof(RadialGauge),
+            new PropertyMetadata(0d, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty SweepProperty =
+        DependencyProperty.Register(nameof(Sweep), typeof(GaugeSweep), typeof(RadialGauge),
+            new PropertyMetadata(GaugeSweep.Dial, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty ValueSizeProperty =
+        DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(RadialGauge),
+            new PropertyMetadata(24d, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty ShowValueProperty =
+        DependencyProperty.Register(nameof(ShowValue), typeof(bool), typeof(RadialGauge),
+            new PropertyMetadata(true, (d, _) => ((RadialGauge)d).Render()));
+
+    /// <summary>Thickness of the arc, in DIPs.</summary>
+    public double ArcThickness
+    {
+        get => (double)GetValue(ArcThicknessProperty);
+        set => SetValue(ArcThicknessProperty, value);
+    }
+
+    /// <summary>Rounding on the ends of the arc; clamped to half the thickness.</summary>
+    public double ArcCorner
+    {
+        get => (double)GetValue(ArcCornerProperty);
+        set => SetValue(ArcCornerProperty, value);
+    }
+
+    /// <summary>How far round the dial goes.</summary>
+    public GaugeSweep Sweep
+    {
+        get => (GaugeSweep)GetValue(SweepProperty);
+        set => SetValue(SweepProperty, value);
+    }
+
+    /// <summary>Point size of the number in the middle.</summary>
+    public double ValueSize
+    {
+        get => (double)GetValue(ValueSizeProperty);
+        set => SetValue(ValueSizeProperty, value);
+    }
+
+    /// <summary>Whether the number in the middle is drawn.</summary>
+    public bool ShowValue
+    {
+        get => (bool)GetValue(ShowValueProperty);
+        set => SetValue(ShowValueProperty, value);
+    }
 
     public static readonly DependencyProperty MinimumProperty =
         DependencyProperty.Register(nameof(Minimum), typeof(double), typeof(RadialGauge),
@@ -100,20 +163,49 @@ public partial class RadialGauge : UserControl, ISensorPiece
         value = System.Math.Clamp(value, min, max);
 
         var color = ResolveColor();
+        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue);
+
+        // The start angle and the sweep have to be set together — 270 degrees starting at the top puts the
+        // gap on the right, which reads as a broken ring rather than a dial.
+        (Chart.InitialRotation, Chart.MaxAngle) = Sweep switch
+        {
+            GaugeSweep.Half => (-180d, 180d),
+            GaugeSweep.Ring => (-90d, 360d),
+            _ => (-225d, 270d),
+        };
 
         // Build the series once; afterwards only update the point's value so LiveCharts animates
-        // smoothly from the current value instead of resetting to zero each tick.
-        if (_point is null || color != _lastColor)
+        // smoothly from the current value instead of resetting to zero each tick. Colour and the baked-in
+        // style are the only things that can force it to be built again.
+        if (_point is null || color != _lastColor || style != _lastStyle)
         {
-            var (series, point) = AquilaCharts.SolidGauge(color);
+            var (series, point, setArcVisible) =
+                AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner);
             _point = point;
+            _setArcVisible = setArcVisible;
             _lastColor = color;
+            _lastStyle = style;
             Chart.Series = series;
         }
 
         Chart.MaxValue = max - min;
         _point.Value = value - min;
+
+        _setArcVisible?.Invoke(ArcIsDrawable((value - min) / (max - min)));
     }
+
+    /// <summary>
+    /// Whether the arc is long enough to be worth drawing.
+    ///
+    /// A rounded cap is drawn at a fixed size, so a very short arc cannot hold one: below roughly 4% of the
+    /// scale LiveCharts squares the end off, and the dial appears to glitch between a round arc and a stub.
+    /// Hiding the arc there is the cheaper answer — a sliver that small carries no information anyway, and
+    /// the number in the middle still reports the reading honestly.
+    ///
+    /// Only when the ends are actually rounded. With square ends there is nothing to go wrong, and a dial
+    /// left at the default should not quietly stop drawing at low readings.
+    /// </summary>
+    private bool ArcIsDrawable(double fraction) => ArcCorner <= 0 || fraction >= 0.04;
 
     private SKColor ResolveColor()
     {

@@ -91,6 +91,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="40"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock
                                                 Grid.Column="0"
@@ -113,6 +114,37 @@
                                                     </MultiBinding>
                                                 </TextBlock.Text>
                                             </TextBlock>
+
+                                            <!-- Shown only under the pointer: one of these per row would
+                                                 turn a dense list of readings into a wall of buttons, and
+                                                 the row already highlights to say it is the live one. -->
+                                            <ui:Button
+                                                Grid.Column="2"
+                                                Appearance="Transparent"
+                                                Padding="6"
+                                                ToolTip="Pin to desktop"
+                                                Icon="{ui:SymbolIcon Pin24}"
+                                                Command="{Binding DataContext.ViewModel.PinCommand,
+                                                          RelativeSource={RelativeSource AncestorType=Page}}"
+                                                CommandParameter="{Binding}">
+                                                <ui:Button.Style>
+                                                    <!-- BasedOn, always: a bare Style replaces the default
+                                                         one template and all, which is how a WPF-UI button
+                                                         ends up as an unstyled box. -->
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <!-- Hidden, not Collapsed: the column is a fixed
+                                                             width either way, and Hidden keeps the row from
+                                                             twitching as the pointer crosses it. -->
+                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True"
+                                                                         Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                            </ui:Button>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>

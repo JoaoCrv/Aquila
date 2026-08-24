@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Aquila.Models;
 
 namespace Aquila.Controls;
 
@@ -23,7 +24,7 @@ namespace Aquila.Controls;
 ///     MaxY="100"/&gt;
 /// </code>
 /// </example>
-public partial class SparklineChart : UserControl
+public partial class SparklineChart : UserControl, IChartStyle
 {
     private LineSeries<double>? _primary;
     private LineSeries<double>? _secondary;
@@ -54,6 +55,22 @@ public partial class SparklineChart : UserControl
     public static readonly DependencyProperty SecondValuesProperty =
         DependencyProperty.Register(nameof(SecondValues), typeof(IReadOnlyCollection<double>), typeof(SparklineChart),
             new PropertyMetadata(null, OnPropertyInvalidated));
+
+    public static readonly DependencyProperty LineThicknessProperty =
+        DependencyProperty.Register(nameof(LineThickness), typeof(double), typeof(SparklineChart),
+            new PropertyMetadata(1.5, OnPropertyInvalidated));
+
+    public static readonly DependencyProperty FillProperty =
+        DependencyProperty.Register(nameof(Fill), typeof(ChartFill), typeof(SparklineChart),
+            new PropertyMetadata(ChartFill.Gradient, OnPropertyInvalidated));
+
+    public static readonly DependencyProperty SmoothnessProperty =
+        DependencyProperty.Register(nameof(Smoothness), typeof(double), typeof(SparklineChart),
+            new PropertyMetadata(0.5, OnPropertyInvalidated));
+
+    public static readonly DependencyProperty PointSizeProperty =
+        DependencyProperty.Register(nameof(PointSize), typeof(double), typeof(SparklineChart),
+            new PropertyMetadata(0d, OnPropertyInvalidated));
 
     public static readonly DependencyProperty SecondColorProperty =
         DependencyProperty.Register(nameof(SecondColor), typeof(Brush), typeof(SparklineChart),
@@ -96,6 +113,34 @@ public partial class SparklineChart : UserControl
         set => SetValue(SecondValuesProperty, value);
     }
 
+    /// <summary>Line width in DIPs.</summary>
+    public double LineThickness
+    {
+        get => (double)GetValue(LineThicknessProperty);
+        set => SetValue(LineThicknessProperty, value);
+    }
+
+    /// <summary>How the area under the line is filled.</summary>
+    public ChartFill Fill
+    {
+        get => (ChartFill)GetValue(FillProperty);
+        set => SetValue(FillProperty, value);
+    }
+
+    /// <summary>0 = straight segments between readings, 1 = a fully rounded curve.</summary>
+    public double Smoothness
+    {
+        get => (double)GetValue(SmoothnessProperty);
+        set => SetValue(SmoothnessProperty, value);
+    }
+
+    /// <summary>Diameter of the dot at each reading; 0 hides them.</summary>
+    public double PointSize
+    {
+        get => (double)GetValue(PointSizeProperty);
+        set => SetValue(PointSizeProperty, value);
+    }
+
     /// <summary>WPF <see cref="SolidColorBrush"/> for the optional second series.</summary>
     public Brush? SecondColor
     {
@@ -125,17 +170,15 @@ public partial class SparklineChart : UserControl
         var values = Values;
         if (values == null) return;
 
-        var color = ToSKColor(SeriesColor);
-
         if (_primary == null)
         {
-            _primary = MakeLine(values, color, PrimaryFillAlpha);
+            _primary = MakeLine(values);
 
             var series = new List<ISeries> { _primary };
 
             if (SecondValues is { } sv)
             {
-                _secondary = MakeLine(sv, ToSKColor(SecondColor), SecondaryFillAlpha);
+                _secondary = MakeLine(sv);
                 series.Add(_secondary);
             }
 
@@ -146,16 +189,16 @@ public partial class SparklineChart : UserControl
         }
         else
         {
-            // Hot-path: only recolour (Values binding stays the same object).
+            // Hot path: the Values binding stays the same object, so only the collection is re-pointed.
             _primary.Values = values;
-            ApplyColor(_primary, color, PrimaryFillAlpha);
-
-            if (_secondary != null && SecondValues is { } sv)
-            {
-                _secondary.Values = sv;
-                ApplyColor(_secondary, ToSKColor(SecondColor), SecondaryFillAlpha);
-            }
+            if (_secondary != null && SecondValues is { } sv) _secondary.Values = sv;
         }
+
+        // Applied on BOTH paths. Colour, width, fill, smoothness and point size all change far more often
+        // than the shape of the chart does — they are what the user drags sliders over — and re-making a
+        // few paints costs nothing next to tearing down the series and starting the line from empty.
+        ApplyStyle(_primary, ToSKColor(SeriesColor), PrimaryFillAlpha);
+        if (_secondary != null) ApplyStyle(_secondary, ToSKColor(SecondColor), SecondaryFillAlpha);
     }
 
     private void Teardown()
@@ -189,31 +232,43 @@ public partial class SparklineChart : UserControl
         new(color.WithAlpha(topAlpha), color.WithAlpha(0),
             new SKPoint(0.5f, 0f), new SKPoint(0.5f, 1f));
 
-    private static LineSeries<double> MakeLine(
-        IReadOnlyCollection<double> values, SKColor color, byte fillAlpha) => new()
+    /// <summary>The parts that never change once the series exists. Everything the user can influence is
+    /// set by <see cref="ApplyStyle"/> instead, so there is exactly one place that decides how a line
+    /// looks.</summary>
+    private static LineSeries<double> MakeLine(IReadOnlyCollection<double> values) => new()
     {
         Values          = values,
-        Fill            = AreaFill(color, fillAlpha),
-        Stroke          = new SolidColorPaint(color) { StrokeThickness = 1.5f },
-        GeometryFill    = null,
         GeometryStroke  = null,
-        GeometrySize    = 0,
-        LineSmoothness  = 0.5,
         AnimationsSpeed = TimeSpan.Zero,
-        IsHoverable     = false
+        IsHoverable     = false,
     };
 
-    private static void ApplyColor(LineSeries<double> line, SKColor color, byte fillAlpha)
+    private void ApplyStyle(LineSeries<double> line, SKColor color, byte fillAlpha)
     {
         DisposePaints(line);
-        line.Fill   = AreaFill(color, fillAlpha);
-        line.Stroke = new SolidColorPaint(color) { StrokeThickness = 1.5f };
+
+        line.Stroke = new SolidColorPaint(color) { StrokeThickness = (float)LineThickness };
+
+        line.Fill = Fill switch
+        {
+            ChartFill.None => null,
+            ChartFill.Flat => new SolidColorPaint(color.WithAlpha(fillAlpha)),
+            _ => AreaFill(color, fillAlpha),
+        };
+
+        line.LineSmoothness = Smoothness;
+
+        // The marker paint is only made when a marker will actually be drawn — LiveCharts draws nothing at
+        // size 0, so keeping one around would be an allocation per style change for an invisible dot.
+        line.GeometrySize = PointSize;
+        line.GeometryFill = PointSize > 0 ? new SolidColorPaint(color) : null;
     }
 
     private static void DisposePaints(LineSeries<double> line)
     {
-        (line.Fill   as IDisposable)?.Dispose();
-        (line.Stroke as IDisposable)?.Dispose();
+        (line.Fill         as IDisposable)?.Dispose();
+        (line.Stroke       as IDisposable)?.Dispose();
+        (line.GeometryFill as IDisposable)?.Dispose();
     }
 
     private static SKColor ToSKColor(Brush? brush)
