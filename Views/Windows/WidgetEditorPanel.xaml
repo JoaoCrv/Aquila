@@ -436,7 +436,18 @@
 
                         <StackPanel Margin="0,14,0,0">
 
-                            <TextBlock Text="Scale" Style="{StaticResource FieldLabel}"/>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.WindowLabel}"/>
+                                <TextBlock Text="Time window" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="20" Maximum="600" TickFrequency="10" IsSnapToTickEnabled="True"
+                                    Value="{Binding ViewModel.PointCount}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                       Opacity="0.5" TextWrapping="Wrap"
+                                       Text="Only the sensors this widget draws keep a longer history. A widened window fills from the right as the readings arrive."/>
+
+                            <TextBlock Text="Scale" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
                             <ComboBox ItemsSource="{Binding ViewModel.Scales}"
                                       SelectedItem="{Binding ViewModel.SelectedScale}"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"

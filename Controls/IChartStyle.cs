@@ -16,6 +16,9 @@ public interface IChartStyle
     double Smoothness { get; set; }
     double PointSize { get; set; }
 
+    /// <summary>How many readings are plotted — the trend's length in seconds.</summary>
+    int PointCount { get; set; }
+
     /// <summary>How the vertical scale is decided, and its ends when the user decides them.</summary>
     ChartScale Scale { get; set; }
     double ScaleMin { get; set; }

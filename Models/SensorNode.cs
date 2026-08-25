@@ -60,9 +60,32 @@ public class SensorNode : INotifyPropertyChanged
 
     public ObservableCollection<double> History { get; } = [];
 
-    private void Record(int depth = 60)
+    /// <summary>
+    /// How many readings to keep — one per poll tick, so this is the length of the trend in seconds.
+    ///
+    /// Sixty by default and raised only on request, because EVERY sensor keeps a history whether anything
+    /// draws it or not: a machine reporting three hundred sensors would pay for a ten-minute window on all
+    /// three hundred to give it to the two on the desktop. Whoever wants a longer trend asks for it on the
+    /// sensor they are actually showing.
+    ///
+    /// Lowering it trims immediately rather than waiting for the buffer to drain, so the chart matches the
+    /// window the moment it is changed.
+    /// </summary>
+    public int HistoryDepth
     {
-        if (History.Count >= depth) History.RemoveAt(0);
+        get => _historyDepth;
+        set
+        {
+            _historyDepth = Math.Max(2, value);
+            while (History.Count > _historyDepth) History.RemoveAt(0);
+        }
+    }
+
+    private int _historyDepth = 60;
+
+    private void Record()
+    {
+        if (History.Count >= _historyDepth) History.RemoveAt(0);
         History.Add(Value ?? 0);
     }
 

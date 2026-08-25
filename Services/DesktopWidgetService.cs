@@ -422,6 +422,7 @@ public sealed class DesktopWidgetService
         {
             tile.Title = definition.Title;
             ApplyLineStyle(tile.Tile, definition);
+            KeepEnoughHistory(definition, ResolveSensors(definition));
             ApplyDialStyle(tile.Tile, definition);
             ApplyBarStyle(tile.Tile, definition);
             ApplyNumberStyle(tile.Tile, definition);
@@ -577,9 +578,42 @@ public sealed class DesktopWidgetService
         line.Fill = definition.Fill;
         line.Smoothness = definition.LineSmoothness;
         line.PointSize = definition.PointSize;
+        line.PointCount = definition.PointCount;
         line.Scale = definition.Scale;
         line.ScaleMin = definition.ScaleMin;
         line.ScaleMax = definition.ScaleMax;
+    }
+
+    /// <summary>
+    /// Asks the sensors behind a chart to keep enough readings to fill its window.
+    ///
+    /// Sensors keep sixty by default whether anything draws them or not, so a longer trend is requested
+    /// only on the ones actually being shown — a machine reporting three hundred sensors should not pay for
+    /// a ten-minute buffer on all of them to give it to the two on the desktop.
+    ///
+    /// Raised, never lowered. Another widget may be showing the same sensor over a longer window, and
+    /// shortening one chart must not quietly truncate the other's history.
+    /// </summary>
+    private static void KeepEnoughHistory(DesktopWidgetDefinition definition, IReadOnlyList<SensorNode> sensors)
+    {
+        if (!WidgetCatalog.For(definition.Kind).HasLine) return;
+
+        foreach (var sensor in sensors)
+            if (sensor.HistoryDepth < definition.PointCount)
+                sensor.HistoryDepth = definition.PointCount;
+    }
+
+    /// <summary>The live sensors a definition names, in order, skipping any the machine no longer reports.</summary>
+    private List<SensorNode> ResolveSensors(DesktopWidgetDefinition definition)
+    {
+        var hardware = _aquila.State.Hardware;
+        var resolved = new List<SensorNode>();
+
+        foreach (var series in definition.Series)
+            if (SensorCatalog.FindByIdentifier(hardware, series.SensorIdentifier) is { } sensor)
+                resolved.Add(sensor);
+
+        return resolved;
     }
 
     /// <summary>Hands the dial settings to a piece that is one. Same structural test as
@@ -709,6 +743,7 @@ public sealed class DesktopWidgetService
             piece.SetResourceReference(kind.AccentProperties[i], roles[i]);
 
         ApplyLineStyle(piece, definition);
+        KeepEnoughHistory(definition, resolved);
         ApplyDialStyle(piece, definition);
         ApplyBarStyle(piece, definition);
         ApplyNumberStyle(piece, definition);

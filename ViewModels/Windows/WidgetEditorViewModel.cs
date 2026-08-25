@@ -114,6 +114,7 @@ public partial class WidgetEditorViewModel : ObservableObject
     partial void OnSelectedFillChanged(ChartFill value) => Apply();
     partial void OnSmoothnessChanged(double value) => Apply();
     partial void OnPointSizeChanged(double value) => Apply();
+    partial void OnPointCountChanged(double value) => Apply();
     partial void OnScaleMinChanged(double value) => Apply();
     partial void OnScaleMaxChanged(double value) => Apply();
 
@@ -132,6 +133,17 @@ public partial class WidgetEditorViewModel : ObservableObject
 
         Apply();
     }
+
+    /// <summary>How much time the chart covers. A double because that is what a Slider binds to; one
+    /// reading arrives per poll tick, so the number is also the trend's length in seconds.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowLabel))]
+    private double _pointCount = 60;
+
+    /// <summary>Seconds up to two minutes, minutes past that — nobody reads "600 s" as ten minutes.</summary>
+    public string WindowLabel => PointCount < 120
+        ? $"{PointCount:F0} s"
+        : $"{PointCount / 60:0.#} min";
 
     /// <summary>How the chart's vertical scale is decided, and its ends when the user decides them.</summary>
     [ObservableProperty]
@@ -388,6 +400,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         _target.Fill = SelectedFill;
         _target.LineSmoothness = Smoothness;
         _target.PointSize = PointSize;
+        _target.PointCount = (int)PointCount;
         _target.Scale = SelectedScale;
         _target.ScaleMin = ScaleMin;
         _target.ScaleMax = ScaleMax;
@@ -522,6 +535,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         SelectedFill = target.Fill;
         Smoothness = target.LineSmoothness;
         PointSize = target.PointSize;
+        PointCount = target.PointCount;
         SelectedScale = target.Scale;
         ScaleMin = target.ScaleMin;
         ScaleMax = target.ScaleMax;

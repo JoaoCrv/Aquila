@@ -29,9 +29,10 @@ public partial class SparklineChart : UserControl, IChartStyle
     private LineSeries<double>? _primary;
     private LineSeries<double>? _secondary;
 
-    /// <summary>Kept so the scale can be changed without rebuilding the chart: the axes are created once
-    /// with the series, but their limits move whenever the user picks a different scale.</summary>
+    /// <summary>Kept so the scale and the window can be changed without rebuilding the chart: the axes are
+    /// created once with the series, but their limits move whenever the user changes either.</summary>
     private Axis? _yAxis;
+    private Axis? _xAxis;
 
     // Alpha at the TOP of the area gradient, where it meets the line. Higher than the old flat fill
     // used, because the gradient gives it all back to transparency before reaching the axis.
@@ -220,9 +221,10 @@ public partial class SparklineChart : UserControl, IChartStyle
             }
 
             _yAxis = new Axis { IsVisible = false };
+            _xAxis = new Axis { IsVisible = false, MinLimit = 0 };
 
             Chart.Series = series;
-            Chart.XAxes  = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = PointCount - 1 }];
+            Chart.XAxes  = [_xAxis];
             Chart.YAxes  = [_yAxis];
         }
         else
@@ -250,6 +252,10 @@ public partial class SparklineChart : UserControl, IChartStyle
     /// </summary>
     private void ApplyScale()
     {
+        // The window is the X axis' ceiling. Held rather than baked for the same reason the scale is: a
+        // longer trend must not cost a rebuild, which would throw away the history it exists to show.
+        if (_xAxis is not null) _xAxis.MaxLimit = Math.Max(1, PointCount - 1);
+
         if (_yAxis is null) return;
 
         // Every arm typed as (double?, double?): a bare null has no type of its own, so leaving one

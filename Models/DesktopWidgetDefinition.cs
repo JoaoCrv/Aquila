@@ -166,6 +166,10 @@ public class DesktopWidgetDefinition
     /// <summary>0 draws straight segments between readings, 1 a fully rounded curve.</summary>
     public double LineSmoothness { get; set; } = 0.5;
 
+    /// <summary>How many readings the chart shows. One per poll tick, so this is the trend's length in
+    /// seconds — 60 is a minute, 600 is ten.</summary>
+    public int PointCount { get; set; } = 60;
+
     public ChartScale Scale { get; set; } = ChartScale.FromZero;
 
     /// <summary>The ends of the scale in <see cref="ChartScale.Manual"/>, in the sensor's own unit.</summary>
