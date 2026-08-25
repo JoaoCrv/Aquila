@@ -285,6 +285,45 @@
                     </StackPanel>
                     </ui:CardExpander>
 
+                    <!-- Only for the number. -->
+                    <ui:CardExpander Icon="{ui:SymbolIcon NumberSymbol24}"
+                                     Visibility="{Binding ViewModel.ShowsNumberOptions, Converter={StaticResource BoolToVisibility}}">
+                        <ui:CardExpander.Header>
+                            <TextBlock Text="Number" FontWeight="SemiBold"/>
+                        </ui:CardExpander.Header>
+
+                        <StackPanel Margin="0,14,0,0">
+
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.StatValueSize, StringFormat={}{0:F0} pt}"/>
+                                <TextBlock Text="Value size" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="10" Maximum="96" TickFrequency="1" IsSnapToTickEnabled="True"
+                                    Value="{Binding ViewModel.StatValueSize}"/>
+
+                            <ui:ToggleSwitch Margin="0,16,0,0"
+                                             Content="Show the unit"
+                                             IsChecked="{Binding ViewModel.ShowUnit}"/>
+
+                            <DockPanel Margin="0,12,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.UnitSize, StringFormat={}{0:F0} pt}"/>
+                                <TextBlock Text="Unit size" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="6" Maximum="48" TickFrequency="1" IsSnapToTickEnabled="True"
+                                    IsEnabled="{Binding ViewModel.ShowUnit}"
+                                    Value="{Binding ViewModel.UnitSize}"/>
+
+                            <ui:ToggleSwitch Margin="0,16,0,0"
+                                             Content="Inner panel"
+                                             IsChecked="{Binding ViewModel.ShowPanel}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                       Opacity="0.5" TextWrapping="Wrap"
+                                       Text="The number carries a rounded fill of its own. The widget already has one, so two of them read as a box inside a box."/>
+                        </StackPanel>
+                    </ui:CardExpander>
+
                     <!-- Only for the meter. -->
                     <ui:CardExpander Icon="{ui:SymbolIcon DataBarHorizontal24}"
                                      Visibility="{Binding ViewModel.ShowsBarOptions, Converter={StaticResource BoolToVisibility}}">
@@ -397,7 +436,33 @@
 
                         <StackPanel Margin="0,14,0,0">
 
-                            <DockPanel>
+                            <TextBlock Text="Scale" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Scales}"
+                                      SelectedItem="{Binding ViewModel.SelectedScale}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                       Opacity="0.5" TextWrapping="Wrap"
+                                       Text="From zero keeps widgets comparable. Fit to data uses the full height, but the scale moves, so small changes look large."/>
+
+                            <Grid Margin="0,10,0,0"
+                                  Visibility="{Binding ViewModel.ScaleIsManual, Converter={StaticResource BoolToVisibility}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Min" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Max" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                              Value="{Binding ViewModel.ScaleMin, Mode=TwoWay}"/>
+                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                              Value="{Binding ViewModel.ScaleMax, Mode=TwoWay}"/>
+                            </Grid>
+
+                            <DockPanel Margin="0,16,0,0">
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                            Text="{Binding ViewModel.LineThickness, StringFormat={}{0:F1} px}"/>
                                 <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>

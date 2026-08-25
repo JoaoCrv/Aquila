@@ -8,15 +8,18 @@
     <!-- A small "stat box": big value + small unit, with a caption underneath, on a rounded fill.
          Reused across the dashboard cards. Set Accent to colour the value; leave it unset to
          inherit the theme foreground. -->
-    <Border Style="{StaticResource StatBox}">
-        <StackPanel>
-            <TextBlock x:Name="ValueText" Style="{StaticResource StatBoxValue}">
+    <Border x:Name="StatPanel" Style="{StaticResource StatBox}">
+        <!-- Centred, not top-aligned: given more height than it needs — which is exactly what a desktop
+             widget does — the number used to sit against the title with all the empty space below it. -->
+        <StackPanel VerticalAlignment="Center">
+            <TextBlock x:Name="ValueText" Style="{StaticResource StatBoxValue}"
+                       FontSize="{Binding ValueSize, RelativeSource={RelativeSource AncestorType=UserControl}}">
                 <Run Text="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                <Run Text="{Binding Unit, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                <Run Text="{Binding UnitText, RelativeSource={RelativeSource AncestorType=UserControl}}"
                      FontSize="{Binding UnitSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
             </TextBlock>
-            <TextBlock Style="{StaticResource StatBoxLabel}"
+            <TextBlock x:Name="LabelText" Style="{StaticResource StatBoxLabel}"
                        TextTrimming="CharacterEllipsis"
                        Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
         </StackPanel>

@@ -39,6 +39,9 @@ public sealed record WidgetKindInfo(
 
     /// <summary>Whether this kind is drawn as a bar, and so has bar settings worth showing.</summary>
     public bool HasBar { get; init; }
+
+    /// <summary>Whether this kind is just a number, and so has number settings worth showing.</summary>
+    public bool HasNumber { get; init; }
 }
 
 public static class WidgetCatalog
@@ -71,7 +74,7 @@ public static class WidgetCatalog
             "Just the reading, large, with its unit.",
             150, 120,
             series => BuildStatBox(series[0]),
-            [StatBox.AccentProperty]),
+            [StatBox.AccentProperty]) { HasNumber = true },
 
         new(DesktopWidgetKind.SparklineChart,
             "Chart",

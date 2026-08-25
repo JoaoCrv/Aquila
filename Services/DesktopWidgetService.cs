@@ -424,6 +424,7 @@ public sealed class DesktopWidgetService
             ApplyLineStyle(tile.Tile, definition);
             ApplyDialStyle(tile.Tile, definition);
             ApplyBarStyle(tile.Tile, definition);
+            ApplyNumberStyle(tile.Tile, definition);
         }
 
         // The adorners are drawn around the widget's bounds, so a resize moves them.
@@ -576,6 +577,9 @@ public sealed class DesktopWidgetService
         line.Fill = definition.Fill;
         line.Smoothness = definition.LineSmoothness;
         line.PointSize = definition.PointSize;
+        line.Scale = definition.Scale;
+        line.ScaleMin = definition.ScaleMin;
+        line.ScaleMax = definition.ScaleMax;
     }
 
     /// <summary>Hands the dial settings to a piece that is one. Same structural test as
@@ -601,6 +605,17 @@ public sealed class DesktopWidgetService
         bar.ShowValue = definition.ShowValue;
         bar.ValueSize = definition.BarValueSize;
         bar.Layout = definition.Layout;
+    }
+
+    /// <summary>Hands the number settings to a piece that is one. Last of the four structural tests.</summary>
+    private static void ApplyNumberStyle(object? piece, DesktopWidgetDefinition definition)
+    {
+        if (piece is not IStatStyle stat) return;
+
+        stat.ValueSize = definition.StatValueSize;
+        stat.ShowUnit = definition.ShowUnit;
+        stat.UnitSize = definition.UnitSize;
+        stat.ShowPanel = definition.ShowPanel;
     }
 
     /// <summary>
@@ -696,6 +711,7 @@ public sealed class DesktopWidgetService
         ApplyLineStyle(piece, definition);
         ApplyDialStyle(piece, definition);
         ApplyBarStyle(piece, definition);
+        ApplyNumberStyle(piece, definition);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.

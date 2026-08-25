@@ -15,4 +15,9 @@ public interface IChartStyle
     ChartFill Fill { get; set; }
     double Smoothness { get; set; }
     double PointSize { get; set; }
+
+    /// <summary>How the vertical scale is decided, and its ends when the user decides them.</summary>
+    ChartScale Scale { get; set; }
+    double ScaleMin { get; set; }
+    double ScaleMax { get; set; }
 }

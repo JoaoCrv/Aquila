@@ -114,6 +114,37 @@ public partial class WidgetEditorViewModel : ObservableObject
     partial void OnSelectedFillChanged(ChartFill value) => Apply();
     partial void OnSmoothnessChanged(double value) => Apply();
     partial void OnPointSizeChanged(double value) => Apply();
+    partial void OnScaleMinChanged(double value) => Apply();
+    partial void OnScaleMaxChanged(double value) => Apply();
+
+    partial void OnSelectedScaleChanged(ChartScale value)
+    {
+        // Switching to Manual with the scale still at its defaults would put a temperature on a 0-100 axis
+        // and make the user work out sensible ends from scratch. Seeding from what the sensor has actually
+        // been observed to do gives them something to adjust instead of something to invent.
+        if (value == ChartScale.Manual && ScaleMin == 0 && ScaleMax == 100 &&
+            Chosen.FirstOrDefault()?.Sensor.Sensor is { Min: { } low, Max: { } high } && high > low)
+        {
+            var headroom = (high - low) * 0.1;
+            ScaleMin = Math.Floor(low - headroom);
+            ScaleMax = Math.Ceiling(high + headroom);
+        }
+
+        Apply();
+    }
+
+    /// <summary>How the chart's vertical scale is decided, and its ends when the user decides them.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ScaleIsManual))]
+    private ChartScale _selectedScale = ChartScale.FromZero;
+
+    [ObservableProperty] private double _scaleMin;
+    [ObservableProperty] private double _scaleMax = 100;
+
+    public IReadOnlyList<ChartScale> Scales { get; } = Enum.GetValues<ChartScale>();
+
+    /// <summary>Only Manual has ends to type in — the other two work them out.</summary>
+    public bool ScaleIsManual => SelectedScale == ChartScale.Manual;
 
     /// <summary>The line settings, for the kinds drawn as one. Style changes every one of them — none
     /// touches what the widget draws, only how the line looks doing it.</summary>
@@ -180,6 +211,20 @@ public partial class WidgetEditorViewModel : ObservableObject
 
     /// <summary>Whether this kind is a bar at all.</summary>
     public bool ShowsBarOptions => SelectedKind?.HasBar == true;
+
+    partial void OnStatValueSizeChanged(double value) => Apply();
+    partial void OnShowUnitChanged(bool value) => Apply();
+    partial void OnUnitSizeChanged(double value) => Apply();
+    partial void OnShowPanelChanged(bool value) => Apply();
+
+    /// <summary>The number settings.</summary>
+    [ObservableProperty] private double _statValueSize = 20;
+    [ObservableProperty] private bool _showUnit = true;
+    [ObservableProperty] private double _unitSize = 13;
+    [ObservableProperty] private bool _showPanel = true;
+
+    /// <summary>Whether this kind is just a number.</summary>
+    public bool ShowsNumberOptions => SelectedKind?.HasNumber == true;
 
     partial void OnLayerChanged(double value) => Apply();
 
@@ -267,6 +312,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowsLineOptions));
         OnPropertyChanged(nameof(ShowsDialOptions));
         OnPropertyChanged(nameof(ShowsBarOptions));
+        OnPropertyChanged(nameof(ShowsNumberOptions));
     }
 
     [ObservableProperty]
@@ -342,6 +388,9 @@ public partial class WidgetEditorViewModel : ObservableObject
         _target.Fill = SelectedFill;
         _target.LineSmoothness = Smoothness;
         _target.PointSize = PointSize;
+        _target.Scale = SelectedScale;
+        _target.ScaleMin = ScaleMin;
+        _target.ScaleMax = ScaleMax;
 
         _target.ArcThickness = ArcThickness;
         _target.ArcCorner = ArcCorner;
@@ -353,6 +402,11 @@ public partial class WidgetEditorViewModel : ObservableObject
         _target.BarCorner = BarCorner;
         _target.Layout = SelectedLayout;
         _target.BarValueSize = BarValueSize;
+
+        _target.StatValueSize = StatValueSize;
+        _target.ShowUnit = ShowUnit;
+        _target.UnitSize = UnitSize;
+        _target.ShowPanel = ShowPanel;
 
         Changed?.Invoke(change);
     }
@@ -468,6 +522,9 @@ public partial class WidgetEditorViewModel : ObservableObject
         SelectedFill = target.Fill;
         Smoothness = target.LineSmoothness;
         PointSize = target.PointSize;
+        SelectedScale = target.Scale;
+        ScaleMin = target.ScaleMin;
+        ScaleMax = target.ScaleMax;
 
         ArcThickness = target.ArcThickness;
         ArcCorner = target.ArcCorner;
@@ -479,6 +536,11 @@ public partial class WidgetEditorViewModel : ObservableObject
         BarCorner = target.BarCorner;
         SelectedLayout = target.Layout;
         BarValueSize = target.BarValueSize;
+
+        StatValueSize = target.StatValueSize;
+        ShowUnit = target.ShowUnit;
+        UnitSize = target.UnitSize;
+        ShowPanel = target.ShowPanel;
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.

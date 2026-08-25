@@ -29,6 +29,10 @@ public partial class SparklineChart : UserControl, IChartStyle
     private LineSeries<double>? _primary;
     private LineSeries<double>? _secondary;
 
+    /// <summary>Kept so the scale can be changed without rebuilding the chart: the axes are created once
+    /// with the series, but their limits move whenever the user picks a different scale.</summary>
+    private Axis? _yAxis;
+
     // Alpha at the TOP of the area gradient, where it meets the line. Higher than the old flat fill
     // used, because the gradient gives it all back to transparency before reaching the axis.
     private const byte PrimaryFillAlpha = 80;
@@ -67,6 +71,18 @@ public partial class SparklineChart : UserControl, IChartStyle
     public static readonly DependencyProperty SmoothnessProperty =
         DependencyProperty.Register(nameof(Smoothness), typeof(double), typeof(SparklineChart),
             new PropertyMetadata(0.5, OnPropertyInvalidated));
+
+    public static readonly DependencyProperty ScaleProperty =
+        DependencyProperty.Register(nameof(Scale), typeof(ChartScale), typeof(SparklineChart),
+            new PropertyMetadata(ChartScale.FromZero, OnPropertyInvalidated));
+
+    public static readonly DependencyProperty ScaleMinProperty =
+        DependencyProperty.Register(nameof(ScaleMin), typeof(double), typeof(SparklineChart),
+            new PropertyMetadata(0d, OnPropertyInvalidated));
+
+    public static readonly DependencyProperty ScaleMaxProperty =
+        DependencyProperty.Register(nameof(ScaleMax), typeof(double), typeof(SparklineChart),
+            new PropertyMetadata(100d, OnPropertyInvalidated));
 
     public static readonly DependencyProperty PointSizeProperty =
         DependencyProperty.Register(nameof(PointSize), typeof(double), typeof(SparklineChart),
@@ -134,6 +150,27 @@ public partial class SparklineChart : UserControl, IChartStyle
         set => SetValue(SmoothnessProperty, value);
     }
 
+    /// <summary>How the vertical scale is decided.</summary>
+    public ChartScale Scale
+    {
+        get => (ChartScale)GetValue(ScaleProperty);
+        set => SetValue(ScaleProperty, value);
+    }
+
+    /// <summary>Bottom of the scale in <see cref="ChartScale.Manual"/>.</summary>
+    public double ScaleMin
+    {
+        get => (double)GetValue(ScaleMinProperty);
+        set => SetValue(ScaleMinProperty, value);
+    }
+
+    /// <summary>Top of the scale in <see cref="ChartScale.Manual"/>.</summary>
+    public double ScaleMax
+    {
+        get => (double)GetValue(ScaleMaxProperty);
+        set => SetValue(ScaleMaxProperty, value);
+    }
+
     /// <summary>Diameter of the dot at each reading; 0 hides them.</summary>
     public double PointSize
     {
@@ -182,10 +219,11 @@ public partial class SparklineChart : UserControl, IChartStyle
                 series.Add(_secondary);
             }
 
+            _yAxis = new Axis { IsVisible = false };
+
             Chart.Series = series;
             Chart.XAxes  = [new Axis { IsVisible = false, MinLimit = 0, MaxLimit = PointCount - 1 }];
-            Chart.YAxes  = [new Axis { IsVisible = false, MinLimit = 0,
-                                       MaxLimit = double.IsNaN(MaxY) ? null : MaxY }];
+            Chart.YAxes  = [_yAxis];
         }
         else
         {
@@ -199,6 +237,33 @@ public partial class SparklineChart : UserControl, IChartStyle
         // few paints costs nothing next to tearing down the series and starting the line from empty.
         ApplyStyle(_primary, ToSKColor(SeriesColor), PrimaryFillAlpha);
         if (_secondary != null) ApplyStyle(_secondary, ToSKColor(SecondColor), SecondaryFillAlpha);
+
+        ApplyScale();
+    }
+
+    /// <summary>
+    /// Sets the ends of the vertical scale. Null is LiveCharts' own "fit to what is plotted", which is why
+    /// FitToData is simply both ends left unset rather than anything computed here.
+    ///
+    /// Applied on every Rebuild rather than baked into the axis at construction, so changing the scale is a
+    /// style change like any other and never costs a rebuild of the series.
+    /// </summary>
+    private void ApplyScale()
+    {
+        if (_yAxis is null) return;
+
+        // Every arm typed as (double?, double?): a bare null has no type of its own, so leaving one
+        // untyped gives the switch no common type to settle on.
+        (_yAxis.MinLimit, _yAxis.MaxLimit) = Scale switch
+        {
+            ChartScale.FitToData => ((double?)null, (double?)null),
+
+            // Guarded: a max at or below the min collapses the plot area, and the editor lets the two boxes
+            // be typed into in any order — passing through the moment they cross would look like a crash.
+            ChartScale.Manual when ScaleMax > ScaleMin => ((double?)ScaleMin, (double?)ScaleMax),
+
+            _ => ((double?)0d, double.IsNaN(MaxY) ? null : (double?)MaxY),
+        };
     }
 
     private void Teardown()

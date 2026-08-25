@@ -44,6 +44,26 @@ public enum GaugeSweep
     Ring,
 }
 
+/// <summary>
+/// How a chart decides the top and bottom of its vertical scale.
+///
+/// Three, because two of them answer different questions. FromZero says "how much of the whole", which is
+/// what makes two widgets comparable to each other. FitToData says "how is it moving", which is what makes
+/// a reading that barely varies readable at all.
+/// </summary>
+public enum ChartScale
+{
+    /// <summary>Floor at zero, ceiling at 100 for a percentage and at whatever the data reaches otherwise.</summary>
+    FromZero,
+
+    /// <summary>Both ends follow the readings on screen. The line uses the full height — at the cost of a
+    /// scale that moves, so idle noise looks dramatic and two widgets stop being comparable.</summary>
+    FitToData,
+
+    /// <summary>Both ends fixed by the user.</summary>
+    Manual,
+}
+
 /// <summary>Where the meter's reading sits relative to its bar.</summary>
 public enum MeterLayout
 {
@@ -146,9 +166,29 @@ public class DesktopWidgetDefinition
     /// <summary>0 draws straight segments between readings, 1 a fully rounded curve.</summary>
     public double LineSmoothness { get; set; } = 0.5;
 
+    public ChartScale Scale { get; set; } = ChartScale.FromZero;
+
+    /// <summary>The ends of the scale in <see cref="ChartScale.Manual"/>, in the sensor's own unit.</summary>
+    public double ScaleMin { get; set; }
+    public double ScaleMax { get; set; } = 100;
+
     /// <summary>Diameter of the dot drawn at each reading. 0 hides them, which is the default — on a
     /// 60-point sparkline they merge into a caterpillar.</summary>
     public double PointSize { get; set; }
+
+    // --- Number, for the stat box ---
+
+    /// <summary>Point size of the number. Its own field, like the meter's: 20 suits a 150x120 tile and
+    /// says nothing useful about what a dial or a bar wants.</summary>
+    public double StatValueSize { get; set; } = 20;
+
+    public bool ShowUnit { get; set; } = true;
+
+    public double UnitSize { get; set; } = 13;
+
+    /// <summary>Whether the number draws its own rounded fill. Off suits a desktop widget, which already
+    /// has a styled panel of its own — two of them read as a box inside a box.</summary>
+    public bool ShowPanel { get; set; } = true;
 
     // --- Bar, for the meter ---
 
