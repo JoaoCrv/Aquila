@@ -117,14 +117,20 @@ public sealed class DesktopWidgetService
     private DesktopSurfaceService.Surface ResolveSurface(
         IReadOnlyList<DesktopSurfaceService.Surface> surfaces, DesktopWidgetDefinition definition)
     {
-        if (!string.IsNullOrEmpty(definition.ScreenKey))
+        if (WidgetSurface.ScreenKeyOf(definition.Surface) is { } key)
         {
-            var match = surfaces.FirstOrDefault(s => s.Key == definition.ScreenKey);
+            var match = surfaces.FirstOrDefault(s => s.Key == key);
             if (match.Canvas is not null) return match;
+
+            // A named monitor that is not here may only be unplugged, so its name is kept: forgetting a
+            // widget's real home would strand it on the primary screen for good.
+            return PrimarySurface(surfaces);
         }
+
+        // No home named at all — a widget from before surfaces were prefixed. There is nothing to forget,
+        // so it adopts the screen it lands on and stops being homeless on the next save.
         var primary = PrimarySurface(surfaces);
-        // Don't rewrite ScreenKey here: the monitor may just be temporarily unplugged, and forgetting its
-        // real home would strand the widget on the primary screen for good.
+        definition.Surface = WidgetSurface.Screen(primary.Key);
         return primary;
     }
 
@@ -140,7 +146,7 @@ public sealed class DesktopWidgetService
         var saved = _layout.Load();
         if (saved.Count > 0) return saved;
 
-        var screenKey = PrimarySurface(_surfaces.Surfaces).Key;
+        var screen = WidgetSurface.Screen(PrimarySurface(_surfaces.Surfaces).Key);
 
         var seeded = new List<DesktopWidgetDefinition>();
         foreach (var (kind, title, lookup, accent, x, y, width, height) in _starter)
@@ -153,7 +159,7 @@ public sealed class DesktopWidgetService
                 Kind = kind,
                 Title = title,
                 Series = [new WidgetSeries { SensorIdentifier = identifier, AccentKey = accent }],
-                ScreenKey = screenKey,
+                Surface = screen,
                 X = x, Y = y, Width = width, Height = height,
             });
         }
@@ -491,7 +497,7 @@ public sealed class DesktopWidgetService
 
         // Below whatever is already on that screen, so pinning three sensors in a row does not stack three
         // widgets in the same spot.
-        var occupied = _widgets.Where(w => w.ScreenKey == definition.ScreenKey).ToList();
+        var occupied = _widgets.Where(w => w.Surface == definition.Surface).ToList();
         if (occupied.Count > 0) definition.Y = occupied.Max(w => w.Y + w.Height) + 16;
 
         _widgets.Add(definition);
@@ -507,7 +513,7 @@ public sealed class DesktopWidgetService
         Series = string.IsNullOrEmpty(presetSensorIdentifier)
             ? []
             : [new WidgetSeries { SensorIdentifier = presetSensorIdentifier }],
-        ScreenKey = _surfaces.Surfaces.Count > 0 ? PrimarySurface(_surfaces.Surfaces).Key : string.Empty,
+        Surface = _surfaces.Surfaces.Count > 0 ? WidgetSurface.Screen(PrimarySurface(_surfaces.Surfaces).Key) : string.Empty,
         X = 32,
         Y = 150,
     };
@@ -679,7 +685,7 @@ public sealed class DesktopWidgetService
 
         // Sending a widget to a screen is an explicit choice, so this DOES rewrite the stored monitor —
         // unlike the fallback when a monitor is merely missing, which keeps the original.
-        definition.ScreenKey = surface.Key;
+        definition.Surface = WidgetSurface.Screen(surface.Key);
         definition.X = x;
         definition.Y = y;
         SaveUnlessEditing();

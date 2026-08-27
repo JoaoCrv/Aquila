@@ -98,11 +98,15 @@ public class DesktopWidgetDefinition
     /// </summary>
     public List<WidgetSeries> Series { get; set; } = [];
 
-    /// <summary>Which physical monitor the widget lives on — a stable identity derived from the monitor's
-    /// EDID manufacturer/product code and connection, not its index or DeviceName (both shift when
-    /// monitors are unplugged or rearranged). If the screen is gone, the widget falls back to the primary
-    /// one rather than disappearing.</summary>
-    public string ScreenKey { get; set; } = string.Empty;
+    /// <summary>
+    /// Where the widget lives, prefixed — see <see cref="WidgetSurface"/>. Today always a monitor
+    /// (<c>screen:DEL-A1B2-DP1</c>); a page claims its own namespace without needing a second field.
+    ///
+    /// A monitor is named by a stable identity derived from its EDID manufacturer/product code and
+    /// connection, not by index or DeviceName — both shift when monitors are unplugged or rearranged. If
+    /// the screen is gone the widget falls back to the primary one rather than disappearing.
+    /// </summary>
+    public string Surface { get; set; } = string.Empty;
 
     public double X { get; set; }
     public double Y { get; set; }
