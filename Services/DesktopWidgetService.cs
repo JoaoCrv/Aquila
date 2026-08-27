@@ -347,8 +347,12 @@ public sealed class DesktopWidgetService
     /// Swept when the session is SAVED rather than refused at Add, because "nothing chosen yet" is a normal
     /// state to be in for a few seconds; it is only when the layout is written that it stops being
     /// temporary. Discard drops them anyway, by restoring a snapshot that never had them.
+    ///
+    /// Only kinds that NEED a reading. A backdrop has none by design, and sweeping by series count alone
+    /// would have deleted every one of them the first time a session was saved.
     /// </summary>
-    private void DropEmptyWidgets() => _widgets?.RemoveAll(w => w.Series.Count == 0);
+    private void DropEmptyWidgets() =>
+        _widgets?.RemoveAll(w => w.Series.Count == 0 && WidgetCatalog.For(w.Kind).MaxSeries > 0);
 
     /// <summary>
     /// Writes the layout, unless an edit session is open. During one, nothing reaches the file until Save —
@@ -732,7 +736,10 @@ public sealed class DesktopWidgetService
             roles.Add(Role(series.AccentKey, DefaultRole(roles.Count)));
         }
 
-        if (resolved.Count == 0) return null;
+        // A kind that reads nothing draws anyway — a backdrop has no sensor to lose. Only the ones that
+        // need readings and have none are skipped, so a widget whose sensor vanished keeps its definition
+        // and comes back if the machine reports it again.
+        if (kind.MaxSeries > 0 && resolved.Count == 0) return null;
 
         var piece = kind.Create(resolved);
 

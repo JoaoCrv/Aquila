@@ -11,6 +11,9 @@ public enum DesktopWidgetKind
     SensorMeter,
     StatBox,
     SparklineChart,
+
+    /// <summary>Reads nothing and exists to sit behind: the card look, and later the page's background.</summary>
+    Backdrop,
 }
 
 /// <summary>

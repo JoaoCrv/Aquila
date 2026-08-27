@@ -131,7 +131,10 @@
                         </Grid>
                     </ui:CardExpander>
 
-                    <ui:CardExpander Icon="{ui:SymbolIcon DataHistogram24}" IsExpanded="True">
+                    <!-- Hidden for the kinds that read nothing. A backdrop has no sensor to pick, and a
+                         sensor list it cannot use would be a choice with nowhere to go. -->
+                    <ui:CardExpander Icon="{ui:SymbolIcon DataHistogram24}" IsExpanded="True"
+                                     Visibility="{Binding ViewModel.ShowsDataSection, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Data" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
@@ -566,12 +569,12 @@
                                            Text="{Binding ViewModel.Layer, StringFormat={}{0:F0}}"/>
                                 <TextBlock Text="Layer" Style="{StaticResource FieldLabel}"/>
                             </DockPanel>
-                            <Slider Minimum="0" Maximum="10"
+                            <Slider Minimum="-5" Maximum="10"
                                     TickFrequency="1" IsSnapToTickEnabled="True"
                                     Value="{Binding ViewModel.Layer}"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
-                                       Text="0 sits at the back. Where two widgets overlap, the higher layer draws in front."/>
+                                       Text="Where two widgets overlap, the higher layer draws in front. Below zero is behind everything else — where a backdrop belongs."/>
                         </StackPanel>
                     </ui:CardExpander>
 

@@ -268,8 +268,12 @@ public partial class WidgetEditorViewModel : ObservableObject
     /// </summary>
     public bool ReplacesSeries => SelectedKind is { MaxSeries: 1 } && Chosen.Count == 1;
 
+    /// <summary>Whether this kind reads anything at all. A backdrop does not, and neither will a label —
+    /// showing them a sensor list would be offering a choice with nowhere to go.</summary>
+    public bool ShowsDataSection => SelectedKind is { MaxSeries: > 0 };
+
     /// <summary>How many more readings this kind will take, said plainly.</summary>
-    public string SeriesHint => SelectedKind is null
+    public string SeriesHint => SelectedKind is null or { MaxSeries: 0 }
         ? string.Empty
         : ReplacesSeries
             ? "This widget draws one reading. Pick another sensor to swap it."
@@ -341,6 +345,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(CanAdd));
         OnPropertyChanged(nameof(SeriesHint));
         OnPropertyChanged(nameof(AddLabel));
+        OnPropertyChanged(nameof(ShowsDataSection));
         OnPropertyChanged(nameof(ShowsLineOptions));
         OnPropertyChanged(nameof(ShowsDialOptions));
         OnPropertyChanged(nameof(ShowsBarOptions));
@@ -370,6 +375,11 @@ public partial class WidgetEditorViewModel : ObservableObject
         // read out of the widget, and the default would overwrite what the user dragged.
         if (value is not null && (_loaded || WidgetWidth <= 0 || WidgetHeight <= 0))
             (WidgetWidth, WidgetHeight) = (value.DefaultWidth, value.DefaultHeight);
+
+        // A kind that reads nothing exists to sit behind, so it starts behind. Without this a backdrop
+        // arrives on layer 0 like everything else and, being the most recently added, covers the widgets
+        // it was meant to back — which is the first thing anyone would try and the first thing to go wrong.
+        if (_loaded && value is { MaxSeries: 0 } && Layer >= 0) Layer = -1;
 
         // Switching from a chart to a dial leaves readings the new kind cannot draw. Dropped here rather
         // than quietly ignored at render time, so what is saved is what is on screen.

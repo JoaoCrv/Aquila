@@ -56,6 +56,11 @@ public partial class LabeledTile : UserControl
         TitleText.Text = Title;
         Body.Content = Tile;
 
+        // An empty title still occupies a line, which a piece with nothing above it would wear as a gap.
+        // Matters most to the kinds that draw no reading: a backdrop is a plain rectangle unless it is
+        // given a title, and it should not be a rectangle with a stripe missing from the top.
+        TitleText.Visibility = string.IsNullOrEmpty(Title) ? Visibility.Collapsed : Visibility.Visible;
+
         DockPanel.SetDock(TitleText, TitlePlacement switch
         {
             TitlePlacement.Bottom => Dock.Bottom,

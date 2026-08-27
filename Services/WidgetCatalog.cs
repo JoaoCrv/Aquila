@@ -82,6 +82,16 @@ public static class WidgetCatalog
             300, 160,
             BuildChart,
             [SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty]) { HasLine = true },
+
+        // No accent properties, so MaxSeries is 0 — the first kind that reads nothing at all. Everything it
+        // draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is empty
+        // on purpose rather than a rectangle of its own, which would be a second one behind the first.
+        new(DesktopWidgetKind.Backdrop,
+            "Backdrop",
+            "A plate to sit behind other widgets. Reads nothing.",
+            240, 160,
+            _ => new Grid(),
+            []),
     ];
 
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which
