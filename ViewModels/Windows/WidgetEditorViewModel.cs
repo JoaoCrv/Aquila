@@ -31,7 +31,7 @@ public enum WidgetChange
     Structure,
 }
 
-public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor, string Family)
+public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor, SensorEntry Entry)
 {
     public string Display => $"{Component} — {Name}";
 }
@@ -317,14 +317,14 @@ public partial class WidgetEditorViewModel : ObservableObject
     /// which is the reason this method spread them across roles in the first place.
     /// </summary>
     private AccentOption DefaultAccentFor(SensorOption sensor, int index) =>
-        SelectedKind?.MaxSeries == 1 && !string.IsNullOrEmpty(sensor.Family)
+        SelectedKind?.MaxSeries == 1 && sensor.Entry.IsJudgeable
             ? Accents[^1]
             : Accents.Count > index ? Accents[index] : Accents[0];
 
     /// <summary>The colours a given reading may be drawn in. "By reading" is withheld from anything with no
     /// scale to follow — offering a choice that silently does nothing is worse than not offering it.</summary>
     private IReadOnlyList<AccentOption> AccentsFor(SensorOption sensor) =>
-        string.IsNullOrEmpty(sensor.Family) ? [.. Accents.Take(Accents.Count - 1)] : Accents;
+        sensor.Entry.IsJudgeable ? Accents : [.. Accents.Take(Accents.Count - 1)];
 
     private void OnSeriesEdited()
     {
@@ -398,7 +398,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         {
             SensorIdentifier = row.Sensor.Identifier,
             AccentKey = row.Accent.Key,
-            Family = row.Sensor.Family,
+            Metric = row.Sensor.Entry.Key.ToString(),
         })];
         _target.Title = string.IsNullOrWhiteSpace(Title)
             ? Chosen.FirstOrDefault()?.Sensor.Name ?? string.Empty
@@ -508,7 +508,7 @@ public partial class WidgetEditorViewModel : ObservableObject
             foreach (var entry in component.Sensors)
                 if (!string.IsNullOrEmpty(entry.Sensor.Identifier))
                     _allSensors.Add(new SensorOption(
-                        component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry.Family));
+                        component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry));
 
         ApplyFilter();
 

@@ -49,7 +49,7 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 Margin="8,0,0,0">
                         <TextBlock Style="{StaticResource CardBigValue}"
-                                   Foreground="{Binding DieTemperature.Value, Converter={StaticResource Intensity}, ConverterParameter=Temperature}"
+                                   Foreground="{Binding DieTemperature.Value, Converter={StaticResource Intensity}, ConverterParameter=Cpu.Temperature}"
                                    Text="{Binding DieTemperature.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}" Text="°C"/>
                     </StackPanel>
@@ -66,7 +66,7 @@
                             <controls:StatBox Margin="0,0,6,6"
                                 Label="{Binding Name}" Unit="°C" UnitSize="14"
                                 Value="{Binding Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                                Accent="{Binding Value, Converter={StaticResource Intensity}, ConverterParameter=Temperature}"/>
+                                Accent="{Binding Value, Converter={StaticResource Intensity}, ConverterParameter=Motherboard.Temperature}"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

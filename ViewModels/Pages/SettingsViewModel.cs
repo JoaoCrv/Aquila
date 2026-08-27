@@ -30,9 +30,10 @@ namespace Aquila.ViewModels.Pages
         /// <summary>
         /// When each family of readings stops being ordinary, edited in one place.
         ///
-        /// Families rather than individual sensors: a limit named once covers the CPU's temperature, the
-        /// GPU's, and every card that colours by the same name. Pressure is deliberately not among them —
-        /// it colours a value that has already been normalised, and its steps ARE that normalisation.
+        /// One row per kind of reading — the part and the metric together — so a CPU at 83 °C can be warm
+        /// while a GPU at 83 °C is ordinary. Rows are derived from the built-in presets, so a kind with no
+        /// shared scale (watts, clocks) simply has none. Pressure is deliberately absent: it colours a value
+        /// that has already been normalised, and its steps ARE that normalisation.
         /// </summary>
         public IReadOnlyList<ThresholdRow> Thresholds { get; }
         private bool _isInitialized = false;
@@ -53,7 +54,7 @@ namespace Aquila.ViewModels.Pages
             INavigationService navigation, AppearanceService theme, ColorProfileService profiles,
             VitalMonitor vitals)
         {
-            Thresholds = [.. Models.Thresholds.Configurable.Select(f => new ThresholdRow(vitals, f))];
+            Thresholds = [.. Models.Thresholds.Configurable.Select(key => new ThresholdRow(vitals, key))];
 
             _updateService = updateService;
             _settings = settings;

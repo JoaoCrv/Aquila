@@ -39,26 +39,26 @@ public sealed class VitalMonitor(SettingsService settings)
     public static VitalMonitor? Current { get; set; }
 
     /// <summary>
-    /// Limits the user has set, keyed by FAMILY — "Temperature", "Percent" — not by individual reading.
+    /// Limits the user has set, keyed by what a reading IS — the part and the metric together.
     ///
-    /// That is the whole point of one place: a family named once covers the CPU's temperature, the GPU's,
-    /// and the eleven XAML bindings that pass the same name to IntensityBrushConverter. Keyed per reading,
-    /// changing "temperature" would have meant editing each one and would still have missed every card.
+    /// One entry covers every reading of that kind: setting CPU temperature covers the die on this machine
+    /// and on the next, plus every binding in the app that names the same key. And it can say what a single
+    /// collapsed "Temperature" never could — that a GPU at 83 °C is ordinary and a CPU at 83 °C is warm.
     ///
     /// Only what was changed is stored, so "never configured" stays distinguishable from "set back to the
     /// default by hand" — which is the distinction Reset needs.
     /// </summary>
-    private readonly Dictionary<string, Thresholds> _custom = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<MetricKey, Thresholds> _custom = [];
 
-    /// <summary>The limits in force for a family.</summary>
-    public Thresholds For(string? family) =>
-        family is not null && _custom.TryGetValue(family, out var custom) ? custom : Thresholds.Preset(family);
+    /// <summary>The limits in force for a kind of reading, or null when it has no scale to be judged on.</summary>
+    public Thresholds? For(MetricKey key) =>
+        _custom.TryGetValue(key, out var custom) ? custom : Thresholds.Preset(key);
 
-    /// <summary>The limits in force for a watched reading, through the family it names.</summary>
-    public Thresholds For(Vital vital) => For(vital.Family);
+    /// <summary>The limits in force for a watched reading.</summary>
+    public Thresholds? For(Vital vital) => For(vital.Metric);
 
-    /// <summary>Whether a family is running on limits the user chose rather than the built-in ones.</summary>
-    public bool IsCustom(string family) => _custom.ContainsKey(family);
+    /// <summary>Whether a kind is running on limits the user chose rather than the built-in ones.</summary>
+    public bool IsCustom(MetricKey key) => _custom.ContainsKey(key);
 
     /// <summary>
     /// Raised when a family's limits change.
@@ -70,18 +70,18 @@ public sealed class VitalMonitor(SettingsService settings)
     /// </summary>
     public event Action? Changed;
 
-    public void Set(string family, Thresholds thresholds)
+    public void Set(MetricKey key, Thresholds thresholds)
     {
-        _custom[family] = thresholds;
+        _custom[key] = thresholds;
         Persist();
         Changed?.Invoke();
     }
 
     /// <summary>Puts a family back on the built-in limits by forgetting the override, not by copying the
     /// default into it — a stored copy would stop following the built-in if it were ever revised.</summary>
-    public void Reset(string family)
+    public void Reset(MetricKey key)
     {
-        _custom.Remove(family);
+        _custom.Remove(key);
         Persist();
         Changed?.Invoke();
     }
@@ -96,9 +96,9 @@ public sealed class VitalMonitor(SettingsService settings)
     {
         _custom.Clear();
 
-        foreach (var (family, text) in settings.Current.Thresholds)
-            if (Thresholds.Parse(text) is { } parsed && Thresholds.Families.Contains(family))
-                _custom[family] = parsed;
+        foreach (var (name, text) in settings.Current.Thresholds)
+            if (MetricKey.Parse(name) is { } key && Thresholds.Parse(text) is { } parsed)
+                _custom[key] = parsed;
     }
 
     private void Persist()
@@ -107,7 +107,7 @@ public sealed class VitalMonitor(SettingsService settings)
         // seventy-five and a half on a Portuguese machine would turn three numbers into four and lose the
         // family on the next load.
         settings.Current.Thresholds = _custom.ToDictionary(
-            pair => pair.Key,
+            pair => pair.Key.ToString(),
             pair => string.Format(CultureInfo.InvariantCulture, "{0},{1},{2}",
                 pair.Value.Elevated, pair.Value.Alert, pair.Value.Critical));
 
@@ -122,7 +122,7 @@ public sealed class VitalMonitor(SettingsService settings)
     /// reading and HOW MUCH, and never has to know which colour that deserves. Nothing outside this class
     /// should be comparing a reading against a limit.
     /// </summary>
-    public string RoleFor(double value, string? family) => For(family).Role(value);
+    public string RoleFor(double value, MetricKey key) => For(key)?.Role(value) ?? "Normal";
 
     /// <summary>
     /// The colour a reading has earned.
@@ -134,7 +134,7 @@ public sealed class VitalMonitor(SettingsService settings)
     /// Grey when the profile has not been published yet — a colour that is obviously wrong beats throwing
     /// during a first frame.
     /// </summary>
-    public Brush BrushFor(double value, string? family) => Brush(RoleFor(value, family));
+    public Brush BrushFor(double value, MetricKey key) => Brush(RoleFor(value, key));
 
     /// <summary>The profile's colour for a role name, without judging anything. For a caller that already
     /// knows the state — a <see cref="VitalReading"/> carries one.</summary>
@@ -160,7 +160,7 @@ public sealed class VitalMonitor(SettingsService settings)
             Value: value,
             Unit: unit,
             Text: $"{value:F0}{unit}",
-            Level: scale.Level(value),
-            Role: scale.Role(value));
+            Level: scale?.Level(value) ?? 0,
+            Role: scale?.Role(value) ?? "Normal");
     }
 }

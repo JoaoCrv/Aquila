@@ -75,7 +75,7 @@
                                 <ProgressBar Grid.Column="1"
                                              Style="{StaticResource FanBar}"
                                              VerticalAlignment="Center"
-                                             Foreground="{Binding BarPercent, Converter={StaticResource Intensity}, ConverterParameter=Percent}"
+                                             Foreground="{Binding BarPercent, Converter={StaticResource Intensity}, ConverterParameter=Motherboard.Load}"
                                              Value="{Binding BarValue, Mode=OneWay}"
                                              Maximum="{Binding BarMaximum, Mode=OneWay}"/>
                                 <TextBlock Grid.Column="2"

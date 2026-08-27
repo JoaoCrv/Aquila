@@ -5,7 +5,7 @@ using Aquila.Models.Nodes;
 namespace Aquila.Models;
 
 /// <summary>One sensor with a human-readable label, for listing/lookup (Explorer, widgets).</summary>
-public sealed record SensorEntry(string Label, SensorNode Sensor)
+public sealed record SensorEntry(string Label, SensorNode Sensor, MetricKind Metric)
 {
     /// <summary>
     /// Which family of limits judges this reading — the same names the settings form and the colour
@@ -15,11 +15,16 @@ public sealed record SensorEntry(string Label, SensorNode Sensor)
     /// from: by the time a widget holds a SensorNode it has a name, a unit and a value, and no way to tell
     /// 62 °C on an NVMe from 62 °C on a die. Anything downstream would be guessing from the label.
     ///
-    /// EMPTY when the reading has no shared scale to be judged on. Watts, RPM, volts and bytes per second
-    /// have no universal "in trouble" number — 85 W means one thing in a laptop and another in a worksta-
-    /// tion — so they are honestly unjudgeable rather than quietly measured against the percentage steps.
+    /// The pair, not one collapsed name: 62 °C on a die and 62 °C on an NVMe differ only in where they came
+    /// from, and a single "Temperature" family could never let a GPU at 83 °C be ordinary while a CPU at 83 °C
+    /// is warm.
     /// </summary>
-    public string Family { get; init; } = string.Empty;
+    public MetricKey Key { get; init; }
+
+    /// <summary>Whether this reading can be judged at all. Watts, clocks, volts and bytes per second have no
+    /// universal "in trouble" number, so they are honestly unjudgeable rather than quietly measured against
+    /// the percentage steps.</summary>
+    public bool IsJudgeable => Thresholds.Preset(Key) is not null;
 }
 
 /// <summary>A hardware component and its live sensors.</summary>
@@ -37,22 +42,22 @@ public static class SensorCatalog
         var components = new List<SensorComponent>();
 
         for (int i = 0; i < hw.Cpus.Count; i++)
-            Add(components, hw.Cpus[i].Name ?? $"CPU {i + 1}", nameof(Thresholds.Temperature), CpuSensors(hw.Cpus[i]));
+            Add(components, hw.Cpus[i].Name ?? $"CPU {i + 1}", HardwareKind.Cpu, CpuSensors(hw.Cpus[i]));
 
-        Add(components, "Memory", nameof(Thresholds.MemoryTemperature), MemorySensors(hw.Memory));
+        Add(components, "Memory", HardwareKind.Memory, MemorySensors(hw.Memory));
 
         for (int i = 0; i < hw.Gpus.Count; i++)
-            Add(components, hw.Gpus[i].Name ?? $"GPU {i + 1}", nameof(Thresholds.Temperature), GpuSensors(hw.Gpus[i]));
+            Add(components, hw.Gpus[i].Name ?? $"GPU {i + 1}", HardwareKind.Gpu, GpuSensors(hw.Gpus[i]));
 
-        Add(components, hw.Motherboard.Name ?? "Motherboard", nameof(Thresholds.Temperature), MotherboardSensors(hw.Motherboard));
+        Add(components, hw.Motherboard.Name ?? "Motherboard", HardwareKind.Motherboard, MotherboardSensors(hw.Motherboard));
 
         for (int i = 0; i < hw.Networks.Count; i++)
-            Add(components, hw.Networks[i].Name ?? $"Network {i + 1}", nameof(Thresholds.Temperature), NetworkSensors(hw.Networks[i]));
+            Add(components, hw.Networks[i].Name ?? $"Network {i + 1}", HardwareKind.Network, NetworkSensors(hw.Networks[i]));
 
         for (int i = 0; i < hw.Storages.Count; i++)
-            Add(components, hw.Storages[i].Name ?? $"Storage {i + 1}", nameof(Thresholds.DriveTemperature), StorageSensors(hw.Storages[i]));
+            Add(components, hw.Storages[i].Name ?? $"Storage {i + 1}", HardwareKind.Storage, StorageSensors(hw.Storages[i]));
 
-        Add(components, "System", nameof(Thresholds.Temperature), [new("Total Power", hw.TotalPower)]);
+        Add(components, "System", HardwareKind.System, [new("Total Power", hw.TotalPower, MetricKind.Power)]);
 
         return components;
     }
@@ -71,97 +76,88 @@ public static class SensorCatalog
 
     // Only adds entries whose sensor has a value (skips unpopulated nodes), and drops empty components.
     //
-    // The family is stamped here rather than in each builder: it depends on the unit AND on the kind of
-    // part, and this is the one line that has both. A die, a drive and a DIMM all report °C and are in
-    // trouble at very different numbers.
-    private static void Add(List<SensorComponent> components, string name, string temperatureFamily,
+    // The hardware half of the key is stamped here and the metric half comes from each builder, because
+    // this is the one place that has both: the loop above knows it is walking CPUs, and the builder knows
+    // that c.Temperature.Primary is a temperature. Neither knows alone, and the leaf knows neither.
+    private static void Add(List<SensorComponent> components, string name, HardwareKind hardware,
         IEnumerable<SensorEntry> entries)
     {
         var live = entries
             .Where(e => e.Sensor.Value.HasValue)
-            .Select(e => e with { Family = FamilyFor(e.Sensor, temperatureFamily) })
+            .Select(e => e with { Key = new MetricKey(hardware, e.Metric) })
             .ToList();
 
         if (live.Count > 0)
             components.Add(new SensorComponent(name, live));
     }
 
-    /// <summary>Percent for anything on a 0–100 scale, the part's own temperature family for degrees, and
-    /// nothing at all for the rest — see <see cref="SensorEntry.Family"/>.</summary>
-    private static string FamilyFor(SensorNode sensor, string temperatureFamily) => sensor.Unit switch
-    {
-        "°C" => temperatureFamily,
-        "%" => nameof(Thresholds.Percent),
-        _ => string.Empty,
-    };
-
     private static IEnumerable<SensorEntry> CpuSensors(CpuNode c)
     {
-        yield return new("Load", c.Load.Total);
-        yield return new("Core Max Load", c.Load.CoreMax);
+        yield return new("Load", c.Load.Total, MetricKind.Load);
+        yield return new("Core Max Load", c.Load.CoreMax, MetricKind.Load);
         for (int i = 0; i < c.Load.Cores.Count; i++)
-            if (c.Load.Cores[i] is { } core) yield return new($"Core #{i + 1} Load", core);
-        yield return new("Temperature", c.Temperature.Primary);
-        yield return new("Temperature (Secondary)", c.Temperature.Secondary);
-        yield return new("Package Power", c.Power.Package);
-        yield return new("Clock (Average)", c.Clock.CoresAverage);
-        yield return new("Bus Speed", c.Clock.BusSpeed);
+            if (c.Load.Cores[i] is { } core) yield return new($"Core #{i + 1} Load", core, MetricKind.Load);
+        yield return new("Temperature", c.Temperature.Primary, MetricKind.Temperature);
+        yield return new("Temperature (Secondary)", c.Temperature.Secondary, MetricKind.Temperature);
+        yield return new("Package Power", c.Power.Package, MetricKind.Power);
+        yield return new("Clock (Average)", c.Clock.CoresAverage, MetricKind.Clock);
+        yield return new("Bus Speed", c.Clock.BusSpeed, MetricKind.Clock);
     }
 
     private static IEnumerable<SensorEntry> MemorySensors(MemoryNode m)
     {
-        yield return new("Load", m.Load.Total);
-        yield return new("Used", m.Data.Used);
-        yield return new("Available", m.Data.Available);
-        yield return new("Total", m.Data.Total);
-        yield return new("Virtual Load", m.Virtual.Load);
-        yield return new("Virtual Used", m.Virtual.Used);
-        yield return new("Virtual Available", m.Virtual.Available);
+        yield return new("Load", m.Load.Total, MetricKind.Load);
+        yield return new("Used", m.Data.Used, MetricKind.Data);
+        yield return new("Available", m.Data.Available, MetricKind.Data);
+        yield return new("Total", m.Data.Total, MetricKind.Data);
+        yield return new("Virtual Load", m.Virtual.Load, MetricKind.Load);
+        yield return new("Virtual Used", m.Virtual.Used, MetricKind.Data);
+        yield return new("Virtual Available", m.Virtual.Available, MetricKind.Data);
         foreach (var d in m.Dimms)
         {
             var label = d.Name ?? "DIMM";
-            yield return new($"{label} Temperature", d.Temperature);
+            yield return new($"{label} Temperature", d.Temperature, MetricKind.Temperature);
         }
     }
 
     private static IEnumerable<SensorEntry> GpuSensors(GpuNode g)
     {
-        yield return new("Core Load", g.Load.Core);
-        yield return new("Memory Load", g.Load.Memory);
-        yield return new("Temperature", g.Temperature.Primary);
-        yield return new("Hot Spot", g.Temperature.Secondary);
-        yield return new("Core Clock", g.Clock.Core);
-        yield return new("Memory Clock", g.Clock.Memory);
-        yield return new("Power", g.Power.Package);
-        yield return new("VRAM Used", g.Data.Used);
-        yield return new("VRAM Total", g.Data.Total);
-        yield return new("Fan", g.Fan.Primary);
-        yield return new("Fan (Secondary)", g.Fan.Secondary);
+        yield return new("Core Load", g.Load.Core, MetricKind.Load);
+        yield return new("Memory Load", g.Load.Memory, MetricKind.Load);
+        yield return new("Temperature", g.Temperature.Primary, MetricKind.Temperature);
+        yield return new("Hot Spot", g.Temperature.Secondary, MetricKind.Temperature);
+        yield return new("Core Clock", g.Clock.Core, MetricKind.Clock);
+        yield return new("Memory Clock", g.Clock.Memory, MetricKind.Clock);
+        yield return new("Power", g.Power.Package, MetricKind.Power);
+        yield return new("VRAM Used", g.Data.Used, MetricKind.Data);
+        yield return new("VRAM Total", g.Data.Total, MetricKind.Data);
+        yield return new("Fan", g.Fan.Primary, MetricKind.Fan);
+        yield return new("Fan (Secondary)", g.Fan.Secondary, MetricKind.Fan);
     }
 
     private static IEnumerable<SensorEntry> MotherboardSensors(MotherboardNode mb)
     {
-        foreach (var s in mb.Temperature) yield return new($"{s.Name} Temp", s);
-        foreach (var s in mb.Fan)         yield return new($"{s.Name}", s);
-        foreach (var s in mb.Voltage)     yield return new($"{s.Name} Voltage", s);
+        foreach (var s in mb.Temperature) yield return new($"{s.Name} Temp", s, MetricKind.Temperature);
+        foreach (var s in mb.Fan)         yield return new($"{s.Name}", s, MetricKind.Fan);
+        foreach (var s in mb.Voltage)     yield return new($"{s.Name} Voltage", s, MetricKind.Voltage);
     }
 
     private static IEnumerable<SensorEntry> NetworkSensors(NetworkNode n)
     {
-        yield return new("Download", n.Throughput.Download);
-        yield return new("Upload", n.Throughput.Upload);
-        yield return new("Downloaded", n.Data.Downloaded);
-        yield return new("Uploaded", n.Data.Uploaded);
+        yield return new("Download", n.Throughput.Download, MetricKind.Throughput);
+        yield return new("Upload", n.Throughput.Upload, MetricKind.Throughput);
+        yield return new("Downloaded", n.Data.Downloaded, MetricKind.Data);
+        yield return new("Uploaded", n.Data.Uploaded, MetricKind.Data);
     }
 
     private static IEnumerable<SensorEntry> StorageSensors(StorageNode s)
     {
-        yield return new("Used Space", s.Load.UsedSpace);
-        yield return new("Temperature", s.Temperature.Primary);
-        yield return new("Read Rate", s.Throughput.ReadRate);
-        yield return new("Write Rate", s.Throughput.WriteRate);
-        yield return new("Life", s.Level.Life);
-        yield return new("Data Read", s.Data.Read);
-        yield return new("Data Written", s.Data.Written);
+        yield return new("Used Space", s.Load.UsedSpace, MetricKind.Load);
+        yield return new("Temperature", s.Temperature.Primary, MetricKind.Temperature);
+        yield return new("Read Rate", s.Throughput.ReadRate, MetricKind.Throughput);
+        yield return new("Write Rate", s.Throughput.WriteRate, MetricKind.Throughput);
+        yield return new("Life", s.Level.Life, MetricKind.Level);
+        yield return new("Data Read", s.Data.Read, MetricKind.Data);
+        yield return new("Data Written", s.Data.Written, MetricKind.Data);
     }
 }

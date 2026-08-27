@@ -59,7 +59,7 @@
                              85% is a build or something helping itself to the machine, and it is not its job
                              to guess — it reports the reading against the limits and lets you decide. -->
                         <TextBlock Style="{StaticResource CardBigValue}"
-                                   Foreground="{Binding Cpu.Load.Total.Value, Converter={StaticResource Intensity}, ConverterParameter=Percent}"
+                                   Foreground="{Binding Cpu.Load.Total.Value, Converter={StaticResource Intensity}, ConverterParameter=Cpu.Load}"
                                    Text="{Binding Cpu.Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}" Text="%"/>
                     </StackPanel>
@@ -68,7 +68,7 @@
                 <UniformGrid Columns="3" Margin="0,0,0,10">
                     <controls:StatBox Label="Temp" Unit="°C" Margin="0,0,3,0"
                         Value="{Binding Cpu.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{Binding Cpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Temperature}"/>
+                        Accent="{Binding Cpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Cpu.Temperature}"/>
                     <controls:StatBox Label="Eff. Clock" Unit="MHz" UnitSize="11" Margin="3,0"
                         Value="{Binding Cpu.Clock.CoresAverage.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                     <controls:StatBox Label="Power" Unit="W" Margin="3,0,0,0"

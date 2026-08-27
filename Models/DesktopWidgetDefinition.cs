@@ -261,10 +261,10 @@ public class WidgetSeries
     /// </summary>
     public const string FollowsReading = "follow";
 
-    /// <summary>Which family of limits judges this reading, when it follows it. Stored rather than worked
-    /// out at render time: the sensor alone cannot say whether 62 °C is a die or a drive, and the catalog
-    /// that CAN say is only consulted while listing sensors.</summary>
-    public string Family { get; set; } = string.Empty;
+    /// <summary>What this reading IS — "Cpu.Temperature" — so it can be judged when it follows its value.
+    /// Stored rather than worked out at render time: the sensor alone cannot say whether 62 °C is a die or a
+    /// drive, and the catalog that CAN say is only consulted while listing sensors.</summary>
+    public string Metric { get; set; } = string.Empty;
 
     public WidgetSeries Clone() => (WidgetSeries)MemberwiseClone();
 }

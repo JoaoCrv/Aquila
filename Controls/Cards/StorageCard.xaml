@@ -48,7 +48,7 @@
                              empty and reading lighter than every other one on the page. -->
                         <TextBlock FontSize="11" Margin="0,1,0,0"
                                    Style="{StaticResource MonoValue}" FontWeight="Normal"
-                                   Foreground="{Binding Storage.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=DriveTemperature}"
+                                   Foreground="{Binding Storage.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Storage.Temperature}"
                                    Text="{Binding Storage.Temperature.Primary.Value, StringFormat='{}{0:F0} °C', FallbackValue=''}"/>
                     </StackPanel>
 

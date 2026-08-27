@@ -41,15 +41,20 @@ namespace Aquila.Helpers
             // Everything below is the monitor's decision, not this converter's: it is handed what is being
             // read and how much, and never works out a colour itself.
             //
-            // Numbers spelled out in XAML ("50,70,85") are still honoured, for markup written by hand, but
-            // they cannot follow a limit the user changes: a family NAME can, a copy cannot. A malformed
-            // parameter falls back rather than throwing — a typo should not take the dashboard down.
-            var family = parameter as string;
-            if (Thresholds.Parse(family) is { } spelled && !Thresholds.Families.Contains(family!))
-                return VitalMonitor.Brush(spelled.Role(reading));
+            // The parameter names a reading KIND — "Cpu.Temperature" — so a limit the user changes reaches
+            // this binding. The pressure ribbon is the one exception: it draws a value that has already been
+            // normalised, and its steps ARE that normalisation, so it is not a kind anyone can configure.
+            var name = parameter as string;
 
-            return VitalMonitor.Current?.BrushFor(reading, family)
-                ?? VitalMonitor.Brush(Thresholds.Preset(family).Role(reading));
+            if (string.Equals(name, nameof(Thresholds.Pressure), StringComparison.OrdinalIgnoreCase))
+                return VitalMonitor.Brush(Thresholds.Pressure.Role(reading));
+
+            // A malformed parameter leaves the element at Normal rather than throwing — a typo in markup
+            // should not take the dashboard down.
+            if (MetricKey.Parse(name) is not { } key) return VitalMonitor.Brush("Normal");
+
+            return VitalMonitor.Current?.BrushFor(reading, key)
+                ?? VitalMonitor.Brush(Thresholds.Preset(key)?.Role(reading) ?? "Normal");
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

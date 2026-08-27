@@ -737,11 +737,11 @@ public sealed class DesktopWidgetService
 
             resolved.Add(entry.Sensor);
 
-            // A layout written before families existed has none stored, and an unjudged temperature would
-            // fall back to the percentage scale and read Normal at 90 °C. Filled in from the catalog, which
-            // is the only thing that still knows what kind of part this came from — and written onto the
-            // definition, so the next save keeps it, exactly as the screen-key migration does.
-            if (string.IsNullOrEmpty(series.Family)) series.Family = entry.Family;
+            // A layout written before this existed has no metric stored, and an unjudged reading cannot
+            // follow its value at all. Filled in from the catalog, which is the only thing that still knows
+            // what kind of part this came from — and written onto the definition, so the next save keeps it,
+            // exactly as the screen-key migration does.
+            if (string.IsNullOrEmpty(series.Metric)) series.Metric = entry.Key.ToString();
 
             chosen.Add(series);
 
@@ -764,10 +764,11 @@ public sealed class DesktopWidgetService
             var series = chosen[i];
             var property = kind.AccentProperties[i];
 
-            // A family is required, not just the choice: watts and RPM have no scale to follow, and judging
-            // them against the percentage steps would paint a 90 W package almost critical for no reason.
-            if (series.AccentKey == WidgetSeries.FollowsReading && !string.IsNullOrEmpty(series.Family))
-                FollowReading(piece, property, resolved[i], series.Family);
+            // A judgeable metric is required, not just the choice: watts and RPM have no scale to follow,
+            // and judging them against the percentage steps would paint a 90 W package almost critical.
+            if (series.AccentKey == WidgetSeries.FollowsReading
+                && MetricKey.Parse(series.Metric) is { } metric && Thresholds.Preset(metric) is not null)
+                FollowReading(piece, property, resolved[i], metric);
             else
                 piece.SetResourceReference(property, roles[i]);
         }
@@ -831,7 +832,7 @@ public sealed class DesktopWidgetService
     /// bookkeeping to get out of step with what is actually on screen.
     /// </remarks>
     private static void FollowReading(FrameworkElement piece, DependencyProperty property,
-        SensorNode sensor, string family)
+        SensorNode sensor, MetricKey metric)
     {
         var monitor = VitalMonitor.Current;
 
@@ -846,7 +847,7 @@ public sealed class DesktopWidgetService
         void Repaint()
         {
             if (sensor.Value is not float value) return;
-            piece.SetValue(property, VitalMonitor.Current?.BrushFor(value, family) ?? Brushes.Gray);
+            piece.SetValue(property, VitalMonitor.Current?.BrushFor(value, metric) ?? Brushes.Gray);
         }
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)

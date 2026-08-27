@@ -48,7 +48,7 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 Margin="8,0,0,0">
                         <TextBlock Style="{StaticResource CardBigValue}"
-                                   Foreground="{Binding Gpu.Load.Core.Value, Converter={StaticResource Intensity}, ConverterParameter=Percent}"
+                                   Foreground="{Binding Gpu.Load.Core.Value, Converter={StaticResource Intensity}, ConverterParameter=Gpu.Load}"
                                    Text="{Binding Gpu.Load.Core.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}" Text="%"/>
                     </StackPanel>
@@ -57,7 +57,7 @@
                 <UniformGrid Columns="3" Margin="0,0,0,10">
                     <controls:StatBox Label="Temp" Unit="°C" Margin="0,0,3,0"
                         Value="{Binding Gpu.Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                        Accent="{Binding Gpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Temperature}"/>
+                        Accent="{Binding Gpu.Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Gpu.Temperature}"/>
                     <controls:StatBox Label="Clock" Unit="MHz" UnitSize="11" Margin="3,0"
                         Value="{Binding Gpu.Clock.Core.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"/>
                     <controls:StatBox Label="Power" Unit="W" Margin="3,0,0,0"

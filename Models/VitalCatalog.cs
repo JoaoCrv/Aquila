@@ -8,15 +8,15 @@ namespace Aquila.Models;
 /// <param name="Short">Three or four characters for the title bar's strip, where space is contested.</param>
 /// <param name="Label">Readable name, used when explaining a pressure reading — "GPU temperature".</param>
 /// <param name="Pick">Where the reading comes from. Returns null when the machine has no such part.</param>
-/// <param name="Family">Which family of limits decides whether this reading is ordinary — the same names
-/// XAML passes to IntensityBrushConverter. A NAME, not a copy of the numbers: limits the user changes are
-/// stored per family, so a vital holding its own values could not follow them.</param>
+/// <param name="Metric">What this reading is — the part it came from and what it measures. A KEY, not a
+/// copy of the numbers: limits the user changes are stored against it, so a vital holding its own values
+/// could not follow them.</param>
 public sealed record Vital(
     string Key,
     string Short,
     string Label,
     Func<HardwareNode, SensorNode?> Pick,
-    string Family);
+    MetricKey Metric);
 
 /// <summary>
 /// The readings the app watches, declared once.
@@ -34,19 +34,19 @@ public static class VitalCatalog
     public static IReadOnlyList<Vital> All { get; } =
     [
         new("cpu.load", "CPU", "CPU load",
-            h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null, nameof(Thresholds.Percent)),
+            h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null, new(HardwareKind.Cpu, MetricKind.Load)),
 
         new("gpu.load", "GPU", "GPU load",
-            h => h.PrimaryGpu?.Load.Core, nameof(Thresholds.Percent)),
+            h => h.PrimaryGpu?.Load.Core, new(HardwareKind.Gpu, MetricKind.Load)),
 
         new("memory.load", "RAM", "Memory",
-            h => h.Memory.Load.Total, nameof(Thresholds.Percent)),
+            h => h.Memory.Load.Total, new(HardwareKind.Memory, MetricKind.Load)),
 
         new("cpu.temp", "PKG", "CPU temperature",
-            h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null, nameof(Thresholds.Temperature)),
+            h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null, new(HardwareKind.Cpu, MetricKind.Temperature)),
 
         new("gpu.temp", "GPU°", "GPU temperature",
-            h => h.PrimaryGpu?.Temperature.Primary, nameof(Thresholds.Temperature)),
+            h => h.PrimaryGpu?.Temperature.Primary, new(HardwareKind.Gpu, MetricKind.Temperature)),
     ];
 
     /// <summary>The named readings, in the order asked for. An unknown key is skipped rather than throwing:

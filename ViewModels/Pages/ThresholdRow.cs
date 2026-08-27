@@ -17,15 +17,15 @@ namespace Aquila.ViewModels.Pages;
 public partial class ThresholdRow : ObservableObject
 {
     private readonly VitalMonitor _monitor;
-    private readonly string _family;
+    private readonly MetricKey _key;
     private bool _loading;
 
-    public ThresholdRow(VitalMonitor monitor, string family)
+    public ThresholdRow(VitalMonitor monitor, MetricKey key)
     {
         _monitor = monitor;
-        _family = family;
+        _key = key;
 
-        (Name, Detail) = Thresholds.Describe(family);
+        (Name, Detail) = Thresholds.Describe(key);
         Load();
     }
 
@@ -69,7 +69,7 @@ public partial class ThresholdRow : ObservableObject
     [RelayCommand]
     private void Reset()
     {
-        _monitor.Reset(_family);
+        _monitor.Reset(_key);
         Load();
     }
 
@@ -77,11 +77,12 @@ public partial class ThresholdRow : ObservableObject
     {
         _loading = true;
 
-        var steps = _monitor.For(_family);
+        // Never null here: the form only builds rows for kinds that have a preset.
+        var steps = _monitor.For(_key) ?? Thresholds.Percent;
         Elevated = steps.Elevated;
         Alert = steps.Alert;
         Critical = steps.Critical;
-        IsCustom = _monitor.IsCustom(_family);
+        IsCustom = _monitor.IsCustom(_key);
 
         _loading = false;
     }
@@ -96,7 +97,7 @@ public partial class ThresholdRow : ObservableObject
     {
         if (_loading) return;
 
-        _monitor.Set(_family, new Thresholds(Elevated, Alert, Critical));
+        _monitor.Set(_key, new Thresholds(Elevated, Alert, Critical));
         IsCustom = true;
     }
 }

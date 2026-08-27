@@ -80,57 +80,73 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
         to <= from ? high : low + (value - from) / (to - from) * (high - low);
 
     /// <summary>
-    /// The families a reading can be judged on, by the names call sites use. The set the settings form
-    /// draws a row for, and the set a ConverterParameter may name.
-    /// </summary>
-    public static IReadOnlyList<string> Families { get; } =
-        [nameof(Percent), nameof(Temperature), nameof(DriveTemperature), nameof(MemoryTemperature), nameof(Pressure)];
-
-    /// <summary>
-    /// The families worth putting in front of a person, and the reason the list is not simply
-    /// <see cref="Families"/>.
+    /// The built-in limits for a reading, or NULL when its kind has no shared scale to be judged on.
     ///
-    /// <see cref="Pressure"/> is deliberately absent. It is not a judgement about a reading — it colours a
-    /// number that has ALREADY been through <see cref="Level"/>, and its steps ARE the thirds that mapping
-    /// produces. Letting it be edited would let the ribbon disagree with the very mapping that produced the
-    /// number it is drawing.
+    /// Null is the honest answer for watts, clocks, bytes and volts: 85 W means one thing in a laptop and
+    /// another in a workstation, and there is no number we could put here that would be true of both. A
+    /// caller that gets null must not colour by state — it has nothing to colour against.
+    ///
+    /// This table IS the definition of "judgeable": the settings form draws a row for every entry, and
+    /// nothing else keeps a second list that could fall out of step with it.
     /// </summary>
-    public static IReadOnlyList<string> Configurable { get; } =
-        [nameof(Percent), nameof(Temperature), nameof(DriveTemperature), nameof(MemoryTemperature)];
-
-    /// <summary>What each family is called in front of a person, and what it covers.</summary>
-    public static (string Name, string Detail) Describe(string family) => family switch
+    public static Thresholds? Preset(MetricKey key) => (key.Hardware, key.Metric) switch
     {
-        nameof(Temperature) => ("Processor temperature", "CPU and GPU dies, which run hot by design"),
-        nameof(DriveTemperature) => ("Drive temperature", "SSDs and hard drives, which throttle far sooner than a die"),
-        nameof(MemoryTemperature) => ("Memory temperature", "DIMMs, which sit warmer than a drive but cooler than a die"),
-        _ => ("Load and usage", "Anything measured 0–100: CPU, GPU, memory, disk space"),
+        // Silicon that is designed to run hot and boosts in bursts.
+        (HardwareKind.Cpu, MetricKind.Temperature) => Temperature,
+        (HardwareKind.Gpu, MetricKind.Temperature) => Temperature,
+        (HardwareKind.Motherboard, MetricKind.Temperature) => Temperature,
+
+        // Drives throttle far sooner than a die does.
+        (HardwareKind.Storage, MetricKind.Temperature) => DriveTemperature,
+
+        // A DIMM under load sits where an NVMe would already be in trouble.
+        (HardwareKind.Memory, MetricKind.Temperature) => MemoryTemperature,
+
+        // Anything on a 0-100 scale.
+        (_, MetricKind.Load) => Percent,
+        (HardwareKind.Storage, MetricKind.Level) => Percent,
+
+        _ => null,
     };
 
-    /// <summary>The built-in limits for a family, ignoring anything the user has changed. What a Reset
-    /// goes back to, and the fallback when a name is not one of ours.</summary>
-    public static Thresholds Preset(string? family) =>
-        string.Equals(family, nameof(Temperature), StringComparison.OrdinalIgnoreCase) ? Temperature :
-        string.Equals(family, nameof(DriveTemperature), StringComparison.OrdinalIgnoreCase) ? DriveTemperature :
-        string.Equals(family, nameof(MemoryTemperature), StringComparison.OrdinalIgnoreCase) ? MemoryTemperature :
-        string.Equals(family, nameof(Pressure), StringComparison.OrdinalIgnoreCase) ? Pressure :
-        Percent;
+    /// <summary>Every reading kind that can be judged, and therefore every row the settings form draws.
+    /// Derived from <see cref="Preset(MetricKey)"/> so the two can never disagree.</summary>
+    public static IReadOnlyList<MetricKey> Configurable { get; } =
+    [
+        .. from hardware in Enum.GetValues<HardwareKind>()
+           from metric in Enum.GetValues<MetricKind>()
+           let key = new MetricKey(hardware, metric)
+           where Preset(key) is not null
+           select key
+    ];
+
+    /// <summary>What a reading kind is called in front of a person, and what it covers.</summary>
+    public static (string Name, string Detail) Describe(MetricKey key) => (key.Hardware, key.Metric) switch
+    {
+        (HardwareKind.Cpu, MetricKind.Temperature) => ("CPU temperature", "The die, which is designed to run hot and boosts in bursts"),
+        (HardwareKind.Gpu, MetricKind.Temperature) => ("GPU temperature", "The graphics die, warmer still under load"),
+        (HardwareKind.Motherboard, MetricKind.Temperature) => ("Board temperature", "VRM, chipset and whatever else the board reports"),
+        (HardwareKind.Storage, MetricKind.Temperature) => ("Drive temperature", "SSDs and hard drives, which throttle far sooner than a die"),
+        (HardwareKind.Memory, MetricKind.Temperature) => ("Memory temperature", "DIMMs, warmer than a drive and cooler than a die"),
+
+        (HardwareKind.Cpu, MetricKind.Load) => ("CPU load", "How much of the processor is in use"),
+        (HardwareKind.Gpu, MetricKind.Load) => ("GPU load", "How much of the graphics card is in use"),
+        (HardwareKind.Memory, MetricKind.Load) => ("Memory in use", "How full the machine's memory is"),
+        (HardwareKind.Storage, MetricKind.Load) => ("Disk space used", "How full a drive is"),
+        (HardwareKind.Storage, MetricKind.Level) => ("Drive life left", "Wear reported by the drive itself"),
+
+        _ => ($"{key.Hardware} {key.Metric}".ToLowerInvariant(), string.Empty),
+    };
 
     /// <summary>
-    /// Reads either a preset name ("Temperature") or three numbers ("50,70,85"). Names are preferred in
-    /// new code — a call site that spells the numbers out is a copy that can drift from this file, and
-    /// only a name can follow a limit the user has since changed.
-    /// Returns null rather than throwing: this parses XAML written by hand.
+    /// Reads three numbers, "50,70,85", in the reading's own units. Only for values stored or written by
+    /// hand — a call site that spells the numbers out holds a copy that cannot follow a limit the user
+    /// changes, which is why every binding in the app names a <see cref="MetricKey"/> instead.
+    /// Returns null rather than throwing.
     /// </summary>
     public static Thresholds? Parse(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
-
-        if (string.Equals(text, nameof(Percent), StringComparison.OrdinalIgnoreCase)) return Percent;
-        if (string.Equals(text, nameof(Temperature), StringComparison.OrdinalIgnoreCase)) return Temperature;
-        if (string.Equals(text, nameof(DriveTemperature), StringComparison.OrdinalIgnoreCase)) return DriveTemperature;
-        if (string.Equals(text, nameof(MemoryTemperature), StringComparison.OrdinalIgnoreCase)) return MemoryTemperature;
-        if (string.Equals(text, nameof(Pressure), StringComparison.OrdinalIgnoreCase)) return Pressure;
 
         var parts = text.Split(',');
         if (parts.Length != 3) return null;
