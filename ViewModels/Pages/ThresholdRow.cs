@@ -48,17 +48,32 @@ public partial class ThresholdRow : ObservableObject
     [NotifyPropertyChangedFor(nameof(AlertMax))]
     private double _critical;
 
-    /// <summary>Whether this family is running on limits the user set rather than the built-in ones — what
+    /// <summary>Whether this row is running on limits the user set rather than the ones underneath — what
     /// decides if Reset has anything to do.</summary>
     [ObservableProperty]
     private bool _isCustom;
 
+    /// <summary>Said aloud when the numbers underneath came from the hardware itself. A drive's own warning
+    /// temperature is a better default than ours, and the user should be able to tell that is what they are
+    /// looking at before deciding to overrule it.</summary>
+    [ObservableProperty]
+    private string? _source;
+
     // The bounds each number gives its neighbours. A degree apart, so two steps can be adjacent without
     // being the same number — three limits that all read 85 would describe no ramp at all.
-    public double ElevatedMax => Alert - 1;
-    public double AlertMin => Elevated + 1;
-    public double AlertMax => Critical - 1;
-    public double CriticalMin => Alert + 1;
+    //
+    // Lifted while a whole row is being replaced. The three are written one at a time, so a Reset from
+    // 30/35/40 back to 75/85/95 would put 75 into Elevated while Alert still said 35 — and the box's own
+    // ceiling would refuse it, leaving only the last of the three to survive. Mid-replacement the
+    // intermediate states are meaningless, so the bounds step aside until all three have landed.
+    public double ElevatedMax => _loading ? Unbounded : Alert - 1;
+    public double AlertMin => _loading ? 0 : Elevated + 1;
+    public double AlertMax => _loading ? Unbounded : Critical - 1;
+    public double CriticalMin => _loading ? 0 : Alert + 1;
+
+    /// <summary>Higher than any temperature or percentage will ever be, which is all "no ceiling" has to
+    /// mean here.</summary>
+    private const double Unbounded = 10_000;
 
     partial void OnElevatedChanged(double value) => Apply();
     partial void OnAlertChanged(double value) => Apply();
@@ -76,6 +91,7 @@ public partial class ThresholdRow : ObservableObject
     private void Load()
     {
         _loading = true;
+        RaiseBounds();
 
         // Never null here: the form only builds rows for kinds that have a preset.
         var steps = _monitor.For(_key) ?? Thresholds.Percent;
@@ -83,8 +99,20 @@ public partial class ThresholdRow : ObservableObject
         Alert = steps.Alert;
         Critical = steps.Critical;
         IsCustom = _monitor.IsCustom(_key);
+        Source = _monitor.IsReported(_key) ? "Reported by the hardware" : null;
 
         _loading = false;
+        RaiseBounds();
+    }
+
+    /// <summary>Tells the boxes to re-read their limits — on the way into a replacement, so they let go of
+    /// them, and on the way out, so they take the new neighbours.</summary>
+    private void RaiseBounds()
+    {
+        OnPropertyChanged(nameof(ElevatedMax));
+        OnPropertyChanged(nameof(AlertMin));
+        OnPropertyChanged(nameof(AlertMax));
+        OnPropertyChanged(nameof(CriticalMin));
     }
 
     /// <summary>
@@ -99,5 +127,6 @@ public partial class ThresholdRow : ObservableObject
 
         _monitor.Set(_key, new Thresholds(Elevated, Alert, Critical));
         IsCustom = true;
+        Source = null;
     }
 }

@@ -50,9 +50,68 @@ public sealed class VitalMonitor(SettingsService settings)
     /// </summary>
     private readonly Dictionary<MetricKey, Thresholds> _custom = [];
 
-    /// <summary>The limits in force for a kind of reading, or null when it has no scale to be judged on.</summary>
+    /// <summary>
+    /// Limits the hardware reports about itself, adopted once the sensors have values.
+    ///
+    /// A drive knows its own warning and critical temperature and says so over SMART; a DIMM does the same.
+    /// Samsung knows better than we do what is safe for a Samsung drive, so those numbers sit between our
+    /// generic preset and whatever the user chooses — better than a guess, and still overridable.
+    /// </summary>
+    private readonly Dictionary<MetricKey, Thresholds> _reported = [];
+
+    private bool _adopted;
+
+    /// <summary>The limits in force for a kind of reading, or null when it has no scale to be judged on.
+    /// User's choice first, then what the hardware says about itself, then our generic preset.</summary>
     public Thresholds? For(MetricKey key) =>
-        _custom.TryGetValue(key, out var custom) ? custom : Thresholds.Preset(key);
+        _custom.TryGetValue(key, out var custom) ? custom
+        : _reported.TryGetValue(key, out var reported) ? reported
+        : Thresholds.Preset(key);
+
+    /// <summary>Whether a kind is running on limits the hardware reported rather than our generic ones.</summary>
+    public bool IsReported(MetricKey key) => !_custom.ContainsKey(key) && _reported.ContainsKey(key);
+
+    /// <summary>
+    /// Takes the limits the machine reports about itself. Called each tick and does its work once — the
+    /// sensors have no values until the first poll has been through, and after that they never change.
+    /// </summary>
+    public void AdoptReportedLimits(HardwareNode hardware)
+    {
+        if (_adopted) return;
+
+        // Only two kinds of part report their own limits, and both do it per device. A family holds one
+        // set, so the SAFEST of them wins: with two drives, the one that overheats first decides, because
+        // saying "critical" late about that drive would be worse than saying it early about the other.
+        Adopt(new MetricKey(HardwareKind.Storage, MetricKind.Temperature),
+            [.. hardware.Storages.Select(s => (s.Temperature.Warning.Value, s.Temperature.Critical.Value))]);
+
+        Adopt(new MetricKey(HardwareKind.Memory, MetricKind.Temperature),
+            [.. hardware.Memory.Dimms.Select(d => (d.WarningTemperature.Value, d.CriticalTemperature.Value))]);
+
+        // Nothing to adopt on a machine whose parts stay quiet — try again next tick rather than settling
+        // for the generic numbers before the first poll has landed.
+        if (_reported.Count > 0) _adopted = true;
+    }
+
+    private void Adopt(MetricKey key, IReadOnlyList<(float? Warning, float? Critical)> reported)
+    {
+        var alert = reported.Select(r => r.Warning).OfType<float>().DefaultIfEmpty(0).Min();
+        var critical = reported.Select(r => r.Critical).OfType<float>().DefaultIfEmpty(0).Min();
+
+        if (alert <= 0 || critical <= alert) return;
+
+        // The device gives two anchors and says nothing about the first step. Clamping ours to just below
+        // its warning was wrong: a DIMM reporting 55 and 85 turned our 60 into 54, leaving a one-degree band
+        // before alert and then thirty degrees of it.
+        //
+        // Scaled instead, so the first step keeps the PROPORTION our preset puts it at — how far below
+        // warning "warming up" begins is a judgement, and it is ours to make; where warning and critical sit
+        // is a fact, and that is the device's. 55 and 85 now give 47, not 54.
+        var preset = Thresholds.Preset(key) ?? Thresholds.DriveTemperature;
+        var elevated = Math.Round(alert * (preset.Elevated / preset.Alert));
+
+        _reported[key] = new Thresholds(elevated, alert, critical);
+    }
 
     /// <summary>The limits in force for a watched reading.</summary>
     public Thresholds? For(Vital vital) => For(vital.Metric);
@@ -114,18 +173,15 @@ public sealed class VitalMonitor(SettingsService settings)
         settings.Save();
     }
 
-    /// <summary>
-    /// Which state a reading is in — Normal, Elevated, Alert or Critical, the names the colour profile
-    /// uses for its roles.
-    ///
-    /// This and <see cref="BrushFor"/> are the whole point of the arrangement: a caller says WHAT it is
-    /// reading and HOW MUCH, and never has to know which colour that deserves. Nothing outside this class
-    /// should be comparing a reading against a limit.
-    /// </summary>
-    public string RoleFor(double value, MetricKey key) => For(key)?.Role(value) ?? "Normal";
+    /// <summary>Which state a reading is in, by the names the colour profile uses for its roles. Private
+    /// until something wants the name rather than the colour — the alert layer will.</summary>
+    private string RoleFor(double value, MetricKey key) => For(key)?.Role(value) ?? "Normal";
 
     /// <summary>
     /// The colour a reading has earned.
+    ///
+    /// This is the whole point of the arrangement: a caller says WHAT it is reading and HOW MUCH, and never
+    /// has to know which colour that deserves. Nothing outside this class compares a reading against a limit.
     ///
     /// Both halves meet here and nowhere else: this class says WHEN a value is alerting, the colour profile
     /// says what alerting LOOKS like. Neither knows the other's business, which is why restyling cannot
@@ -152,7 +208,6 @@ public sealed class VitalMonitor(SettingsService settings)
         // statement from one resting at zero, and surfaces need to be able to tell them apart.
         if (node?.Value is not float value) return VitalReading.Absent;
 
-        var scale = For(vital);
         var unit = node.Unit ?? string.Empty;
 
         return new VitalReading(
@@ -160,7 +215,6 @@ public sealed class VitalMonitor(SettingsService settings)
             Value: value,
             Unit: unit,
             Text: $"{value:F0}{unit}",
-            Level: scale?.Level(value) ?? 0,
-            Role: scale?.Role(value) ?? "Normal");
+            Level: For(vital)?.Level(value) ?? 0);
     }
 }

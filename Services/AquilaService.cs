@@ -52,6 +52,11 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
         try
         {
             _driver.Populate(_state);
+
+            // Before the pressure is worked out, so the first judged tick already uses whatever limits the
+            // drives and DIMMs report about themselves rather than our generic ones. Does its work once.
+            vitals.AdoptReportedLimits(_state.Hardware);
+
             // Before the event: subscribers read Pressure in the same handler that reads the sensors,
             // and must not see last tick's value beside this tick's numbers.
             Pressure = _pressure.Evaluate(_state.Hardware);
