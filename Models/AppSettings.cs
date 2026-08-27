@@ -31,6 +31,15 @@ public class AppSettings
     public bool   DashboardMode         { get; set; } = false;
     public bool   EnableVerboseLogging  { get; set; } = false;
 
+    /// <summary>
+    /// Limits the user has changed, by family name — "Temperature" to "75,85,95".
+    ///
+    /// Only what was changed is stored, so a family absent here still follows the built-in preset and keeps
+    /// following it if that preset is ever revised. Written as text rather than as an object so the file
+    /// stays legible and hand-editable, which is the same reason widgets.json stores enum names.
+    /// </summary>
+    public Dictionary<string, string> Thresholds { get; set; } = [];
+
     public bool ShowCpuCard          { get; set; } = true;
     public bool ShowMemoryCard       { get; set; } = true;
     public bool ShowNetworkCard      { get; set; } = true;

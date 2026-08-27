@@ -26,6 +26,15 @@ namespace Aquila.ViewModels.Pages
         private readonly INavigationService _navigation;
         private readonly AppearanceService _theme;
         private readonly ColorProfileService _profiles;
+
+        /// <summary>
+        /// When each family of readings stops being ordinary, edited in one place.
+        ///
+        /// Families rather than individual sensors: a limit named once covers the CPU's temperature, the
+        /// GPU's, and every card that colours by the same name. Pressure is deliberately not among them —
+        /// it colours a value that has already been normalised, and its steps ARE that normalisation.
+        /// </summary>
+        public IReadOnlyList<ThresholdRow> Thresholds { get; }
         private bool _isInitialized = false;
         private bool _externalUpdate = false;
 
@@ -41,8 +50,11 @@ namespace Aquila.ViewModels.Pages
         private PollingOption _selectedPollingInterval = null!;
 
         public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
-            INavigationService navigation, AppearanceService theme, ColorProfileService profiles)
+            INavigationService navigation, AppearanceService theme, ColorProfileService profiles,
+            VitalMonitor vitals)
         {
+            Thresholds = [.. Models.Thresholds.Configurable.Select(f => new ThresholdRow(vitals, f))];
+
             _updateService = updateService;
             _settings = settings;
             _aquila = aquila;

@@ -249,8 +249,22 @@ public class WidgetSeries
     public string SensorIdentifier { get; set; } = string.Empty;
 
     /// <summary>A colour-profile role, e.g. "Aquila.Scheme.Series1" — held as a key rather than a colour
-    /// so the series follows theme and profile changes.</summary>
+    /// so the series follows theme and profile changes. Or <see cref="FollowsReading"/>.</summary>
     public string AccentKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The colour is not fixed: it comes from how the reading is doing, through the same limits the
+    /// dashboard and the title bar use.
+    ///
+    /// Not a role name, because it is not one — it is the absence of a chosen role, and picking which role
+    /// applies is the monitor's job each tick.
+    /// </summary>
+    public const string FollowsReading = "follow";
+
+    /// <summary>Which family of limits judges this reading, when it follows it. Stored rather than worked
+    /// out at render time: the sensor alone cannot say whether 62 °C is a die or a drive, and the catalog
+    /// that CAN say is only consulted while listing sensors.</summary>
+    public string Family { get; set; } = string.Empty;
 
     public WidgetSeries Clone() => (WidgetSeries)MemberwiseClone();
 }

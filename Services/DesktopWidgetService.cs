@@ -67,12 +67,14 @@ public sealed class DesktopWidgetService
     private static readonly (DesktopWidgetKind Kind, string Title, Func<HardwareNode, SensorNode?> Sensor,
         string AccentKey, double X, double Y, double Width, double Height)[] _starter =
     [
+        // Coloured by their own readings, like every other single-reading widget: a starter set that sits
+        // in one flat colour teaches the wrong thing about what these are for.
         (DesktopWidgetKind.RadialGauge,   "CPU Load",  h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,
-            "Aquila.Scheme.Accent",  32, 150, 170, 190),
+            WidgetSeries.FollowsReading, 32, 150, 170, 190),
         (DesktopWidgetKind.MiniSparkline, "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
-            "Aquila.Scheme.Series1", 32, 360, 240, 100),
+            WidgetSeries.FollowsReading, 32, 360, 240, 100),
         (DesktopWidgetKind.SensorMeter,   "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
-            "Aquila.Scheme.Normal",  32, 480, 240,  80),
+            WidgetSeries.FollowsReading, 32, 480, 240,  80),
     ];
 
     public void Populate()
@@ -495,6 +497,7 @@ public sealed class DesktopWidgetService
         _widgets ??= _layout.Load();
 
         var definition = NewDefinition(sensorIdentifier);
+        foreach (var series in definition.Series) series.AccentKey = WidgetSeries.FollowsReading;
 
         // A dial needs a bounded scale to mean anything, so only a percentage gets one; everything else
         // gets the trend, which reads honestly whatever the units are.
@@ -723,12 +726,25 @@ public sealed class DesktopWidgetService
         var resolved = new List<SensorNode>();
         var roles = new List<string>();
 
+        // Kept alongside, not indexed back into definition.Series: a sensor that fails to resolve is
+        // skipped, so after the first gap the two lists no longer line up.
+        var chosen = new List<WidgetSeries>();
+
         foreach (var series in definition.Series.Take(kind.MaxSeries))
         {
-            var sensor = SensorCatalog.FindByIdentifier(hardware, series.SensorIdentifier);
-            if (sensor is null) continue;
+            var entry = SensorCatalog.FindEntry(hardware, series.SensorIdentifier);
+            if (entry is null) continue;
 
-            resolved.Add(sensor);
+            resolved.Add(entry.Sensor);
+
+            // A layout written before families existed has none stored, and an unjudged temperature would
+            // fall back to the percentage scale and read Normal at 90 °C. Filled in from the catalog, which
+            // is the only thing that still knows what kind of part this came from — and written onto the
+            // definition, so the next save keeps it, exactly as the screen-key migration does.
+            if (string.IsNullOrEmpty(series.Family)) series.Family = entry.Family;
+
+            chosen.Add(series);
+
             roles.Add(Role(series.AccentKey, DefaultRole(roles.Count)));
         }
 
@@ -739,8 +755,22 @@ public sealed class DesktopWidgetService
         // SetResourceReference is the code equivalent of DynamicResource — role brushes are swapped when
         // the theme or profile changes (ColorProfileService.Apply), so a static lookup would freeze the
         // colours of whichever profile happened to be active when the widget was built.
+        //
+        // A series that follows its reading cannot use it: which role applies is decided per tick, so that
+        // one is driven by FollowReading instead — and it re-resolves through the profile each time, so a
+        // profile change reaches it just the same.
         for (var i = 0; i < resolved.Count; i++)
-            piece.SetResourceReference(kind.AccentProperties[i], roles[i]);
+        {
+            var series = chosen[i];
+            var property = kind.AccentProperties[i];
+
+            // A family is required, not just the choice: watts and RPM have no scale to follow, and judging
+            // them against the percentage steps would paint a 90 W package almost critical for no reason.
+            if (series.AccentKey == WidgetSeries.FollowsReading && !string.IsNullOrEmpty(series.Family))
+                FollowReading(piece, property, resolved[i], series.Family);
+            else
+                piece.SetResourceReference(property, roles[i]);
+        }
 
         ApplyLineStyle(piece, definition);
         KeepEnoughHistory(definition, resolved);
@@ -786,6 +816,51 @@ public sealed class DesktopWidgetService
     /// profiles existed — or hand-edited since — falls back rather than rendering colourless.</summary>
     private static string Role(string key, string fallback) =>
         key.StartsWith("Aquila.Scheme.", StringComparison.Ordinal) ? key : fallback;
+
+    /// <summary>
+    /// Repaints one accent from how its reading is doing, for as long as the widget is on screen.
+    /// </summary>
+    /// <remarks>
+    /// The brush is resolved through <see cref="VitalMonitor"/> every time rather than bound once, because
+    /// two different things can change it: the reading crossing a limit, and the limits themselves moving.
+    /// Re-resolving covers a profile change too — the role name is looked up fresh, so a new palette lands
+    /// on the next tick without anything here knowing a profile exists.
+    ///
+    /// Torn down on Unloaded rather than tracked in a list. The element is removed from the canvas whenever
+    /// the widget is rebuilt or the surface is rebuilt, so the subscription ends itself and there is no
+    /// bookkeeping to get out of step with what is actually on screen.
+    /// </remarks>
+    private static void FollowReading(FrameworkElement piece, DependencyProperty property,
+        SensorNode sensor, string family)
+    {
+        var monitor = VitalMonitor.Current;
+
+        Repaint();
+        sensor.PropertyChanged += OnSensorChanged;
+        piece.Unloaded += OnUnloaded;
+
+        // Two things move this colour, and only one of them is the reading. Without this, editing a limit
+        // in Settings would leave the widget on its old colour until the sensor next changed.
+        if (monitor is not null) monitor.Changed += Repaint;
+
+        void Repaint()
+        {
+            if (sensor.Value is not float value) return;
+            piece.SetValue(property, VitalMonitor.Current?.BrushFor(value, family) ?? Brushes.Gray);
+        }
+
+        void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SensorNode.Value)) Repaint();
+        }
+
+        void OnUnloaded(object? _, RoutedEventArgs __)
+        {
+            sensor.PropertyChanged -= OnSensorChanged;
+            piece.Unloaded -= OnUnloaded;
+            if (monitor is not null) monitor.Changed -= Repaint;
+        }
+    }
 
     /// <summary>Combines a stored "#RRGGBB" with a separate 0..1 opacity. Falls back to transparent rather
     /// than throwing: a hand-edited widgets.json shouldn't be able to break the desktop.</summary>

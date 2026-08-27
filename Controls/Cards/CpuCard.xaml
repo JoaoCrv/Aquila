@@ -55,7 +55,11 @@
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                 Margin="8,0,0,0">
+                        <!-- Coloured by the load, like the temperatures beside it. Aquila cannot know whether
+                             85% is a build or something helping itself to the machine, and it is not its job
+                             to guess — it reports the reading against the limits and lets you decide. -->
                         <TextBlock Style="{StaticResource CardBigValue}"
+                                   Foreground="{Binding Cpu.Load.Total.Value, Converter={StaticResource Intensity}, ConverterParameter=Percent}"
                                    Text="{Binding Cpu.Load.Total.Value, StringFormat='{}{0:F0}', FallbackValue='--', TargetNullValue='--'}"/>
                         <TextBlock Style="{StaticResource CardBigUnit}" Text="%"/>
                     </StackPanel>

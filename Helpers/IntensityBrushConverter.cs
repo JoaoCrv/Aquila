@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 using Aquila.Models;
+using Aquila.Services;
 
 namespace Aquila.Helpers
 {
@@ -25,7 +26,7 @@ namespace Aquila.Helpers
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             // A missing reading is not a cold one: leave it at Normal rather than implying "all good".
-            if (value is null) return Resolve("Normal");
+            if (value is null) return VitalMonitor.Brush("Normal");
 
             double reading = value switch
             {
@@ -35,18 +36,21 @@ namespace Aquila.Helpers
                 _ => double.NaN,
             };
 
-            if (double.IsNaN(reading)) return Resolve("Normal");
+            if (double.IsNaN(reading)) return VitalMonitor.Brush("Normal");
 
-            // Thresholds now live in one place, shared with SystemPressure, so a card and the title bar
-            // cannot disagree about whether the same reading is hot. A malformed parameter falls back
-            // rather than throwing — a typo in XAML should not take the dashboard down.
-            var steps = Thresholds.Parse(parameter as string) ?? Thresholds.Percent;
+            // Everything below is the monitor's decision, not this converter's: it is handed what is being
+            // read and how much, and never works out a colour itself.
+            //
+            // Numbers spelled out in XAML ("50,70,85") are still honoured, for markup written by hand, but
+            // they cannot follow a limit the user changes: a family NAME can, a copy cannot. A malformed
+            // parameter falls back rather than throwing — a typo should not take the dashboard down.
+            var family = parameter as string;
+            if (Thresholds.Parse(family) is { } spelled && !Thresholds.Families.Contains(family!))
+                return VitalMonitor.Brush(spelled.Role(reading));
 
-            return Resolve(steps.Role(reading));
+            return VitalMonitor.Current?.BrushFor(reading, family)
+                ?? VitalMonitor.Brush(Thresholds.Preset(family).Role(reading));
         }
-
-        private static Brush Resolve(string role) =>
-            Application.Current?.TryFindResource($"Aquila.Scheme.{role}") as Brush ?? Brushes.Gray;
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => Binding.DoNothing;

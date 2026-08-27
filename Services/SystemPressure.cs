@@ -20,22 +20,14 @@ public readonly record struct PressureReading(double Level, string Source, doubl
 /// The contributors are the readings shown beside it in the title bar, on purpose. A signal fed by
 /// sensors the user cannot see becomes an oracle — it rises and nothing on screen accounts for it.
 ///
-/// Which sensors count, and on what scale, is passed in rather than fixed here. The judgement is
-/// configuration, not arithmetic, and a second surface may well want a different one — the same reason
-/// thresholds are not baked into the colour profile.
+/// Which sensors count is passed in rather than fixed here — a second surface may well want a different
+/// set. The LIMITS are not passed in: they come from <see cref="VitalMonitor"/>, so a ribbon and the pills
+/// beside it cannot disagree about whether the same reading is hot, and so a limit the user changes takes
+/// effect in both at once.
 /// </summary>
-public sealed class SystemPressure(IReadOnlyList<PressureSource>? sources = null)
+public sealed class SystemPressure(VitalMonitor monitor, IReadOnlyList<Vital>? sources = null)
 {
-    private readonly IReadOnlyList<PressureSource> _sources = sources ?? Default;
-
-    public static IReadOnlyList<PressureSource> Default { get; } =
-    [
-        new("CPU load",        h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,           Thresholds.Percent),
-        new("CPU temperature", h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,  Thresholds.Temperature),
-        new("GPU load",        h => h.PrimaryGpu?.Load.Core,                                  Thresholds.Percent),
-        new("GPU temperature", h => h.PrimaryGpu?.Temperature.Primary,                        Thresholds.Temperature),
-        new("Memory",          h => h.Memory.Load.Total,                                      Thresholds.Percent),
-    ];
+    private readonly IReadOnlyList<Vital> _sources = sources ?? VitalCatalog.All;
 
     public PressureReading Evaluate(HardwareNode hardware)
     {
@@ -43,24 +35,16 @@ public sealed class SystemPressure(IReadOnlyList<PressureSource>? sources = null
 
         foreach (var source in _sources)
         {
-            var node = source.Pick(hardware);
+            var reading = monitor.Read(source, hardware);
 
             // A sensor the machine does not report is not a quiet one — it is absent, and must not be
             // read as zero pressure. Skipping keeps a missing GPU from looking like an idle one.
-            if (node?.Value is not float value) continue;
+            if (!reading.HasValue) continue;
 
-            var level = source.Scale.Level(value);
-            if (level > worst.Level)
-                worst = new PressureReading(level, source.Label, value, node.Unit ?? string.Empty);
+            if (reading.Level > worst.Level)
+                worst = new PressureReading(reading.Level, source.Label, reading.Value, reading.Unit);
         }
 
         return worst;
     }
 }
-
-/// <summary>One contributor: what to read, what to call it, and the scale it is judged on.</summary>
-/// <param name="Label">Shown when explaining the pressure, so keep it readable.</param>
-public readonly record struct PressureSource(
-    string Label,
-    Func<HardwareNode, SensorNode?> Pick,
-    Thresholds Scale);

@@ -5,7 +5,22 @@ using Aquila.Models.Nodes;
 namespace Aquila.Models;
 
 /// <summary>One sensor with a human-readable label, for listing/lookup (Explorer, widgets).</summary>
-public sealed record SensorEntry(string Label, SensorNode Sensor);
+public sealed record SensorEntry(string Label, SensorNode Sensor)
+{
+    /// <summary>
+    /// Which family of limits judges this reading — the same names the settings form and the colour
+    /// converter use.
+    ///
+    /// Worked out here because this is the only place that still knows what KIND of part a sensor came
+    /// from: by the time a widget holds a SensorNode it has a name, a unit and a value, and no way to tell
+    /// 62 °C on an NVMe from 62 °C on a die. Anything downstream would be guessing from the label.
+    ///
+    /// EMPTY when the reading has no shared scale to be judged on. Watts, RPM, volts and bytes per second
+    /// have no universal "in trouble" number — 85 W means one thing in a laptop and another in a worksta-
+    /// tion — so they are honestly unjudgeable rather than quietly measured against the percentage steps.
+    /// </summary>
+    public string Family { get; init; } = string.Empty;
+}
 
 /// <summary>A hardware component and its live sensors.</summary>
 public sealed record SensorComponent(string Name, IReadOnlyList<SensorEntry> Sensors);
@@ -22,39 +37,63 @@ public static class SensorCatalog
         var components = new List<SensorComponent>();
 
         for (int i = 0; i < hw.Cpus.Count; i++)
-            Add(components, hw.Cpus[i].Name ?? $"CPU {i + 1}", CpuSensors(hw.Cpus[i]));
+            Add(components, hw.Cpus[i].Name ?? $"CPU {i + 1}", nameof(Thresholds.Temperature), CpuSensors(hw.Cpus[i]));
 
-        Add(components, "Memory", MemorySensors(hw.Memory));
+        Add(components, "Memory", nameof(Thresholds.MemoryTemperature), MemorySensors(hw.Memory));
 
         for (int i = 0; i < hw.Gpus.Count; i++)
-            Add(components, hw.Gpus[i].Name ?? $"GPU {i + 1}", GpuSensors(hw.Gpus[i]));
+            Add(components, hw.Gpus[i].Name ?? $"GPU {i + 1}", nameof(Thresholds.Temperature), GpuSensors(hw.Gpus[i]));
 
-        Add(components, hw.Motherboard.Name ?? "Motherboard", MotherboardSensors(hw.Motherboard));
+        Add(components, hw.Motherboard.Name ?? "Motherboard", nameof(Thresholds.Temperature), MotherboardSensors(hw.Motherboard));
 
         for (int i = 0; i < hw.Networks.Count; i++)
-            Add(components, hw.Networks[i].Name ?? $"Network {i + 1}", NetworkSensors(hw.Networks[i]));
+            Add(components, hw.Networks[i].Name ?? $"Network {i + 1}", nameof(Thresholds.Temperature), NetworkSensors(hw.Networks[i]));
 
         for (int i = 0; i < hw.Storages.Count; i++)
-            Add(components, hw.Storages[i].Name ?? $"Storage {i + 1}", StorageSensors(hw.Storages[i]));
+            Add(components, hw.Storages[i].Name ?? $"Storage {i + 1}", nameof(Thresholds.DriveTemperature), StorageSensors(hw.Storages[i]));
 
-        Add(components, "System", [new("Total Power", hw.TotalPower)]);
+        Add(components, "System", nameof(Thresholds.Temperature), [new("Total Power", hw.TotalPower)]);
 
         return components;
     }
 
     /// <summary>Resolves a live sensor by its Identifier, or null. Used to bind widgets to a sensor.</summary>
     public static SensorNode? FindByIdentifier(HardwareNode hw, string identifier) =>
+        FindEntry(hw, identifier)?.Sensor;
+
+    /// <summary>The whole entry, so a caller can have the sensor's family as well as the sensor. A widget
+    /// saved before families existed has none stored, and a temperature judged on the percentage scale
+    /// would sit at Normal all the way to boiling.</summary>
+    public static SensorEntry? FindEntry(HardwareNode hw, string identifier) =>
         GetComponents(hw)
             .SelectMany(c => c.Sensors)
-            .FirstOrDefault(e => e.Sensor.Identifier == identifier)?.Sensor;
+            .FirstOrDefault(e => e.Sensor.Identifier == identifier);
 
     // Only adds entries whose sensor has a value (skips unpopulated nodes), and drops empty components.
-    private static void Add(List<SensorComponent> components, string name, IEnumerable<SensorEntry> entries)
+    //
+    // The family is stamped here rather than in each builder: it depends on the unit AND on the kind of
+    // part, and this is the one line that has both. A die, a drive and a DIMM all report °C and are in
+    // trouble at very different numbers.
+    private static void Add(List<SensorComponent> components, string name, string temperatureFamily,
+        IEnumerable<SensorEntry> entries)
     {
-        var live = entries.Where(e => e.Sensor.Value.HasValue).ToList();
+        var live = entries
+            .Where(e => e.Sensor.Value.HasValue)
+            .Select(e => e with { Family = FamilyFor(e.Sensor, temperatureFamily) })
+            .ToList();
+
         if (live.Count > 0)
             components.Add(new SensorComponent(name, live));
     }
+
+    /// <summary>Percent for anything on a 0–100 scale, the part's own temperature family for degrees, and
+    /// nothing at all for the rest — see <see cref="SensorEntry.Family"/>.</summary>
+    private static string FamilyFor(SensorNode sensor, string temperatureFamily) => sensor.Unit switch
+    {
+        "°C" => temperatureFamily,
+        "%" => nameof(Thresholds.Percent),
+        _ => string.Empty,
+    };
 
     private static IEnumerable<SensorEntry> CpuSensors(CpuNode c)
     {

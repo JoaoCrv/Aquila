@@ -44,28 +44,31 @@ public partial class TitleBarViewModel : ObservableObject, IDisposable
 {
     private readonly AquilaService _aquila;
     private readonly AppearanceService _appearance;
+    private readonly VitalMonitor _vitals;
 
-    /// <summary>What the strip shows, and the scale each is judged on. Four, because the strip is the
-    /// most contested space in the window and the vitals are the first thing to hide when it narrows.</summary>
-    private static readonly (string Label, Func<HardwareNode, SensorNode?> Pick, Thresholds Scale)[] _specs =
-    [
-        ("CPU", h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,          Thresholds.Percent),
-        ("GPU", h => h.PrimaryGpu?.Load.Core,                                 Thresholds.Percent),
-        ("RAM", h => h.Memory.Load.Total,                                     Thresholds.Percent),
-        ("PKG", h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null, Thresholds.Temperature),
-    ];
+    /// <summary>
+    /// What the strip shows. Four of the catalog's readings, because this is the most contested space in
+    /// the window and the vitals are the first thing to hide when it narrows.
+    ///
+    /// WHICH four is a layout decision and stays here; what each one reads and how it is judged comes from
+    /// the catalog, so this strip and the pressure ribbon beside it cannot disagree about the same sensor.
+    /// </summary>
+    private static readonly IReadOnlyList<Vital> _specs =
+        VitalCatalog.Pick("cpu.load", "gpu.load", "memory.load", "cpu.temp");
 
     public ObservableCollection<VitalItem> Vitals { get; } = [];
 
-    public TitleBarViewModel(AquilaService aquila, AppearanceService appearance)
+    public TitleBarViewModel(AquilaService aquila, AppearanceService appearance, VitalMonitor vitals)
     {
         _aquila = aquila;
         _appearance = appearance;
+        _vitals = vitals;
 
-        foreach (var spec in _specs) Vitals.Add(new VitalItem(spec.Label));
+        foreach (var spec in _specs) Vitals.Add(new VitalItem(spec.Short));
 
         _aquila.DataUpdated += Refresh;
         _appearance.Changed += Repaint;
+        _vitals.Changed += Repaint;
         Refresh();
     }
 
@@ -111,24 +114,19 @@ public partial class TitleBarViewModel : ObservableObject, IDisposable
 
         var hardware = _aquila.State.Hardware;
 
-        for (var i = 0; i < _specs.Length; i++)
+        // Read and judged by the monitor; this only copies the answer onto the pills. A machine with no
+        // discrete GPU reports HasValue false, and that pill hides rather than resting at zero.
+        for (var i = 0; i < _specs.Count; i++)
         {
-            var (_, pick, scale) = _specs[i];
+            var reading = _vitals.Read(_specs[i], hardware);
             var item = Vitals[i];
-            var node = pick(hardware);
 
-            // Absent is not idle: a machine with no discrete GPU hides that pill rather than showing it
-            // resting at zero.
-            if (node?.Value is not float value)
-            {
-                item.HasValue = false;
-                continue;
-            }
+            item.HasValue = reading.HasValue;
+            if (!reading.HasValue) continue;
 
-            item.HasValue = true;
-            item.Text = $"{value:F0}{node.Unit}";
-            item.Percent = Math.Clamp(value, 0, 100);
-            item.Level = scale.Level(value) * 100;
+            item.Text = reading.Text;
+            item.Percent = Math.Clamp(reading.Value, 0, 100);
+            item.Level = reading.Percent;
         }
     }
 
@@ -136,5 +134,6 @@ public partial class TitleBarViewModel : ObservableObject, IDisposable
     {
         _aquila.DataUpdated -= Refresh;
         _appearance.Changed -= Repaint;
+        _vitals.Changed -= Repaint;
     }
 }

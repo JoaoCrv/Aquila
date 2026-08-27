@@ -31,7 +31,7 @@ public enum WidgetChange
     Structure,
 }
 
-public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor)
+public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor, string Family)
 {
     public string Display => $"{Component} — {Name}";
 }
@@ -62,6 +62,10 @@ public partial class WidgetEditorViewModel : ObservableObject
         new("Aquila.Scheme.Series3", "Tertiary"),
         new("Aquila.Scheme.Alert", "Alert"),
         new("Aquila.Scheme.Critical", "Critical"),
+
+        // Not a role: the absence of a chosen one. Which role applies is decided per tick from the reading,
+        // against the same limits the dashboard and the title bar use.
+        new(WidgetSeries.FollowsReading, "By reading"),
     ];
 
     public IReadOnlyList<ColorOption> Colors { get; } =
@@ -289,7 +293,8 @@ public partial class WidgetEditorViewModel : ObservableObject
         // spends a frame with nothing to draw.
         if (ReplacesSeries) Chosen.Clear();
 
-        Chosen.Add(new SeriesRow(SelectedSensor, Accents, DefaultAccentFor(Chosen.Count), OnSeriesEdited));
+        Chosen.Add(new SeriesRow(SelectedSensor, AccentsFor(SelectedSensor),
+            DefaultAccentFor(SelectedSensor, Chosen.Count), OnSeriesEdited));
         OnSeriesEdited();
     }
 
@@ -301,10 +306,25 @@ public partial class WidgetEditorViewModel : ObservableObject
         OnSeriesEdited();
     }
 
-    /// <summary>Spread across roles rather than all taking the accent: two lines in the same colour are
-    /// one line.</summary>
-    private AccentOption DefaultAccentFor(int index) =>
-        Accents.Count > index ? Accents[index] : Accents[0];
+    /// <summary>
+    /// What a new reading is coloured by before the user says otherwise.
+    ///
+    /// One reading means one line, so it follows its own value — the same behaviour the dashboard's
+    /// temperatures have, and what someone adding a gauge expects without hunting for a setting.
+    ///
+    /// More than one, and they take separate roles instead. Two lines both following their readings would
+    /// be the same colour whenever both were in the same state, and two lines in one colour are one line —
+    /// which is the reason this method spread them across roles in the first place.
+    /// </summary>
+    private AccentOption DefaultAccentFor(SensorOption sensor, int index) =>
+        SelectedKind?.MaxSeries == 1 && !string.IsNullOrEmpty(sensor.Family)
+            ? Accents[^1]
+            : Accents.Count > index ? Accents[index] : Accents[0];
+
+    /// <summary>The colours a given reading may be drawn in. "By reading" is withheld from anything with no
+    /// scale to follow — offering a choice that silently does nothing is worse than not offering it.</summary>
+    private IReadOnlyList<AccentOption> AccentsFor(SensorOption sensor) =>
+        string.IsNullOrEmpty(sensor.Family) ? [.. Accents.Take(Accents.Count - 1)] : Accents;
 
     private void OnSeriesEdited()
     {
@@ -378,6 +398,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         {
             SensorIdentifier = row.Sensor.Identifier,
             AccentKey = row.Accent.Key,
+            Family = row.Sensor.Family,
         })];
         _target.Title = string.IsNullOrWhiteSpace(Title)
             ? Chosen.FirstOrDefault()?.Sensor.Name ?? string.Empty
@@ -486,7 +507,8 @@ public partial class WidgetEditorViewModel : ObservableObject
         foreach (var component in SensorCatalog.GetComponents(hardware))
             foreach (var entry in component.Sensors)
                 if (!string.IsNullOrEmpty(entry.Sensor.Identifier))
-                    _allSensors.Add(new SensorOption(component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor));
+                    _allSensors.Add(new SensorOption(
+                        component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry.Family));
 
         ApplyFilter();
 
@@ -509,8 +531,9 @@ public partial class WidgetEditorViewModel : ObservableObject
             var sensor = _allSensors.FirstOrDefault(s => s.Identifier == series.SensorIdentifier);
             if (sensor is null) continue;   // the machine no longer reports it
 
-            Chosen.Add(new SeriesRow(sensor, Accents,
-                Accents.FirstOrDefault(a => a.Key == series.AccentKey) ?? DefaultAccentFor(Chosen.Count),
+            var options = AccentsFor(sensor);
+            Chosen.Add(new SeriesRow(sensor, options,
+                options.FirstOrDefault(a => a.Key == series.AccentKey) ?? DefaultAccentFor(sensor, Chosen.Count),
                 OnSeriesEdited));
         }
 
@@ -520,7 +543,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         {
             var preset = _allSensors.FirstOrDefault(s => s.Identifier == presetSensorIdentifier);
             if (preset is not null)
-                Chosen.Add(new SeriesRow(preset, Accents, DefaultAccentFor(0), OnSeriesEdited));
+                Chosen.Add(new SeriesRow(preset, AccentsFor(preset), DefaultAccentFor(preset, 0), OnSeriesEdited));
         }
 
         SelectedBackground = MatchColor(target.BackgroundColor);

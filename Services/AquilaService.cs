@@ -7,7 +7,7 @@ using System.Windows.Threading;
 
 namespace Aquila.Services;
 
-public class AquilaService(IHardwareDriver driver, AquilaState state, ILogger<AquilaService> logger) : IDisposable
+public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonitor vitals, ILogger<AquilaService> logger) : IDisposable
 {
     private readonly IHardwareDriver _driver = driver;
     private readonly AquilaState _state = state;
@@ -15,7 +15,7 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, ILogger<Aq
     private readonly DispatcherTimer _timer = new();
     private bool _disposed;
 
-    private readonly SystemPressure _pressure = new();
+    private readonly SystemPressure _pressure = new(vitals);
 
     public AquilaState State => _state;
 

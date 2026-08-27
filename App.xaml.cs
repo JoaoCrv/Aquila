@@ -60,6 +60,7 @@ namespace Aquila
                 services.AddSingleton<ColorProfileService>();
                 services.AddSingleton<AppearanceService>();
                 services.AddSingleton<UpdateService>();
+                services.AddSingleton<VitalMonitor>();
                 services.AddSingleton<AquilaService>();
 
                 // Desktop widgets (#24) — domain-agnostic, isolated in Aquila.DesktopSurface. The anchor
@@ -172,6 +173,13 @@ namespace Aquila
             // the theme, and starts watching Windows' light/dark switch. Doing it after would render the
             // first frame in the wrong theme and then correct it in view of the user.
             _host.Services.GetRequiredService<AppearanceService>().Initialize();
+
+            // Before StartAsync too, and for the same reason: the XAML converter that colours the cards
+            // reads the limits from this static, having no way to be handed them by the container. Loaded
+            // after it would paint the first frame on the built-in limits and correct itself in view.
+            var vitals = _host.Services.GetRequiredService<VitalMonitor>();
+            vitals.Load();
+            VitalMonitor.Current = vitals;
 
             await _host.StartAsync();
 

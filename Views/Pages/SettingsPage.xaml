@@ -114,6 +114,66 @@
         </ui:CardControl>
 
         <!-- ── Behaviour ───────────────────────────────────────────────────────────────────────── -->
+        <!-- ── Limits ──────────────────────────────────────────────────────────────────────────── -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="Limits" />
+
+        <!-- One row per FAMILY of readings, not per sensor: a limit set here covers every reading judged on
+             that scale — the pills in the title bar, the pressure ribbon, and every card that colours by
+             the same name. Editing them sensor by sensor would be the opposite of one place. -->
+        <ItemsControl ItemsSource="{Binding ViewModel.Thresholds}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ui:CardControl Icon="{ui:SymbolIcon Temperature24}">
+                        <ui:CardControl.Header>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" />
+                                <TextBlock Style="{StaticResource SettingHint}" Text="{Binding Detail}" />
+                            </StackPanel>
+                        </ui:CardControl.Header>
+
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Each number's floor and ceiling follow its neighbours, so the three can
+                                 never cross and nothing has to be corrected behind the user.
+
+                                 Wide enough for the number AND the two spin buttons: NumberBox places them
+                                 inside the field, so a box sized for the digits alone shows only arrows.
+
+                                 The clear button is off. It appears on focus as a THIRD button inside the
+                                 same field and squeezes the digits back out — and clearing a limit to
+                                 nothing is not a state these three numbers have anyway. -->
+                            <StackPanel Margin="0,0,10,0">
+                                <TextBlock Style="{StaticResource SettingHint}" Margin="0,0,0,4" Text="Elevated" />
+                                <ui:NumberBox Width="124" MaxDecimalPlaces="0" SmallChange="1" LargeChange="5"
+                                              ClearButtonEnabled="False"
+                                              Minimum="0" Maximum="{Binding ElevatedMax}"
+                                              Value="{Binding Elevated, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,10,0">
+                                <TextBlock Style="{StaticResource SettingHint}" Margin="0,0,0,4" Text="Alert" />
+                                <ui:NumberBox Width="124" MaxDecimalPlaces="0" SmallChange="1" LargeChange="5"
+                                              ClearButtonEnabled="False"
+                                              Minimum="{Binding AlertMin}" Maximum="{Binding AlertMax}"
+                                              Value="{Binding Alert, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,10,0">
+                                <TextBlock Style="{StaticResource SettingHint}" Margin="0,0,0,4" Text="Critical" />
+                                <ui:NumberBox Width="124" MaxDecimalPlaces="0" SmallChange="1" LargeChange="5"
+                                              ClearButtonEnabled="False"
+                                              Minimum="{Binding CriticalMin}"
+                                              Value="{Binding Critical, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <ui:Button VerticalAlignment="Bottom" Content="Reset"
+                                       IsEnabled="{Binding IsCustom}"
+                                       Command="{Binding ResetCommand}" />
+                        </StackPanel>
+                    </ui:CardControl>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <TextBlock Style="{StaticResource SectionHeading}" Text="Behaviour" />
 
         <ui:CardControl Icon="{ui:SymbolIcon Window24}">

@@ -29,10 +29,18 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
     public static readonly Thresholds Temperature = new(75, 85, 95);
 
     /// <summary>
-    /// Degrees Celsius for drives and memory modules, which run far cooler than a die and are in trouble
-    /// much sooner. 70 °C is an ordinary afternoon for a CPU and a reason to look at an NVMe.
+    /// Degrees Celsius for drives, which run far cooler than a die and are in trouble much sooner. 70 °C is
+    /// an ordinary afternoon for a CPU and a reason to look at an NVMe, most of which throttle by 80.
     /// </summary>
     public static readonly Thresholds DriveTemperature = new(55, 65, 75);
+
+    /// <summary>
+    /// Degrees Celsius for memory modules. Split from drives because they are not the same part with the
+    /// same tolerance: a DIMM under load sits where an NVMe would already be throttling, and DDR5 in
+    /// particular runs warm by design. Judged against how these parts behave, not against a spec sheet —
+    /// which is exactly why they are editable.
+    /// </summary>
+    public static readonly Thresholds MemoryTemperature = new(60, 70, 80);
 
     /// <summary>
     /// For a value that has already been through <see cref="Level"/> and scaled to 0–100. The steps are
@@ -72,8 +80,46 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
         to <= from ? high : low + (value - from) / (to - from) * (high - low);
 
     /// <summary>
+    /// The families a reading can be judged on, by the names call sites use. The set the settings form
+    /// draws a row for, and the set a ConverterParameter may name.
+    /// </summary>
+    public static IReadOnlyList<string> Families { get; } =
+        [nameof(Percent), nameof(Temperature), nameof(DriveTemperature), nameof(MemoryTemperature), nameof(Pressure)];
+
+    /// <summary>
+    /// The families worth putting in front of a person, and the reason the list is not simply
+    /// <see cref="Families"/>.
+    ///
+    /// <see cref="Pressure"/> is deliberately absent. It is not a judgement about a reading — it colours a
+    /// number that has ALREADY been through <see cref="Level"/>, and its steps ARE the thirds that mapping
+    /// produces. Letting it be edited would let the ribbon disagree with the very mapping that produced the
+    /// number it is drawing.
+    /// </summary>
+    public static IReadOnlyList<string> Configurable { get; } =
+        [nameof(Percent), nameof(Temperature), nameof(DriveTemperature), nameof(MemoryTemperature)];
+
+    /// <summary>What each family is called in front of a person, and what it covers.</summary>
+    public static (string Name, string Detail) Describe(string family) => family switch
+    {
+        nameof(Temperature) => ("Processor temperature", "CPU and GPU dies, which run hot by design"),
+        nameof(DriveTemperature) => ("Drive temperature", "SSDs and hard drives, which throttle far sooner than a die"),
+        nameof(MemoryTemperature) => ("Memory temperature", "DIMMs, which sit warmer than a drive but cooler than a die"),
+        _ => ("Load and usage", "Anything measured 0–100: CPU, GPU, memory, disk space"),
+    };
+
+    /// <summary>The built-in limits for a family, ignoring anything the user has changed. What a Reset
+    /// goes back to, and the fallback when a name is not one of ours.</summary>
+    public static Thresholds Preset(string? family) =>
+        string.Equals(family, nameof(Temperature), StringComparison.OrdinalIgnoreCase) ? Temperature :
+        string.Equals(family, nameof(DriveTemperature), StringComparison.OrdinalIgnoreCase) ? DriveTemperature :
+        string.Equals(family, nameof(MemoryTemperature), StringComparison.OrdinalIgnoreCase) ? MemoryTemperature :
+        string.Equals(family, nameof(Pressure), StringComparison.OrdinalIgnoreCase) ? Pressure :
+        Percent;
+
+    /// <summary>
     /// Reads either a preset name ("Temperature") or three numbers ("50,70,85"). Names are preferred in
-    /// new code — a call site that spells the numbers out is a copy that can drift from this file.
+    /// new code — a call site that spells the numbers out is a copy that can drift from this file, and
+    /// only a name can follow a limit the user has since changed.
     /// Returns null rather than throwing: this parses XAML written by hand.
     /// </summary>
     public static Thresholds? Parse(string? text)
@@ -83,6 +129,7 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
         if (string.Equals(text, nameof(Percent), StringComparison.OrdinalIgnoreCase)) return Percent;
         if (string.Equals(text, nameof(Temperature), StringComparison.OrdinalIgnoreCase)) return Temperature;
         if (string.Equals(text, nameof(DriveTemperature), StringComparison.OrdinalIgnoreCase)) return DriveTemperature;
+        if (string.Equals(text, nameof(MemoryTemperature), StringComparison.OrdinalIgnoreCase)) return MemoryTemperature;
         if (string.Equals(text, nameof(Pressure), StringComparison.OrdinalIgnoreCase)) return Pressure;
 
         var parts = text.Split(',');
