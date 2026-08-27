@@ -2,8 +2,8 @@
 
 Adotado a 2026-08-26. v2 (ramps embutidos, separação das Definições); v3 (termo fixado: **Preset**);
 v4 (fronteira casca/preset resolvida, secção Runtime reescrita contra o repositório real, migração
-acrescentada); **v5 a 2026-08-27: os limiares por `(hardware, métrica)` deixaram de ser plano e passaram a
-código — esta secção passa a descrever o que existe. #42 fechado por desenho.**
+acrescentada); v5 (limiares por `(hardware, métrica)` passaram a código; #42 fechado por desenho);
+**v6 a 2026-08-27: a página definida, o Backdrop no lugar do card, e o #17 fechado por consequência.**
 
 ---
 
@@ -14,6 +14,8 @@ código — esta secção passa a descrever o que existe. #42 fechado por desenh
 | **Tema** | A casca da app (Dark/Light, WPF-UI + tokens de casca). Cada tema **traz um preset**. | Definições (`Themes/`, `settings.Current.Theme`, `ThemeStyle`) |
 | **Preset** | O ficheiro visual completo de *um* widget: mapa de ramps embutidos + secções de aparência por parte do widget. A única coisa que o utilizador cria, guarda e partilha no dia-a-dia. | `presets/*.json`, editor próprio — **fora** das Definições |
 | **Ramp** | Escala de cor de 4 estados: `normal`, `elevated`, `alert`, `critical`. Puro dado. | Dentro do preset, num mapa nomeado (`primary` obrigatório) |
+| **Página** | Uma tela de tamanho fixo com uma lista de widgets. Escala para caber na janela que a mostra. | `pages/*.json` (futuro); hospedada na `DashboardWindow` |
+| **Backdrop** | Um tipo de widget que existe para estar atrás: cor ou imagem, cantos, borda, opacidade. Não contém nada. | Entrada do `WidgetCatalog`, como o gauge ou o chart |
 | **Pack** | Instalador para marketplace: preset(s) + tema recomendado + wallpaper (+ ícones) com manifest. Formato de distribuição, não entidade de runtime. | Futuro |
 
 Nomes descartados e porquê: *profile* (sobrecarregado — e **já ocupado** neste código: `ColorProfileService`,
@@ -68,12 +70,70 @@ preset do widget  →  preset da página (futuro)  →  preset default global
 "8px por herança" e "8px por escolha" seriam indistinguíveis no ficheiro — ao preço de divergência entre
 cópias, que é um custo visível em vez de um bug escondido.
 
-Cards e páginas são contentores de layout; não têm sistema de cor próprio.
+Uma página é um contentor de layout e não tem sistema de cor próprio — o que se vê nela são widgets, e cada
+um traz o seu.
 
 **Decisão v2 mantida:** a biblioteca global de ramps fica cortada. O benefício (editar-um-atualiza-todos) é
 de marketplace maduro; o custo (ids, colisões no import, referências penduradas, apagar um ramp em uso) é
 imediato. Os ramps ficam locais ao preset mas mantêm a **forma** — objecto nomeado com 4 estados — para que
 promover um a global seja cópia, sem migração. Desnormalizar agora, normalizar se for preciso.
+
+---
+
+## A página
+
+**Uma página é a lista de widgets do desktop com outro sistema de coordenadas.** No desktop, um widget diz em
+que ecrã está e onde; numa página, diz em que página está e onde. Tudo o resto — o construtor, o editor, os
+presets, o `MetricKey` — funciona sem uma linha de alteração. Só muda o contentor.
+
+E o contentor já está provado: os widgets do desktop **não** são uma janela cada. Há uma janela por ecrã
+(`ScreenCanvasWindow`) com um `Canvas` e os widgets como filhos. Uma página é o mesmo, dentro de uma janela
+normal em vez de uma bottom-most — e é por isso que trinta widgets numa página custam menos do que trinta
+janelas. (O gargalo real, porém, não são as janelas: são os gráficos LiveCharts por tick. Ver #21/#14.)
+
+**Tamanho fixo, escalado para caber.** Uma janela redimensionável parte coordenadas absolutas, e a
+alternativa — ancoragem relativa — é muito mais trabalho para um resultado menos previsível. A página
+comporta-se como um slide: tem o seu tamanho, e a janela mostra-a escalada.
+
+Isso resolve de graça uma pergunta que parecia de arquitectura: **redimensionável ou fullscreen?** Nenhuma —
+o mesmo código serve as duas, portanto o modo da janela é preferência do utilizador. A `DashboardWindow` já é
+redimensionável e guarda posição e tamanho; é a base.
+
+**Um campo, não dois.** O widget diz onde vive num único campo com prefixo — `screen:DEL-A1B2-DP1` ou
+`page:overview` — em vez de um `ScreenKey` e um `PageId` com um sempre vazio. O código que resolve a
+superfície ramifica pelo prefixo, o que é explícito, e abre a porta a `window:` sem inventar outro campo.
+
+**Não há cards.** Um "card" seria um contentor, com coordenadas relativas, reflow e aninhamento. O que ele
+faz de útil — desenhar uma moldura por trás de um grupo — é um **Backdrop** numa camada inferior. Agrupar
+(mexer na moldura e os widgets irem atrás) pode chegar depois como um atributo, sem tocar no modelo de
+coordenadas.
+
+### Backdrop
+
+Um tipo de widget como qualquer outro: posição, tamanho, camada, preset. O que o distingue é não ler nenhum
+sensor — existe para estar atrás.
+
+- Sem imagem, é um rectângulo: cor, opacidade, cantos, borda. O aspecto de card.
+- Com imagem, é decoração. O `stretch` decide se enche (`Fill`), corta preservando proporção
+  (`UniformToFill`) ou cabe inteiro (`Uniform`, para um logótipo).
+- À largura da página e na camada de baixo, é o fundo da página inteira.
+
+Um tipo, uma propriedade a mais, três necessidades — **e fecha o #17**, cuja Fase 1 era exactamente "fundo do
+dashboard". Não é preciso sistema nenhum de imagem de fundo: é um Backdrop na camada zero.
+
+O nome descreve a função e não a forma, que é o que o torna legível numa lista ao lado de "Radial gauge" e
+"Sparkline". Descartados: *card* (promete contenção), *panel*/*frame*/*canvas*/*border*/*window* (tipos WPF),
+*layer* (é já o nosso campo de z-index), *background* (é já a secção do preset), *container* (contém),
+*object* (nomeia a categoria, não o membro), *callout* (significa o oposto — algo que aponta e chama a
+atenção), *ground* (numa app de hardware, é massa).
+
+**A imagem pertence ao widget, nunca ao preset.** Aparência partilha-se, conteúdo não — e uma imagem é
+conteúdo, como um sensor é. O caminho é guardado **relativo à pasta de assets**
+(`Documents\Aquilassets\`, ou onde o utilizador definir), nunca absoluto: `assets/carbon-bg.png` sobrevive
+à partilha e a mudar de máquina, `C:/Users/joao/...` não desenha em mais lado nenhum. Um Pack escreve os seus
+ficheiros nessa pasta ao instalar, e os caminhos passam a resolver sozinhos.
+
+É a mesma regra de sempre: guarda-se a referência, resolve-se no fim.
 
 ---
 
@@ -183,7 +243,13 @@ Três saltos, sempre os mesmos.
 // widget — conteúdo e colocação
 { "id": "cpu-1", "kind": "gauge", "title": "CPU",
   "series": [ { "sensor": "/amdcpu/0/load/0", "ramp": "primary" } ],
-  "screen": "DEL-A1B2-DP1", "pos": [32, 150], "size": [170, 190], "layer": 0,
+  "surface": "screen:DEL-A1B2-DP1", "pos": [32, 150], "size": [170, 190], "layer": 0,
+  "preset": "carbon" }
+
+// backdrop — o mesmo, sem sensores. A imagem é conteúdo, logo vive aqui e não no preset.
+{ "id": "bg-1", "kind": "backdrop",
+  "surface": "page:overview", "pos": [0, 0], "size": [1920, 1080], "layer": -1,
+  "image": "assets/carbon-bg.png", "stretch": "uniformToFill",
   "preset": "carbon" }
 
 // preset — todo o visual, autocontido
@@ -202,8 +268,9 @@ Três saltos, sempre os mesmos.
   "value":      { "fontFamily": "Segoe UI", "size": 24 } }
 ```
 
-**O `ScreenKey` é obrigatório no widget** — existe hoje e tem uma história inteira de monitores desligados
-por trás (identidade estável por EDID, com fallback para o ecrã primário).
+**A superfície é obrigatória no widget.** O `screen:` mantém a história inteira que já existe por trás dele
+— identidade estável por EDID, com fallback para o ecrã primário quando o monitor desaparece. O `page:` não
+precisa de nenhuma dessas defesas: uma página não é desligada da tomada.
 
 **As secções do preset já estão meio decididas pelo código.** O editor actual tem exactamente estas por
 tipo: `Line` (sparkline/chart), `Dial` (gauge), `Bar` (meter), `Number` (stat), mais `Appearance`
@@ -306,6 +373,10 @@ Uma marca pode chamar "XYZ Theme" ao seu pack a nível de marketing sem tocar no
 - **Variantes Dark/Light por ramp** — só se a legibilidade no tema claro vier a pedi-las.
 - **Vocabulário das partes do widget** — fixar `title`/`value`/`legenda` **antes** do primeiro formato
   partilhado. Aparece no JSON, no editor e no código.
-- **Ordem de execução:** ~~`SensorEntry` com `Hardware` + `Metric`~~ (feito) → **hierarquia
-  (page/card/widget)** → `PresetService` e formato → migração → packs. Tudo o que resta depende da
-  hierarquia: um preset atribuível "por página" precisa que uma página exista.
+- **Ordem de execução:** ~~`SensorEntry` com `Hardware` + `Metric`~~ (feito) → ~~hierarquia~~ (decidida:
+  página = tela fixa + lista de widgets; sem cards) → **`Surface` num campo só** → **Backdrop no catálogo** →
+  `PresetService` e formato → migração → packs.
+
+  Os dois primeiros passos por fazer são pequenos e independentes do formato de preset: o campo `surface`
+  substitui o `ScreenKey` sem mudar comportamento, e o Backdrop é uma entrada no `WidgetCatalog` que não lê
+  sensores. Ambos podem começar já.
