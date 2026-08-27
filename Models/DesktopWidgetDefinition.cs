@@ -98,40 +98,11 @@ public class DesktopWidgetDefinition
     /// </summary>
     public List<WidgetSeries> Series { get; set; } = [];
 
-    /// <summary>Legacy: the single sensor written before <see cref="Series"/> existed. Read once to
-    /// migrate an older widgets.json, then left empty.</summary>
-    public string SensorIdentifier { get; set; } = string.Empty;
-
-    /// <summary>Legacy, alongside <see cref="SensorIdentifier"/>.</summary>
-    public string AccentKey { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Folds a pre-list layout into <see cref="Series"/>. Keyed on Series being empty rather than on the
-    /// old fields having values, so a widget the user has since emptied is not resurrected on every load.
-    /// </summary>
-    public void MigrateSeries()
-    {
-        if (Series.Count > 0 || string.IsNullOrEmpty(SensorIdentifier)) return;
-
-        Series.Add(new WidgetSeries
-        {
-            SensorIdentifier = SensorIdentifier,
-            AccentKey = AccentKey,
-        });
-
-        SensorIdentifier = string.Empty;
-        AccentKey = string.Empty;
-    }
-
     /// <summary>Which physical monitor the widget lives on — a stable identity derived from the monitor's
     /// EDID manufacturer/product code and connection, not its index or DeviceName (both shift when
     /// monitors are unplugged or rearranged). If the screen is gone, the widget falls back to the primary
     /// one rather than disappearing.</summary>
     public string ScreenKey { get; set; } = string.Empty;
-
-    /// <summary>Legacy: the screen index written before <see cref="ScreenKey"/> existed. Only read to
-    /// migrate an older widgets.json, then overwritten with the key on the next save.</summary>
-    public int ScreenIndex { get; set; }
 
     public double X { get; set; }
     public double Y { get; set; }

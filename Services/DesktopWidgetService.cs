@@ -34,9 +34,8 @@ public sealed class DesktopWidgetService
     /// The layout as it was when edit mode began, and the fact that a session is open at all — non-null IS
     /// "we are editing", so there is no second flag that could disagree with this one.
     ///
-    /// Held in memory rather than re-read from widgets.json on Discard. The file is not a safe undo point:
-    /// Populate writes to it when a widget's monitor has to be migrated, so hot-plugging a display mid-edit
-    /// would bake in the very changes Discard exists to throw away — and a read failure would lose the lot.
+    /// Held in memory rather than re-read from widgets.json on Discard: the file is only as good as the
+    /// last write, and a read that fails would lose everything the session was meant to be able to undo.
     /// </summary>
     private List<DesktopWidgetDefinition>? _snapshot;
 
@@ -94,8 +93,6 @@ public sealed class DesktopWidgetService
         }
         _byElement.Clear();
 
-        var migrated = false;
-
         foreach (var definition in _widgets)
         {
             // Sensors can vanish between runs (hardware changed, driver renamed one). Build returns null
@@ -103,7 +100,7 @@ public sealed class DesktopWidgetService
             var element = Build(definition, hardware);
             if (element is null) continue;
 
-            var surface = ResolveSurface(surfaces, definition, ref migrated);
+            var surface = ResolveSurface(surfaces, definition);
 
             Canvas.SetLeft(element, definition.X);
             Canvas.SetTop(element, definition.Y);
@@ -111,32 +108,20 @@ public sealed class DesktopWidgetService
             _byElement[element] = definition;
         }
 
-        if (migrated) SaveUnlessEditing();
     }
 
     /// <summary>
-    /// Finds the surface a widget belongs on, by stable monitor key. Falls back — in order — to the legacy
-    /// screen index (migrating an older widgets.json), then to the primary screen, so a widget whose
-    /// monitor is unplugged reappears somewhere visible instead of being lost off-screen.
+    /// Finds the surface a widget belongs on, by stable monitor key, falling back to the primary screen so
+    /// a widget whose monitor is unplugged reappears somewhere visible instead of being lost off-screen.
     /// </summary>
     private DesktopSurfaceService.Surface ResolveSurface(
-        IReadOnlyList<DesktopSurfaceService.Surface> surfaces, DesktopWidgetDefinition definition, ref bool migrated)
+        IReadOnlyList<DesktopSurfaceService.Surface> surfaces, DesktopWidgetDefinition definition)
     {
         if (!string.IsNullOrEmpty(definition.ScreenKey))
         {
             var match = surfaces.FirstOrDefault(s => s.Key == definition.ScreenKey);
             if (match.Canvas is not null) return match;
         }
-        else if (definition.ScreenIndex >= 0 && definition.ScreenIndex < surfaces.Count)
-        {
-            // Layout written before screen keys existed — adopt the key for that index once, then the
-            // index is never consulted again.
-            var byIndex = surfaces[definition.ScreenIndex];
-            definition.ScreenKey = byIndex.Key;
-            migrated = true;
-            return byIndex;
-        }
-
         var primary = PrimarySurface(surfaces);
         // Don't rewrite ScreenKey here: the monitor may just be temporarily unplugged, and forgetting its
         // real home would strand the widget on the primary screen for good.
@@ -153,13 +138,7 @@ public sealed class DesktopWidgetService
     private List<DesktopWidgetDefinition> LoadOrSeed(HardwareNode hardware)
     {
         var saved = _layout.Load();
-        if (saved.Count > 0)
-        {
-            // Layouts written before widgets had a series list. Folded once, on load, so nothing further
-            // down ever has to know the old shape existed.
-            foreach (var definition in saved) definition.MigrateSeries();
-            return saved;
-        }
+        if (saved.Count > 0) return saved;
 
         var screenKey = PrimarySurface(_surfaces.Surfaces).Key;
 
@@ -549,8 +528,7 @@ public sealed class DesktopWidgetService
         var element = Build(definition, _aquila.State.Hardware);
         if (element is null) return;
 
-        var migrated = false;
-        var surface = ResolveSurface(surfaces, definition, ref migrated);
+        var surface = ResolveSurface(surfaces, definition);
 
         Canvas.SetLeft(element, definition.X);
         Canvas.SetTop(element, definition.Y);
