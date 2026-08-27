@@ -1,8 +1,9 @@
 # Sistema visual — vocabulário e arquitetura
 
 Adotado a 2026-08-26. v2 (ramps embutidos, separação das Definições); v3 (termo fixado: **Preset**);
-**v4 a 2026-08-27: fronteira casca/preset resolvida, limiares chaveados por `(hardware, métrica)`,
-secção Runtime reescrita contra o repositório real, migração acrescentada.**
+v4 (fronteira casca/preset resolvida, secção Runtime reescrita contra o repositório real, migração
+acrescentada); **v5 a 2026-08-27: os limiares por `(hardware, métrica)` deixaram de ser plano e passaram a
+código — esta secção passa a descrever o que existe. #42 fechado por desenho.**
 
 ---
 
@@ -86,8 +87,15 @@ ou limiares.
 
 **Regra das cores:** um elemento que representa **estado de dados nunca tem cor directa** — referencia um
 ramp por nome (`"ramp": "primary"`). Cor fixa faz-se com um **ramp plano** (4 stops iguais); o editor
-oferece um toggle "cor fixa" que escreve exactamente isso. Um mecanismo, sem bypass — é isto que dissolve a
-dualidade fixo/segue e o problema de uma série ir buscar por acidente a cor de alarme.
+oferece um toggle "cor fixa" que escreve exactamente isso. Um mecanismo, sem bypass.
+
+Isto dissolve duas coisas de uma vez. A dualidade fixo/segue deixa de existir — não há dois modos, há um
+parâmetro. E **fecha o #42**: no formato antigo, os papéis apontavam para *degraus numerados* de uma paleta
+partilhada, os degraus 4 e 5 pertenciam ao `alert` e ao `critical`, e escrever `"series3": 5` desenhava uma
+série perfeitamente saudável com a cor do alarme. Nada validava isso, e a proposta era um aviso no carregamento.
+Com ramps não há degraus partilhados para apontar por engano: a cor de alarme de uma série é, por construção,
+a cor que ela tem *quando está em alarme*. O modo de falha que sobra — escrever um ramp cujo `normal` é o
+vermelho da casa — exige querer, em vez de bastar trocar um algarismo.
 
 Elementos de moldura (fundos, bordas, títulos) têm cor directa + opacidade separada.
 
@@ -104,11 +112,12 @@ conseguir, tem lá dentro algo que pertence ao widget.
 Trocar de visual nunca muda quando algo é considerado crítico. Os limiares são **configuração global de
 monitorização**, vivem nas Definições e são partilhados por tudo o que julga leituras.
 
-Hoje estão chaveados por *família* (`Percent`, `Temperature`, `DriveTemperature`, `MemoryTemperature`) —
-a versão colapsada do par. A direcção é o par completo, porque a família única não consegue dizer que um GPU
-aos 83 °C é normal e um CPU aos 83 °C é elevado.
+**Construído.** A chave é `MetricKey(HardwareKind, MetricKind)`, escrita `"Cpu.Temperature"` onde tem de ser
+texto: definições, `widgets.json` e o `ConverterParameter` do XAML. Substituiu uma família única que não
+conseguia dizer que um GPU aos 83 °C é normal e um CPU aos 83 °C é elevado.
 
-**A taxonomia já existe na árvore tipada**, como aninhamento:
+**A taxonomia já existia na árvore tipada**, como aninhamento — a propriedade exterior é a peça, o grupo
+interior é a métrica:
 
 | Hardware | Métricas |
 |---|---|
@@ -119,19 +128,16 @@ aos 83 °C é normal e um CPU aos 83 °C é elevado.
 | `Networks[i]` | Throughput, Data |
 | `Storages[i]` | Load, Data, Temperature, Level, Factor, Throughput |
 
-**Mas morre na folha.** O `SensorNode` tem `Value`, `Min`, `Max`, `Unit`, `Name`, `Identifier`, `History` —
+**Mas morria na folha.** O `SensorNode` tem `Value`, `Min`, `Max`, `Unit`, `Name`, `Identifier`, `History` —
 e mais nada. Com um `SensorNode` na mão, 62 °C num NVMe e 62 °C num die são o mesmo objecto.
 
-**Onde carimbar:** nos construtores do `SensorCatalog` (`CpuSensors`, `StorageSensors`, …). Cada `yield`
-já sabe a métrica, porque vem de `c.Load.Total` ou `s.Temperature.Primary`, e o chamador já sabe o hardware.
-É trocar o `SensorEntry.Family` actual por `Hardware` + `Metric`. Não toca no `SensorNode` nem pesa nas
-~300 folhas, e fica disponível exactamente no caminho que o editor e o construtor de widgets já usam.
+**Carimbada no `SensorCatalog`**, que é o único sítio com as duas metades: o ciclo sabe que está a percorrer
+CPUs, e cada `yield` do construtor sabe que `c.Temperature.Primary` é uma temperatura. Nenhum sabe sozinho.
 
-**O formulário é pequeno.** Dos ~25 pares que existem, só ~10 são julgáveis — watts, MHz, GB, MB/s, volts e
-horas não têm escala partilhada:
-
-- **Temperatura:** CPU, GPU, Motherboard, Storage, DIMM
-- **Percentagem:** CPU load, GPU load, Memory, Storage used space, fan duty
+**`Thresholds.Preset(key)` devolve null** quando o par não tem escala partilhada — watts, relógios, volts,
+bytes por segundo. Essa tabela **é** a definição de "julgável": o formulário deriva dela as suas linhas, por
+isso não pode haver uma segunda lista a discordar. **Onze linhas**, todas correspondentes a leituras que a
+máquina pode realmente produzir.
 
 **Defaults por dispositivo, já disponíveis.** O modelo *já traduz* os limites que o hardware reporta e
 nunca os leu:
@@ -142,8 +148,14 @@ DimmNode                →  Temperature, WarningTemperature, CriticalTemperatur
                            LowTemperature, CriticalLowTemperature
 ```
 
-Precedência: **valor do utilizador → limite do dispositivo → preset embutido.** É praticamente gratuito
-para as duas famílias onde o número genérico é mais duvidoso.
+Precedência: **valor do utilizador → limite do dispositivo → preset embutido.** Construído: com dois
+dispositivos ganha o mais frágil, e a linha das definições diz "Reported by the hardware" enquanto for esse
+o caso.
+
+O dispositivo dá **dois** dos três números. O primeiro degrau mantém a *proporção* que o nosso preset lhe
+dá em relação ao aviso, ancorada no número do dispositivo — onde começa a aquecer é um juízo nosso, onde
+está o aviso é um facto dele. Fixá-lo a um grau abaixo do aviso foi tentado e produzia rampas degeneradas:
+um DIMM a reportar 55 e 85 dava 54/55/85, um grau de banda seguido de trinta.
 
 **`Pressure` não é configurável.** Colore um valor que já passou pela normalização, e os seus degraus *são*
 essa normalização.
@@ -294,6 +306,6 @@ Uma marca pode chamar "XYZ Theme" ao seu pack a nível de marketing sem tocar no
 - **Variantes Dark/Light por ramp** — só se a legibilidade no tema claro vier a pedi-las.
 - **Vocabulário das partes do widget** — fixar `title`/`value`/`legenda` **antes** do primeiro formato
   partilhado. Aparece no JSON, no editor e no código.
-- **Ordem de execução:** hierarquia (page/card/widget) → `SensorEntry` com `Hardware` + `Metric` →
-  `PresetService` e formato → migração → packs. O segundo passo não depende de nenhum dos outros e pode
-  começar já.
+- **Ordem de execução:** ~~`SensorEntry` com `Hardware` + `Metric`~~ (feito) → **hierarquia
+  (page/card/widget)** → `PresetService` e formato → migração → packs. Tudo o que resta depende da
+  hierarquia: um preset atribuível "por página" precisa que uma página exista.
