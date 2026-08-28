@@ -377,6 +377,52 @@
                         </StackPanel>
                     </ui:CardExpander>
 
+                    <!-- Only for the kinds made of words. -->
+                    <ui:CardExpander Icon="{ui:SymbolIcon TextFont24}"
+                                     Visibility="{Binding ViewModel.ShowsTextOptions, Converter={StaticResource BoolToVisibility}}">
+                        <ui:CardExpander.Header>
+                            <TextBlock Text="Text" FontWeight="SemiBold"/>
+                        </ui:CardExpander.Header>
+
+                        <StackPanel Margin="0,14,0,0">
+
+                            <!-- The words, and nothing else to learn: the reading and its unit are added by
+                                 the app, so "CPU" is the whole of what anyone has to write. -->
+                            <StackPanel Visibility="{Binding ViewModel.ShowsCaptionOptions, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Text" Style="{StaticResource FieldLabel}"/>
+                                <ui:TextBox PlaceholderText="CPU"
+                                            Text="{Binding ViewModel.Caption, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                           Opacity="0.5" TextWrapping="Wrap"
+                                           Text="Add a reading below and it is written after this, with its unit."/>
+
+                                <ui:ToggleSwitch Margin="0,12,0,0"
+                                                 Content="Show the unit"
+                                                 IsChecked="{Binding ViewModel.ShowUnit}"/>
+                            </StackPanel>
+
+                            <!-- Presets, never a pattern: each follows the machine's own locale, so there is
+                                 no 24-hour or day-order question for anyone to answer. -->
+                            <StackPanel Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Shows" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.ClockFormats}"
+                                          SelectedItem="{Binding ViewModel.SelectedClockFormat}"/>
+                            </StackPanel>
+
+                            <DockPanel Margin="0,16,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.TextSize, StringFormat={}{0:F0} pt}"/>
+                                <TextBlock Text="Size" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="8" Maximum="96" TickFrequency="1" IsSnapToTickEnabled="True"
+                                    Value="{Binding ViewModel.TextSize}"/>
+
+                            <TextBlock Text="Alignment" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Aligns}"
+                                      SelectedItem="{Binding ViewModel.SelectedAlign}"/>
+                        </StackPanel>
+                    </ui:CardExpander>
+
                     <!-- Only for the dial. Same arrangement as the Line section below it: a section that
                          cannot act on the selected kind is not shown at all. -->
                     <ui:CardExpander Icon="{ui:SymbolIcon Gauge24}"

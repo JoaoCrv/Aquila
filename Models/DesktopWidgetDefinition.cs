@@ -14,6 +14,12 @@ public enum DesktopWidgetKind
 
     /// <summary>Reads nothing and exists to sit behind: the card look, and later the page's background.</summary>
     Backdrop,
+
+    /// <summary>Words. A caption on its own, or a caption with a reading beside it.</summary>
+    Text,
+
+    /// <summary>The time or the date, on a clock of its own rather than the hardware poll.</summary>
+    Clock,
 }
 
 /// <summary>
@@ -65,6 +71,34 @@ public enum ChartScale
 
     /// <summary>Both ends fixed by the user.</summary>
     Manual,
+}
+
+/// <summary>Where a piece of text sits in the space it is given.</summary>
+public enum TextAlign { Left, Center, Right }
+
+/// <summary>
+/// What a clock shows. Presets rather than a pattern, because a pattern is a language and this has to work
+/// for someone who has never seen one.
+///
+/// Each maps to a standard .NET specifier, so the result follows the machine's own locale — 24-hour or
+/// 12-hour, day-month or month-day, in the user's language — without a single option to get wrong.
+/// </summary>
+public enum ClockFormat
+{
+    /// <summary>Short time: 14:07, or 2:07 PM.</summary>
+    Time,
+
+    /// <summary>Long time, with seconds.</summary>
+    TimeWithSeconds,
+
+    /// <summary>Short date: 28/08/2026, or 8/28/2026.</summary>
+    Date,
+
+    /// <summary>Long date, written out.</summary>
+    DateLong,
+
+    /// <summary>Both, short.</summary>
+    DateAndTime,
 }
 
 /// <summary>Where the meter's reading sits relative to its bar.</summary>
@@ -157,6 +191,18 @@ public class DesktopWidgetDefinition
     /// <summary>Diameter of the dot drawn at each reading. 0 hides them, which is the default — on a
     /// 60-point sparkline they merge into a caterpillar.</summary>
     public double PointSize { get; set; }
+
+    // --- Text, for the caption and the clock ---
+
+    /// <summary>What a Text widget says. Shown alone, or before the reading when one is chosen — the value
+    /// and its unit are formatted by the app, so nobody has to learn a format string to write "CPU".</summary>
+    public string Text { get; set; } = string.Empty;
+
+    public double TextSize { get; set; } = 18;
+
+    public TextAlign TextAlign { get; set; } = TextAlign.Center;
+
+    public ClockFormat ClockFormat { get; set; } = ClockFormat.Time;
 
     // --- Number, for the stat box ---
 

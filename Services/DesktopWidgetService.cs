@@ -352,7 +352,7 @@ public sealed class DesktopWidgetService
     /// would have deleted every one of them the first time a session was saved.
     /// </summary>
     private void DropEmptyWidgets() =>
-        _widgets?.RemoveAll(w => w.Series.Count == 0 && WidgetCatalog.For(w.Kind).MaxSeries > 0);
+        _widgets?.RemoveAll(w => w.Series.Count == 0 && WidgetCatalog.For(w.Kind).NeedsReading);
 
     /// <summary>
     /// Writes the layout, unless an edit session is open. During one, nothing reaches the file until Save —
@@ -417,6 +417,7 @@ public sealed class DesktopWidgetService
             ApplyDialStyle(tile.Tile, definition);
             ApplyBarStyle(tile.Tile, definition);
             ApplyNumberStyle(tile.Tile, definition);
+            ApplyTextStyle(tile.Tile, definition);
         }
 
         // The adorners are drawn around the widget's bounds, so a resize moves them.
@@ -479,8 +480,8 @@ public sealed class DesktopWidgetService
         var title = string.IsNullOrWhiteSpace(definition.Title) ? kind.Name : definition.Title;
         var where = WidgetSurface.ScreenKeyOf(definition.Surface) is null ? "No screen" : "Desktop";
 
-        // A kind that reads nothing is never broken for want of a sensor.
-        if (kind.MaxSeries == 0)
+        // A kind that does not need a reading is never broken for want of one.
+        if (!kind.NeedsReading && definition.Series.Count == 0)
             return new WidgetSummary(definition, kind.Name, title, where, null);
 
         if (definition.Series.Count == 0)
@@ -688,6 +689,24 @@ public sealed class DesktopWidgetService
         stat.ShowPanel = definition.ShowPanel;
     }
 
+    /// <summary>Hands the text settings to a piece made of words. Size and alignment to any of them, then
+    /// the caption or the clock format to whichever it is.</summary>
+    private static void ApplyTextStyle(object? piece, DesktopWidgetDefinition definition)
+    {
+        if (piece is not ITextStyle text) return;
+
+        text.TextSize = definition.TextSize;
+        text.Align = definition.TextAlign;
+
+        if (piece is ICaptionStyle caption)
+        {
+            caption.Caption = definition.Text;
+            caption.ShowUnit = definition.ShowUnit;
+        }
+
+        if (piece is IClockStyle clock) clock.Format = definition.ClockFormat;
+    }
+
     /// <summary>
     /// Clears the Sensor on the piece inside a built widget, so it unhooks itself. Mirrors the structure
     /// Build produces: Border → LabeledTile → piece.
@@ -781,10 +800,10 @@ public sealed class DesktopWidgetService
             roles.Add(Role(series.AccentKey, DefaultRole(roles.Count)));
         }
 
-        // A kind that reads nothing draws anyway — a backdrop has no sensor to lose. Only the ones that
-        // need readings and have none are skipped, so a widget whose sensor vanished keeps its definition
-        // and comes back if the machine reports it again.
-        if (kind.MaxSeries > 0 && resolved.Count == 0) return null;
+        // A kind that does not need a reading draws anyway — a backdrop has none to lose, and a text is a
+        // caption until it is given one. Only the kinds that need a reading and have none are skipped, so a
+        // widget whose sensor vanished keeps its definition and comes back if the machine reports it again.
+        if (kind.NeedsReading && resolved.Count == 0) return null;
 
         var piece = kind.Create(resolved);
 
@@ -814,6 +833,7 @@ public sealed class DesktopWidgetService
         ApplyDialStyle(piece, definition);
         ApplyBarStyle(piece, definition);
         ApplyNumberStyle(piece, definition);
+        ApplyTextStyle(piece, definition);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.

@@ -272,6 +272,26 @@ public partial class WidgetEditorViewModel : ObservableObject
     /// showing them a sensor list would be offering a choice with nowhere to go.</summary>
     public bool ShowsDataSection => SelectedKind is { MaxSeries: > 0 };
 
+    partial void OnCaptionChanged(string value) => Apply();
+    partial void OnTextSizeChanged(double value) => Apply();
+    partial void OnSelectedAlignChanged(TextAlign value) => Apply();
+    partial void OnSelectedClockFormatChanged(ClockFormat value) => Apply();
+
+    /// <summary>The words a Text widget says, and how any piece made of words is drawn.</summary>
+    [ObservableProperty] private string _caption = string.Empty;
+    [ObservableProperty] private double _textSize = 18;
+    [ObservableProperty] private TextAlign _selectedAlign = TextAlign.Center;
+    [ObservableProperty] private ClockFormat _selectedClockFormat = ClockFormat.Time;
+
+    public IReadOnlyList<TextAlign> Aligns { get; } = Enum.GetValues<TextAlign>();
+    public IReadOnlyList<ClockFormat> ClockFormats { get; } = Enum.GetValues<ClockFormat>();
+
+    /// <summary>Whether this kind is made of words at all — a caption, a clock, or both.</summary>
+    public bool ShowsTextOptions => ShowsCaptionOptions || ShowsClockOptions;
+
+    public bool ShowsCaptionOptions => SelectedKind?.HasCaption == true;
+    public bool ShowsClockOptions => SelectedKind?.HasClock == true;
+
     /// <summary>How many more readings this kind will take, said plainly.</summary>
     public string SeriesHint => SelectedKind is null or { MaxSeries: 0 }
         ? string.Empty
@@ -299,6 +319,11 @@ public partial class WidgetEditorViewModel : ObservableObject
 
         Chosen.Add(new SeriesRow(SelectedSensor, AccentsFor(SelectedSensor),
             DefaultAccentFor(SelectedSensor, Chosen.Count), OnSeriesEdited));
+
+        // Offered, not imposed: an untitled widget takes the sensor's name the first time it is given one,
+        // and keeps whatever it has after that — including nothing, if that is what the user chose.
+        if (string.IsNullOrWhiteSpace(Title)) Title = SelectedSensor.Name;
+
         OnSeriesEdited();
     }
 
@@ -346,6 +371,9 @@ public partial class WidgetEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(SeriesHint));
         OnPropertyChanged(nameof(AddLabel));
         OnPropertyChanged(nameof(ShowsDataSection));
+        OnPropertyChanged(nameof(ShowsTextOptions));
+        OnPropertyChanged(nameof(ShowsCaptionOptions));
+        OnPropertyChanged(nameof(ShowsClockOptions));
         OnPropertyChanged(nameof(ShowsLineOptions));
         OnPropertyChanged(nameof(ShowsDialOptions));
         OnPropertyChanged(nameof(ShowsBarOptions));
@@ -410,9 +438,11 @@ public partial class WidgetEditorViewModel : ObservableObject
             AccentKey = row.Accent.Key,
             Metric = row.Sensor.Entry.Key.ToString(),
         })];
-        _target.Title = string.IsNullOrWhiteSpace(Title)
-            ? Chosen.FirstOrDefault()?.Sensor.Name ?? string.Empty
-            : Title.Trim();
+        // Written as given, empty included. Clearing it used to bring the sensor's name back, so a widget
+        // could never be untitled — which the Text and Clock kinds need, and which a gauge under a Backdrop
+        // that already names the group is better off without. The name is offered when a reading is first
+        // added instead: a suggestion at the moment it is useful, not a floor the user cannot get below.
+        _target.Title = Title.Trim();
 
         _target.BackgroundColor = SelectedBackground?.Hex ?? "#000000";
         _target.BackgroundOpacity = BackgroundOpacity / 100;
@@ -451,6 +481,11 @@ public partial class WidgetEditorViewModel : ObservableObject
         _target.ShowUnit = ShowUnit;
         _target.UnitSize = UnitSize;
         _target.ShowPanel = ShowPanel;
+
+        _target.Text = Caption;
+        _target.TextSize = TextSize;
+        _target.TextAlign = SelectedAlign;
+        _target.ClockFormat = SelectedClockFormat;
 
         Changed?.Invoke(change);
     }
@@ -588,6 +623,11 @@ public partial class WidgetEditorViewModel : ObservableObject
         ShowUnit = target.ShowUnit;
         UnitSize = target.UnitSize;
         ShowPanel = target.ShowPanel;
+
+        Caption = target.Text;
+        TextSize = target.TextSize;
+        SelectedAlign = target.TextAlign;
+        SelectedClockFormat = target.ClockFormat;
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.

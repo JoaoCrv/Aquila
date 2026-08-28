@@ -29,6 +29,21 @@ public sealed record WidgetKindInfo(
 {
     public int MaxSeries => AccentProperties.Count;
 
+    /// <summary>
+    /// Whether this kind is useless without a reading.
+    ///
+    /// Not the same question as <see cref="MaxSeries"/>, which is only a ceiling. They coincided for every
+    /// kind until Text arrived: it takes one reading and needs none, being a caption on its own and a
+    /// caption with a number beside it when given one.
+    /// </summary>
+    public bool NeedsReading { get; init; } = true;
+
+    /// <summary>Whether this kind shows words the user writes.</summary>
+    public bool HasCaption { get; init; }
+
+    /// <summary>Whether this kind shows the time or the date.</summary>
+    public bool HasClock { get; init; }
+
     /// <summary>Whether this kind is drawn as a line, and so has line settings worth showing. Declared here
     /// with everything else about a kind rather than worked out by asking a freshly built piece what
     /// interfaces it implements — the editor needs the answer before it builds anything.</summary>
@@ -91,7 +106,23 @@ public static class WidgetCatalog
             "A plate to sit behind other widgets. Reads nothing.",
             240, 160,
             _ => new Grid(),
-            []),
+            []) { NeedsReading = false },
+
+        // One accent property, so it MAY take a reading; NeedsReading false, so it does not have to. It is
+        // the first kind where the ceiling and the requirement differ.
+        new(DesktopWidgetKind.Text,
+            "Text",
+            "Words of your own, alone or beside a reading.",
+            200, 60,
+            series => new TextTile { Sensor = series.Count > 0 ? series[0] : null },
+            [TextBlock.ForegroundProperty]) { NeedsReading = false, HasCaption = true },
+
+        new(DesktopWidgetKind.Clock,
+            "Clock",
+            "The time or the date, in this machine's own format.",
+            200, 70,
+            _ => new ClockTile(),
+            []) { NeedsReading = false, HasClock = true },
     ];
 
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which
