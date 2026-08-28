@@ -139,6 +139,7 @@ public static class SensorCatalog
     {
         foreach (var s in mb.Temperature) yield return new($"{s.Name} Temp", s, MetricKind.Temperature);
         foreach (var s in mb.Fan)         yield return new($"{s.Name}", s, MetricKind.Fan);
+        foreach (var s in mb.Control)     yield return new($"{s.Name} Duty", s, MetricKind.Duty);
         foreach (var s in mb.Voltage)     yield return new($"{s.Name} Voltage", s, MetricKind.Voltage);
     }
 

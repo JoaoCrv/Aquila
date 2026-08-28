@@ -24,7 +24,15 @@ public enum MetricKind
     Data,
     Throughput,
     Voltage,
+
+    /// <summary>A fan's speed, in RPM. No shared scale — 1200 rpm is loud on one fan and idle on another.</summary>
     Fan,
+
+    /// <summary>How hard a fan is being driven, 0-100. A real percentage from the board's PWM control, and
+    /// a different measurement from <see cref="Fan"/> — one is how fast it turns, the other how much of its
+    /// capacity is being asked for.</summary>
+    Duty,
+
     Level,
 }
 

@@ -25,9 +25,12 @@ public sealed class FanRowItem(SensorNode fan, SensorNode? control)
     {
         get
         {
+            // A percentage only when there is one to report. Without a Control sensor the only honest
+            // number is the speed itself: dividing by the highest RPM seen this session produced a "99%"
+            // that meant nothing, and read as a fan at its limit when it was simply the fastest it had
+            // been since the app started.
             if (control?.Value is float cv) return $"{cv:F0}%";
-            if (fan.Value is float v && fan.Max is float max && max > 0)
-                return $"{v / max * 100:F0}%";
+            if (fan.Value is float v) return $"{v:F0} rpm";
             return null;
         }
     }

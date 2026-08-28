@@ -104,12 +104,13 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
 
         // Anything on a 0-100 scale. Listed rather than matched with a wildcard on Load: a wildcard also
         // claimed Network.Load and System.Load, which no sensor produces, and the settings form drew two
-        // rows for readings that cannot exist. Motherboard.Load is here because fan duty is one.
+        // rows for readings that cannot exist. Fan duty is here because it IS a percentage; fan SPEED is
+        // not, and has no entry — 1200 rpm judged against 60/80/92 would be critical on every fan.
         (HardwareKind.Cpu, MetricKind.Load) => Percent,
         (HardwareKind.Gpu, MetricKind.Load) => Percent,
         (HardwareKind.Memory, MetricKind.Load) => Percent,
         (HardwareKind.Storage, MetricKind.Load) => Percent,
-        (HardwareKind.Motherboard, MetricKind.Load) => Percent,
+        (HardwareKind.Motherboard, MetricKind.Duty) => Percent,
         (HardwareKind.Storage, MetricKind.Level) => Percent,
 
         _ => null,
@@ -140,7 +141,7 @@ public readonly record struct Thresholds(double Elevated, double Alert, double C
         (HardwareKind.Memory, MetricKind.Load) => ("Memory in use", "How full the machine's memory is"),
         (HardwareKind.Storage, MetricKind.Load) => ("Disk space used", "How full a drive is"),
         (HardwareKind.Storage, MetricKind.Level) => ("Drive life left", "Wear reported by the drive itself"),
-        (HardwareKind.Motherboard, MetricKind.Load) => ("Fan speed", "How hard the board's fans are working"),
+        (HardwareKind.Motherboard, MetricKind.Duty) => ("Fan duty", "How much of a fan's capacity is being asked for — one at its limit cannot cool any harder"),
 
         // Unreachable through the settings form, which draws a row per entry in Preset — every one of which
         // is named above. Here so adding a preset without a description degrades rather than throws.

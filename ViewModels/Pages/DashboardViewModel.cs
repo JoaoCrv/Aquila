@@ -138,9 +138,30 @@ public partial class DashboardViewModel : ObservableObject, IDisposable
         var mb = Hardware.Motherboard;
         FanRows = mb.Fan
             .Where(f => f.Value > 0)
-            .Select(f => new FanRowItem(f, mb.Control[f.Name ?? string.Empty]))
+            .Select(f => new FanRowItem(f, ControlFor(mb, f)))
             .ToList();
     }
+
+    /// <summary>
+    /// The duty-cycle sensor driving a fan, so a row can show a real percentage instead of a speed measured
+    /// against whatever it happened to reach earlier.
+    ///
+    /// By name first, then by the index in the identifier. The name is only a label and boards do not always
+    /// use the same one for both halves — an MSI X870 reports the control as "Pump Fan" and the fan as
+    /// "Pump Fan #1", so that pump alone never paired. The index IS the header: /fan/1 and /control/1 are
+    /// the same socket on the chip.
+    /// </summary>
+    private static SensorNode? ControlFor(MotherboardNode mb, SensorNode fan)
+    {
+        if (mb.Control[fan.Name ?? string.Empty] is { } byName) return byName;
+
+        var index = IndexOf(fan.Identifier);
+        return index is null ? null : mb.Control.FirstOrDefault(c => IndexOf(c.Identifier) == index);
+    }
+
+    /// <summary>The trailing segment of an LHM identifier — "1" from "/lpc/nct6687dr/0/fan/1".</summary>
+    private static string? IndexOf(string? identifier) =>
+        string.IsNullOrEmpty(identifier) ? null : identifier[(identifier.LastIndexOf('/') + 1)..];
 
     private void OnSettingsChanged()
     {

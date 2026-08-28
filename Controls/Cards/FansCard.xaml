@@ -68,16 +68,35 @@
                                 <TextBlock Grid.Column="0" Text="{Binding Fan.Name}"
                                            Style="{StaticResource RowLabel}"
                                            TextTrimming="CharacterEllipsis"/>
-                                <!-- Coloured by how hard the fan is working, like every other reading in
-                                     the app. A fixed accent made a pump at 99% look exactly like a case
-                                     fan at 59%, which is the one thing the row exists to distinguish:
-                                     a fan near 100% has no headroom left. -->
+                                <!-- Coloured by how hard the fan is working: a fixed accent made a pump at
+                                     99% look exactly like a case fan at 59%, which is the one thing the row
+                                     exists to distinguish — a fan near its limit cannot cool any harder.
+
+                                     But only where the percentage is real. A fan with a Control sensor
+                                     reports true PWM duty; one without is measured against the highest RPM
+                                     seen this session, so on the first tick it reads 100% and would paint
+                                     itself critical for nothing. Those rows keep a plain accent. -->
                                 <ProgressBar Grid.Column="1"
-                                             Style="{StaticResource FanBar}"
                                              VerticalAlignment="Center"
-                                             Foreground="{Binding BarPercent, Converter={StaticResource Intensity}, ConverterParameter=Motherboard.Load}"
                                              Value="{Binding BarValue, Mode=OneWay}"
-                                             Maximum="{Binding BarMaximum, Mode=OneWay}"/>
+                                             Maximum="{Binding BarMaximum, Mode=OneWay}">
+                                    <ProgressBar.Style>
+                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource FanBar}">
+                                            <Setter Property="Foreground"
+                                                    Value="{Binding BarPercent, Converter={StaticResource Intensity}, ConverterParameter=Motherboard.Duty}"/>
+                                            <Style.Triggers>
+                                                <!-- Normal, not Accent. A profile is free to put its accent
+                                                     on the same step as elevated — ember does — and an
+                                                     unjudged fan wearing that colour reads as a warning we
+                                                     never meant to give. Normal says what is true: nothing
+                                                     here is being claimed. -->
+                                                <DataTrigger Binding="{Binding Control}" Value="{x:Null}">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Normal}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ProgressBar.Style>
+                                </ProgressBar>
                                 <TextBlock Grid.Column="2"
                                            Style="{StaticResource RowValue}" FontSize="11"
                                            Opacity="0.55" Margin="6,0,4,0"
