@@ -459,6 +459,51 @@ public sealed class DesktopWidgetService
     }
 
     /// <summary>
+    /// Every widget that exists, and whether it can draw.
+    ///
+    /// The drawability rules live here rather than in the page, because they are the same rules
+    /// <see cref="Build"/> follows — a list that worked them out separately would eventually disagree with
+    /// what is actually on screen, which is the one thing it exists to report.
+    /// </summary>
+    public IReadOnlyList<WidgetSummary> Describe()
+    {
+        _widgets ??= _layout.Load();
+
+        var hardware = _aquila.State.Hardware;
+        return [.. _widgets.Select(w => Describe(w, hardware))];
+    }
+
+    private static WidgetSummary Describe(DesktopWidgetDefinition definition, HardwareNode hardware)
+    {
+        var kind = WidgetCatalog.For(definition.Kind);
+        var title = string.IsNullOrWhiteSpace(definition.Title) ? kind.Name : definition.Title;
+        var where = WidgetSurface.ScreenKeyOf(definition.Surface) is null ? "No screen" : "Desktop";
+
+        // A kind that reads nothing is never broken for want of a sensor.
+        if (kind.MaxSeries == 0)
+            return new WidgetSummary(definition, kind.Name, title, where, null);
+
+        if (definition.Series.Count == 0)
+            return new WidgetSummary(definition, kind.Name, title, where,
+                "No reading chosen — nothing to draw.");
+
+        var found = definition.Series
+            .Select(x => SensorCatalog.FindEntry(hardware, x.SensorIdentifier))
+            .OfType<SensorEntry>()
+            .ToList();
+
+        if (found.Count == 0)
+            return new WidgetSummary(definition, kind.Name, title, where,
+                $"This machine does not report {string.Join(", ", definition.Series.Select(x => x.SensorIdentifier))}.");
+
+        var reads = string.Join(", ", found.Select(e => e.Label));
+        var missing = definition.Series.Count - found.Count;
+
+        return new WidgetSummary(definition, kind.Name, title, $"{where} — {reads}",
+            missing > 0 ? $"{missing} of its readings are not being reported." : null);
+    }
+
+    /// <summary>
     /// Puts a sensor on the desktop straight away — no editor, no edit mode.
     ///
     /// Pinning is "put this where I can see it", not "let me rearrange my desktop". Sweeping every window

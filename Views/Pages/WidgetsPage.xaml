@@ -15,6 +15,7 @@
 
     <Page.Resources>
         <helpers:IntensityBrushConverter x:Key="Intensity"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     </Page.Resources>
 
     <StackPanel Margin="20,0,20,20">
@@ -66,6 +67,46 @@
                     Command="{Binding ViewModel.IdentifyScreensCommand}"/>
             </StackPanel>
         </ui:CardControl>
+
+        <!-- What is actually out there. A widget that cannot draw is invisible on the desktop, and
+             invisible is indistinguishable from deleted — this is the only place the difference shows. -->
+        <TextBlock Style="{StaticResource SectionHeading}" Text="On the desktop"/>
+        <TextBlock Style="{StaticResource SettingHint}" Margin="2,-4,0,8"
+                   Text="Every widget you have placed, whether or not it is drawing."/>
+
+        <ItemsControl ItemsSource="{Binding ViewModel.Widgets}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ui:CardControl>
+                        <ui:CardControl.Icon>
+                            <ui:SymbolIcon Symbol="Warning24"
+                                           Foreground="{DynamicResource Aquila.Scheme.Alert}"
+                                           Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}"/>
+                        </ui:CardControl.Icon>
+                        <ui:CardControl.Header>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}"/>
+                                <TextBlock Style="{StaticResource SettingHint}" Text="{Binding Detail}"/>
+                                <!-- The reason, not just the fact: "no reading chosen" and "its sensor is
+                                     gone" are different problems and want different fixes. -->
+                                <TextBlock Style="{StaticResource SettingHint}" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource Aquila.Scheme.Alert}"
+                                           Text="{Binding Problem}"
+                                           Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}"/>
+                            </StackPanel>
+                        </ui:CardControl.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Opacity="0.5" Margin="0,0,12,0"
+                                       Text="{Binding Kind}"/>
+                            <ui:Button Icon="{ui:SymbolIcon Delete24}" ToolTip="Remove this widget"
+                                       Command="{Binding DataContext.ViewModel.RemoveWidgetCommand,
+                                                 RelativeSource={RelativeSource AncestorType=Page}}"
+                                       CommandParameter="{Binding}"/>
+                        </StackPanel>
+                    </ui:CardControl>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <!-- Preview only (#23): each reusable piece running on this machine's own sensors, read from the
              AquilaService that already exists. No pinning flow here; that belongs to #24/#31. -->

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows;
 using Aquila.Models;
 using Aquila.Services;
@@ -37,6 +38,34 @@ public partial class WidgetsViewModel : ObservableObject
     }
 
     public HardwareNode Hardware => _aquila.State.Hardware;
+
+    /// <summary>
+    /// What exists on the desktop, and what is wrong with it.
+    ///
+    /// A widget that cannot draw is invisible, and invisible looks exactly like deleted. Without this the
+    /// only way to tell a broken widget from a removed one was to open widgets.json.
+    /// </summary>
+    public ObservableCollection<WidgetSummary> Widgets { get; } = [];
+
+    /// <summary>Rebuilt when the page is shown, and after anything that changes the set — the sensors are
+    /// not populated when this view model is constructed, so a list built once would report every reading
+    /// as missing.</summary>
+    public void RefreshWidgets()
+    {
+        Widgets.Clear();
+        foreach (var summary in _widgets.Describe()) Widgets.Add(summary);
+    }
+
+    /// <summary>Forgets a widget, from the list rather than from the desktop — the way to reach one that
+    /// cannot be seen because it does not draw.</summary>
+    [RelayCommand]
+    private void RemoveWidget(WidgetSummary? summary)
+    {
+        if (summary is null) return;
+
+        _widgets.Remove(summary.Definition);
+        RefreshWidgets();
+    }
 
     [ObservableProperty]
     private bool _showOnDesktop;
@@ -89,6 +118,7 @@ public partial class WidgetsViewModel : ObservableObject
 
         StartEditing();
         _widgets.AddWidget(presetSensorIdentifier: null);
+        RefreshWidgets();
     }
 
     /// <summary>
@@ -135,6 +165,7 @@ public partial class WidgetsViewModel : ObservableObject
         IsEditingOnDesktop = false;
         _surface.SetEditing(false);
         _widgets.EndEditSession(save);
+        RefreshWidgets();
 
         // Put back what entering edit mode swept aside. Wanting to see the desktop for twenty seconds is
         // not a reason to have to rebuild a whole workspace afterwards.
