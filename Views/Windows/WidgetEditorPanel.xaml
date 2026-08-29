@@ -251,7 +251,79 @@
                                       DisplayMemberPath="DisplayName"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Colours, borders, fonts and sizes come from the preset. Every widget wearing it follows."/>
+                                       Text="{Binding ViewModel.PresetNote}"/>
+
+                            <Separator Margin="0,16,0,12" Opacity="0.15"/>
+
+                            <TextBlock Text="Background" Style="{StaticResource FieldLabel}"/>
+                            <ItemsControl ItemsSource="{Binding ViewModel.Colors}" Margin="0,0,0,6">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Padding="3" Margin="0,0,6,0" ToolTip="{Binding Name}"
+                                                Command="{Binding DataContext.ViewModel.PickBackgroundCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding Hex}">
+                                            <Border Width="18" Height="18" CornerRadius="3"
+                                                    Background="{Binding Hex}"/>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ui:TextBox PlaceholderText="#000000"
+                                        Text="{Binding ViewModel.BackgroundColor}"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.BackgroundOpacity, StringFormat={}{0:F0}%}"/>
+                                <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="100"
+                                    Value="{Binding ViewModel.BackgroundOpacity}"/>
+
+                            <TextBlock Text="Border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
+                            <ItemsControl ItemsSource="{Binding ViewModel.Colors}" Margin="0,0,0,6">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Padding="3" Margin="0,0,6,0" ToolTip="{Binding Name}"
+                                                Command="{Binding DataContext.ViewModel.PickBorderCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding Hex}">
+                                            <Border Width="18" Height="18" CornerRadius="3"
+                                                    Background="{Binding Hex}"/>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ui:TextBox PlaceholderText="#FFFFFF"
+                                        Text="{Binding ViewModel.BorderColor}"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.BorderOpacity, StringFormat={}{0:F0}%}"/>
+                                <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="100"
+                                    Value="{Binding ViewModel.BorderOpacity}"/>
+
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.BorderThickness, StringFormat={}{0:F0} px}"/>
+                                <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True"
+                                    Value="{Binding ViewModel.BorderThickness}"/>
+
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.CornerRadius, StringFormat={}{0:F0} px}"/>
+                                <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="24"
+                                    Value="{Binding ViewModel.CornerRadius}"/>
                         </StackPanel>
                     </ui:CardExpander>
 

@@ -303,29 +303,73 @@ public sealed class DesktopWidgetService
         var restore = _snapshot;
         if (restore is null) return;
 
-        var changed = HasUnsavedChanges;   // read while the snapshot is still there
+        // The layout alone, not the wider question: a preset edit is undone by re-dressing, which keeps the
+        // charts running, where a full rebuild would restart every line from an empty history.
+        var changed = LayoutChanged;       // read while the snapshot is still there
         _snapshot = null;                  // cleared first, so the writes below are no longer gated
 
         if (save)
         {
             DropEmptyWidgets();
+            Adopt(_presets.Commit());
             SaveUnlessEditing();
         }
-        else if (changed)
+        else
         {
+            // Read before Revert clears it. A preset-only edit leaves the layout byte-for-byte identical, so
+            // the widget comparison on its own would conclude nothing had happened and leave the drafted
+            // look sitting on the desktop after the user asked for it to be thrown away.
+            var dressed = _presets.Drafts.Count > 0;
+            _presets.Revert();
+
             // Only when something actually differs. Rebuilding every widget to restore a layout identical
             // to the one on screen is work the user would see as a flicker and nothing else.
-            _widgets = restore;
-            Populate();
+            if (changed)
+            {
+                _widgets = restore;
+                Populate();
+            }
+            else if (dressed) RestyleAll();
         }
     }
 
-    /// <summary>Whether anything would actually be written. Compared as the serialized layout, using the
-    /// same serializer that defines what Save writes — anything it ignores is, by definition, not a
-    /// change.</summary>
-    public bool HasUnsavedChanges =>
+    /// <summary>
+    /// Moves the widgets that were wearing a preset onto the variant its edits became.
+    ///
+    /// Every widget wearing it, not only the one whose panel was open: the edit was shown live on all of
+    /// them, and Save has to keep what was on screen at the moment it was pressed. A widget naming no preset
+    /// is wearing the base, so it moves too when the base is the one that forked — and gains an explicit
+    /// name in the process, which is honest, because it is no longer wearing whatever the default happens
+    /// to be.
+    /// </summary>
+    private void Adopt(IReadOnlyList<(string From, Preset To)> forked)
+    {
+        if (_widgets is null) return;
+
+        foreach (var (from, to) in forked)
+            foreach (var widget in _widgets)
+                if (string.Equals(widget.Preset, from, StringComparison.OrdinalIgnoreCase) ||
+                    (string.IsNullOrWhiteSpace(widget.Preset) && from == PresetService.BaseId))
+                    widget.Preset = to.Id;
+    }
+
+    /// <summary>Whether the layout itself would be written differently. Compared as the serialized layout,
+    /// using the same serializer that defines what Save writes — anything it ignores is, by definition, not
+    /// a change.</summary>
+    private bool LayoutChanged =>
         _snapshot is not null && _widgets is not null &&
         DesktopLayoutService.Serialize(_widgets) != DesktopLayoutService.Serialize(_snapshot);
+
+    /// <summary>
+    /// Whether anything at all would be lost by discarding.
+    ///
+    /// Wider than the layout on purpose: an edit to a preset changes how every widget looks and leaves the
+    /// layout byte-for-byte identical, so asking the layout alone would let a whole afternoon of colour work
+    /// be thrown away without the confirmation ever appearing. Kept apart from
+    /// <see cref="LayoutChanged"/> because they answer different questions — this one decides whether to
+    /// ask, that one decides whether a rebuild is needed.
+    /// </summary>
+    public bool HasUnsavedChanges => LayoutChanged || _presets.Drafts.Count > 0;
 
     private void HideEditorPanel()
     {
@@ -377,6 +421,7 @@ public sealed class DesktopWidgetService
         if (_panel?.Target is not { } target) return;
 
         if (change == ViewModels.Windows.WidgetChange.Structure) RefreshWidget(target);
+        else if (change == ViewModels.Windows.WidgetChange.Dress) RestyleWearing(target);
         else RestyleWidget(target);
 
         SaveUnlessEditing();
@@ -424,6 +469,28 @@ public sealed class DesktopWidgetService
 
         // The adorners are drawn around the widget's bounds, so a resize moves them.
         _surfaces.RefreshEditModeAdorners();
+    }
+
+    /// <summary>
+    /// Re-dresses every widget wearing the same preset as the one being edited.
+    ///
+    /// Compared by reference on the RESOLVED preset rather than by id, so a widget that names it and a
+    /// widget that names nothing at all count as the same when the base is what changed — the two spellings
+    /// of "ember" would otherwise drift apart on screen.
+    /// </summary>
+    private void RestyleWearing(DesktopWidgetDefinition edited)
+    {
+        var preset = _presets.For(edited.Preset);
+
+        // Copied, because re-dressing a widget with no element yet falls through to a rebuild, and that
+        // writes to the dictionary being walked.
+        foreach (var definition in _byElement.Values.ToList())
+            if (ReferenceEquals(_presets.For(definition.Preset), preset)) RestyleWidget(definition);
+    }
+
+    private void RestyleAll()
+    {
+        foreach (var definition in _byElement.Values.ToList()) RestyleWidget(definition);
     }
 
     /// <summary>Reaching for a widget on the desktop is what fills the panel. An element with no definition

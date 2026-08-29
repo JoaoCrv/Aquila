@@ -23,7 +23,15 @@ public enum WidgetChange
 
     /// <summary>The kind, or which readings it draws. The piece has to be built again.</summary>
     Structure,
+
+    /// <summary>The preset. Re-dresses every widget wearing it, not just the one being edited — which is
+    /// the reason it is a separate case rather than a wider Style.</summary>
+    Dress,
 }
+
+/// <summary>A colour worth offering by name. Only ever WRITES the hex: the preset's own value is the truth,
+/// so a colour the list does not have stays exactly as the preset spells it.</summary>
+public record ColorOption(string Name, string Hex);
 
 public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor, SensorEntry Entry)
 {
@@ -64,7 +72,101 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// editing the preset itself is what changes every widget wearing it, and that is deliberate.</summary>
     [ObservableProperty] private Preset? _selectedPreset;
 
-    partial void OnSelectedPresetChanged(Preset? value) => Apply();
+    partial void OnSelectedPresetChanged(Preset? value)
+    {
+        Read(value);
+        Apply();
+    }
+
+    /// <summary>Whether the chosen preset is one of ours. Shown to the user, because it decides what Save
+    /// will do — edits to a built-in leave as a variant, and finding that out afterwards is a surprise.</summary>
+    public bool PresetIsBuiltIn => SelectedPreset?.IsBuiltIn == true;
+
+    public string PresetNote => SelectedPreset is not { } preset
+        ? string.Empty
+        : preset.IsBuiltIn
+            ? $"{preset.Name} is built in. Your changes are saved as a variant of it, leaving the original alone."
+            : $"Changes are saved into {preset.Name}, and every widget wearing it follows.";
+
+    // --- Appearance. These write into the PRESET, so they change every widget wearing it. ---
+
+    public IReadOnlyList<ColorOption> Colors { get; } =
+    [
+        new("Black", "#000000"),
+        new("Charcoal", "#1E1E1E"),
+        new("Ink", "#1F1A16"),
+        new("Slate", "#2E3B4E"),
+        new("White", "#FFFFFF"),
+    ];
+
+    [ObservableProperty] private string _backgroundColor = "#000000";
+    [ObservableProperty] private double _backgroundOpacity = 60;
+    [ObservableProperty] private string _borderColor = "#FFFFFF";
+    [ObservableProperty] private double _borderOpacity = 25;
+    [ObservableProperty] private double _borderThickness;
+    [ObservableProperty] private double _cornerRadius = 8;
+
+    partial void OnBackgroundColorChanged(string value) => Dress();
+    partial void OnBackgroundOpacityChanged(double value) => Dress();
+    partial void OnBorderColorChanged(string value) => Dress();
+    partial void OnBorderOpacityChanged(double value) => Dress();
+    partial void OnBorderThicknessChanged(double value) => Dress();
+    partial void OnCornerRadiusChanged(double value) => Dress();
+
+    [RelayCommand] private void PickBackground(string? hex) => BackgroundColor = hex ?? BackgroundColor;
+    [RelayCommand] private void PickBorder(string? hex) => BorderColor = hex ?? BorderColor;
+
+    /// <summary>True while the form is being filled FROM a preset, so the writes that causes are not read
+    /// back as edits. Without it, merely switching preset would mark the new one as edited — it would be
+    /// written with its own values, which changes nothing and still ends in being asked to save it.</summary>
+    private bool _reading;
+
+    /// <summary>Fills the appearance controls from a preset without touching it.</summary>
+    private void Read(Preset? preset)
+    {
+        OnPropertyChanged(nameof(PresetIsBuiltIn));
+        OnPropertyChanged(nameof(PresetNote));
+
+        if (preset is null) return;
+
+        _reading = true;
+        try
+        {
+            BackgroundColor = preset.Background.Color;
+            BackgroundOpacity = preset.Background.Opacity * 100;
+            BorderColor = preset.Border.Color;
+            BorderOpacity = preset.Border.Opacity * 100;
+            BorderThickness = preset.Border.Thickness;
+            CornerRadius = preset.Border.CornerRadius;
+        }
+        finally
+        {
+            _reading = false;
+        }
+    }
+
+    /// <summary>
+    /// Writes the appearance controls into the preset and asks the host to re-dress everything wearing it.
+    ///
+    /// Drafting happens here, on the first actual edit, so the preset is only marked as changed by someone
+    /// changing it. Opacity is a percentage on screen and a fraction in the file: sliders that read 0-100
+    /// are what people expect, and a file that stores 0.6 is what every other colour format does.
+    /// </summary>
+    private void Dress()
+    {
+        if (_reading || !_loaded || SelectedPreset is not { } chosen) return;
+
+        var preset = presets.Draft(chosen);
+
+        preset.Background.Color = BackgroundColor;
+        preset.Background.Opacity = BackgroundOpacity / 100;
+        preset.Border.Color = BorderColor;
+        preset.Border.Opacity = BorderOpacity / 100;
+        preset.Border.Thickness = BorderThickness;
+        preset.Border.CornerRadius = CornerRadius;
+
+        Changed?.Invoke(WidgetChange.Dress);
+    }
 
     partial void OnLayerChanged(double value) => Apply();
 

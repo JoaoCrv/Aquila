@@ -66,8 +66,11 @@ public sealed class PresetService(ILogger<PresetService> logger)
             _presets.Add(Fallback);
         }
 
-        _presets.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
+        Sort();
     }
+
+    private void Sort() =>
+        _presets.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
 
     /// <summary>
     /// The preset a widget wears, by id — falling back to the base rather than to nothing.
@@ -84,6 +87,88 @@ public sealed class PresetService(ILogger<PresetService> logger)
         ?? _presets.FirstOrDefault(p => p.Id == BaseId)
         ?? _presets.FirstOrDefault()
         ?? Fallback;
+
+    // --- Edit sessions ---
+    //
+    // The same shape as DesktopWidgetService's snapshot, and for the same reason: what is kept aside is the
+    // ORIGINAL, while the live object stays the one being edited. Every widget already resolves to that live
+    // object, so an edit reaches all of them without anything being repointed — which is the whole benefit of
+    // a preset over thirty fields per widget, and it would be lost if editing happened on a copy off to one
+    // side. Non-empty IS a session, so there is no second flag to disagree with it.
+
+    private readonly Dictionary<string, Preset> _originals = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The presets edited since the session began.</summary>
+    public IReadOnlyList<Preset> Drafts => [.. _presets.Where(p => _originals.ContainsKey(p.Id))];
+
+    /// <summary>
+    /// Marks a preset as being edited and hands back the object to write into.
+    ///
+    /// Called on the first edit and never on selection: picking a preset to look at must not count as
+    /// changing it, or simply reading down the list would end in being asked to save four of them.
+    /// </summary>
+    public Preset Draft(Preset preset)
+    {
+        if (!_originals.ContainsKey(preset.Id)) _originals[preset.Id] = Clone(preset);
+        return preset;
+    }
+
+    /// <summary>Puts every edited preset back as it was and ends the session.</summary>
+    public void Revert()
+    {
+        if (_originals.Count == 0) return;
+
+        foreach (var original in _originals.Values) Register(original);
+
+        _originals.Clear();
+        Sort();
+    }
+
+    /// <summary>
+    /// Keeps the edits and ends the session.
+    ///
+    /// A preset of the user's own is written where it lives. A built-in cannot be written over — that rule
+    /// is what guarantees there is always something to go back to — so its edits leave as a variant and the
+    /// built-in is put back untouched. There is no question to ask here: for a built-in a variant is the
+    /// only legal outcome, and refusing the edit instead would throw away work the user has been watching
+    /// on screen.
+    ///
+    /// The returned pairs say which id became which, so the caller can move the widgets that were wearing it
+    /// across. Without that the variant would be saved and worn by nothing, and the user would watch their
+    /// edits vanish at the moment they pressed Save.
+    /// </summary>
+    public IReadOnlyList<(string From, Preset To)> Commit()
+    {
+        var forked = new List<(string From, Preset To)>();
+
+        foreach (var (id, original) in _originals)
+        {
+            var draft = _presets.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (draft is null) continue;
+
+            if (!original.IsBuiltIn)
+            {
+                Save(draft);
+                continue;
+            }
+
+            var variant = Clone(draft);
+            variant.Id = FreeId($"{id}-copy");
+            variant.Name = $"{original.Name} (copy)";
+            variant.IsBuiltIn = false;
+
+            Register(original);
+            Save(variant);
+            Register(variant);
+
+            forked.Add((id, variant));
+        }
+
+        _originals.Clear();
+        Sort();
+
+        return forked;
+    }
 
     /// <summary>
     /// Writes a copy into the user folder under a free id, and returns it.
@@ -146,8 +231,16 @@ public sealed class PresetService(ILogger<PresetService> logger)
     /// <summary>A deep copy, through the serializer rather than by hand. A copy written field by field is a
     /// list that silently falls behind the format — which is exactly how a duplicated preset would start
     /// losing whatever was added last.</summary>
-    public static Preset Clone(Preset source) =>
-        JsonSerializer.Deserialize<Preset>(JsonSerializer.Serialize(source, _write), _read) ?? Fallback;
+    public static Preset Clone(Preset source)
+    {
+        var copy = JsonSerializer.Deserialize<Preset>(JsonSerializer.Serialize(source, _write), _read);
+        if (copy is null) return Fallback;
+
+        // [JsonIgnore], so it does not survive the round trip — and a copy that had forgotten it came from
+        // a built-in would be writable straight over the file it was copied from.
+        copy.IsBuiltIn = source.IsBuiltIn;
+        return copy;
+    }
 
     private static string PathFor(string id) => Path.Combine(AquilaPaths.Presets, $"{id}.json");
 
