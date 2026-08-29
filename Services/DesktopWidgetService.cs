@@ -22,6 +22,7 @@ public sealed class DesktopWidgetService
     private readonly AquilaService _aquila;
     private readonly DesktopSurfaceService _surfaces;
     private readonly DesktopLayoutService _layout;
+    private readonly PresetService _presets;
 
     private List<DesktopWidgetDefinition>? _widgets;
     private readonly Dictionary<UIElement, DesktopWidgetDefinition> _byElement = [];
@@ -39,11 +40,13 @@ public sealed class DesktopWidgetService
     /// </summary>
     private List<DesktopWidgetDefinition>? _snapshot;
 
-    public DesktopWidgetService(AquilaService aquila, DesktopSurfaceService surfaces, DesktopLayoutService layout)
+    public DesktopWidgetService(AquilaService aquila, DesktopSurfaceService surfaces,
+        DesktopLayoutService layout, PresetService presets)
     {
         _aquila = aquila;
         _surfaces = surfaces;
         _layout = layout;
+        _presets = presets;
         _surfaces.WidgetMoved += OnWidgetMoved;
         _surfaces.WidgetResized += OnWidgetResized;
         _surfaces.WidgetScreenChanged += OnWidgetScreenChanged;
@@ -64,16 +67,16 @@ public sealed class DesktopWidgetService
     /// <summary>Starter layout for a machine with no widgets.json yet — sensor lookups rather than fixed
     /// identifiers, since those differ per machine; whatever isn't present is simply skipped.</summary>
     private static readonly (DesktopWidgetKind Kind, string Title, Func<HardwareNode, SensorNode?> Sensor,
-        string AccentKey, double X, double Y, double Width, double Height)[] _starter =
+        double X, double Y, double Width, double Height)[] _starter =
     [
         // Coloured by their own readings, like every other single-reading widget: a starter set that sits
         // in one flat colour teaches the wrong thing about what these are for.
         (DesktopWidgetKind.RadialGauge,   "CPU Load",  h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,
-            WidgetSeries.FollowsReading, 32, 150, 170, 190),
+            32, 150, 170, 190),
         (DesktopWidgetKind.MiniSparkline, "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
-            WidgetSeries.FollowsReading, 32, 360, 240, 100),
+            32, 360, 240, 100),
         (DesktopWidgetKind.SensorMeter,   "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
-            WidgetSeries.FollowsReading, 32, 480, 240,  80),
+            32, 480, 240,  80),
     ];
 
     public void Populate()
@@ -149,7 +152,7 @@ public sealed class DesktopWidgetService
         var screen = WidgetSurface.Screen(PrimarySurface(_surfaces.Surfaces).Key);
 
         var seeded = new List<DesktopWidgetDefinition>();
-        foreach (var (kind, title, lookup, accent, x, y, width, height) in _starter)
+        foreach (var (kind, title, lookup, x, y, width, height) in _starter)
         {
             var identifier = lookup(hardware)?.Identifier;
             if (string.IsNullOrEmpty(identifier)) continue;
@@ -158,7 +161,7 @@ public sealed class DesktopWidgetService
             {
                 Kind = kind,
                 Title = title,
-                Series = [new WidgetSeries { SensorIdentifier = identifier, AccentKey = accent }],
+                Series = [new WidgetSeries { SensorIdentifier = identifier }],
                 Surface = screen,
                 X = x, Y = y, Width = width, Height = height,
             });
@@ -256,7 +259,7 @@ public sealed class DesktopWidgetService
 
         _widgets ??= _layout.Load();
 
-        _panel = new Views.Windows.WidgetEditorPanel(_aquila.State.Hardware);
+        _panel = new Views.Windows.WidgetEditorPanel(_aquila.State.Hardware, _presets);
         _panel.ViewModel.Changed += OnPanelEdited;
         _panel.AddRequested += OnAddRequested;
         _panel.RemoveRequested += RemoveFromPanel;
@@ -399,10 +402,12 @@ public sealed class DesktopWidgetService
             return;
         }
 
-        border.Background = Tint(definition.BackgroundColor, definition.BackgroundOpacity);
-        border.BorderBrush = Tint(definition.BorderColor, definition.BorderOpacity);
-        border.BorderThickness = new Thickness(definition.BorderThickness);
-        border.CornerRadius = new CornerRadius(definition.CornerRadius);
+        var preset = _presets.For(definition.Preset);
+
+        border.Background = Tint(preset.Background.Color, preset.Background.Opacity);
+        border.BorderBrush = Tint(preset.Border.Color, preset.Border.Opacity);
+        border.BorderThickness = new Thickness(preset.Border.Thickness);
+        border.CornerRadius = new CornerRadius(preset.Border.CornerRadius);
         border.Width = definition.Width;
         border.Height = definition.Height;
         Canvas.SetLeft(border, definition.X);
@@ -412,12 +417,9 @@ public sealed class DesktopWidgetService
         if (border.Child is LabeledTile tile)
         {
             tile.Title = definition.Title;
-            ApplyLineStyle(tile.Tile, definition);
+            Dress(tile.Tile, preset);
+            Content(tile.Tile, definition);
             KeepEnoughHistory(definition, ResolveSensors(definition));
-            ApplyDialStyle(tile.Tile, definition);
-            ApplyBarStyle(tile.Tile, definition);
-            ApplyNumberStyle(tile.Tile, definition);
-            ApplyTextStyle(tile.Tile, definition);
         }
 
         // The adorners are drawn around the widget's bounds, so a resize moves them.
@@ -532,7 +534,6 @@ public sealed class DesktopWidgetService
         _widgets ??= _layout.Load();
 
         var definition = NewDefinition(sensorIdentifier);
-        foreach (var series in definition.Series) series.AccentKey = WidgetSeries.FollowsReading;
 
         // A dial needs a bounded scale to mean anything, so only a percentage gets one; everything else
         // gets the trend, which reads honestly whatever the units are.
@@ -604,29 +605,17 @@ public sealed class DesktopWidgetService
         _byElement.Remove(element);
     }
 
-    /// <summary>Hands the line settings to a piece that has a line. A dial or a number is not one and does
-    /// not implement the interface, so it is skipped without anything having to know which kinds those
-    /// are — the same structural test <see cref="DetachSensor"/> uses.</summary>
-    private static void ApplyLineStyle(object? piece, DesktopWidgetDefinition definition)
-    {
-        if (piece is not IChartStyle line) return;
-
-        line.LineThickness = definition.LineThickness;
-        line.Fill = definition.Fill;
-        line.Smoothness = definition.LineSmoothness;
-        line.PointSize = definition.PointSize;
-        line.PointCount = definition.PointCount;
-        line.Scale = definition.Scale;
-        line.ScaleMin = definition.ScaleMin;
-        line.ScaleMax = definition.ScaleMax;
-    }
-
+    /// <summary>
+    /// Dresses a piece from the preset. Each section is matched structurally — a piece that is not a dial
+    /// does not implement <see cref="IGaugeStyle"/> and is skipped — so nothing here keeps a list of which
+    /// kinds get which settings, and a kind added later cannot be forgotten silently.
+    /// </summary>
     /// <summary>
     /// Asks the sensors behind a chart to keep enough readings to fill its window.
     ///
-    /// Sensors keep sixty by default whether anything draws them or not, so a longer trend is requested
-    /// only on the ones actually being shown — a machine reporting three hundred sensors should not pay for
-    /// a ten-minute buffer on all of them to give it to the two on the desktop.
+    /// Sensors keep sixty by default whether anything draws them or not, so a longer trend is requested only
+    /// on the ones actually being shown — a machine reporting three hundred sensors should not pay for a
+    /// ten-minute buffer on all of them to give it to the two on the desktop.
     ///
     /// Raised, never lowered. Another widget may be showing the same sensor over a longer window, and
     /// shortening one chart must not quietly truncate the other's history.
@@ -653,58 +642,68 @@ public sealed class DesktopWidgetService
         return resolved;
     }
 
-    /// <summary>Hands the dial settings to a piece that is one. Same structural test as
-    /// <see cref="ApplyLineStyle"/>: a sparkline is not a dial and is skipped by not implementing it.</summary>
-    private static void ApplyDialStyle(object? piece, DesktopWidgetDefinition definition)
+    /// <summary>
+    /// The handful of things a piece shows that are NOT appearance: the words a caption says, what a clock
+    /// is set to. They live on the widget because a preset carrying them would rename every widget wearing
+    /// it — and the format's decisive test is that one preset dresses a CPU widget and a network one
+    /// without editing.
+    /// </summary>
+    private static void Content(object? piece, DesktopWidgetDefinition definition)
     {
-        if (piece is not IGaugeStyle dial) return;
+        if (piece is ICaptionStyle caption) caption.Caption = definition.Text;
+        if (piece is IClockStyle clock) clock.Format = definition.ClockFormat;
 
-        dial.ArcThickness = definition.ArcThickness;
-        dial.ArcCorner = definition.ArcCorner;
-        dial.Sweep = definition.Sweep;
-        dial.ValueSize = definition.ValueSize;
-        dial.ShowValue = definition.ShowValue;
-    }
-
-    /// <summary>Hands the bar settings to a piece that is one. Same structural test as its two siblings.</summary>
-    private static void ApplyBarStyle(object? piece, DesktopWidgetDefinition definition)
-    {
-        if (piece is not IMeterStyle bar) return;
-
-        bar.BarThickness = definition.BarThickness;
-        bar.BarCorner = definition.BarCorner;
-        bar.ShowValue = definition.ShowValue;
-        bar.ValueSize = definition.BarValueSize;
-        bar.Layout = definition.Layout;
-    }
-
-    /// <summary>Hands the number settings to a piece that is one. Last of the four structural tests.</summary>
-    private static void ApplyNumberStyle(object? piece, DesktopWidgetDefinition definition)
-    {
-        if (piece is not IStatStyle stat) return;
-
-        stat.ValueSize = definition.StatValueSize;
-        stat.ShowUnit = definition.ShowUnit;
-        stat.UnitSize = definition.UnitSize;
-        stat.ShowPanel = definition.ShowPanel;
-    }
-
-    /// <summary>Hands the text settings to a piece made of words. Size and alignment to any of them, then
-    /// the caption or the clock format to whichever it is.</summary>
-    private static void ApplyTextStyle(object? piece, DesktopWidgetDefinition definition)
-    {
-        if (piece is not ITextStyle text) return;
-
-        text.TextSize = definition.TextSize;
-        text.Align = definition.TextAlign;
-
-        if (piece is ICaptionStyle caption)
+        if (piece is IChartStyle chart)
         {
-            caption.Caption = definition.Text;
-            caption.ShowUnit = definition.ShowUnit;
+            chart.PointCount = definition.PointCount;
+            chart.Scale = definition.Scale;
+            chart.ScaleMin = definition.ScaleMin;
+            chart.ScaleMax = definition.ScaleMax;
+        }
+    }
+
+    private static void Dress(object? piece, Preset preset)
+    {
+        if (piece is IChartStyle line)
+        {
+            line.LineThickness = preset.Line.Thickness;
+            line.Fill = preset.Line.Fill;
+            line.FillOpacity = preset.Line.FillOpacity;
+            line.Smoothness = preset.Line.Smoothness;
+            line.PointSize = preset.Line.PointSize;
         }
 
-        if (piece is IClockStyle clock) clock.Format = definition.ClockFormat;
+        if (piece is IGaugeStyle dial)
+        {
+            dial.ArcThickness = preset.Gauge.Thickness;
+            dial.ArcCorner = preset.Gauge.Corner;
+            dial.Sweep = preset.Gauge.Sweep;
+            dial.ValueSize = preset.Value.Size;
+            dial.ShowValue = preset.Value.Opacity > 0;
+        }
+
+        if (piece is IMeterStyle bar)
+        {
+            bar.BarThickness = preset.Bar.Thickness;
+            bar.BarCorner = preset.Bar.Corner;
+            bar.Layout = preset.Bar.Layout;
+            bar.ValueSize = preset.Value.Size;
+            bar.ShowValue = preset.Value.Opacity > 0;
+        }
+
+        if (piece is IStatStyle stat)
+        {
+            stat.ValueSize = preset.Number.Size;
+            stat.UnitSize = preset.Number.UnitSize;
+            stat.ShowUnit = preset.Number.UnitSize > 0;
+            stat.ShowPanel = preset.Number.Panel;
+        }
+
+        if (piece is ITextStyle text)
+        {
+            text.TextSize = preset.Value.Size;
+            text.Align = preset.Value.Align;
+        }
     }
 
     /// <summary>
@@ -769,14 +768,16 @@ public sealed class DesktopWidgetService
     /// Public so the editor shows exactly what will land on the desktop, rather than an approximation
     /// that can drift.
     /// </summary>
-    public static UIElement? Build(DesktopWidgetDefinition definition, HardwareNode hardware)
+    public UIElement? Build(DesktopWidgetDefinition definition, HardwareNode hardware)
     {
         var kind = WidgetCatalog.For(definition.Kind);
+
+        var preset = _presets.For(definition.Preset);
 
         // Resolved in order, dropping any sensor the machine no longer reports — a definition survives a
         // driver rename, it just draws one line fewer until the sensor comes back.
         var resolved = new List<SensorNode>();
-        var roles = new List<string>();
+        var ramps = new List<Ramp>();
 
         // Kept alongside, not indexed back into definition.Series: a sensor that fails to resolve is
         // skipped, so after the first gap the two lists no longer line up.
@@ -797,7 +798,11 @@ public sealed class DesktopWidgetService
 
             chosen.Add(series);
 
-            roles.Add(Role(series.AccentKey, DefaultRole(roles.Count)));
+            // The ramp a reading is drawn in. Empty falls to the preset's primary — and one named ramp
+            // short of the number of lines does too, so a three-line chart on a two-ramp preset draws.
+            ramps.Add(preset.RampFor(string.IsNullOrEmpty(series.Ramp)
+                ? DefaultRamp(preset, ramps.Count)
+                : series.Ramp));
         }
 
         // A kind that does not need a reading draws anyway — a backdrop has none to lose, and a text is a
@@ -807,42 +812,26 @@ public sealed class DesktopWidgetService
 
         var piece = kind.Create(resolved);
 
-        // SetResourceReference is the code equivalent of DynamicResource — role brushes are swapped when
-        // the theme or profile changes (ColorProfileService.Apply), so a static lookup would freeze the
-        // colours of whichever profile happened to be active when the widget was built.
+        // Every reading follows its value now: a fixed colour is a ramp whose four stops are the same, so
+        // there is no second path for "do not follow" to take.
         //
-        // A series that follows its reading cannot use it: which role applies is decided per tick, so that
-        // one is driven by FollowReading instead — and it re-resolves through the profile each time, so a
-        // profile change reaches it just the same.
+        // A reading with no judgeable scale — watts, RPM — never leaves Normal, which is the ramp's resting
+        // colour. That is the honest answer: nothing is being claimed about a number we cannot judge.
         for (var i = 0; i < resolved.Count; i++)
-        {
-            var series = chosen[i];
-            var property = kind.AccentProperties[i];
+            Paint(piece, kind.AccentProperties[i], resolved[i], ramps[i], MetricKey.Parse(chosen[i].Metric));
 
-            // A judgeable metric is required, not just the choice: watts and RPM have no scale to follow,
-            // and judging them against the percentage steps would paint a 90 W package almost critical.
-            if (series.AccentKey == WidgetSeries.FollowsReading
-                && MetricKey.Parse(series.Metric) is { } metric && Thresholds.Preset(metric) is not null)
-                FollowReading(piece, property, resolved[i], metric);
-            else
-                piece.SetResourceReference(property, roles[i]);
-        }
-
-        ApplyLineStyle(piece, definition);
+        Dress(piece, preset);
+        Content(piece, definition);
         KeepEnoughHistory(definition, resolved);
-        ApplyDialStyle(piece, definition);
-        ApplyBarStyle(piece, definition);
-        ApplyNumberStyle(piece, definition);
-        ApplyTextStyle(piece, definition);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.
         var widget = new Border
         {
-            Background = Tint(definition.BackgroundColor, definition.BackgroundOpacity),
-            BorderBrush = Tint(definition.BorderColor, definition.BorderOpacity),
-            BorderThickness = new Thickness(definition.BorderThickness),
-            CornerRadius = new CornerRadius(definition.CornerRadius),
+            Background = Tint(preset.Background.Color, preset.Background.Opacity),
+            BorderBrush = Tint(preset.Border.Color, preset.Border.Opacity),
+            BorderThickness = new Thickness(preset.Border.Thickness),
+            CornerRadius = new CornerRadius(preset.Border.CornerRadius),
             Padding = new Thickness(10),
             Width = definition.Width,
             Height = definition.Height,
@@ -860,35 +849,29 @@ public sealed class DesktopWidgetService
         return widget;
     }
 
-    /// <summary>The colour a series gets when it has not chosen one. Spread across roles rather than all
-    /// taking the accent, because two lines in the same colour are one line.</summary>
-    private static string DefaultRole(int index) => index switch
+    /// <summary>Spread across ramps rather than all taking the primary: two lines in the same colour are
+    /// one line. Past the ramps a preset declares, they share the primary — a chart that draws is better
+    /// than one that refuses because its preset was written for two lines.</summary>
+    private static string DefaultRamp(Preset preset, int index)
     {
-        0 => "Aquila.Scheme.Accent",
-        1 => "Aquila.Scheme.Series2",
-        _ => "Aquila.Scheme.Series3",
-    };
-
-    /// <summary>Keeps a stored key only if it still names a profile role, so a layout written before colour
-    /// profiles existed — or hand-edited since — falls back rather than rendering colourless.</summary>
-    private static string Role(string key, string fallback) =>
-        key.StartsWith("Aquila.Scheme.", StringComparison.Ordinal) ? key : fallback;
+        var names = preset.Ramps.Keys.ToList();
+        return index < names.Count ? names[index] : Ramp.Primary;
+    }
 
     /// <summary>
-    /// Repaints one accent from how its reading is doing, for as long as the widget is on screen.
-    /// </summary>
-    /// <remarks>
-    /// The brush is resolved through <see cref="VitalMonitor"/> every time rather than bound once, because
-    /// two different things can change it: the reading crossing a limit, and the limits themselves moving.
-    /// Re-resolving covers a profile change too — the role name is looked up fresh, so a new palette lands
-    /// on the next tick without anything here knowing a profile exists.
+    /// Paints one reading from its ramp, and keeps painting it.
     ///
-    /// Torn down on Unloaded rather than tracked in a list. The element is removed from the canvas whenever
-    /// the widget is rebuilt or the surface is rebuilt, so the subscription ends itself and there is no
-    /// bookkeeping to get out of step with what is actually on screen.
-    /// </remarks>
-    private static void FollowReading(FrameworkElement piece, DependencyProperty property,
-        SensorNode sensor, MetricKey metric)
+    /// The two halves meet here and nowhere else: <see cref="VitalMonitor"/> says WHICH state a reading is
+    /// in, the ramp says what that state looks like. Neither knows the other's business, which is why a
+    /// preset can be swapped without changing what any number means.
+    ///
+    /// Re-resolved on every reading rather than bound once, because two different things move it — the
+    /// value crossing a limit, and the limits themselves being changed. Torn down on Unloaded rather than
+    /// tracked in a list: the element leaves the canvas whenever the widget is rebuilt, so the subscription
+    /// ends itself and there is no bookkeeping to fall out of step with what is on screen.
+    /// </summary>
+    private static void Paint(FrameworkElement piece, DependencyProperty property,
+        SensorNode sensor, Ramp ramp, MetricKey? metric)
     {
         var monitor = VitalMonitor.Current;
 
@@ -896,14 +879,17 @@ public sealed class DesktopWidgetService
         sensor.PropertyChanged += OnSensorChanged;
         piece.Unloaded += OnUnloaded;
 
-        // Two things move this colour, and only one of them is the reading. Without this, editing a limit
-        // in Settings would leave the widget on its old colour until the sensor next changed.
         if (monitor is not null) monitor.Changed += Repaint;
 
         void Repaint()
         {
-            if (sensor.Value is not float value) return;
-            piece.SetValue(property, VitalMonitor.Current?.BrushFor(value, metric) ?? Brushes.Gray);
+            // No judgeable scale means no state to be in, so it rests on the ramp's Normal. A watt count
+            // measured against the percentage steps would sit at critical and mean nothing.
+            var role = sensor.Value is { } value && metric is { } key
+                ? monitor?.RoleFor(value, key) ?? "Normal"
+                : "Normal";
+
+            piece.SetValue(property, Tint(ramp[role], 1));
         }
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)

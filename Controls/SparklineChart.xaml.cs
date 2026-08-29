@@ -69,6 +69,10 @@ public partial class SparklineChart : UserControl, IChartStyle
         DependencyProperty.Register(nameof(Fill), typeof(ChartFill), typeof(SparklineChart),
             new PropertyMetadata(ChartFill.Gradient, OnPropertyInvalidated));
 
+    public static readonly DependencyProperty FillOpacityProperty =
+        DependencyProperty.Register(nameof(FillOpacity), typeof(double), typeof(SparklineChart),
+            new PropertyMetadata(0.30, OnPropertyInvalidated));
+
     public static readonly DependencyProperty SmoothnessProperty =
         DependencyProperty.Register(nameof(Smoothness), typeof(double), typeof(SparklineChart),
             new PropertyMetadata(0.5, OnPropertyInvalidated));
@@ -142,6 +146,13 @@ public partial class SparklineChart : UserControl, IChartStyle
     {
         get => (ChartFill)GetValue(FillProperty);
         set => SetValue(FillProperty, value);
+    }
+
+    /// <summary>How opaque the area under the line starts, at the line itself.</summary>
+    public double FillOpacity
+    {
+        get => (double)GetValue(FillOpacityProperty);
+        set => SetValue(FillOpacityProperty, value);
     }
 
     /// <summary>0 = straight segments between readings, 1 = a fully rounded curve.</summary>
@@ -237,8 +248,11 @@ public partial class SparklineChart : UserControl, IChartStyle
         // Applied on BOTH paths. Colour, width, fill, smoothness and point size all change far more often
         // than the shape of the chart does — they are what the user drags sliders over — and re-making a
         // few paints costs nothing next to tearing down the series and starting the line from empty.
-        ApplyStyle(_primary, ToSKColor(SeriesColor), PrimaryFillAlpha);
-        if (_secondary != null) ApplyStyle(_secondary, ToSKColor(SecondColor), SecondaryFillAlpha);
+        // The fill's opacity is the preset's, not two constants tuned by hand — a second line keeps the
+        // lighter share it always had, expressed as a fraction of the first rather than a number of its own.
+        var alpha = (byte)Math.Clamp(FillOpacity * 255, 0, 255);
+        ApplyStyle(_primary, ToSKColor(SeriesColor), alpha);
+        if (_secondary != null) ApplyStyle(_secondary, ToSKColor(SecondColor), (byte)(alpha * 0.7));
 
         ApplyScale();
     }

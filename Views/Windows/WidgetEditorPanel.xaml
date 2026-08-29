@@ -203,8 +203,10 @@
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,4"
                                        Text="{Binding ViewModel.SeriesHint}"/>
 
-                            <!-- What the widget draws, in the order it was added. Each row keeps its own
-                                 colour, because two readings in one role colour are one reading. -->
+                            <!-- What the widget draws, in the order it was added. Each row names a RAMP
+                                 from the preset, not a colour: which colour a ramp shows depends on how the
+                                 reading is doing, so there is nothing fixed to put in a swatch. Two readings
+                                 on one ramp are one reading, which is why they start on different ones. -->
                             <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -220,9 +222,8 @@
                                                        TextTrimming="CharacterEllipsis"
                                                        Text="{Binding Sensor.Display}"/>
                                             <ComboBox Grid.Column="2"
-                                                      ItemsSource="{Binding Accents}"
-                                                      SelectedItem="{Binding Accent}"
-                                                      DisplayMemberPath="Name"/>
+                                                      ItemsSource="{Binding Ramps}"
+                                                      SelectedItem="{Binding Ramp}"/>
                                             <ui:Button Grid.Column="4"
                                                        Icon="{ui:SymbolIcon Dismiss24}"
                                                        ToolTip="Remove this reading"
@@ -236,148 +237,26 @@
                         </StackPanel>
                     </ui:CardExpander>
 
+                    <!-- What it looks like lives here, in a file shared with every widget wearing it.
+                         Changing the picker re-dresses THIS widget; editing the preset changes them all,
+                         which is the point of it being a preset rather than thirty fields per widget. -->
                     <ui:CardExpander Icon="{ui:SymbolIcon Color24}">
                         <ui:CardExpander.Header>
-                            <TextBlock Text="Appearance" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
-
-                    <!-- Label left, reading right, control full width underneath. The dialog this came from
-                         put them side by side, which needed about 490px of fixed widths; the panel has around
-                         320, so the second half was simply off the edge. Nothing here has a fixed width now. -->
-                    <StackPanel Margin="0,14,0,0">
-
-                            <TextBlock Text="Background" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Colors}"
-                                      SelectedItem="{Binding ViewModel.SelectedBackground}"
-                                      DisplayMemberPath="Name"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BackgroundOpacity, StringFormat={}{0:F0}%}"/>
-                                <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="100"
-                                    Value="{Binding ViewModel.BackgroundOpacity}"/>
-
-                            <TextBlock Text="Border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Colors}"
-                                      SelectedItem="{Binding ViewModel.SelectedBorder}"
-                                      DisplayMemberPath="Name"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BorderOpacity, StringFormat={}{0:F0}%}"/>
-                                <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="100"
-                                    Value="{Binding ViewModel.BorderOpacity}"/>
-
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BorderThickness, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.BorderThickness}"/>
-
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.CornerRadius, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="24"
-                                    Value="{Binding ViewModel.CornerRadius}"/>
-                    </StackPanel>
-                    </ui:CardExpander>
-
-                    <!-- Only for the number. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon NumberSymbol24}"
-                                     Visibility="{Binding ViewModel.ShowsNumberOptions, Converter={StaticResource BoolToVisibility}}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Number" FontWeight="SemiBold"/>
+                            <TextBlock Text="Preset" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,14,0,0">
-
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.StatValueSize, StringFormat={}{0:F0} pt}"/>
-                                <TextBlock Text="Value size" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="10" Maximum="96" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.StatValueSize}"/>
-
-                            <ui:ToggleSwitch Margin="0,16,0,0"
-                                             Content="Show the unit"
-                                             IsChecked="{Binding ViewModel.ShowUnit}"/>
-
-                            <DockPanel Margin="0,12,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.UnitSize, StringFormat={}{0:F0} pt}"/>
-                                <TextBlock Text="Unit size" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="6" Maximum="48" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    IsEnabled="{Binding ViewModel.ShowUnit}"
-                                    Value="{Binding ViewModel.UnitSize}"/>
-
-                            <ui:ToggleSwitch Margin="0,16,0,0"
-                                             Content="Inner panel"
-                                             IsChecked="{Binding ViewModel.ShowPanel}"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Presets}"
+                                      SelectedItem="{Binding ViewModel.SelectedPreset}"
+                                      DisplayMemberPath="DisplayName"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
-                                       Text="The number carries a rounded fill of its own. The widget already has one, so two of them read as a box inside a box."/>
+                                       Text="Colours, borders, fonts and sizes come from the preset. Every widget wearing it follows."/>
                         </StackPanel>
                     </ui:CardExpander>
 
-                    <!-- Only for the meter. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon DataBarHorizontal24}"
-                                     Visibility="{Binding ViewModel.ShowsBarOptions, Converter={StaticResource BoolToVisibility}}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Bar" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
-
-                        <StackPanel Margin="0,14,0,0">
-
-                            <TextBlock Text="Value position" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Layouts}"
-                                      SelectedItem="{Binding ViewModel.SelectedLayout}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Above gives the bar the full width of the widget."/>
-
-                            <DockPanel Margin="0,16,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BarThickness, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="2" Maximum="48" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.BarThickness}"/>
-
-                            <DockPanel Margin="0,12,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BarCorner, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.BarCorner}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="0 squares the ends. Half the thickness or more gives a pill."/>
-
-                            <ui:ToggleSwitch Margin="0,16,0,0"
-                                             Content="Show the value"
-                                             IsChecked="{Binding ViewModel.ShowValue}"/>
-
-                            <DockPanel Margin="0,12,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BarValueSize, StringFormat={}{0:F0} pt}"/>
-                                <TextBlock Text="Value size" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="8" Maximum="48" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    IsEnabled="{Binding ViewModel.ShowValue}"
-                                    Value="{Binding ViewModel.BarValueSize}"/>
-                        </StackPanel>
-                    </ui:CardExpander>
-
-                    <!-- Only for the kinds made of words. -->
+                    <!-- Only for the kinds made of words, and only the words themselves: how big they are
+                         drawn is the preset's business. -->
                     <ui:CardExpander Icon="{ui:SymbolIcon TextFont24}"
                                      Visibility="{Binding ViewModel.ShowsTextOptions, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
@@ -385,9 +264,6 @@
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,14,0,0">
-
-                            <!-- The words, and nothing else to learn: the reading and its unit are added by
-                                 the app, so "CPU" is the whole of what anyone has to write. -->
                             <StackPanel Visibility="{Binding ViewModel.ShowsCaptionOptions, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Text="Text" Style="{StaticResource FieldLabel}"/>
                                 <ui:TextBox PlaceholderText="CPU"
@@ -395,96 +271,25 @@
                                 <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                            Opacity="0.5" TextWrapping="Wrap"
                                            Text="Add a reading below and it is written after this, with its unit."/>
-
-                                <ui:ToggleSwitch Margin="0,12,0,0"
-                                                 Content="Show the unit"
-                                                 IsChecked="{Binding ViewModel.ShowUnit}"/>
                             </StackPanel>
 
-                            <!-- Presets, never a pattern: each follows the machine's own locale, so there is
-                                 no 24-hour or day-order question for anyone to answer. -->
                             <StackPanel Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Text="Shows" Style="{StaticResource FieldLabel}"/>
                                 <ComboBox ItemsSource="{Binding ViewModel.ClockFormats}"
                                           SelectedItem="{Binding ViewModel.SelectedClockFormat}"/>
                             </StackPanel>
-
-                            <DockPanel Margin="0,16,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.TextSize, StringFormat={}{0:F0} pt}"/>
-                                <TextBlock Text="Size" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="8" Maximum="96" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.TextSize}"/>
-
-                            <TextBlock Text="Alignment" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Aligns}"
-                                      SelectedItem="{Binding ViewModel.SelectedAlign}"/>
                         </StackPanel>
                     </ui:CardExpander>
 
-                    <!-- Only for the dial. Same arrangement as the Line section below it: a section that
-                         cannot act on the selected kind is not shown at all. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon Gauge24}"
-                                     Visibility="{Binding ViewModel.ShowsDialOptions, Converter={StaticResource BoolToVisibility}}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Dial" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
-
-                        <StackPanel Margin="0,14,0,0">
-
-                            <TextBlock Text="Sweep" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Sweeps}"
-                                      SelectedItem="{Binding ViewModel.SelectedSweep}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Half is a speedometer, Dial leaves a gap at the bottom, Ring closes it."/>
-
-                            <DockPanel Margin="0,16,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.ArcThickness, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Arc thickness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="4" Maximum="48" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.ArcThickness}"/>
-
-                            <DockPanel Margin="0,12,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.ArcCorner, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Arc ends" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Maximum="{Binding ViewModel.MaxArcCorner}"
-                                    Value="{Binding ViewModel.ArcCorner}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Goes as far as half the thickness. With rounded ends the arc is hidden below 4%, where it is too short to hold one."/>
-
-                            <ui:ToggleSwitch Margin="0,16,0,0"
-                                             Content="Show the value"
-                                             IsChecked="{Binding ViewModel.ShowValue}"/>
-
-                            <DockPanel Margin="0,12,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.ValueSize, StringFormat={}{0:F0} pt}"/>
-                                <TextBlock Text="Value size" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="8" Maximum="72" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    IsEnabled="{Binding ViewModel.ShowValue}"
-                                    Value="{Binding ViewModel.ValueSize}"/>
-                        </StackPanel>
-                    </ui:CardExpander>
-
-                    <!-- Only for the kinds drawn as a line. A dial has none of these, and a section of
-                         settings that do nothing is worse than no section at all. -->
+                    <!-- How much data a chart shows, and against what scale. Both are questions about the
+                         readings rather than about the look, so they stay with the widget. -->
                     <ui:CardExpander Icon="{ui:SymbolIcon DataLine24}"
-                                     Visibility="{Binding ViewModel.ShowsLineOptions, Converter={StaticResource BoolToVisibility}}">
+                                     Visibility="{Binding ViewModel.ShowsChartData, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
-                            <TextBlock Text="Line" FontWeight="SemiBold"/>
+                            <TextBlock Text="Chart" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,14,0,0">
-
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                            Text="{Binding ViewModel.WindowLabel}"/>
@@ -494,14 +299,14 @@
                                     Value="{Binding ViewModel.PointCount}"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Only the sensors this widget draws keep a longer history. A widened window fills from the right as the readings arrive."/>
+                                       Text="Only the sensors this widget draws keep a longer history. A widened window fills from the right."/>
 
                             <TextBlock Text="Scale" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
                             <ComboBox ItemsSource="{Binding ViewModel.Scales}"
                                       SelectedItem="{Binding ViewModel.SelectedScale}"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
-                                       Text="From zero keeps widgets comparable. Fit to data uses the full height, but the scale moves, so small changes look large."/>
+                                       Text="From zero keeps widgets comparable. Fit to data uses the full height, but the scale moves."/>
 
                             <Grid Margin="0,10,0,0"
                                   Visibility="{Binding ViewModel.ScaleIsManual, Converter={StaticResource BoolToVisibility}}">
@@ -516,45 +321,11 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Min" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
                                 <TextBlock Grid.Row="0" Grid.Column="2" Text="Max" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" ClearButtonEnabled="False"
                                               Value="{Binding ViewModel.ScaleMin, Mode=TwoWay}"/>
-                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" ClearButtonEnabled="False"
                                               Value="{Binding ViewModel.ScaleMax, Mode=TwoWay}"/>
                             </Grid>
-
-                            <DockPanel Margin="0,16,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.LineThickness, StringFormat={}{0:F1} px}"/>
-                                <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0.5" Maximum="6" TickFrequency="0.5" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.LineThickness}"/>
-
-                            <TextBlock Text="Fill" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Fills}"
-                                      SelectedItem="{Binding ViewModel.SelectedFill}"/>
-
-                            <DockPanel Margin="0,16,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.Smoothness, StringFormat={}{0:P0}}"/>
-                                <TextBlock Text="Smoothness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="1" TickFrequency="0.1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.Smoothness}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="0% draws straight lines between readings, 100% a rounded curve."/>
-
-                            <DockPanel Margin="0,16,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.PointSize, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Point markers" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.PointSize}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="0 hides them. On a full 60-point history they run together."/>
                         </StackPanel>
                     </ui:CardExpander>
 

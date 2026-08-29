@@ -49,6 +49,7 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle
     public double Smoothness { get => Spark.Smoothness; set => Spark.Smoothness = value; }
     public double PointSize { get => Spark.PointSize; set => Spark.PointSize = value; }
     public int PointCount { get => Spark.PointCount; set => Spark.PointCount = value; }
+    public double FillOpacity { get => Spark.FillOpacity; set => Spark.FillOpacity = value; }
     public Models.ChartScale Scale { get => Spark.Scale; set => Spark.Scale = value; }
     public double ScaleMin { get => Spark.ScaleMin; set => Spark.ScaleMin = value; }
     public double ScaleMax { get => Spark.ScaleMax; set => Spark.ScaleMax = value; }

@@ -154,110 +154,39 @@ public class DesktopWidgetDefinition
     /// order is whatever the layout file happens to list, which the user has no way to change.</summary>
     public int ZIndex { get; set; }
 
-    // --- Appearance ---
-    // Colours are stored as "#RRGGBB" and combined with the separate opacity, rather than as "#AARRGGBB":
-    // the user sets colour and transparency independently, and keeping them apart means changing one never
-    // silently resets the other. A widget sits on an unknown wallpaper, so a backing panel is the default.
+    /// <summary>
+    /// Which preset dresses this widget, by id. Empty means the default — which is what a widget that has
+    /// never been dressed says, and what keeps a fresh layout from naming a preset it does not care about.
+    ///
+    /// A reference, never a copy. Every appearance value used to live here — around thirty of them per
+    /// widget, near-identical across a layout — and changing a look meant editing each one. The reference
+    /// is what makes "edit the preset, every widget follows" possible at all.
+    /// </summary>
+    public string Preset { get; set; } = string.Empty;
 
-    public string BackgroundColor { get; set; } = "#000000";
-
-    /// <summary>0 = invisible, 1 = solid.</summary>
-    public double BackgroundOpacity { get; set; } = 0.6;
-
-    public double CornerRadius { get; set; } = 8;
-
-    // --- Line, for the kinds drawn as one (sparkline, chart) ---
-    // Ignored by the others, rather than kept somewhere separate: a widget's appearance is one record, and
-    // splitting it by which kind reads which field would mean a second thing to migrate.
-
-    /// <summary>Line width in DIPs. 1.5 is LiveCharts-thin; on a large display it nearly disappears.</summary>
-    public double LineThickness { get; set; } = 1.5;
-
-    public ChartFill Fill { get; set; } = ChartFill.Gradient;
-
-    /// <summary>0 draws straight segments between readings, 1 a fully rounded curve.</summary>
-    public double LineSmoothness { get; set; } = 0.5;
-
-    /// <summary>How many readings the chart shows. One per poll tick, so this is the trend's length in
-    /// seconds — 60 is a minute, 600 is ten.</summary>
-    public int PointCount { get; set; } = 60;
-
-    public ChartScale Scale { get; set; } = ChartScale.FromZero;
-
-    /// <summary>The ends of the scale in <see cref="ChartScale.Manual"/>, in the sensor's own unit.</summary>
-    public double ScaleMin { get; set; }
-    public double ScaleMax { get; set; } = 100;
-
-    /// <summary>Diameter of the dot drawn at each reading. 0 hides them, which is the default — on a
-    /// 60-point sparkline they merge into a caterpillar.</summary>
-    public double PointSize { get; set; }
-
-    // --- Text, for the caption and the clock ---
+    // --- Content the preset must never hold ---
+    //
+    // Appearance is shared and travels; these do not. A preset that carried the words would rename every
+    // widget wearing it, and the decisive test — the same preset dressing a CPU widget and a network one
+    // without editing — would fail on the first caption.
 
     /// <summary>What a Text widget says. Shown alone, or before the reading when one is chosen — the value
     /// and its unit are formatted by the app, so nobody has to learn a format string to write "CPU".</summary>
     public string Text { get; set; } = string.Empty;
 
-    public double TextSize { get; set; } = 18;
-
-    public TextAlign TextAlign { get; set; } = TextAlign.Center;
-
+    /// <summary>What a Clock widget shows. Which of time or date is content; how big it is drawn is not.</summary>
     public ClockFormat ClockFormat { get; set; } = ClockFormat.Time;
 
-    // --- Number, for the stat box ---
+    /// <summary>How many readings a chart shows — one per poll tick, so the trend's length in seconds.
+    /// How much data to show is a question about the data, not about how it looks.</summary>
+    public int PointCount { get; set; } = 60;
 
-    /// <summary>Point size of the number. Its own field, like the meter's: 20 suits a 150x120 tile and
-    /// says nothing useful about what a dial or a bar wants.</summary>
-    public double StatValueSize { get; set; } = 20;
-
-    public bool ShowUnit { get; set; } = true;
-
-    public double UnitSize { get; set; } = 13;
-
-    /// <summary>Whether the number draws its own rounded fill. Off suits a desktop widget, which already
-    /// has a styled panel of its own — two of them read as a box inside a box.</summary>
-    public bool ShowPanel { get; set; } = true;
-
-    // --- Bar, for the meter ---
-
-    /// <summary>Bar height in DIPs. 6 is the dashboard's hairline, which is right in a dense card and thin
-    /// on a widget with a whole panel to itself.</summary>
-    public double BarThickness { get; set; } = 6;
-
-    /// <summary>Corner radius of the bar. Half the thickness or more gives a pill; 0 gives square ends.</summary>
-    public double BarCorner { get; set; } = 3;
-
-    public MeterLayout Layout { get; set; } = MeterLayout.Beside;
-
-    /// <summary>Point size of the meter's reading. Its own field rather than sharing the dial's: 24pt in
-    /// the middle of a dial is right, and 24pt next to a 6px bar is a caption wearing the bar as a belt.
-    /// One number that has to suit both is a number that suits neither.</summary>
-    public double BarValueSize { get; set; } = 13;
-
-    // --- Dial, for the radial gauge ---
-
-    /// <summary>Thickness of the arc in DIPs. 14 suits the 170x190 default; a gauge dragged out to twice
-    /// that leaves a thin ribbon in a lot of empty space.</summary>
-    public double ArcThickness { get; set; } = 14;
-
-    /// <summary>Rounding on the ends of the arc. 0 by default, and not only for looks: a rounded cap is
-    /// drawn at a fixed size, so on a very short arc it is wider than the arc and jitters around zero.</summary>
-    public double ArcCorner { get; set; }
-
-    public GaugeSweep Sweep { get; set; } = GaugeSweep.Dial;
-
-    /// <summary>Point size of the number in the dial's centre.</summary>
-    public double ValueSize { get; set; } = 24;
-
-    /// <summary>Whether that number is drawn at all — an arc on its own is a perfectly good glanceable
-    /// widget, and the title above it already says what is being measured.</summary>
-    public bool ShowValue { get; set; } = true;
-
-    public string BorderColor { get; set; } = "#FFFFFF";
-    public double BorderOpacity { get; set; } = 0.25;
-
-    /// <summary>0 hides the border entirely.</summary>
-    public double BorderThickness { get; set; } = 0;
+    /// <summary>How a chart's vertical scale is decided, and its ends when the user decides them. Also
+    /// about the data: the same preset should dress a chart pinned to 30–90 and one fitted to its own
+    /// readings without knowing the difference.</summary>
+    public ChartScale Scale { get; set; } = ChartScale.FromZero;
+    public double ScaleMin { get; set; }
+    public double ScaleMax { get; set; } = 100;
 
     public DesktopWidgetDefinition Clone()
     {
@@ -272,22 +201,17 @@ public class WidgetSeries
 {
     public string SensorIdentifier { get; set; } = string.Empty;
 
-    /// <summary>A colour-profile role, e.g. "Aquila.Scheme.Series1" — held as a key rather than a colour
-    /// so the series follows theme and profile changes. Or <see cref="FollowsReading"/>.</summary>
-    public string AccentKey { get; set; } = string.Empty;
-
     /// <summary>
-    /// The colour is not fixed: it comes from how the reading is doing, through the same limits the
-    /// dashboard and the title bar use.
+    /// Which ramp in the preset draws this reading. Empty takes the preset's primary.
     ///
-    /// Not a role name, because it is not one — it is the absence of a chosen role, and picking which role
-    /// applies is the monitor's job each tick.
+    /// A name, not a colour, and no longer a choice between "fixed" and "follows the value" — every reading
+    /// follows, and a fixed colour is a ramp whose four stops are the same. One mechanism, no bypass.
     /// </summary>
-    public const string FollowsReading = "follow";
+    public string Ramp { get; set; } = string.Empty;
 
-    /// <summary>What this reading IS — "Cpu.Temperature" — so it can be judged when it follows its value.
-    /// Stored rather than worked out at render time: the sensor alone cannot say whether 62 °C is a die or a
-    /// drive, and the catalog that CAN say is only consulted while listing sensors.</summary>
+    /// <summary>What this reading IS — "Cpu.Temperature" — so it can be judged. Stored rather than worked
+    /// out at render time: the sensor alone cannot say whether 62 °C is a die or a drive, and the catalog
+    /// that CAN say is only consulted while listing sensors.</summary>
     public string Metric { get; set; } = string.Empty;
 
     public WidgetSeries Clone() => (WidgetSeries)MemberwiseClone();

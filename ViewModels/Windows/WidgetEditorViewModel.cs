@@ -6,12 +6,6 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Aquila.ViewModels.Windows;
 
-public record AccentOption(string Key, string Name);
-
-/// <summary>A named colour for the background/border pickers. A short preset list rather than a full
-/// colour picker: it keeps the dialog simple, and these two surfaces only really need neutrals.</summary>
-public record ColorOption(string Name, string Hex);
-
 /// <summary>One sensor as offered in the picker. Carries the component for grouping and the live node so
 /// the list can show current values — picking by name alone is guesswork when a machine reports a dozen
 /// similarly-named temperatures.</summary>
@@ -41,40 +35,19 @@ public record SensorOption(string Component, string Name, string Identifier, Sen
 /// adding with a sensor already chosen (from the Explorer), and editing an existing widget — because they
 /// differ only in what's pre-filled, not in what the form does.
 ///
-/// Appearance (background, transparency, border, chart colours) is a planned third section; the accent
-/// picker here is the first piece of it.
+/// It edits CONTENT and PLACEMENT only. What a widget looks like lives in its preset, which is a file of
+/// its own and shared with every widget wearing it — so a colour picker here would be editing something
+/// that does not belong to this widget.
 /// </summary>
-public partial class WidgetEditorViewModel : ObservableObject
+public partial class WidgetEditorViewModel(PresetService presets) : ObservableObject
 {
     /// <summary>Straight from the catalog, so a widget added there appears here with no second edit —
     /// this list used to be a copy, and a copy is a list that goes out of date.</summary>
     public IReadOnlyList<WidgetKindInfo> Kinds { get; } = WidgetCatalog.All;
 
-    /// <summary>
-    /// Colour choices, by role in the active scheme. These used to be hardware names — you had to pick
-    /// "CPU" to get blue, even for a network widget — which is exactly the confusion the scheme model
-    /// removed. Whatever scheme is active answers these roles with its own hues.
-    /// </summary>
-    public IReadOnlyList<AccentOption> Accents { get; } =
-    [
-        new("Aquila.Scheme.Accent", "Accent"),
-        new("Aquila.Scheme.Series2", "Alternate"),
-        new("Aquila.Scheme.Series3", "Tertiary"),
-        new("Aquila.Scheme.Alert", "Alert"),
-        new("Aquila.Scheme.Critical", "Critical"),
-
-        // Not a role: the absence of a chosen one. Which role applies is decided per tick from the reading,
-        // against the same limits the dashboard and the title bar use.
-        new(WidgetSeries.FollowsReading, "By reading"),
-    ];
-
-    public IReadOnlyList<ColorOption> Colors { get; } =
-    [
-        new("Black", "#000000"),
-        new("Charcoal", "#1E1E1E"),
-        new("Slate", "#2E3B4E"),
-        new("White", "#FFFFFF"),
-    ];
+    /// <summary>Every preset a widget can wear. Straight from the service, so one written into the folder
+    /// by hand appears here without a second list to keep in step.</summary>
+    public IReadOnlyList<Preset> Presets => presets.Presets;
 
     public ObservableCollection<SensorOption> Sensors { get; } = [];
 
@@ -87,14 +60,18 @@ public partial class WidgetEditorViewModel : ObservableObject
     /// </summary>
     public ObservableCollection<SeriesRow> Chosen { get; } = [];
 
-    // --- Appearance ---
+    /// <summary>Which preset dresses this widget. Changing it re-dresses the widget and nothing else —
+    /// editing the preset itself is what changes every widget wearing it, and that is deliberate.</summary>
+    [ObservableProperty] private Preset? _selectedPreset;
 
-    [ObservableProperty] private ColorOption? _selectedBackground;
-    [ObservableProperty] private double _backgroundOpacity = 60;   // shown as a percentage
-    [ObservableProperty] private double _cornerRadius = 8;
-    [ObservableProperty] private ColorOption? _selectedBorder;
-    [ObservableProperty] private double _borderOpacity = 25;
-    [ObservableProperty] private double _borderThickness;
+    partial void OnSelectedPresetChanged(Preset? value) => Apply();
+
+    partial void OnLayerChanged(double value) => Apply();
+
+    /// <summary>Which widget wins where two overlap. A double because that is what a Slider binds to; the
+    /// definition keeps it as the whole number it really is.</summary>
+    [ObservableProperty] private double _layer;
+
     [ObservableProperty] private double _widgetWidth = 170;
     [ObservableProperty] private double _widgetHeight = 190;
 
@@ -103,151 +80,6 @@ public partial class WidgetEditorViewModel : ObservableObject
     /// deliberately gets them to line up.</summary>
     [ObservableProperty] private double _widgetX;
     [ObservableProperty] private double _widgetY;
-
-    partial void OnSelectedBackgroundChanged(ColorOption? value) => Apply();
-    partial void OnBackgroundOpacityChanged(double value) => Apply();
-    partial void OnCornerRadiusChanged(double value) => Apply();
-    partial void OnSelectedBorderChanged(ColorOption? value) => Apply();
-    partial void OnBorderOpacityChanged(double value) => Apply();
-    partial void OnBorderThicknessChanged(double value) => Apply();
-    partial void OnWidgetWidthChanged(double value) => Apply();
-    partial void OnWidgetHeightChanged(double value) => Apply();
-    partial void OnWidgetXChanged(double value) => Apply();
-    partial void OnWidgetYChanged(double value) => Apply();
-    partial void OnLineThicknessChanged(double value) => Apply();
-    partial void OnSelectedFillChanged(ChartFill value) => Apply();
-    partial void OnSmoothnessChanged(double value) => Apply();
-    partial void OnPointSizeChanged(double value) => Apply();
-    partial void OnPointCountChanged(double value) => Apply();
-    partial void OnScaleMinChanged(double value) => Apply();
-    partial void OnScaleMaxChanged(double value) => Apply();
-
-    partial void OnSelectedScaleChanged(ChartScale value)
-    {
-        // Switching to Manual with the scale still at its defaults would put a temperature on a 0-100 axis
-        // and make the user work out sensible ends from scratch. Seeding from what the sensor has actually
-        // been observed to do gives them something to adjust instead of something to invent.
-        if (value == ChartScale.Manual && ScaleMin == 0 && ScaleMax == 100 &&
-            Chosen.FirstOrDefault()?.Sensor.Sensor is { Min: { } low, Max: { } high } && high > low)
-        {
-            var headroom = (high - low) * 0.1;
-            ScaleMin = Math.Floor(low - headroom);
-            ScaleMax = Math.Ceiling(high + headroom);
-        }
-
-        Apply();
-    }
-
-    /// <summary>How much time the chart covers. A double because that is what a Slider binds to; one
-    /// reading arrives per poll tick, so the number is also the trend's length in seconds.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(WindowLabel))]
-    private double _pointCount = 60;
-
-    /// <summary>Seconds up to two minutes, minutes past that — nobody reads "600 s" as ten minutes.</summary>
-    public string WindowLabel => PointCount < 120
-        ? $"{PointCount:F0} s"
-        : $"{PointCount / 60:0.#} min";
-
-    /// <summary>How the chart's vertical scale is decided, and its ends when the user decides them.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ScaleIsManual))]
-    private ChartScale _selectedScale = ChartScale.FromZero;
-
-    [ObservableProperty] private double _scaleMin;
-    [ObservableProperty] private double _scaleMax = 100;
-
-    public IReadOnlyList<ChartScale> Scales { get; } = Enum.GetValues<ChartScale>();
-
-    /// <summary>Only Manual has ends to type in — the other two work them out.</summary>
-    public bool ScaleIsManual => SelectedScale == ChartScale.Manual;
-
-    /// <summary>The line settings, for the kinds drawn as one. Style changes every one of them — none
-    /// touches what the widget draws, only how the line looks doing it.</summary>
-    [ObservableProperty] private double _lineThickness = 1.5;
-    [ObservableProperty] private ChartFill _selectedFill = ChartFill.Gradient;
-    [ObservableProperty] private double _smoothness = 0.5;
-    [ObservableProperty] private double _pointSize;
-
-    /// <summary>The three fill styles, straight off the enum so the list can never fall behind it.</summary>
-    public IReadOnlyList<ChartFill> Fills { get; } = Enum.GetValues<ChartFill>();
-
-    /// <summary>Whether this kind has a line at all. A dial has none, and a section of settings that do
-    /// nothing is worse than no section.</summary>
-    public bool ShowsLineOptions => SelectedKind?.HasLine == true;
-
-    partial void OnArcThicknessChanged(double value)
-    {
-        // The ceiling moves with the thickness, so a value that no longer fits comes down with it. Setting
-        // ArcCorner runs its own handler, which applies — hence the early return rather than a second one.
-        if (ArcCorner > MaxArcCorner)
-        {
-            ArcCorner = MaxArcCorner;
-            return;
-        }
-
-        Apply();
-    }
-
-    /// <summary>Half the arc's thickness — the roundest a cap can be before it starts eating the arc.
-    /// The slider's ceiling, so there is no stretch of travel that quietly does nothing.</summary>
-    public double MaxArcCorner => ArcThickness / 2;
-    partial void OnArcCornerChanged(double value) => Apply();
-    partial void OnSelectedSweepChanged(GaugeSweep value) => Apply();
-    partial void OnValueSizeChanged(double value) => Apply();
-    partial void OnShowValueChanged(bool value) => Apply();
-
-    /// <summary>The dial settings. Style, like the line ones — none of them changes what is measured.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MaxArcCorner))]
-    private double _arcThickness = 14;
-    [ObservableProperty] private double _arcCorner;
-    [ObservableProperty] private GaugeSweep _selectedSweep = GaugeSweep.Dial;
-    [ObservableProperty] private double _valueSize = 24;
-    [ObservableProperty] private bool _showValue = true;
-
-    public IReadOnlyList<GaugeSweep> Sweeps { get; } = Enum.GetValues<GaugeSweep>();
-
-    /// <summary>Whether this kind is a dial at all.</summary>
-    public bool ShowsDialOptions => SelectedKind?.HasDial == true;
-
-    partial void OnBarThicknessChanged(double value) => Apply();
-    partial void OnBarCornerChanged(double value) => Apply();
-    partial void OnSelectedLayoutChanged(MeterLayout value) => Apply();
-    partial void OnBarValueSizeChanged(double value) => Apply();
-
-    /// <summary>The bar settings. ShowValue is shared with the dial (both mean "print the number"); the
-    /// size is not, because the two need very different ones.</summary>
-    [ObservableProperty] private double _barThickness = 6;
-    [ObservableProperty] private double _barCorner = 3;
-    [ObservableProperty] private MeterLayout _selectedLayout = MeterLayout.Beside;
-    [ObservableProperty] private double _barValueSize = 13;
-
-    public IReadOnlyList<MeterLayout> Layouts { get; } = Enum.GetValues<MeterLayout>();
-
-    /// <summary>Whether this kind is a bar at all.</summary>
-    public bool ShowsBarOptions => SelectedKind?.HasBar == true;
-
-    partial void OnStatValueSizeChanged(double value) => Apply();
-    partial void OnShowUnitChanged(bool value) => Apply();
-    partial void OnUnitSizeChanged(double value) => Apply();
-    partial void OnShowPanelChanged(bool value) => Apply();
-
-    /// <summary>The number settings.</summary>
-    [ObservableProperty] private double _statValueSize = 20;
-    [ObservableProperty] private bool _showUnit = true;
-    [ObservableProperty] private double _unitSize = 13;
-    [ObservableProperty] private bool _showPanel = true;
-
-    /// <summary>Whether this kind is just a number.</summary>
-    public bool ShowsNumberOptions => SelectedKind?.HasNumber == true;
-
-    partial void OnLayerChanged(double value) => Apply();
-
-    /// <summary>Which widget wins where two overlap. A double because that is what a Slider binds to; the
-    /// definition keeps it as the whole number it really is.</summary>
-    [ObservableProperty]
-    private double _layer;
 
     [ObservableProperty]
     private WidgetKindInfo? _selectedKind;
@@ -274,16 +106,13 @@ public partial class WidgetEditorViewModel : ObservableObject
 
     partial void OnCaptionChanged(string value) => Apply();
     partial void OnTextSizeChanged(double value) => Apply();
-    partial void OnSelectedAlignChanged(TextAlign value) => Apply();
     partial void OnSelectedClockFormatChanged(ClockFormat value) => Apply();
 
     /// <summary>The words a Text widget says, and how any piece made of words is drawn.</summary>
     [ObservableProperty] private string _caption = string.Empty;
     [ObservableProperty] private double _textSize = 18;
-    [ObservableProperty] private TextAlign _selectedAlign = TextAlign.Center;
     [ObservableProperty] private ClockFormat _selectedClockFormat = ClockFormat.Time;
 
-    public IReadOnlyList<TextAlign> Aligns { get; } = Enum.GetValues<TextAlign>();
     public IReadOnlyList<ClockFormat> ClockFormats { get; } = Enum.GetValues<ClockFormat>();
 
     /// <summary>Whether this kind is made of words at all — a caption, a clock, or both.</summary>
@@ -291,6 +120,52 @@ public partial class WidgetEditorViewModel : ObservableObject
 
     public bool ShowsCaptionOptions => SelectedKind?.HasCaption == true;
     public bool ShowsClockOptions => SelectedKind?.HasClock == true;
+
+    /// <summary>Whether this kind draws a trend, and so has a window and a scale worth asking about.</summary>
+    public bool ShowsChartData => SelectedKind?.HasLine == true;
+
+    partial void OnPointCountChanged(double value) => Apply();
+    partial void OnScaleMinChanged(double value) => Apply();
+    partial void OnScaleMaxChanged(double value) => Apply();
+
+    partial void OnSelectedScaleChanged(ChartScale value)
+    {
+        // Switching to Manual with the scale still at its defaults would put a temperature on a 0-100 axis
+        // and leave the user to work out sensible ends from scratch. Seeding from what the sensor has
+        // actually been observed to do gives them something to adjust instead of something to invent.
+        if (value == ChartScale.Manual && ScaleMin == 0 && ScaleMax == 100 &&
+            Chosen.FirstOrDefault()?.Sensor.Sensor is { Min: { } low, Max: { } high } && high > low)
+        {
+            var headroom = (high - low) * 0.1;
+            ScaleMin = Math.Floor(low - headroom);
+            ScaleMax = Math.Ceiling(high + headroom);
+        }
+
+        Apply();
+    }
+
+    /// <summary>How much time the chart covers. A double because that is what a Slider binds to; one
+    /// reading arrives per poll tick, so the number is also the trend's length in seconds.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WindowLabel))]
+    private double _pointCount = 60;
+
+    /// <summary>Seconds up to two minutes, minutes past that — nobody reads "600 s" as ten minutes.</summary>
+    public string WindowLabel => PointCount < 120
+        ? $"{PointCount:F0} s"
+        : $"{PointCount / 60:0.#} min";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ScaleIsManual))]
+    private ChartScale _selectedScale = ChartScale.FromZero;
+
+    [ObservableProperty] private double _scaleMin;
+    [ObservableProperty] private double _scaleMax = 100;
+
+    public IReadOnlyList<ChartScale> Scales { get; } = Enum.GetValues<ChartScale>();
+
+    /// <summary>Only Manual has ends to type in — the other two work them out.</summary>
+    public bool ScaleIsManual => SelectedScale == ChartScale.Manual;
 
     /// <summary>How many more readings this kind will take, said plainly.</summary>
     public string SeriesHint => SelectedKind is null or { MaxSeries: 0 }
@@ -317,8 +192,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         // spends a frame with nothing to draw.
         if (ReplacesSeries) Chosen.Clear();
 
-        Chosen.Add(new SeriesRow(SelectedSensor, AccentsFor(SelectedSensor),
-            DefaultAccentFor(SelectedSensor, Chosen.Count), OnSeriesEdited));
+        Chosen.Add(new SeriesRow(SelectedSensor, RampNames, DefaultRamp(Chosen.Count), OnSeriesEdited));
 
         // Offered, not imposed: an untitled widget takes the sensor's name the first time it is given one,
         // and keeps whatever it has after that — including nothing, if that is what the user chose.
@@ -345,15 +219,16 @@ public partial class WidgetEditorViewModel : ObservableObject
     /// be the same colour whenever both were in the same state, and two lines in one colour are one line —
     /// which is the reason this method spread them across roles in the first place.
     /// </summary>
-    private AccentOption DefaultAccentFor(SensorOption sensor, int index) =>
-        SelectedKind?.MaxSeries == 1 && sensor.Entry.IsJudgeable
-            ? Accents[^1]
-            : Accents.Count > index ? Accents[index] : Accents[0];
+    private string DefaultRamp(int index) =>
+        index < RampNames.Count ? RampNames[index] : Ramp.Primary;
+
+    /// <summary>The ramps the chosen preset declares, in order.</summary>
+    public IReadOnlyList<string> RampNames =>
+        SelectedPreset is { } preset ? [.. preset.Ramps.Keys] : [Ramp.Primary];
 
     /// <summary>The colours a given reading may be drawn in. "By reading" is withheld from anything with no
     /// scale to follow — offering a choice that silently does nothing is worse than not offering it.</summary>
-    private IReadOnlyList<AccentOption> AccentsFor(SensorOption sensor) =>
-        sensor.Entry.IsJudgeable ? Accents : [.. Accents.Take(Accents.Count - 1)];
+
 
     private void OnSeriesEdited()
     {
@@ -374,10 +249,8 @@ public partial class WidgetEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowsTextOptions));
         OnPropertyChanged(nameof(ShowsCaptionOptions));
         OnPropertyChanged(nameof(ShowsClockOptions));
-        OnPropertyChanged(nameof(ShowsLineOptions));
-        OnPropertyChanged(nameof(ShowsDialOptions));
-        OnPropertyChanged(nameof(ShowsBarOptions));
-        OnPropertyChanged(nameof(ShowsNumberOptions));
+        OnPropertyChanged(nameof(ShowsChartData));
+        OnPropertyChanged(nameof(RampNames));
     }
 
     [ObservableProperty]
@@ -435,7 +308,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         _target.Series = [.. Chosen.Select(row => new WidgetSeries
         {
             SensorIdentifier = row.Sensor.Identifier,
-            AccentKey = row.Accent.Key,
+            Ramp = row.Ramp,
             Metric = row.Sensor.Entry.Key.ToString(),
         })];
         // Written as given, empty included. Clearing it used to bring the sensor's name back, so a widget
@@ -444,12 +317,7 @@ public partial class WidgetEditorViewModel : ObservableObject
         // added instead: a suggestion at the moment it is useful, not a floor the user cannot get below.
         _target.Title = Title.Trim();
 
-        _target.BackgroundColor = SelectedBackground?.Hex ?? "#000000";
-        _target.BackgroundOpacity = BackgroundOpacity / 100;
-        _target.CornerRadius = CornerRadius;
-        _target.BorderColor = SelectedBorder?.Hex ?? "#FFFFFF";
-        _target.BorderOpacity = BorderOpacity / 100;
-        _target.BorderThickness = BorderThickness;
+        _target.Preset = SelectedPreset?.Id ?? string.Empty;
 
         _target.Width = WidgetWidth;
         _target.Height = WidgetHeight;
@@ -457,35 +325,13 @@ public partial class WidgetEditorViewModel : ObservableObject
         _target.Y = WidgetY;
         _target.ZIndex = (int)Layer;
 
-        _target.LineThickness = LineThickness;
-        _target.Fill = SelectedFill;
-        _target.LineSmoothness = Smoothness;
-        _target.PointSize = PointSize;
+        _target.Text = Caption;
+        _target.ClockFormat = SelectedClockFormat;
+
         _target.PointCount = (int)PointCount;
         _target.Scale = SelectedScale;
         _target.ScaleMin = ScaleMin;
         _target.ScaleMax = ScaleMax;
-
-        _target.ArcThickness = ArcThickness;
-        _target.ArcCorner = ArcCorner;
-        _target.Sweep = SelectedSweep;
-        _target.ValueSize = ValueSize;
-        _target.ShowValue = ShowValue;
-
-        _target.BarThickness = BarThickness;
-        _target.BarCorner = BarCorner;
-        _target.Layout = SelectedLayout;
-        _target.BarValueSize = BarValueSize;
-
-        _target.StatValueSize = StatValueSize;
-        _target.ShowUnit = ShowUnit;
-        _target.UnitSize = UnitSize;
-        _target.ShowPanel = ShowPanel;
-
-        _target.Text = Caption;
-        _target.TextSize = TextSize;
-        _target.TextAlign = SelectedAlign;
-        _target.ClockFormat = SelectedClockFormat;
 
         Changed?.Invoke(change);
     }
@@ -559,6 +405,10 @@ public partial class WidgetEditorViewModel : ObservableObject
 
         _target = target;
 
+        // Before the rows, which offer this preset's ramps. Set after them and every row would be listing
+        // the ramps of whichever widget was open before.
+        SelectedPreset = presets.For(target.Preset);
+
         // Size before kind: choosing a kind adopts its default proportions only when there is no size yet,
         // so the handler has to be able to see whether this widget already has one.
         WidgetWidth = target.Width;
@@ -576,9 +426,8 @@ public partial class WidgetEditorViewModel : ObservableObject
             var sensor = _allSensors.FirstOrDefault(s => s.Identifier == series.SensorIdentifier);
             if (sensor is null) continue;   // the machine no longer reports it
 
-            var options = AccentsFor(sensor);
-            Chosen.Add(new SeriesRow(sensor, options,
-                options.FirstOrDefault(a => a.Key == series.AccentKey) ?? DefaultAccentFor(sensor, Chosen.Count),
+            Chosen.Add(new SeriesRow(sensor, RampNames,
+                RampNames.Contains(series.Ramp) ? series.Ramp : DefaultRamp(Chosen.Count),
                 OnSeriesEdited));
         }
 
@@ -586,48 +435,18 @@ public partial class WidgetEditorViewModel : ObservableObject
         // find it again in a list of two hundred.
         if (Chosen.Count == 0 && !string.IsNullOrEmpty(presetSensorIdentifier))
         {
-            var preset = _allSensors.FirstOrDefault(s => s.Identifier == presetSensorIdentifier);
-            if (preset is not null)
-                Chosen.Add(new SeriesRow(preset, AccentsFor(preset), DefaultAccentFor(preset, 0), OnSeriesEdited));
+            var pinned = _allSensors.FirstOrDefault(s => s.Identifier == presetSensorIdentifier);
+            if (pinned is not null)
+                Chosen.Add(new SeriesRow(pinned, RampNames, DefaultRamp(0), OnSeriesEdited));
         }
 
-        SelectedBackground = MatchColor(target.BackgroundColor);
-        BackgroundOpacity = target.BackgroundOpacity * 100;
-        CornerRadius = target.CornerRadius;
-        SelectedBorder = MatchColor(target.BorderColor);
-        BorderOpacity = target.BorderOpacity * 100;
-        BorderThickness = target.BorderThickness;
-        Layer = target.ZIndex;
+        Caption = target.Text;
+        SelectedClockFormat = target.ClockFormat;
 
-        LineThickness = target.LineThickness;
-        SelectedFill = target.Fill;
-        Smoothness = target.LineSmoothness;
-        PointSize = target.PointSize;
         PointCount = target.PointCount;
         SelectedScale = target.Scale;
         ScaleMin = target.ScaleMin;
         ScaleMax = target.ScaleMax;
-
-        ArcThickness = target.ArcThickness;
-        ArcCorner = target.ArcCorner;
-        SelectedSweep = target.Sweep;
-        ValueSize = target.ValueSize;
-        ShowValue = target.ShowValue;
-
-        BarThickness = target.BarThickness;
-        BarCorner = target.BarCorner;
-        SelectedLayout = target.Layout;
-        BarValueSize = target.BarValueSize;
-
-        StatValueSize = target.StatValueSize;
-        ShowUnit = target.ShowUnit;
-        UnitSize = target.UnitSize;
-        ShowPanel = target.ShowPanel;
-
-        Caption = target.Text;
-        TextSize = target.TextSize;
-        SelectedAlign = target.TextAlign;
-        SelectedClockFormat = target.ClockFormat;
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.
@@ -642,10 +461,6 @@ public partial class WidgetEditorViewModel : ObservableObject
     }
 
 
-    /// <summary>Keeps a hand-edited or unknown colour usable by falling back to the first preset, rather
-    /// than leaving the picker blank.</summary>
-    private ColorOption MatchColor(string hex) =>
-        Colors.FirstOrDefault(c => string.Equals(c.Hex, hex, StringComparison.OrdinalIgnoreCase)) ?? Colors[0];
 
     partial void OnSensorFilterChanged(string value) => ApplyFilter();
 
@@ -674,18 +489,21 @@ public partial class SeriesRow : ObservableObject
 {
     private readonly Action _changed;
 
-    public SeriesRow(SensorOption sensor, IReadOnlyList<AccentOption> accents, AccentOption accent, Action changed)
+    public SeriesRow(SensorOption sensor, IReadOnlyList<string> ramps, string ramp, Action changed)
     {
         Sensor = sensor;
-        Accents = accents;
-        _accent = accent;
+        Ramps = ramps;
+        _ramp = ramp;
         _changed = changed;
     }
 
     public SensorOption Sensor { get; }
-    public IReadOnlyList<AccentOption> Accents { get; }
 
-    [ObservableProperty] private AccentOption _accent;
+    /// <summary>The ramps the chosen preset offers. Names rather than colours: which colour a ramp shows
+    /// depends on how the reading is doing, so there is nothing fixed to put in a swatch.</summary>
+    public IReadOnlyList<string> Ramps { get; }
 
-    partial void OnAccentChanged(AccentOption value) => _changed();
+    [ObservableProperty] private string _ramp;
+
+    partial void OnRampChanged(string value) => _changed();
 }

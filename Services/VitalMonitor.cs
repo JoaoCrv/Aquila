@@ -173,9 +173,14 @@ public sealed class VitalMonitor(SettingsService settings)
         settings.Save();
     }
 
-    /// <summary>Which state a reading is in, by the names the colour profile uses for its roles. Private
-    /// until something wants the name rather than the colour — the alert layer will.</summary>
-    private string RoleFor(double value, MetricKey key) => For(key)?.Role(value) ?? "Normal";
+    /// <summary>
+    /// Which state a reading is in — Normal, Elevated, Alert or Critical.
+    ///
+    /// The name rather than a colour, which is what a preset's ramp needs: the ramp says what each state
+    /// looks like, this says which one applies. Keeping them apart is why swapping a preset cannot change
+    /// what a number means.
+    /// </summary>
+    public string RoleFor(double value, MetricKey key) => For(key)?.Role(value) ?? "Normal";
 
     /// <summary>
     /// The colour a reading has earned.

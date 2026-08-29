@@ -13,6 +13,7 @@ public interface IChartStyle
 {
     double LineThickness { get; set; }
     ChartFill Fill { get; set; }
+    double FillOpacity { get; set; }
     double Smoothness { get; set; }
     double PointSize { get; set; }
 

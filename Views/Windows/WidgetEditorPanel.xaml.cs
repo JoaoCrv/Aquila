@@ -25,11 +25,12 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// <summary>Raised when the user removes the widget being edited.</summary>
     public event Action<DesktopWidgetDefinition>? RemoveRequested;
 
-    public WidgetEditorViewModel ViewModel { get; } = new();
+    public WidgetEditorViewModel ViewModel { get; }
 
-    public WidgetEditorPanel(HardwareNode hardware)
+    public WidgetEditorPanel(HardwareNode hardware, Aquila.Services.PresetService presets)
     {
         _hardware = hardware;
+        ViewModel = new WidgetEditorViewModel(presets);
 
         InitializeComponent();
         DataContext = this;
