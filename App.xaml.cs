@@ -182,6 +182,11 @@ namespace Aquila
             vitals.Load();
             VitalMonitor.Current = vitals;
 
+            // Before StartAsync for the third time, and the same reason again: the desktop widgets are built
+            // as the shell comes up and each one asks for the preset it wears. Loaded afterwards, every
+            // widget would be dressed in the fallback and the editor would offer an empty list to pick from.
+            _host.Services.GetRequiredService<PresetService>().Load();
+
             await _host.StartAsync();
 
             _host.Services.GetRequiredService<AquilaService>().SetInterval(settings.Current.PollingIntervalMs);
