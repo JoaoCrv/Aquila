@@ -58,6 +58,7 @@ namespace Aquila
                 // Appearance: ColorProfileService owns the data colours, the theme owns the window's, and
                 // AppearanceService drives both so there is one order of application rather than two.
                 services.AddSingleton<ColorProfileService>();
+                services.AddSingleton<PresetService>();
                 services.AddSingleton<AppearanceService>();
                 services.AddSingleton<UpdateService>();
                 services.AddSingleton<VitalMonitor>();

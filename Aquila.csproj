@@ -38,6 +38,7 @@
          neither corrupted nor deleted, so there is always something to fall back to. The user's own live
          in Documents\Aquila\profiles and override these by id. -->
     <EmbeddedResource Include="Profiles\*.json" />
+    <EmbeddedResource Include="Presets\*.json" />
   </ItemGroup>
 
   <ItemGroup>

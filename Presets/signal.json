@@ -1,0 +1,73 @@
+{
+  "id": "signal",
+  "name": "Signal",
+  "author": "Aquila",
+  "description": "Green through amber to red. The least subtle of the four and the quickest to read across a room, which is the point of a monitor you glance at rather than study.",
+  "ramps": {
+    "primary": {
+      "normal": "#A8D84A",
+      "elevated": "#F5C242",
+      "alert": "#FF8A3D",
+      "critical": "#FF4444"
+    },
+    "secondary": {
+      "normal": "#F5C242",
+      "elevated": "#F5C242",
+      "alert": "#FF8A3D",
+      "critical": "#FF4444"
+    }
+  },
+  "background": {
+    "color": "#000000",
+    "opacity": 0.6
+  },
+  "border": {
+    "color": "#FFFFFF",
+    "opacity": 0.25,
+    "thickness": 0,
+    "cornerRadius": 8
+  },
+  "gauge": {
+    "ramp": "primary",
+    "thickness": 14,
+    "corner": 0,
+    "sweep": "Dial",
+    "track": {
+      "color": "#6BCB77",
+      "opacity": 0.13
+    }
+  },
+  "line": {
+    "ramps": [
+      "primary",
+      "secondary"
+    ],
+    "thickness": 1.5,
+    "fill": "Gradient",
+    "fillOpacity": 0.3,
+    "smoothness": 0.5,
+    "pointSize": 0
+  },
+  "bar": {
+    "ramp": "primary",
+    "thickness": 6,
+    "corner": 3,
+    "layout": "Beside"
+  },
+  "number": {
+    "ramp": "primary",
+    "size": 20,
+    "unitSize": 13,
+    "panel": false
+  },
+  "title": {
+    "size": 11,
+    "opacity": 0.6,
+    "align": "Center"
+  },
+  "value": {
+    "size": 18,
+    "opacity": 1,
+    "align": "Center"
+  }
+}

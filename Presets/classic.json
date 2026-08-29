@@ -1,0 +1,73 @@
+{
+  "id": "classic",
+  "name": "Classic",
+  "author": "Aquila",
+  "description": "The colours Aquila used before profiles existed, kept as a ramp: blue when idle through to red when it matters. The old blue accent comes with it.",
+  "ramps": {
+    "primary": {
+      "normal": "#6BCB77",
+      "elevated": "#F5A623",
+      "alert": "#FF6B35",
+      "critical": "#FF4444"
+    },
+    "secondary": {
+      "normal": "#6BCB77",
+      "elevated": "#F5A623",
+      "alert": "#FF6B35",
+      "critical": "#FF4444"
+    }
+  },
+  "background": {
+    "color": "#000000",
+    "opacity": 0.6
+  },
+  "border": {
+    "color": "#FFFFFF",
+    "opacity": 0.25,
+    "thickness": 0,
+    "cornerRadius": 8
+  },
+  "gauge": {
+    "ramp": "primary",
+    "thickness": 14,
+    "corner": 0,
+    "sweep": "Dial",
+    "track": {
+      "color": "#6BCB77",
+      "opacity": 0.13
+    }
+  },
+  "line": {
+    "ramps": [
+      "primary",
+      "secondary"
+    ],
+    "thickness": 1.5,
+    "fill": "Gradient",
+    "fillOpacity": 0.3,
+    "smoothness": 0.5,
+    "pointSize": 0
+  },
+  "bar": {
+    "ramp": "primary",
+    "thickness": 6,
+    "corner": 3,
+    "layout": "Beside"
+  },
+  "number": {
+    "ramp": "primary",
+    "size": 20,
+    "unitSize": 13,
+    "panel": false
+  },
+  "title": {
+    "size": 11,
+    "opacity": 0.6,
+    "align": "Center"
+  },
+  "value": {
+    "size": 18,
+    "opacity": 1,
+    "align": "Center"
+  }
+}
