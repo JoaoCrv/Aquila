@@ -507,6 +507,12 @@ public sealed class DesktopWidgetService
         Canvas.SetTop(border, definition.Y);
         Panel.SetZIndex(border, definition.ZIndex);
 
+        // The frame and the piece's measurements come from Dress; the colours a reading is drawn in do
+        // not, because they are decided per tick from the value. This is what carries a preset change
+        // through to them without rebuilding the piece and losing its history.
+        if (border.GetValue(RepaintsProperty) is List<Action<Preset>> repaints)
+            foreach (var repaint in repaints) repaint(preset);
+
         if (border.Child is LabeledTile tile)
         {
             Dress(tile.Tile, preset);
@@ -960,8 +966,22 @@ public sealed class DesktopWidgetService
         //
         // A reading with no judgeable scale — watts, RPM — never leaves Normal, which is the ramp's resting
         // colour. That is the honest answer: nothing is being claimed about a number we cannot judge.
+        var repaints = new List<Action<Preset>>();
+
         for (var i = 0; i < resolved.Count; i++)
-            Paint(piece, kind.AccentProperties[i], resolved[i], ramps[i], MetricKey.Parse(chosen[i].Metric));
+        {
+            var repaint = Paint(piece, kind.AccentProperties[i], resolved[i], ramps[i],
+                MetricKey.Parse(chosen[i].Metric));
+
+            // The NAME is captured, never the ramp. Resolved again against whatever preset arrives, so a
+            // series that named nothing still follows the new preset's own default rather than being
+            // frozen to the one it was built under.
+            var name = chosen[i].Ramp;
+            var index = i;
+
+            repaints.Add(dressed => repaint(
+                dressed.RampFor(string.IsNullOrEmpty(name) ? DefaultRamp(dressed, index) : name)));
+        }
 
         Dress(piece, preset);
         Content(piece, definition);
@@ -976,6 +996,8 @@ public sealed class DesktopWidgetService
         };
 
         Frame(widget, definition, preset);
+
+        widget.SetValue(RepaintsProperty, repaints);
 
         // Set here rather than where the widget is added to a canvas, because there are two such places
         // and this is the one both of them go through.
@@ -1004,10 +1026,16 @@ public sealed class DesktopWidgetService
     /// tracked in a list: the element leaves the canvas whenever the widget is rebuilt, so the subscription
     /// ends itself and there is no bookkeeping to fall out of step with what is on screen.
     /// </summary>
-    private static void Paint(FrameworkElement piece, DependencyProperty property,
+    private static Action<Ramp> Paint(FrameworkElement piece, DependencyProperty property,
         SensorNode sensor, Ramp ramp, MetricKey? metric)
     {
         var monitor = VitalMonitor.Current;
+
+        // Held in a variable the closure reads, not captured by value. Editing a ramp mutates the object
+        // that was handed in, so those edits arrive on their own — but SWITCHING preset hands over a
+        // different object entirely, and a closure holding the old one goes on painting the old colours
+        // while the background and the border change around it.
+        var current = ramp;
 
         Repaint();
         sensor.PropertyChanged += OnSensorChanged;
@@ -1023,7 +1051,7 @@ public sealed class DesktopWidgetService
                 ? monitor?.RoleFor(value, key) ?? "Normal"
                 : "Normal";
 
-            piece.SetValue(property, Tint(ramp[role], 1));
+            piece.SetValue(property, Tint(current[role], 1));
         }
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1037,7 +1065,23 @@ public sealed class DesktopWidgetService
             piece.Unloaded -= OnUnloaded;
             if (monitor is not null) monitor.Changed -= Repaint;
         }
+
+        return next =>
+        {
+            current = next;
+            Repaint();
+        };
     }
+
+    /// <summary>
+    /// How a placed widget is re-aimed at another preset's ramps.
+    ///
+    /// An attached property rather than a dictionary beside _byElement: the list then lives and dies with
+    /// the element that owns it, so there is no second collection to remember to clear in the three places
+    /// elements are removed.
+    /// </summary>
+    private static readonly DependencyProperty RepaintsProperty =
+        DependencyProperty.RegisterAttached("Repaints", typeof(List<Action<Preset>>), typeof(DesktopWidgetService));
 
     /// <summary>Combines a stored "#RRGGBB" with a separate 0..1 opacity. Falls back to transparent rather
     /// than throwing: a hand-edited widgets.json shouldn't be able to break the desktop.</summary>
