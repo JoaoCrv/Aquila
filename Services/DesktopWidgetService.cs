@@ -267,6 +267,7 @@ public sealed class DesktopWidgetService
 
         _panel = new Views.Windows.WidgetEditorPanel(_aquila.State.Hardware, _presets);
         _panel.ViewModel.Changed += OnPanelEdited;
+        _panel.ViewModel.PresetRemoved += DropPreset;
         _panel.AddRequested += OnAddRequested;
         _panel.RemoveRequested += RemoveFromPanel;
 
@@ -354,6 +355,27 @@ public sealed class DesktopWidgetService
         }
     }
 
+    /// <summary>
+    /// Removes a preset and puts everything wearing it back on the default.
+    ///
+    /// Named rather than left dangling. For() already answers a missing id with the base, so the widgets
+    /// would draw either way — but a layout naming a preset that does not exist is a file that lies, and
+    /// the next person to read it cannot tell a deletion from a typo. Cleared to empty rather than to the
+    /// base's id, because "whatever the default is" is exactly what these widgets are now wearing.
+    /// </summary>
+    public void DropPreset(Preset preset)
+    {
+        _presets.Delete(preset);
+
+        if (_widgets is not null)
+            foreach (var widget in _widgets)
+                if (string.Equals(widget.Preset, preset.Id, StringComparison.OrdinalIgnoreCase))
+                    widget.Preset = string.Empty;
+
+        RestyleAll();
+        SaveUnlessEditing();
+    }
+
     /// <summary>The locked presets edited in this session — what the user has to be asked about before
     /// the session closes, because those changes have nowhere of their own to go.</summary>
     public IReadOnlyList<Preset> LockedEdits => _presets.LockedDrafts;
@@ -401,6 +423,7 @@ public sealed class DesktopWidgetService
         if (_panel is null) return;
 
         _panel.ViewModel.Changed -= OnPanelEdited;
+        _panel.ViewModel.PresetRemoved -= DropPreset;
         _panel.AddRequested -= OnAddRequested;
         _panel.RemoveRequested -= RemoveFromPanel;
 

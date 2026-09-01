@@ -94,6 +94,22 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     }
 
     /// <summary>
+    /// Removes the preset on the row the pointer is over.
+    ///
+    /// Handled on the PREVIEW of the button press, not on its Click. A ComboBoxItem selects on mouse-down,
+    /// so by the time a Click arrived the list would already have chosen the very preset being removed —
+    /// and the open widget would be wearing it. Marking the press handled stops it reaching the row at all,
+    /// which is also why the work happens here rather than in a command binding.
+    /// </summary>
+    private void OnDeletePreset(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: Preset preset })
+            ViewModel.DeletePresetCommand.Execute(preset);
+
+        e.Handled = true;
+    }
+
+    /// <summary>
     /// Opening one card closes the others.
     ///
     /// The panel is a narrow column with eight sections in it, and with several open at once the one being

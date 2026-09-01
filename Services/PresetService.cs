@@ -98,6 +98,7 @@ public sealed class PresetService(ILogger<PresetService> logger)
 
     private readonly Dictionary<string, Preset> _originals = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _created = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Preset> _deleted = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The locked presets edited in this session — the ones whose changes have nowhere to go
     /// unless the user is asked. Empty is the normal case, and nothing is asked then.</summary>
@@ -125,6 +126,11 @@ public sealed class PresetService(ILogger<PresetService> logger)
         // Nothing was written for these, so forgetting them is the whole of undoing them.
         foreach (var id in _created) _presets.RemoveAll(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
         _created.Clear();
+
+        // These still have their files; putting them back in the list is all that was taken away.
+        foreach (var preset in _deleted.Values) Register(preset);
+        _deleted.Clear();
+        Sort();
 
         if (_originals.Count == 0) return;
 
@@ -166,6 +172,9 @@ public sealed class PresetService(ILogger<PresetService> logger)
 
             Save(draft);
         }
+
+        foreach (var id in _deleted.Keys) Erase(id);
+        _deleted.Clear();
 
         // Born this session, so they exist only in memory until now.
         foreach (var id in _created)
@@ -243,21 +252,42 @@ public sealed class PresetService(ILogger<PresetService> logger)
         }
     }
 
+    /// <summary>
+    /// Removes a preset from the list now and from disk when the session is kept.
+    ///
+    /// Deferred for the same reason a new preset is not written until then: an edit session is undoable in
+    /// one gesture, and a deletion that had already happened would be the one thing Discard could not put
+    /// back. Gone from the list immediately regardless, because a picker still offering something the user
+    /// just removed is a picker arguing with them.
+    ///
+    /// Any edits it was carrying go with it, and so does its place in the created set — a preset both made
+    /// and dropped inside one session should leave nothing behind at all, not a file written on the way out.
+    /// </summary>
     public void Delete(Preset preset)
     {
+        // A built-in has no file of ours to remove and is what everything falls back TO.
         if (preset.IsBuiltIn) return;
 
+        _presets.RemoveAll(p => string.Equals(p.Id, preset.Id, StringComparison.OrdinalIgnoreCase));
+        _originals.Remove(preset.Id);
+
+        // Born this session and never written, so forgetting it is the whole of removing it.
+        if (_created.Remove(preset.Id)) return;
+
+        _deleted[preset.Id] = preset;
+    }
+
+    private void Erase(string id)
+    {
         try
         {
-            var path = PathFor(preset.Id);
+            var path = PathFor(id);
             if (File.Exists(path)) File.Delete(path);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Preset {Id} could not be deleted", preset.Id);
+            logger.LogWarning(ex, "Preset {Id} could not be deleted", id);
         }
-
-        _presets.RemoveAll(p => p.Id == preset.Id);
     }
 
     /// <summary>A deep copy, through the serializer rather than by hand. A copy written field by field is a

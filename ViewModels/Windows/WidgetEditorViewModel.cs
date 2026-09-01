@@ -54,9 +54,15 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// this list used to be a copy, and a copy is a list that goes out of date.</summary>
     public IReadOnlyList<WidgetKindInfo> Kinds { get; } = WidgetCatalog.All;
 
-    /// <summary>Every preset a widget can wear. Straight from the service, so one written into the folder
-    /// by hand appears here without a second list to keep in step.</summary>
-    public IReadOnlyList<Preset> Presets => presets.Presets;
+    /// <summary>
+    /// Every preset a widget can wear. Straight from the service, so one written into the folder by hand
+    /// appears here without a second list to keep in step.
+    ///
+    /// Copied on the way out, and that copy is load-bearing. Handing back the service list itself gave the
+    /// same reference every time, so raising PropertyChanged told WPF nothing had changed and ItemsSource
+    /// was never reapplied — a deleted preset stayed in the picker and the button looked broken.
+    /// </summary>
+    public IReadOnlyList<Preset> Presets => [.. presets.Presets];
 
     public ObservableCollection<SensorOption> Sensors { get; } = [];
 
@@ -88,6 +94,33 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         : preset.IsBuiltIn
             ? "Built in, so it cannot be changed. Edit freely — you are asked where to keep it when you finish."
             : $"Every widget wearing {preset.Name} follows what you change here.";
+
+    /// <summary>Raised when a preset is removed, so the host can put the widgets wearing it back on the
+    /// default — something the panel has no way to reach on its own.</summary>
+    public event Action<Preset>? PresetRemoved;
+
+    /// <summary>
+    /// Removes a preset from the list.
+    ///
+    /// Takes the preset as a parameter rather than acting on the selected one, which is the whole reason
+    /// the button lives in the list: tidying away an old variant should not require wearing it first, and
+    /// a delete button beside the picker would change what the open widget looks like on the way past.
+    /// </summary>
+    [RelayCommand]
+    private void DeletePreset(Preset? preset)
+    {
+        if (preset is null || preset.IsBuiltIn) return;
+
+        // Deleting some other variant must not re-dress the widget whose panel is open, so what it was
+        // wearing is put back afterwards — reapplying ItemsSource can clear the selection on the way past,
+        // and a cleared selection would write itself into the widget.
+        var keep = ReferenceEquals(preset, SelectedPreset) ? presets.For(null) : SelectedPreset;
+
+        PresetRemoved?.Invoke(preset);
+
+        OnPropertyChanged(nameof(Presets));
+        SelectedPreset = keep;
+    }
 
     /// <summary>
     /// Makes a new preset from the one in use and puts this widget in it.

@@ -322,15 +322,47 @@
                                           SelectedItem="{Binding ViewModel.SelectedPreset}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
                                                 <!-- The padlock marks what cannot be written over. On the
                                                      locked ones and not the others: the restriction is the
                                                      exception, so it is the exception that carries a mark. -->
-                                                <ui:SymbolIcon Symbol="LockClosed24" FontSize="12" Opacity="0.55"
+                                                <ui:SymbolIcon Grid.Column="0" Symbol="LockClosed24"
+                                                               FontSize="12" Opacity="0.55"
                                                                Margin="0,0,6,0" VerticalAlignment="Center"
                                                                Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolToVisibility}}"/>
-                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                                            </StackPanel>
+
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                           VerticalAlignment="Center"/>
+
+                                                <ui:Button x:Name="Remove" Grid.Column="2"
+                                                           Visibility="Collapsed" Appearance="Transparent"
+                                                           Padding="4,0" Margin="8,0,0,0"
+                                                           Icon="{ui:SymbolIcon Delete24}"
+                                                           ToolTip="Delete this preset"
+                                                           PreviewMouseLeftButtonDown="OnDeletePreset"/>
+                                            </Grid>
+
+                                            <DataTemplate.Triggers>
+                                                <!-- Shown on the row under the pointer, and never on a
+                                                     locked one. The IsMouseOver condition also keeps it out
+                                                     of the CLOSED picker for free: the same template draws
+                                                     the selection box, where there is no ComboBoxItem above
+                                                     it for the binding to find. -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Value="True" Binding="{Binding IsMouseOver,
+                                                                   RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"/>
+                                                        <Condition Value="False" Binding="{Binding IsBuiltIn}"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="Remove" Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
