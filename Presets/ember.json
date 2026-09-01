@@ -28,7 +28,6 @@
     "cornerRadius": 8
   },
   "gauge": {
-    "ramp": "primary",
     "thickness": 14,
     "corner": 0,
     "sweep": "Dial",
@@ -38,10 +37,6 @@
     }
   },
   "line": {
-    "ramps": [
-      "primary",
-      "secondary"
-    ],
     "thickness": 1.5,
     "fill": "Gradient",
     "fillOpacity": 0.3,
@@ -49,25 +44,20 @@
     "pointSize": 0
   },
   "bar": {
-    "ramp": "primary",
     "thickness": 6,
     "corner": 3,
     "layout": "Beside"
   },
   "number": {
-    "ramp": "primary",
-    "size": 20,
     "unitSize": 13,
     "panel": false
   },
   "title": {
     "size": 11,
-    "opacity": 0.55,
-    "align": "Center"
+    "opacity": 0.55
   },
   "value": {
     "size": 18,
-    "opacity": 1.0,
     "align": "Center"
   }
 }

@@ -24,7 +24,7 @@ public static class AquilaCharts
     /// </summary>
     public static (IEnumerable<ISeries> Series, ObservableValue Point, Action<bool> SetArcVisible) SolidGauge(
         SKColor color, double columnWidth = 14, double labelSize = 24, bool showLabel = true,
-        double cornerRadius = 0)
+        double cornerRadius = 0, SKColor? track = null)
     {
         // A cap cannot be rounder than the arc is thick. Past half the width the geometry starts eating
         // into the arc, and LiveCharts' rounding is already unreliable enough at the edges without being
@@ -66,7 +66,7 @@ public static class AquilaCharts
             {
                 series.MaxRadialColumnWidth = columnWidth;
                 series.CornerRadius = caps;
-                series.Fill = new SolidColorPaint(new SKColor(255, 255, 255, 20));
+                series.Fill = new SolidColorPaint(track ?? new SKColor(255, 255, 255, 20));
                 series.DataLabelsPaint = null;
             }));
 

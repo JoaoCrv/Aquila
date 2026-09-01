@@ -31,7 +31,7 @@ public sealed class ClockTile : TextBlock, IClockStyle
         Show();
     }
 
-    public double TextSize
+    public double ValueSize
     {
         get => FontSize;
         set => FontSize = value;

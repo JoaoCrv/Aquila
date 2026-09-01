@@ -5,9 +5,8 @@ namespace Aquila.Controls;
 /// the structural style interfaces, beside <see cref="IChartStyle"/>, <see cref="IGaugeStyle"/> and
 /// <see cref="IMeterStyle"/>.
 /// </summary>
-public interface IStatStyle
+public interface IStatStyle : IValueStyle
 {
-    double ValueSize { get; set; }
     bool ShowUnit { get; set; }
     double UnitSize { get; set; }
 

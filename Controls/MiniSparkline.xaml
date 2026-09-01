@@ -14,7 +14,7 @@
         <TextBlock x:Name="ValueText"
                    HorizontalAlignment="Right"
                    VerticalAlignment="Top"
-                   FontSize="13" FontWeight="SemiBold"
+                   FontWeight="SemiBold"
                    Margin="0,2,4,0"/>
     </Grid>
 </UserControl>

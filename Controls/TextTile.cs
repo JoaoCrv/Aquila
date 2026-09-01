@@ -25,7 +25,7 @@ public sealed class TextTile : TextBlock, ISensorPiece, ICaptionStyle
         Compose();
     }
 
-    public double TextSize
+    public double ValueSize
     {
         get => FontSize;
         set => FontSize = value;

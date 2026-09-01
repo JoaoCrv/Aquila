@@ -3,9 +3,8 @@ using Aquila.Models;
 namespace Aquila.Controls;
 
 /// <summary>What any piece made of words has: how big, and where it sits.</summary>
-public interface ITextStyle
+public interface ITextStyle : IValueStyle
 {
-    double TextSize { get; set; }
     TextAlign Align { get; set; }
 }
 

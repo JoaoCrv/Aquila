@@ -4,6 +4,9 @@ namespace Aquila.Models;
 /// The widget shapes the desktop can show. Names are persisted in widgets.json by name, not by number,
 /// so entries may be added freely but not renamed without breaking existing layouts.
 /// </summary>
+/// <summary>Which side of the widget the title sits on.</summary>
+public enum TitlePlacement { Top, Bottom, Left, Right }
+
 public enum DesktopWidgetKind
 {
     RadialGauge,

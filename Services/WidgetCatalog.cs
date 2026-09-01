@@ -57,6 +57,11 @@ public sealed record WidgetKindInfo(
 
     /// <summary>Whether this kind is just a number, and so has number settings worth showing.</summary>
     public bool HasNumber { get; init; }
+
+    /// <summary>Whether it draws a reading whose size the preset sets. False for the two kinds made of
+    /// nothing but shape — a full chart and a backdrop — so the editor does not offer a size for text
+    /// they never draw.</summary>
+    public bool HasValue { get; init; } = true;
 }
 
 public static class WidgetCatalog
@@ -96,7 +101,8 @@ public static class WidgetCatalog
             "The same trend as a sparkline, with room to read it. Takes two readings.",
             300, 160,
             BuildChart,
-            [SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty]) { HasLine = true },
+            [SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty])
+            { HasLine = true, HasValue = false },
 
         // No accent properties, so MaxSeries is 0 — the first kind that reads nothing at all. Everything it
         // draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is empty
@@ -106,7 +112,7 @@ public static class WidgetCatalog
             "A plate to sit behind other widgets. Reads nothing.",
             240, 160,
             _ => new Grid(),
-            []) { NeedsReading = false },
+            []) { NeedsReading = false, HasValue = false },
 
         // One accent property, so it MAY take a reading; NeedsReading false, so it does not have to. It is
         // the first kind where the ceiling and the requirement differ.

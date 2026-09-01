@@ -9,11 +9,14 @@ namespace Aquila.Controls;
 /// dial and does not implement this, so the editor and the builder both find out by asking rather than by
 /// consulting a list of kinds that someone has to remember to update.
 /// </summary>
-public interface IGaugeStyle
+public interface IGaugeStyle : IValueStyle
 {
     double ArcThickness { get; set; }
     double ArcCorner { get; set; }
     GaugeSweep Sweep { get; set; }
-    double ValueSize { get; set; }
     bool ShowValue { get; set; }
+
+    /// <summary>The unfilled part of the arc. Null leaves the built-in faint white, which is the right
+    /// answer over most wallpapers and the wrong one over a pale desktop.</summary>
+    System.Windows.Media.Brush? TrackBrush { get; set; }
 }

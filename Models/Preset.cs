@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace Aquila.Models;
@@ -16,13 +17,37 @@ namespace Aquila.Models;
 /// colour</b>. A fixed colour is a ramp whose four stops are equal, so there is one mechanism and no bypass.
 /// Frame parts — backgrounds, borders, titles — carry a colour directly, because they represent nothing.
 /// </summary>
-public sealed class Preset
+public sealed class Preset : INotifyPropertyChanged
 {
     /// <summary>File name stem by convention, and the id a widget stores. A user preset with the same id as
     /// a built-in replaces it — that is how one of ours gets customised.</summary>
     public string Id { get; set; } = string.Empty;
 
-    public string Name { get; set; } = string.Empty;
+    /// <summary>
+    /// What the preset is called. The only part of its identity a user edits — <see cref="Id"/> stays as
+    /// it was, because that is what every widget stores, and renaming something should not silently
+    /// undress the widgets wearing it.
+    ///
+    /// Watchable, and the only reason this class raises anything at all: the picker and the name box sit
+    /// two lines apart in the editor, and a picker still showing the old name reads as a rename that did
+    /// not take.
+    /// </summary>
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            if (_name == value) return;
+            _name = value;
+            Raise(nameof(Name));
+        }
+    }
+
+    private string _name = string.Empty;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void Raise(string property) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
     public string? Author { get; set; }
     public string? Description { get; set; }
 
@@ -38,22 +63,29 @@ public sealed class Preset
     /// </summary>
     public Dictionary<string, Ramp> Ramps { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>The typeface, for everything the preset dresses. One per preset rather than one per text
+    /// role: a design with two families in it is two designs, and the second is nearly always a mistake.
+    /// Null means the app's own, which is also what an importing machine falls back to when it does not
+    /// have the family installed.</summary>
+    public string? FontFamily { get; set; }
+
     public PresetFill Background { get; set; } = new();
     public PresetBorder Border { get; set; } = new();
     public PresetGauge Gauge { get; set; } = new();
     public PresetLine Line { get; set; } = new();
     public PresetBar Bar { get; set; } = new();
     public PresetNumber Number { get; set; } = new();
-    public PresetText Title { get; set; } = new() { Size = 11, Opacity = 0.6 };
-    public PresetText Value { get; set; } = new() { Size = 18 };
+    public PresetTitle Title { get; set; } = new();
+    public PresetText Value { get; set; } = new();
 
     /// <summary>True for presets shipped inside the app. They can be duplicated but never overwritten, so a
     /// bad edit is always recoverable — and one of them is the app's own identity.</summary>
     [JsonIgnore]
     public bool IsBuiltIn { get; set; }
 
-    [JsonIgnore]
-    public string DisplayName => IsBuiltIn ? Name : $"{Name} (custom)";
+    // No DisplayName. It used to append "(custom)" to the user's own presets, which marked the ordinary
+    // case and left the restricted one unlabelled; the editor draws a padlock beside the locked ones
+    // instead, which is the same information with the polarity the right way round.
 
     /// <summary>The named ramp, or <c>primary</c>, or a neutral one. Never null: a widget asking for a ramp
     /// that is not here should draw in the wrong colour rather than not draw.</summary>
@@ -107,19 +139,34 @@ public sealed class PresetBorder : PresetFill
     public double CornerRadius { get; set; } = 8;
 }
 
-/// <summary>Words: how big, how faint, and in what family. The family falls back to the app's own when the
-/// machine importing a preset does not have it installed.</summary>
+/// <summary>
+/// The reading itself: the number in a gauge, the big figure in a stat, the words in a Text widget.
+///
+/// <see cref="Show"/> rather than an opacity of zero. It used to be read as <c>Opacity &gt; 0</c>, which
+/// made a half-faded number unreachable and the honest "arc on its own" case an accident of arithmetic —
+/// two meanings on one field, and the one people actually want was the one that did not work.
+/// </summary>
 public sealed class PresetText
 {
-    public string? FontFamily { get; set; }
-    public double Size { get; set; } = 14;
-    public double Opacity { get; set; } = 1;
+    public double Size { get; set; } = 18;
     public TextAlign Align { get; set; } = TextAlign.Center;
+    public bool Show { get; set; } = true;
 }
+
+/// <summary>The widget's label. Faint by default and settable, because a title is a caption rather than a
+/// reading — and it carries a placement the reading has no use for.</summary>
+public sealed class PresetTitle
+{
+    public double Size { get; set; } = 11;
+    public double Opacity { get; set; } = 0.6;
+    public TitlePlacement Placement { get; set; } = TitlePlacement.Top;
+}
+
+// A note that applies to all four of these: none of them names a ramp. The SERIES does, and one thing
+// said in two places is a thing that ends up disagreeing with itself. What is left here is the shape.
 
 public sealed class PresetGauge
 {
-    public string Ramp { get; set; } = Models.Ramp.Primary;
     public double Thickness { get; set; } = 14;
     public double Corner { get; set; }
     public GaugeSweep Sweep { get; set; } = GaugeSweep.Dial;
@@ -130,10 +177,6 @@ public sealed class PresetGauge
 
 public sealed class PresetLine
 {
-    /// <summary>One per series, in order. A chart with more lines than ramps falls back to
-    /// <see cref="Models.Ramp.Primary"/> for the rest.</summary>
-    public List<string> Ramps { get; set; } = [Models.Ramp.Primary];
-
     public double Thickness { get; set; } = 1.5;
     public ChartFill Fill { get; set; } = ChartFill.Gradient;
     public double FillOpacity { get; set; } = 0.30;
@@ -143,7 +186,6 @@ public sealed class PresetLine
 
 public sealed class PresetBar
 {
-    public string Ramp { get; set; } = Models.Ramp.Primary;
     public double Thickness { get; set; } = 6;
     public double Corner { get; set; } = 3;
     public MeterLayout Layout { get; set; } = MeterLayout.Beside;
@@ -151,8 +193,9 @@ public sealed class PresetBar
 
 public sealed class PresetNumber
 {
-    public string Ramp { get; set; } = Models.Ramp.Primary;
-    public double Size { get; set; } = 20;
+    // No Size. How big a reading is drawn is Value.Size, for every kind that draws one — a stat with a
+    // size of its own meant the editor's "reading size" silently did nothing to the one widget that is
+    // nothing but a reading.
     public double UnitSize { get; set; } = 13;
 
     /// <summary>Whether the number carries a rounded fill of its own. Off suits a desktop widget, which

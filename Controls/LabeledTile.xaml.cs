@@ -1,14 +1,13 @@
 using System.Windows;
 using System.Windows.Controls;
+using Aquila.Models;
 
 namespace Aquila.Controls;
 
-public enum TitlePlacement { Top, Bottom, Left, Right }
-
 /// <summary>
 /// Wraps any content (a gauge, sparkline, ...) with a title placed on one side. Solves the cramped
-/// label inside the gauge by moving it outside. Title style inherits from the theme; only placement
-/// is configurable.
+/// label inside the gauge by moving it outside. How the title is drawn comes from the preset, so every
+/// widget wearing one agrees about what a label looks like.
 /// </summary>
 public partial class LabeledTile : UserControl
 {
@@ -25,6 +24,26 @@ public partial class LabeledTile : UserControl
     public static readonly DependencyProperty TitlePlacementProperty =
         DependencyProperty.Register(nameof(TitlePlacement), typeof(TitlePlacement), typeof(LabeledTile),
             new PropertyMetadata(TitlePlacement.Top, (d, _) => ((LabeledTile)d).Apply()));
+
+    public static readonly DependencyProperty TitleSizeProperty =
+        DependencyProperty.Register(nameof(TitleSize), typeof(double), typeof(LabeledTile),
+            new PropertyMetadata(11d, (d, _) => ((LabeledTile)d).Apply()));
+
+    public static readonly DependencyProperty TitleOpacityProperty =
+        DependencyProperty.Register(nameof(TitleOpacity), typeof(double), typeof(LabeledTile),
+            new PropertyMetadata(0.6, (d, _) => ((LabeledTile)d).Apply()));
+
+    public double TitleSize
+    {
+        get => (double)GetValue(TitleSizeProperty);
+        set => SetValue(TitleSizeProperty, value);
+    }
+
+    public double TitleOpacity
+    {
+        get => (double)GetValue(TitleOpacityProperty);
+        set => SetValue(TitleOpacityProperty, value);
+    }
 
     public static readonly DependencyProperty TileProperty =
         DependencyProperty.Register(nameof(Tile), typeof(object), typeof(LabeledTile),
@@ -54,6 +73,8 @@ public partial class LabeledTile : UserControl
     private void Apply()
     {
         TitleText.Text = Title;
+        TitleText.FontSize = TitleSize;
+        TitleText.Opacity = TitleOpacity;
         Body.Content = Tile;
 
         // An empty title still occupies a line, which a piece with nothing above it would wear as a gap.

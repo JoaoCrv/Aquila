@@ -20,7 +20,7 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
     /// <summary>The look the current series was built with. Thickness, text size and whether the number is
     /// drawn are all baked into the series when it is generated, so changing any of them means building it
     /// again — but only then, or the gauge would animate from zero on every tick.</summary>
-    private (double Thickness, double Corner, double ValueSize, bool ShowValue) _lastStyle;
+    private (double Thickness, double Corner, double ValueSize, bool ShowValue, SKColor Track) _lastStyle;
 
     /// <summary>Shows or hides the value arc without rebuilding it.</summary>
     private Action<bool>? _setArcVisible;
@@ -38,6 +38,18 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
     public static readonly DependencyProperty AccentProperty =
         DependencyProperty.Register(nameof(Accent), typeof(Brush), typeof(RadialGauge),
             new PropertyMetadata(null, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty TrackBrushProperty =
+        DependencyProperty.Register(nameof(TrackBrush), typeof(Brush), typeof(RadialGauge),
+            new PropertyMetadata(null, (d, _) => ((RadialGauge)d).Render()));
+
+    /// <summary>The unfilled arc. Unlike the value arc it never follows the reading, so it is a plain
+    /// brush and not a ramp — a track that changed colour with the value would read as a second dial.</summary>
+    public Brush? TrackBrush
+    {
+        get => (Brush?)GetValue(TrackBrushProperty);
+        set => SetValue(TrackBrushProperty, value);
+    }
 
     public static readonly DependencyProperty ArcThicknessProperty =
         DependencyProperty.Register(nameof(ArcThickness), typeof(double), typeof(RadialGauge),
@@ -163,7 +175,10 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         value = System.Math.Clamp(value, min, max);
 
         var color = ResolveColor();
-        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue);
+        var track = TrackBrush is SolidColorBrush t
+            ? new SKColor(t.Color.R, t.Color.G, t.Color.B, (byte)(t.Color.A * t.Opacity))
+            : new SKColor(255, 255, 255, 20);
+        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue, track);
 
         // The start angle and the sweep have to be set together — 270 degrees starting at the top puts the
         // gap on the right, which reads as a broken ring rather than a dial.
@@ -180,7 +195,7 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         if (_point is null || color != _lastColor || style != _lastStyle)
         {
             var (series, point, setArcVisible) =
-                AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner);
+                AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner, track);
             _point = point;
             _setArcVisible = setArcVisible;
             _lastColor = color;
