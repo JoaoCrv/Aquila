@@ -73,7 +73,7 @@ public sealed class DesktopLayoutService(ILogger<DesktopLayoutService> logger)
                 try
                 {
                     if (element.Deserialize<DesktopWidgetDefinition>(_json) is { } widget)
-                        widgets.Add(widget);
+                        widgets.Add(Migrate(widget, element));
                 }
                 catch (Exception ex)
                 {
@@ -84,6 +84,35 @@ public sealed class DesktopLayoutService(ILogger<DesktopLayoutService> logger)
 
             return widgets;
         }
+    }
+
+    /// <summary>
+    /// Fills in what an older layout spelled differently.
+    ///
+    /// Read from the raw JSON rather than from the definition, because that is the only place the old names
+    /// still exist — the model has no SensorIdentifier or ScreenKey to migrate FROM, which is exactly why
+    /// this cannot live with the other one-time fix-ups in SettingsService.
+    ///
+    /// Guarded on the NEW field being empty rather than on the old one being present, so a widget that has
+    /// since been given a reading is never overwritten by the one it was pinned from.
+    ///
+    /// Not migrated: the old AccentKey. Those named a hardware colour — Aquila.Cpu — in a scheme where a
+    /// series now names a ramp and follows its own reading. There is no honest mapping, and the default
+    /// (follow the reading in the preset's primary ramp) is what the widget would have been given today.
+    /// </summary>
+    private static DesktopWidgetDefinition Migrate(DesktopWidgetDefinition widget, JsonElement element)
+    {
+        if (widget.Series.Count == 0 &&
+            element.TryGetProperty("SensorIdentifier", out var sensor) &&
+            sensor.GetString() is { Length: > 0 } identifier)
+            widget.Series = [new WidgetSeries { SensorIdentifier = identifier }];
+
+        if (string.IsNullOrWhiteSpace(widget.Surface) &&
+            element.TryGetProperty("ScreenKey", out var screen) &&
+            screen.GetString() is { Length: > 0 } key)
+            widget.Surface = WidgetSurface.Screen(key);
+
+        return widget;
     }
 
     /// <summary>
