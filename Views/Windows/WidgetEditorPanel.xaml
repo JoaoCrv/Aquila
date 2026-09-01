@@ -50,6 +50,70 @@
         <Style TargetType="ui:CardExpander" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
+        <!-- Quick colours. They only ever WRITE the hex box below them: the preset's own value stays the
+             truth, so a colour this list does not have survives being looked at. The command comes in
+             through Tag, which is what lets one template serve background, border and track. -->
+        <Style x:Key="Swatches" TargetType="ItemsControl">
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="ItemsSource" Value="{Binding ViewModel.Colors,
+                                                   RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <Button Padding="3" Margin="0,0,6,0" ToolTip="{Binding Name}"
+                                Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding Hex}">
+                            <Border Width="18" Height="18" CornerRadius="3" Background="{Binding Hex}"/>
+                        </Button>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionHead" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Opacity" Value="0.9"/>
+            <Setter Property="Margin" Value="0,20,0,6"/>
+        </Style>
+
+        <!-- A name that reads as a title until you reach for it.
+             A boxed input sitting under a picker showing the same word looks like two fields for one
+             thing. Drawn as a heading with its edges hidden, it says what the preset is called; the
+             edges appear under the pointer, which is the whole of the instruction "you may change this".
+             A plain TextBox rather than ui:TextBox on purpose — the Fluent one brings a template with a
+             clear button and its own chrome, none of which a title should have. -->
+        <Style x:Key="InlineTitle" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource AccentTextFillColorTertiaryBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                </Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentTextFillColorTertiaryBrush}"/>
+                </Trigger>
+                <!-- A built-in cannot be renamed. Faded rather than hidden: the name is still what you
+                     came to read. -->
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.55"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
     </Window.Resources>
 
     <!-- No Border of its own: the panel IS a window, so its background, its rounded corners and its
@@ -65,7 +129,8 @@
             <!-- The whole panel is a drag handle: it has no title bar of its own, and being pinned to one
                  edge would eventually cover the very widget being edited. -->
             <StackPanel Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Header_Drag">
-                <TextBlock Text="Widget" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding ViewModel.PanelTitle}" FontSize="18" FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="SubtitleText" FontSize="12" Opacity="0.6" TextWrapping="Wrap"
                            Text="Click a widget on the desktop to edit it."/>
             </StackPanel>
@@ -75,7 +140,7 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding ViewModel.HasTarget, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel>
+                <StackPanel Expander.Expanded="OnCardExpanded">
 
                     <ui:CardExpander Icon="{ui:SymbolIcon Grid24}" IsExpanded="True">
                         <ui:CardExpander.Header>
@@ -133,7 +198,7 @@
 
                     <!-- Hidden for the kinds that read nothing. A backdrop has no sensor to pick, and a
                          sensor list it cannot use would be a choice with nowhere to go. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon DataHistogram24}" IsExpanded="True"
+                    <ui:CardExpander Icon="{ui:SymbolIcon DataHistogram24}"
                                      Visibility="{Binding ViewModel.ShowsDataSection, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Data" FontWeight="SemiBold"/>
@@ -246,9 +311,35 @@
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,14,0,0">
-                            <ComboBox ItemsSource="{Binding ViewModel.Presets}"
-                                      SelectedItem="{Binding ViewModel.SelectedPreset}"
-                                      DisplayMemberPath="DisplayName"/>
+                            <DockPanel>
+                                <!-- Beside the list, because it is about the preset in the list: it makes
+                                     a new one FROM the one showing, rather than from nothing. -->
+                                <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0"
+                                           Icon="{ui:SymbolIcon Add24}"
+                                           ToolTip="New preset, starting from this one"
+                                           Command="{Binding ViewModel.NewPresetCommand}"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.Presets}"
+                                          SelectedItem="{Binding ViewModel.SelectedPreset}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <!-- The padlock marks what cannot be written over. On the
+                                                     locked ones and not the others: the restriction is the
+                                                     exception, so it is the exception that carries a mark. -->
+                                                <ui:SymbolIcon Symbol="LockClosed24" FontSize="12" Opacity="0.55"
+                                                               Margin="0,0,6,0" VerticalAlignment="Center"
+                                                               Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DockPanel>
+                            <TextBox Margin="-6,8,0,0" Style="{StaticResource InlineTitle}"
+                                     IsEnabled="{Binding ViewModel.CanUpdatePreset}"
+                                     ToolTip="Click to rename. Enter to keep it, Escape to put it back."
+                                     KeyDown="OnPresetNameKey"
+                                     Text="{Binding ViewModel.PresetName, UpdateSourceTrigger=LostFocus}"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
                                        Text="{Binding ViewModel.PresetNote}"/>
@@ -256,22 +347,8 @@
                             <Separator Margin="0,16,0,12" Opacity="0.15"/>
 
                             <TextBlock Text="Background" Style="{StaticResource FieldLabel}"/>
-                            <ItemsControl ItemsSource="{Binding ViewModel.Colors}" Margin="0,0,0,6">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Padding="3" Margin="0,0,6,0" ToolTip="{Binding Name}"
-                                                Command="{Binding DataContext.ViewModel.PickBackgroundCommand,
-                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                CommandParameter="{Binding Hex}">
-                                            <Border Width="18" Height="18" CornerRadius="3"
-                                                    Background="{Binding Hex}"/>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <ItemsControl Style="{StaticResource Swatches}"
+                                          Tag="{Binding ViewModel.PickBackgroundCommand}"/>
                             <ui:TextBox PlaceholderText="#000000"
                                         Text="{Binding ViewModel.BackgroundColor}"/>
                             <DockPanel Margin="0,10,0,0">
@@ -283,22 +360,8 @@
                                     Value="{Binding ViewModel.BackgroundOpacity}"/>
 
                             <TextBlock Text="Border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                            <ItemsControl ItemsSource="{Binding ViewModel.Colors}" Margin="0,0,0,6">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Padding="3" Margin="0,0,6,0" ToolTip="{Binding Name}"
-                                                Command="{Binding DataContext.ViewModel.PickBorderCommand,
-                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                CommandParameter="{Binding Hex}">
-                                            <Border Width="18" Height="18" CornerRadius="3"
-                                                    Background="{Binding Hex}"/>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <ItemsControl Style="{StaticResource Swatches}"
+                                          Tag="{Binding ViewModel.PickBorderCommand}"/>
                             <ui:TextBox PlaceholderText="#FFFFFF"
                                         Text="{Binding ViewModel.BorderColor}"/>
                             <DockPanel Margin="0,10,0,0">
@@ -324,6 +387,150 @@
                             </DockPanel>
                             <Slider Minimum="0" Maximum="24"
                                     Value="{Binding ViewModel.CornerRadius}"/>
+
+                            <StackPanel Visibility="{Binding ViewModel.ShowsDial, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Dial" Style="{StaticResource SectionHead}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.ArcThickness, StringFormat={}{0:F0} px}"/>
+                                    <TextBlock Text="Arc thickness" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="2" Maximum="40"
+                                        Value="{Binding ViewModel.ArcThickness}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.ArcCorner, StringFormat={}{0:F0} px}"/>
+                                    <TextBlock Text="Arc ends" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="20"
+                                        Value="{Binding ViewModel.ArcCorner}"/>
+                                <TextBlock Text="Sweep" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.Sweeps}"
+                                          SelectedItem="{Binding ViewModel.Sweep}"/>
+
+                                    <TextBlock Text="Track" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                    <ItemsControl Style="{StaticResource Swatches}"
+                                                  Tag="{Binding ViewModel.PickTrackCommand}"/>
+                                    <ui:TextBox PlaceholderText="#FFFFFF" Text="{Binding ViewModel.TrackColor}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.TrackOpacity, StringFormat={}{0:F0}%}"/>
+                                    <TextBlock Text="Track opacity" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="100"
+                                        Value="{Binding ViewModel.TrackOpacity}"/>
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding ViewModel.ShowsLine, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Line" Style="{StaticResource SectionHead}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.LineThickness, StringFormat={}{0:F1} px}"/>
+                                    <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0.5" Maximum="6"
+                                        Value="{Binding ViewModel.LineThickness}"/>
+                                <TextBlock Text="Fill" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.Fills}"
+                                          SelectedItem="{Binding ViewModel.LineFill}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.FillOpacity, StringFormat={}{0:F0}%}"/>
+                                    <TextBlock Text="Fill opacity" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="100"
+                                        Value="{Binding ViewModel.FillOpacity}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.Smoothness, StringFormat={}{0:F0}%}"/>
+                                    <TextBlock Text="Smoothness" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="100"
+                                        Value="{Binding ViewModel.Smoothness}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.PointSize, StringFormat={}{0:F0} px}"/>
+                                    <TextBlock Text="Points" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="10"
+                                        Value="{Binding ViewModel.PointSize}"/>
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding ViewModel.ShowsBar, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Bar" Style="{StaticResource SectionHead}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.BarThickness, StringFormat={}{0:F0} px}"/>
+                                    <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="2" Maximum="40"
+                                        Value="{Binding ViewModel.BarThickness}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.BarCorner, StringFormat={}{0:F0} px}"/>
+                                    <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="20"
+                                        Value="{Binding ViewModel.BarCorner}"/>
+                                <TextBlock Text="Layout" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.Layouts}"
+                                          SelectedItem="{Binding ViewModel.BarLayout}"/>
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding ViewModel.ShowsNumber, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Number" Style="{StaticResource SectionHead}"/>
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.UnitSize, StringFormat={}{0:F0} px}"/>
+                                    <TextBlock Text="Unit size" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="24"
+                                        Value="{Binding ViewModel.UnitSize}"/>
+                                <CheckBox Margin="0,10,0,0" Content="Panel behind the number"
+                                          IsChecked="{Binding ViewModel.NumberPanel}"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Words" Style="{StaticResource SectionHead}"/>
+                            <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
+                                      SelectedItem="{Binding ViewModel.FontFamily}"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.TitleSize, StringFormat={}{0:F0} px}"/>
+                                <TextBlock Text="Title size" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="6" Maximum="24"
+                                    Value="{Binding ViewModel.TitleSize}"/>
+                            <DockPanel Margin="0,10,0,0">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                           Text="{Binding ViewModel.TitleOpacity, StringFormat={}{0:F0}%}"/>
+                                <TextBlock Text="Title opacity" Style="{StaticResource FieldLabel}"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="100"
+                                    Value="{Binding ViewModel.TitleOpacity}"/>
+                            <TextBlock Text="Title side" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Placements}"
+                                      SelectedItem="{Binding ViewModel.TitlePlacement}"/>
+                            <StackPanel Visibility="{Binding ViewModel.ShowsValue, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel Margin="0,10,0,0">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.ValueSize, StringFormat={}{0:F0} px}"/>
+                                    <TextBlock Text="Reading size" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="8" Maximum="64"
+                                        Value="{Binding ViewModel.ValueSize}"/>
+                                <TextBlock Text="Reading align" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.Alignments}"
+                                          SelectedItem="{Binding ViewModel.ValueAlign}"/>
+
+                                <StackPanel Visibility="{Binding ViewModel.CanHideValue, Converter={StaticResource BoolToVisibility}}">
+                                    <CheckBox Margin="0,10,0,0" Content="Show the reading"
+                                              IsChecked="{Binding ViewModel.ValueShown}"/>
+                                    <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                               Opacity="0.5" TextWrapping="Wrap"
+                                               Text="Off leaves the dial or bar drawing on its own, with the title above it."/>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
                     </ui:CardExpander>
 

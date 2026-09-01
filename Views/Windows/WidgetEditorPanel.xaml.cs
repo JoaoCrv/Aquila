@@ -1,5 +1,7 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Aquila.Models;
 using Aquila.ViewModels.Windows;
 
@@ -89,5 +91,60 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     private void Remove_Click(object sender, RoutedEventArgs e)
     {
         if (Target is { } target) RemoveRequested?.Invoke(target);
+    }
+
+    /// <summary>
+    /// Opening one card closes the others.
+    ///
+    /// The panel is a narrow column with eight sections in it, and with several open at once the one being
+    /// used spends its life below the fold. Handled on the parent, not per card — Expanded is a bubbling
+    /// routed event, so a section added later joins in without anyone remembering to wire it.
+    ///
+    /// Closing every card is still allowed. An accordion that refuses to let go of the last one is a
+    /// section you cannot get out of the way to see the widget underneath.
+    /// </summary>
+    private void OnCardExpanded(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is not Expander opened || sender is not Panel cards) return;
+
+        foreach (var card in cards.Children.OfType<Expander>())
+            if (!ReferenceEquals(card, opened))
+                card.IsExpanded = false;
+
+        // After the layout pass. The card has only just grown, so scrolling to it now would aim at the
+        // bounds it had while it was still shut.
+        Dispatcher.BeginInvoke(new Action(() => opened.BringIntoView()), DispatcherPriority.Loaded);
+    }
+
+    /// <summary>
+    /// Enter keeps a renamed preset, Escape puts the old name back.
+    ///
+    /// The binding commits on lost focus, which is what makes clicking away keep the name too — Enter only
+    /// brings that moment forward. Escape has to restore the target by hand, because a binding that has not
+    /// written anything yet has nothing to undo.
+    ///
+    /// Focus is cleared either way: the box only looks editable while it is being edited, and one left
+    /// outlined after Enter would suggest the name had not been taken.
+    /// </summary>
+    private void OnPresetNameKey(object sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox box) return;
+
+        switch (e.Key)
+        {
+            case Key.Enter:
+                box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+                break;
+
+            case Key.Escape:
+                box.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+                break;
+
+            default:
+                return;
+        }
+
+        Keyboard.ClearFocus();
+        e.Handled = true;
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Media;
 using Aquila.Models;
 using Aquila.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -78,15 +79,44 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         Apply();
     }
 
-    /// <summary>Whether the chosen preset is one of ours. Shown to the user, because it decides what Save
-    /// will do — edits to a built-in leave as a variant, and finding that out afterwards is a surprise.</summary>
-    public bool PresetIsBuiltIn => SelectedPreset?.IsBuiltIn == true;
+    /// <summary>Whether the chosen preset can be written over. A built-in never can, which is what
+    /// guarantees there is always something to go back to.</summary>
+    public bool CanUpdatePreset => SelectedPreset is { IsBuiltIn: false };
 
     public string PresetNote => SelectedPreset is not { } preset
         ? string.Empty
         : preset.IsBuiltIn
-            ? $"{preset.Name} is built in. Your changes are saved as a variant of it, leaving the original alone."
-            : $"Changes are saved into {preset.Name}, and every widget wearing it follows.";
+            ? "Built in, so it cannot be changed. Edit freely — you are asked where to keep it when you finish."
+            : $"Every widget wearing {preset.Name} follows what you change here.";
+
+    /// <summary>
+    /// Makes a new preset from the one in use and puts this widget in it.
+    ///
+    /// An action rather than a promise about what Save will do. A tick-box said "this becomes something
+    /// else later", so in between the panel claimed you were editing Ember while you were not. Pressing
+    /// this, the new preset exists now, is selected now, and everything after goes into it.
+    /// </summary>
+    [RelayCommand]
+    private void NewPreset()
+    {
+        if (SelectedPreset is not { } source) return;
+
+        // Cloned from the LIVE preset, so whatever has already been changed this session comes along.
+        // Someone who spent ten minutes on colours and only then decided to keep them separately should
+        // not lose the ten minutes.
+        var copy = presets.Duplicate(source);
+
+        // The list first. It gained a member and the picker is bound to a plain list, which cannot say so
+        // itself — and re-reading it can clear the selection, so the selection is set after, not before.
+        OnPropertyChanged(nameof(Presets));
+        SelectedPreset = copy;
+    }
+
+    /// <summary>What the preset is called. Renaming changes the name alone — the id it is stored under
+    /// never moves, because that is what the widgets reference.</summary>
+    [ObservableProperty] private string _presetName = string.Empty;
+
+    partial void OnPresetNameChanged(string value) => Dress();
 
     // --- Appearance. These write into the PRESET, so they change every widget wearing it. ---
 
@@ -116,6 +146,103 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [RelayCommand] private void PickBackground(string? hex) => BackgroundColor = hex ?? BackgroundColor;
     [RelayCommand] private void PickBorder(string? hex) => BorderColor = hex ?? BorderColor;
 
+    // Which sections apply. Asked of the CATALOG rather than of the piece, so the editor knows what to
+    // show before it has built anything — and a kind that is not a dial simply cannot be given dial
+    // settings, which no switch over kinds could promise.
+    public bool ShowsDial => SelectedKind?.HasDial == true;
+    public bool ShowsLine => SelectedKind?.HasLine == true;
+    public bool ShowsBar => SelectedKind?.HasBar == true;
+    public bool ShowsNumber => SelectedKind?.HasNumber == true;
+
+    /// <summary>Whether this kind draws a reading at all, and so whether a size for one means anything.</summary>
+    public bool ShowsValue => SelectedKind?.HasValue == true;
+
+    /// <summary>Whether the reading can be turned off. Only where the graphic still says something without
+    /// it — a dial or a bar. Hiding the words of a Text widget leaves an empty widget.</summary>
+    public bool CanHideValue => ShowsDial || ShowsBar;
+
+    // --- Dial ---
+
+    [ObservableProperty] private double _arcThickness = 14;
+    [ObservableProperty] private double _arcCorner;
+    [ObservableProperty] private GaugeSweep _sweep = GaugeSweep.Dial;
+    [ObservableProperty] private string _trackColor = "#FFFFFF";
+    [ObservableProperty] private double _trackOpacity = 8;
+
+    public IReadOnlyList<GaugeSweep> Sweeps { get; } = Enum.GetValues<GaugeSweep>();
+
+    partial void OnArcThicknessChanged(double value) => Dress();
+    partial void OnArcCornerChanged(double value) => Dress();
+    partial void OnSweepChanged(GaugeSweep value) => Dress();
+    partial void OnTrackColorChanged(string value) => Dress();
+    partial void OnTrackOpacityChanged(double value) => Dress();
+
+    [RelayCommand] private void PickTrack(string? hex) => TrackColor = hex ?? TrackColor;
+
+    // --- Line ---
+
+    [ObservableProperty] private double _lineThickness = 1.5;
+    [ObservableProperty] private ChartFill _lineFill = ChartFill.Gradient;
+    [ObservableProperty] private double _fillOpacity = 30;
+    [ObservableProperty] private double _smoothness = 50;
+    [ObservableProperty] private double _pointSize;
+
+    public IReadOnlyList<ChartFill> Fills { get; } = Enum.GetValues<ChartFill>();
+
+    partial void OnLineThicknessChanged(double value) => Dress();
+    partial void OnLineFillChanged(ChartFill value) => Dress();
+    partial void OnFillOpacityChanged(double value) => Dress();
+    partial void OnSmoothnessChanged(double value) => Dress();
+    partial void OnPointSizeChanged(double value) => Dress();
+
+    // --- Bar ---
+
+    [ObservableProperty] private double _barThickness = 6;
+    [ObservableProperty] private double _barCorner = 3;
+    [ObservableProperty] private MeterLayout _barLayout = MeterLayout.Beside;
+
+    public IReadOnlyList<MeterLayout> Layouts { get; } = Enum.GetValues<MeterLayout>();
+
+    partial void OnBarThicknessChanged(double value) => Dress();
+    partial void OnBarCornerChanged(double value) => Dress();
+    partial void OnBarLayoutChanged(MeterLayout value) => Dress();
+
+    // --- Number ---
+
+    [ObservableProperty] private double _unitSize = 13;
+    [ObservableProperty] private bool _numberPanel;
+
+    partial void OnUnitSizeChanged(double value) => Dress();
+    partial void OnNumberPanelChanged(bool value) => Dress();
+
+    // --- Words: the typeface, the label, and the reading ---
+
+    /// <summary>Stands for "whatever the theme uses". A real family name here would override the theme
+    /// instead of deferring to it, and the two are not the same answer.</summary>
+    public const string ThemeFont = "Theme default";
+
+    public IReadOnlyList<string> FontFamilies { get; } =
+        [ThemeFont, .. Fonts.SystemFontFamilies.Select(f => f.Source).Distinct().OrderBy(n => n)];
+
+    [ObservableProperty] private string _fontFamily = ThemeFont;
+    [ObservableProperty] private double _titleSize = 11;
+    [ObservableProperty] private double _titleOpacity = 60;
+    [ObservableProperty] private TitlePlacement _titlePlacement = TitlePlacement.Top;
+    [ObservableProperty] private double _valueSize = 18;
+    [ObservableProperty] private TextAlign _valueAlign = TextAlign.Center;
+    [ObservableProperty] private bool _valueShown = true;
+
+    public IReadOnlyList<TitlePlacement> Placements { get; } = Enum.GetValues<TitlePlacement>();
+    public IReadOnlyList<TextAlign> Alignments { get; } = Enum.GetValues<TextAlign>();
+
+    partial void OnFontFamilyChanged(string value) => Dress();
+    partial void OnTitleSizeChanged(double value) => Dress();
+    partial void OnTitleOpacityChanged(double value) => Dress();
+    partial void OnTitlePlacementChanged(TitlePlacement value) => Dress();
+    partial void OnValueSizeChanged(double value) => Dress();
+    partial void OnValueAlignChanged(TextAlign value) => Dress();
+    partial void OnValueShownChanged(bool value) => Dress();
+
     /// <summary>True while the form is being filled FROM a preset, so the writes that causes are not read
     /// back as edits. Without it, merely switching preset would mark the new one as edited — it would be
     /// written with its own values, which changes nothing and still ends in being asked to save it.</summary>
@@ -124,7 +251,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>Fills the appearance controls from a preset without touching it.</summary>
     private void Read(Preset? preset)
     {
-        OnPropertyChanged(nameof(PresetIsBuiltIn));
+        OnPropertyChanged(nameof(CanUpdatePreset));
         OnPropertyChanged(nameof(PresetNote));
 
         if (preset is null) return;
@@ -132,12 +259,41 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _reading = true;
         try
         {
+            PresetName = preset.Name;
+
             BackgroundColor = preset.Background.Color;
             BackgroundOpacity = preset.Background.Opacity * 100;
             BorderColor = preset.Border.Color;
             BorderOpacity = preset.Border.Opacity * 100;
             BorderThickness = preset.Border.Thickness;
             CornerRadius = preset.Border.CornerRadius;
+
+            ArcThickness = preset.Gauge.Thickness;
+            ArcCorner = preset.Gauge.Corner;
+            Sweep = preset.Gauge.Sweep;
+            TrackColor = preset.Gauge.Track.Color;
+            TrackOpacity = preset.Gauge.Track.Opacity * 100;
+
+            LineThickness = preset.Line.Thickness;
+            LineFill = preset.Line.Fill;
+            FillOpacity = preset.Line.FillOpacity * 100;
+            Smoothness = preset.Line.Smoothness * 100;
+            PointSize = preset.Line.PointSize;
+
+            BarThickness = preset.Bar.Thickness;
+            BarCorner = preset.Bar.Corner;
+            BarLayout = preset.Bar.Layout;
+
+            UnitSize = preset.Number.UnitSize;
+            NumberPanel = preset.Number.Panel;
+
+            FontFamily = preset.FontFamily ?? ThemeFont;
+            TitleSize = preset.Title.Size;
+            TitleOpacity = preset.Title.Opacity * 100;
+            TitlePlacement = preset.Title.Placement;
+            ValueSize = preset.Value.Size;
+            ValueAlign = preset.Value.Align;
+            ValueShown = preset.Value.Show;
         }
         finally
         {
@@ -158,6 +314,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         var preset = presets.Draft(chosen);
 
+        // Blank is never a name. Cleared, the box would rename the preset to nothing on the way past.
+        if (!string.IsNullOrWhiteSpace(PresetName)) preset.Name = PresetName.Trim();
+
         preset.Background.Color = BackgroundColor;
         preset.Background.Opacity = BackgroundOpacity / 100;
         preset.Border.Color = BorderColor;
@@ -165,6 +324,36 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Border.Thickness = BorderThickness;
         preset.Border.CornerRadius = CornerRadius;
 
+        preset.Gauge.Thickness = ArcThickness;
+        preset.Gauge.Corner = ArcCorner;
+        preset.Gauge.Sweep = Sweep;
+        preset.Gauge.Track.Color = TrackColor;
+        preset.Gauge.Track.Opacity = TrackOpacity / 100;
+
+        preset.Line.Thickness = LineThickness;
+        preset.Line.Fill = LineFill;
+        preset.Line.FillOpacity = FillOpacity / 100;
+        preset.Line.Smoothness = Smoothness / 100;
+        preset.Line.PointSize = PointSize;
+
+        preset.Bar.Thickness = BarThickness;
+        preset.Bar.Corner = BarCorner;
+        preset.Bar.Layout = BarLayout;
+
+        preset.Number.UnitSize = UnitSize;
+        preset.Number.Panel = NumberPanel;
+
+        // Null rather than the label, so a preset that defers to the theme says so in the file instead of
+        // freezing today's theme font into itself.
+        preset.FontFamily = FontFamily == ThemeFont ? null : FontFamily;
+        preset.Title.Size = TitleSize;
+        preset.Title.Opacity = TitleOpacity / 100;
+        preset.Title.Placement = TitlePlacement;
+        preset.Value.Size = ValueSize;
+        preset.Value.Align = ValueAlign;
+        preset.Value.Show = ValueShown;
+
+        OnPropertyChanged(nameof(PresetNote));
         Changed?.Invoke(WidgetChange.Dress);
     }
 
@@ -207,12 +396,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     public bool ShowsDataSection => SelectedKind is { MaxSeries: > 0 };
 
     partial void OnCaptionChanged(string value) => Apply();
-    partial void OnTextSizeChanged(double value) => Apply();
     partial void OnSelectedClockFormatChanged(ClockFormat value) => Apply();
 
-    /// <summary>The words a Text widget says, and how any piece made of words is drawn.</summary>
+    /// <summary>The words a Text widget says. How they are DRAWN is the preset's.</summary>
     [ObservableProperty] private string _caption = string.Empty;
-    [ObservableProperty] private double _textSize = 18;
     [ObservableProperty] private ClockFormat _selectedClockFormat = ClockFormat.Time;
 
     public IReadOnlyList<ClockFormat> ClockFormats { get; } = Enum.GetValues<ClockFormat>();
@@ -352,7 +539,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         OnPropertyChanged(nameof(ShowsCaptionOptions));
         OnPropertyChanged(nameof(ShowsClockOptions));
         OnPropertyChanged(nameof(ShowsChartData));
+        OnPropertyChanged(nameof(ShowsDial));
+        OnPropertyChanged(nameof(ShowsLine));
+        OnPropertyChanged(nameof(ShowsBar));
+        OnPropertyChanged(nameof(ShowsNumber));
+        OnPropertyChanged(nameof(ShowsValue));
+        OnPropertyChanged(nameof(CanHideValue));
         OnPropertyChanged(nameof(RampNames));
+        OnPropertyChanged(nameof(PanelTitle));
     }
 
     [ObservableProperty]
@@ -397,7 +591,11 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// and adding are separate on purpose: a click that silently replaced a series would be very easy to
     /// do by accident while scrolling a list of two hundred sensors.</summary>
     partial void OnSelectedSensorChanged(SensorOption? value) => NotifySeriesState();
-    partial void OnTitleChanged(string value) => Apply();
+    partial void OnTitleChanged(string value)
+    {
+        OnPropertyChanged(nameof(PanelTitle));
+        Apply();
+    }
 
     /// <summary>Writes the form into the live definition and tells the host to re-render it. The screen is
     /// never touched — moving a widget between monitors is the desktop context menu's job, because it is
@@ -441,6 +639,18 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty]
     private string _sensorFilter = string.Empty;
 
+    /// <summary>
+    /// The widget the panel is pointed at, in the words the widget itself uses.
+    ///
+    /// The heading used to read "Widget" whatever was open, and the subtitle the same sentence for all of
+    /// them — so a panel docked at the edge of a desktop holding six widgets never said which one it was
+    /// editing. Falls back to the kind's name, because a title is allowed to be empty and a heading is not.
+    /// </summary>
+    public string PanelTitle =>
+        _target is null ? "Widget"
+        : !string.IsNullOrWhiteSpace(Title) ? Title.Trim()
+        : SelectedKind?.Name ?? "Widget";
+
     /// <summary>Whether there is anything to edit. The panel is long-lived and spends part of its life
     /// pointed at nothing, and a form full of controls that change nothing reads as broken.</summary>
     public bool HasTarget => _target is not null;
@@ -476,6 +686,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         SelectedSensor = null;
         SensorFilter = string.Empty;
         OnPropertyChanged(nameof(HasTarget));
+        OnPropertyChanged(nameof(PanelTitle));
     }
 
 
@@ -541,6 +752,11 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             if (pinned is not null)
                 Chosen.Add(new SeriesRow(pinned, RampNames, DefaultRamp(0), OnSeriesEdited));
         }
+
+        // Cleared, or the list keeps the row highlighted from the widget before — and since this is what
+        // decides whether Add is offered and what it is called, the panel goes on looking like it is still
+        // pointed at the previous widget.
+        SelectedSensor = null;
 
         Caption = target.Text;
         SelectedClockFormat = target.ClockFormat;
