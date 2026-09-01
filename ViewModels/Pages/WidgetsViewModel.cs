@@ -162,6 +162,20 @@ public partial class WidgetsViewModel : ObservableObject
                 MessageBoxResult.No) != MessageBoxResult.Yes)
             return;
 
+        // A locked preset cannot be written over, so changes made to one have nowhere to go unless the
+        // user says where. Asked per preset, and only for the locked ones — a preset of their own is
+        // simply saved, the way editing anything of your own works everywhere else.
+        if (save)
+            foreach (var locked in _widgets.LockedEdits)
+                if (MessageBox.Show(
+                        $"\u201c{locked.Name}\u201d is a built-in preset and cannot be changed.\n\n" +
+                        "Keep your changes as a new preset? Choosing No puts it back as it was.",
+                        "Built-in preset",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question,
+                        MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                    _widgets.KeepAsNew(locked);
+
         IsEditingOnDesktop = false;
         _surface.SetEditing(false);
         _widgets.EndEditSession(save);

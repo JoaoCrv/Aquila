@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using Aquila.Controls;
 using Aquila.DesktopSurface;
@@ -39,6 +40,11 @@ public sealed class DesktopWidgetService
     /// last write, and a read that fails would lose everything the session was meant to be able to undo.
     /// </summary>
     private List<DesktopWidgetDefinition>? _snapshot;
+
+    /// <summary>The widgets a preset was actually edited THROUGH during this session. A variant follows
+    /// these and not everything wearing the preset, so "make the clock different" can be answered without
+    /// dragging the other five widgets along with it.</summary>
+    private readonly HashSet<DesktopWidgetDefinition> _dressed = [];
 
     public DesktopWidgetService(AquilaService aquila, DesktopSurfaceService surfaces,
         DesktopLayoutService layout, PresetService presets)
@@ -301,7 +307,15 @@ public sealed class DesktopWidgetService
         HideEditorPanel();
 
         var restore = _snapshot;
-        if (restore is null) return;
+        if (restore is null)
+        {
+            // No widget session, so any drafted preset is an orphan of one that ended without either
+            // outcome running. Left alone it would be committed by the NEXT save, which is how a preset
+            // edited on Monday could fork itself again on Tuesday.
+            _presets.Revert();
+            _dressed.Clear();
+            return;
+        }
 
         // The layout alone, not the wider question: a preset edit is undone by re-dressing, which keeps the
         // charts running, where a full rebuild would restart every line from an empty history.
@@ -311,8 +325,14 @@ public sealed class DesktopWidgetService
         if (save)
         {
             DropEmptyWidgets();
-            Adopt(_presets.Commit());
+
+            // A locked preset whose changes the user chose not to keep is put back as it was, leaving the
+            // widgets wearing it showing a look that no longer exists. Re-dressed rather than rebuilt:
+            // they have the wrong colours, not the wrong thing, and a rebuild restarts every chart empty.
+            if (_presets.Commit()) RestyleAll();
+
             SaveUnlessEditing();
+            _dressed.Clear();
         }
         else
         {
@@ -321,6 +341,7 @@ public sealed class DesktopWidgetService
             // look sitting on the desktop after the user asked for it to be thrown away.
             var dressed = _presets.Drafts.Count > 0;
             _presets.Revert();
+            _dressed.Clear();
 
             // Only when something actually differs. Rebuilding every widget to restore a layout identical
             // to the one on screen is work the user would see as a flicker and nothing else.
@@ -333,24 +354,28 @@ public sealed class DesktopWidgetService
         }
     }
 
-    /// <summary>
-    /// Moves the widgets that were wearing a preset onto the variant its edits became.
-    ///
-    /// Every widget wearing it, not only the one whose panel was open: the edit was shown live on all of
-    /// them, and Save has to keep what was on screen at the moment it was pressed. A widget naming no preset
-    /// is wearing the base, so it moves too when the base is the one that forked — and gains an explicit
-    /// name in the process, which is honest, because it is no longer wearing whatever the default happens
-    /// to be.
-    /// </summary>
-    private void Adopt(IReadOnlyList<(string From, Preset To)> forked)
-    {
-        if (_widgets is null) return;
+    /// <summary>The locked presets edited in this session — what the user has to be asked about before
+    /// the session closes, because those changes have nowhere of their own to go.</summary>
+    public IReadOnlyList<Preset> LockedEdits => _presets.LockedDrafts;
 
-        foreach (var (from, to) in forked)
-            foreach (var widget in _widgets)
-                if (string.Equals(widget.Preset, from, StringComparison.OrdinalIgnoreCase) ||
-                    (string.IsNullOrWhiteSpace(widget.Preset) && from == PresetService.BaseId))
-                    widget.Preset = to.Id;
+    /// <summary>
+    /// Answers "keep my changes to a locked preset" by giving them a preset of their own.
+    ///
+    /// The widgets that move are the ones the edit was made THROUGH, not everything wearing the original.
+    /// A locked preset is shared by definition — it is the one every widget starts on — so moving all of
+    /// them is never what someone keeping one widget's changes meant.
+    ///
+    /// A widget naming no preset is wearing the base, so it moves too when the base is what was edited,
+    /// and gains an explicit name doing it: it is no longer wearing whatever the default happens to be.
+    /// </summary>
+    public void KeepAsNew(Preset locked)
+    {
+        var variant = _presets.Duplicate(locked);
+
+        foreach (var widget in _dressed)
+            if (string.Equals(widget.Preset, locked.Id, StringComparison.OrdinalIgnoreCase) ||
+                (string.IsNullOrWhiteSpace(widget.Preset) && locked.Id == PresetService.BaseId))
+                widget.Preset = variant.Id;
     }
 
     /// <summary>Whether the layout itself would be written differently. Compared as the serialized layout,
@@ -421,7 +446,12 @@ public sealed class DesktopWidgetService
         if (_panel?.Target is not { } target) return;
 
         if (change == ViewModels.Windows.WidgetChange.Structure) RefreshWidget(target);
-        else if (change == ViewModels.Windows.WidgetChange.Dress) RestyleWearing(target);
+        else if (change == ViewModels.Windows.WidgetChange.Dress)
+        {
+            // Recorded here rather than when the panel opens: looking at a widget is not editing through it.
+            _dressed.Add(target);
+            RestyleWearing(target);
+        }
         else RestyleWidget(target);
 
         SaveUnlessEditing();
@@ -449,19 +479,13 @@ public sealed class DesktopWidgetService
 
         var preset = _presets.For(definition.Preset);
 
-        border.Background = Tint(preset.Background.Color, preset.Background.Opacity);
-        border.BorderBrush = Tint(preset.Border.Color, preset.Border.Opacity);
-        border.BorderThickness = new Thickness(preset.Border.Thickness);
-        border.CornerRadius = new CornerRadius(preset.Border.CornerRadius);
-        border.Width = definition.Width;
-        border.Height = definition.Height;
+        Frame(border, definition, preset);
         Canvas.SetLeft(border, definition.X);
         Canvas.SetTop(border, definition.Y);
         Panel.SetZIndex(border, definition.ZIndex);
 
         if (border.Child is LabeledTile tile)
         {
-            tile.Title = definition.Title;
             Dress(tile.Tile, preset);
             Content(tile.Tile, definition);
             KeepEnoughHistory(definition, ResolveSensors(definition));
@@ -729,8 +753,43 @@ public sealed class DesktopWidgetService
         }
     }
 
+    /// <summary>
+    /// The panel a widget sits in and the label above it — everything outside the piece itself.
+    ///
+    /// One method rather than the same assignments in Build and RestyleWidget. Those are the two places a
+    /// widget's frame is decided, and a setting added to one and forgotten in the other shows up as a
+    /// widget that looks right until the moment someone edits it.
+    /// </summary>
+    private static void Frame(Border border, DesktopWidgetDefinition definition, Preset preset)
+    {
+        border.Background = Tint(preset.Background.Color, preset.Background.Opacity);
+        border.BorderBrush = Tint(preset.Border.Color, preset.Border.Opacity);
+        border.BorderThickness = new Thickness(preset.Border.Thickness);
+        border.CornerRadius = new CornerRadius(preset.Border.CornerRadius);
+        border.Width = definition.Width;
+        border.Height = definition.Height;
+
+        // Set on the outermost element so the title, the reading and anything else made of words inherit
+        // it from one assignment. Cleared rather than given a default when the preset names nothing: an
+        // explicit family would override the theme's, and "nothing" is asking to keep the theme's.
+        if (string.IsNullOrWhiteSpace(preset.FontFamily)) border.ClearValue(TextElement.FontFamilyProperty);
+        else TextElement.SetFontFamily(border, new FontFamily(preset.FontFamily));
+
+        if (border.Child is not LabeledTile tile) return;
+
+        tile.Title = definition.Title;
+        tile.TitleSize = preset.Title.Size;
+        tile.TitleOpacity = preset.Title.Opacity;
+        tile.TitlePlacement = preset.Title.Placement;
+    }
+
     private static void Dress(object? piece, Preset preset)
     {
+        // First, and for anything that draws a reading. Kept out of the per-kind blocks below because it
+        // is the one setting they all share, and repeating it in each is how the sparkline came to be the
+        // only kind it did not reach.
+        if (piece is IValueStyle value) value.ValueSize = preset.Value.Size;
+
         if (piece is IChartStyle line)
         {
             line.LineThickness = preset.Line.Thickness;
@@ -745,8 +804,8 @@ public sealed class DesktopWidgetService
             dial.ArcThickness = preset.Gauge.Thickness;
             dial.ArcCorner = preset.Gauge.Corner;
             dial.Sweep = preset.Gauge.Sweep;
-            dial.ValueSize = preset.Value.Size;
-            dial.ShowValue = preset.Value.Opacity > 0;
+            dial.ShowValue = preset.Value.Show;
+            dial.TrackBrush = Tint(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
 
         if (piece is IMeterStyle bar)
@@ -754,23 +813,17 @@ public sealed class DesktopWidgetService
             bar.BarThickness = preset.Bar.Thickness;
             bar.BarCorner = preset.Bar.Corner;
             bar.Layout = preset.Bar.Layout;
-            bar.ValueSize = preset.Value.Size;
-            bar.ShowValue = preset.Value.Opacity > 0;
+            bar.ShowValue = preset.Value.Show;
         }
 
         if (piece is IStatStyle stat)
         {
-            stat.ValueSize = preset.Number.Size;
             stat.UnitSize = preset.Number.UnitSize;
             stat.ShowUnit = preset.Number.UnitSize > 0;
             stat.ShowPanel = preset.Number.Panel;
         }
 
-        if (piece is ITextStyle text)
-        {
-            text.TextSize = preset.Value.Size;
-            text.Align = preset.Value.Align;
-        }
+        if (piece is ITextStyle text) text.Align = preset.Value.Align;
     }
 
     /// <summary>
@@ -895,20 +948,11 @@ public sealed class DesktopWidgetService
         // background for contrast: it carries its own backing panel, which the user can restyle.
         var widget = new Border
         {
-            Background = Tint(preset.Background.Color, preset.Background.Opacity),
-            BorderBrush = Tint(preset.Border.Color, preset.Border.Opacity),
-            BorderThickness = new Thickness(preset.Border.Thickness),
-            CornerRadius = new CornerRadius(preset.Border.CornerRadius),
             Padding = new Thickness(10),
-            Width = definition.Width,
-            Height = definition.Height,
-            Child = new LabeledTile
-            {
-                Title = definition.Title,
-                Tile = piece,
-                Foreground = Brushes.White,
-            },
+            Child = new LabeledTile { Tile = piece, Foreground = Brushes.White },
         };
+
+        Frame(widget, definition, preset);
 
         // Set here rather than where the widget is added to a canvas, because there are two such places
         // and this is the one both of them go through.

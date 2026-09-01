@@ -97,6 +97,12 @@ public sealed class PresetService(ILogger<PresetService> logger)
     // side. Non-empty IS a session, so there is no second flag to disagree with it.
 
     private readonly Dictionary<string, Preset> _originals = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _created = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The locked presets edited in this session — the ones whose changes have nowhere to go
+    /// unless the user is asked. Empty is the normal case, and nothing is asked then.</summary>
+    public IReadOnlyList<Preset> LockedDrafts =>
+        [.. _presets.Where(p => p.IsBuiltIn && _originals.ContainsKey(p.Id))];
 
     /// <summary>The presets edited since the session began.</summary>
     public IReadOnlyList<Preset> Drafts => [.. _presets.Where(p => _originals.ContainsKey(p.Id))];
@@ -116,6 +122,10 @@ public sealed class PresetService(ILogger<PresetService> logger)
     /// <summary>Puts every edited preset back as it was and ends the session.</summary>
     public void Revert()
     {
+        // Nothing was written for these, so forgetting them is the whole of undoing them.
+        foreach (var id in _created) _presets.RemoveAll(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+        _created.Clear();
+
         if (_originals.Count == 0) return;
 
         foreach (var original in _originals.Values) Register(original);
@@ -125,69 +135,91 @@ public sealed class PresetService(ILogger<PresetService> logger)
     }
 
     /// <summary>
-    /// Keeps the edits and ends the session.
+    /// Keeps the session's work: every edited preset is written, and every preset created during it.
     ///
-    /// A preset of the user's own is written where it lives. A built-in cannot be written over — that rule
-    /// is what guarantees there is always something to go back to — so its edits leave as a variant and the
-    /// built-in is put back untouched. There is no question to ask here: for a built-in a variant is the
-    /// only legal outcome, and refusing the edit instead would throw away work the user has been watching
-    /// on screen.
+    /// It no longer decides anything. Creating a variant is an action the user takes while editing, and a
+    /// locked preset they edited without taking it has already been asked about by the time this runs —
+    /// so all that is left here is carrying out what happened. Deciding here is what produced ember-copy2
+    /// beside ember-copy: a fork on every save, because nobody had been asked.
     ///
-    /// The returned pairs say which id became which, so the caller can move the widgets that were wearing it
-    /// across. Without that the variant would be saved and worn by nothing, and the user would watch their
-    /// edits vanish at the moment they pressed Save.
+    /// A locked preset still holding edits is put back as it was. That is the "discard" answer, and it is
+    /// also the safe reading of any answer that never arrived.
+    ///
+    /// Returns true when something was put back, so the caller knows the widgets still wearing it are
+    /// showing a look that no longer exists.
     /// </summary>
-    public IReadOnlyList<(string From, Preset To)> Commit()
+    public bool Commit()
     {
-        var forked = new List<(string From, Preset To)>();
+        var reverted = false;
 
         foreach (var (id, original) in _originals)
         {
             var draft = _presets.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
             if (draft is null) continue;
 
-            if (!original.IsBuiltIn)
+            if (original.IsBuiltIn)
             {
-                Save(draft);
+                Register(original);
+                reverted = true;
                 continue;
             }
 
-            var variant = Clone(draft);
-            variant.Id = FreeId($"{id}-copy");
-            variant.Name = $"{original.Name} (copy)";
-            variant.IsBuiltIn = false;
-
-            Register(original);
-            Save(variant);
-            Register(variant);
-
-            forked.Add((id, variant));
+            Save(draft);
         }
 
+        // Born this session, so they exist only in memory until now.
+        foreach (var id in _created)
+            if (_presets.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)) is { } born)
+                Save(born);
+
         _originals.Clear();
+        _created.Clear();
         Sort();
 
-        return forked;
+        return reverted;
     }
 
     /// <summary>
-    /// Writes a copy into the user folder under a free id, and returns it.
+    /// A new preset from an existing one, in memory.
     ///
-    /// The only way to edit a built-in, and the way a variant is born: starting from something that already
-    /// works beats starting from a blank file, and the original stays intact to go back to.
+    /// The way every preset is born. Starting from something that already works beats starting from a blank
+    /// file, and the original is left intact to go back to — which is the whole of what "locked" protects.
+    ///
+    /// Not written to disk here. A preset created and then thrown away with the session should leave
+    /// nothing behind, so the file appears when the session is kept and never otherwise.
     /// </summary>
     public Preset Duplicate(Preset source)
     {
         var copy = Clone(source);
 
-        copy.Id = FreeId($"{source.Id}-copy");
-        copy.Name = $"{source.Name} (copy)";
+        copy.Name = NextName(source.Name);
+        copy.Id = FreeId(Slug(copy.Name, source.Id));
         copy.IsBuiltIn = false;
 
-        Save(copy);
         Register(copy);
+        _created.Add(copy.Id);
+        Sort();
 
         return copy;
+    }
+
+    /// <summary>
+    /// "Ember" becomes "Ember 2", and "Ember 2" becomes "Ember 3".
+    ///
+    /// Counting rather than "(copy)", and "(copy) (copy)" is why: a name that grows a suffix every time is
+    /// unreadable by the third one, where a number stays the same length forever.
+    /// </summary>
+    private string NextName(string name)
+    {
+        var stem = name.TrimEnd(' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9').Trim();
+        if (stem.Length == 0) stem = name.Trim();
+
+        for (var n = 2; ; n++)
+        {
+            var candidate = $"{stem} {n}";
+            if (!_presets.Any(p => string.Equals(p.Name, candidate, StringComparison.CurrentCultureIgnoreCase)))
+                return candidate;
+        }
     }
 
     /// <summary>Writes a preset to the user folder. A built-in is never written over — the caller should
@@ -243,6 +275,24 @@ public sealed class PresetService(ILogger<PresetService> logger)
     }
 
     private static string PathFor(string id) => Path.Combine(AquilaPaths.Presets, $"{id}.json");
+
+    /// <summary>
+    /// A file-name stem from a preset's name: "My Dark Ember" becomes "my-dark-ember".
+    ///
+    /// So the folder is browsable — the whole point of presets being files people can send each other is
+    /// that the file is recognisable when it arrives. Falls back to the source preset's id when a name has
+    /// nothing usable in it, which a name written in a non-Latin script otherwise would not.
+    /// </summary>
+    private static string Slug(string name, string fallback)
+    {
+        var slug = new string([.. name.ToLowerInvariant()
+            .Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-')]).Trim('-');
+
+        while (slug.Contains("--", StringComparison.Ordinal))
+            slug = slug.Replace("--", "-", StringComparison.Ordinal);
+
+        return slug.Length > 0 ? slug : $"{fallback}-copy";
+    }
 
     private string FreeId(string wanted)
     {
