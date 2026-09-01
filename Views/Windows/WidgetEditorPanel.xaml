@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:controls="clr-namespace:Aquila.Controls"
         Title="Widget"
         Width="380"
         ResizeMode="NoResize"
@@ -50,31 +51,6 @@
         <Style TargetType="ui:CardExpander" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
-        <!-- Quick colours. They only ever WRITE the hex box below them: the preset's own value stays the
-             truth, so a colour this list does not have survives being looked at. The command comes in
-             through Tag, which is what lets one template serve background, border and track. -->
-        <Style x:Key="Swatches" TargetType="ItemsControl">
-            <Setter Property="Margin" Value="0,0,0,6"/>
-            <Setter Property="ItemsSource" Value="{Binding ViewModel.Colors,
-                                                   RelativeSource={RelativeSource AncestorType=Window}}"/>
-            <Setter Property="ItemsPanel">
-                <Setter.Value>
-                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="ItemTemplate">
-                <Setter.Value>
-                    <DataTemplate>
-                        <Button Padding="3" Margin="0,0,6,0" ToolTip="{Binding Name}"
-                                Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                CommandParameter="{Binding Hex}">
-                            <Border Width="18" Height="18" CornerRadius="3" Background="{Binding Hex}"/>
-                        </Button>
-                    </DataTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <Style x:Key="SectionHead" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Opacity" Value="0.9"/>
@@ -287,7 +263,8 @@
                                                        TextTrimming="CharacterEllipsis"
                                                        Text="{Binding Sensor.Display}"/>
                                             <ComboBox Grid.Column="2"
-                                                      ItemsSource="{Binding Ramps}"
+                                                      ItemsSource="{Binding DataContext.ViewModel.RampNames,
+                                                                   RelativeSource={RelativeSource AncestorType=Window}}"
                                                       SelectedItem="{Binding Ramp}"/>
                                             <ui:Button Grid.Column="4"
                                                        Icon="{ui:SymbolIcon Dismiss24}"
@@ -379,10 +356,9 @@
                             <Separator Margin="0,16,0,12" Opacity="0.15"/>
 
                             <TextBlock Text="Background" Style="{StaticResource FieldLabel}"/>
-                            <ItemsControl Style="{StaticResource Swatches}"
-                                          Tag="{Binding ViewModel.PickBackgroundCommand}"/>
-                            <ui:TextBox PlaceholderText="#000000"
-                                        Text="{Binding ViewModel.BackgroundColor}"/>
+                            <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.BackgroundColor, Mode=TwoWay}"
+
+                                                 Swatches="{Binding ViewModel.Swatches}"/>
                             <DockPanel Margin="0,10,0,0">
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                            Text="{Binding ViewModel.BackgroundOpacity, StringFormat={}{0:F0}%}"/>
@@ -392,10 +368,9 @@
                                     Value="{Binding ViewModel.BackgroundOpacity}"/>
 
                             <TextBlock Text="Border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                            <ItemsControl Style="{StaticResource Swatches}"
-                                          Tag="{Binding ViewModel.PickBorderCommand}"/>
-                            <ui:TextBox PlaceholderText="#FFFFFF"
-                                        Text="{Binding ViewModel.BorderColor}"/>
+                            <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.BorderColor, Mode=TwoWay}"
+
+                                                 Swatches="{Binding ViewModel.Swatches}"/>
                             <DockPanel Margin="0,10,0,0">
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                            Text="{Binding ViewModel.BorderOpacity, StringFormat={}{0:F0}%}"/>
@@ -420,6 +395,84 @@
                             <Slider Minimum="0" Maximum="24"
                                     Value="{Binding ViewModel.CornerRadius}"/>
 
+                            <TextBlock Text="Colours" Style="{StaticResource SectionHead}"/>
+                            <DockPanel>
+                                <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0"
+                                           Icon="{ui:SymbolIcon Delete24}"
+                                           ToolTip="Delete this ramp"
+                                           IsEnabled="{Binding ViewModel.CanDeleteRamp}"
+                                           Command="{Binding ViewModel.DeleteRampCommand}"/>
+                                <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0"
+                                           Icon="{ui:SymbolIcon Add24}"
+                                           ToolTip="New ramp, starting from this one"
+                                           Command="{Binding ViewModel.AddRampCommand}"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.RampNames}"
+                                          SelectedItem="{Binding ViewModel.SelectedRampName}"/>
+                            </DockPanel>
+
+                            <!-- The ramp end to end. Four colours are hard to judge as four text boxes and
+                                 easy to judge as a strip, and this is the one part of a preset where the
+                                 relationship between the colours is the point. -->
+                            <UniformGrid Rows="1" Height="8" Margin="0,10,0,0">
+                                <Border Background="{Binding ViewModel.RampNormal}"/>
+                                <Border Background="{Binding ViewModel.RampElevated}"/>
+                                <Border Background="{Binding ViewModel.RampAlert}"/>
+                                <Border Background="{Binding ViewModel.RampCritical}"/>
+                            </UniformGrid>
+
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="72"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Normal" VerticalAlignment="Center"
+                                               Style="{StaticResource FieldLabel}"/>
+                                    <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
+                                                         Color="{Binding ViewModel.RampNormal, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="72"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Elevated" VerticalAlignment="Center"
+                                               Style="{StaticResource FieldLabel}"/>
+                                    <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
+                                                         Color="{Binding ViewModel.RampElevated, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="72"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Alert" VerticalAlignment="Center"
+                                               Style="{StaticResource FieldLabel}"/>
+                                    <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
+                                                         Color="{Binding ViewModel.RampAlert, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                </Grid>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="72"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Critical" VerticalAlignment="Center"
+                                               Style="{StaticResource FieldLabel}"/>
+                                    <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
+                                                         Color="{Binding ViewModel.RampCritical, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                </Grid>
+
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,6,0,0" FontSize="11"
+                                       Opacity="0.5" TextWrapping="Wrap"
+                                       Text="Which of the four a reading is drawn in is decided by the reading itself, against the limits in Settings. A ramp with four equal colours simply never changes."/>
+
                             <StackPanel Visibility="{Binding ViewModel.ShowsDial, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Text="Dial" Style="{StaticResource SectionHead}"/>
                                 <DockPanel Margin="0,10,0,0">
@@ -441,9 +494,9 @@
                                           SelectedItem="{Binding ViewModel.Sweep}"/>
 
                                     <TextBlock Text="Track" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                                    <ItemsControl Style="{StaticResource Swatches}"
-                                                  Tag="{Binding ViewModel.PickTrackCommand}"/>
-                                    <ui:TextBox PlaceholderText="#FFFFFF" Text="{Binding ViewModel.TrackColor}"/>
+                                    <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TrackColor, Mode=TwoWay}"
+
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
                                 <DockPanel Margin="0,10,0,0">
                                     <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                                Text="{Binding ViewModel.TrackOpacity, StringFormat={}{0:F0}%}"/>
