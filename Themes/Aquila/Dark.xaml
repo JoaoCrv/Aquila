@@ -33,6 +33,10 @@
          nothing on the chrome. -->
     <Color x:Key="Aquila.Theme.Accent">#FF6B35</Color>
 
+    <!-- The shell's own highlight. Ember here, because that IS the app's identity — and separate from
+         whatever a preset is painting its readings, which is the whole point of the two axes. -->
+    <SolidColorBrush x:Key="Aquila.Chrome.Accent" Color="#FF6B35"/>
+
     <!-- Scrim over the window's Mica. Alpha D1 is ~82%, as in the mockup: enough of our own colour to
          stop the wallpaper deciding how warm the app looks, enough material left to keep its depth. -->
     <!-- Scrim over the window's Mica, at ~70%. Our colour leads and the material is left as depth rather

@@ -331,13 +331,13 @@
                                             <!-- The one entry that cannot be undone by doing it again wears
                                                  the app's own alert colour. -->
                                             <MenuItem Header="Delete"
-                                                      Foreground="{DynamicResource Aquila.Scheme.Alert}"
+                                                      Foreground="{DynamicResource Aquila.Chrome.Danger}"
                                                       IsEnabled="{Binding ViewModel.CanUpdatePreset}"
                                                       Command="{Binding ViewModel.DeletePresetCommand}"
                                                       CommandParameter="{Binding ViewModel.SelectedPreset}">
                                                 <MenuItem.Icon>
                                                     <ui:SymbolIcon Symbol="Delete24"
-                                                                   Foreground="{DynamicResource Aquila.Scheme.Alert}"/>
+                                                                   Foreground="{DynamicResource Aquila.Chrome.Danger}"/>
                                                 </MenuItem.Icon>
                                             </MenuItem>
                                         </ContextMenu>

@@ -37,6 +37,35 @@
          move anything.
          ═══════════════════════════════════════════════════════════════════ -->
 
+    <!-- ═══════════════════════════════════════════════════════════════════
+         CHROME — what the APPLICATION says about itself.
+
+         Separate from Aquila.Scheme.* on purpose, and the separation is the point. Scheme is what a
+         READING looks like: normal, elevated, alert, critical, decided per tick from the value. Chrome is
+         what the app looks like when it is telling you something about itself — a heading, a warning
+         triangle beside a widget that cannot be drawn, a Delete that cannot be undone.
+
+         They were the same colours until now, because chrome had nowhere else to go: roughly half the
+         uses of Aquila.Scheme.Accent and nearly every use of Aquila.Scheme.Alert are chrome borrowing the
+         data palette. None of those mean "this reading is hot"; they mean "this is a problem". #44 moves
+         them here.
+
+         Keeping them apart is what lets a preset paint critical purple without the app's own Delete
+         button going purple with it.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <SolidColorBrush x:Key="Aquila.Chrome.Accent"   Color="#FF6B35"/>
+    <SolidColorBrush x:Key="Aquila.Chrome.Danger"   Color="#E74856"/>
+    <SolidColorBrush x:Key="Aquila.Chrome.Caution"  Color="#FFB900"/>
+    <SolidColorBrush x:Key="Aquila.Chrome.Success"  Color="#6CCB5F"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SHAPE — how round the app is, in one place.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <CornerRadius x:Key="Aquila.Radius.Card">8</CornerRadius>
+    <CornerRadius x:Key="Aquila.Radius.Control">4</CornerRadius>
+
     <Thickness x:Key="Aquila.Space.Tight">6</Thickness>
     <Thickness x:Key="Aquila.Space.Snug">10</Thickness>
     <Thickness x:Key="Aquila.Space.Roomy">14</Thickness>

@@ -318,14 +318,16 @@ que não existem: o documento descrevia um plano, não o código.)*
 | `VitalMonitor` | limites em vigor + `RoleFor`/`BrushFor`; `Current` estático para o XAML alcançar |
 | `AppearanceService` | troca de tema (`UserPreferenceChanged` + `AppsUseLightTheme`; **não** `SystemThemeWatcher.Watch`) |
 
-**Os dois sistemas de cor em paralelo, medidos.** Os 25 usos de `Aquila.Scheme.Accent` dividem-se ao meio:
-metade são dados (cards do CPU/GPU/RAM, e os *fallbacks* do gauge, do meter e da barra), metade são casca
-(títulos na StoragePage e na WidgetsPage, o `SensorStyles.xaml`). O `Alert` é ainda mais claro — a
-WidgetsPage usa-o no triângulo de aviso dos widgets não desenháveis, e o editor no Delete do menu. Nenhum
-desses é "esta leitura está quente"; são "isto é um problema".
+**Os dois sistemas de cor em paralelo, medidos — e a primeira medição estava errada.** Contando por
+ocorrência de chave parecia que metade dos 25 usos de `Aquila.Scheme.Accent` era casca. Olhando ao que cada
+um pinta, são **quatro** em todo o repositório: o crachá da letra da unidade no Storage, o triângulo dos
+widgets não desenháveis, e o Delete do menu do editor. Tudo o resto pinta leituras, mesmo quando vive num
+ficheiro de página ou de estilo — os `StatBoxValue` do Storage mostram *Data Read*, o `GpuBar` e o `RamBar`
+mostram cargas, e os `Accent` da WidgetsPage são as pré-visualizações da galeria.
 
-**A casca está a pedir emprestado à paleta dos dados porque não tem variantes próprias.** É esse o custo
-real da duplicação, e não as chaves em si.
+**A casca estava a pedir emprestado à paleta dos dados porque não tinha variantes próprias**, e continua a
+ser esse o custo real da duplicação — mas em quatro sítios, não em metade do repositório. A lição vale para
+lá deste caso: contar chaves não é medir, é estimar com números.
 
 ---
 

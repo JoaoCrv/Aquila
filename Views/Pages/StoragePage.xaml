@@ -51,9 +51,10 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Drive letter badge -->
+                                <!-- Drive letter badge. Chrome, not a reading: it says which drive this
+                                     is, and would say it in the same colour if the drive were idle. -->
                                 <Border Grid.Column="0"
-                                        Background="{DynamicResource Aquila.Scheme.Accent}"
+                                        Background="{DynamicResource Aquila.Chrome.Accent}"
                                         CornerRadius="6" Width="38" Height="38"
                                         Margin="0,0,12,0" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding DriveLetter}"

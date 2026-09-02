@@ -80,7 +80,7 @@
                     <ui:CardControl>
                         <ui:CardControl.Icon>
                             <ui:SymbolIcon Symbol="Warning24"
-                                           Foreground="{DynamicResource Aquila.Scheme.Alert}"
+                                           Foreground="{DynamicResource Aquila.Chrome.Caution}"
                                            Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}"/>
                         </ui:CardControl.Icon>
                         <ui:CardControl.Header>
@@ -90,7 +90,7 @@
                                 <!-- The reason, not just the fact: "no reading chosen" and "its sensor is
                                      gone" are different problems and want different fixes. -->
                                 <TextBlock Style="{StaticResource SettingHint}" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource Aquila.Scheme.Alert}"
+                                           Foreground="{DynamicResource Aquila.Chrome.Caution}"
                                            Text="{Binding Problem}"
                                            Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}"/>
                             </StackPanel>

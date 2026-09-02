@@ -18,6 +18,10 @@
 
     <Color x:Key="Aquila.Theme.Accent">#CA5010</Color>
 
+    <!-- The shell's own highlight. Ember here, because that IS the app's identity — and separate from
+         whatever a preset is painting its readings, which is the whole point of the two axes. -->
+    <SolidColorBrush x:Key="Aquila.Chrome.Accent" Color="#DA3B01"/>
+
     <!-- Scrim over the window's Mica — see the note in Dark.xaml. -->
     <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="#B3FBF8F5"/>
 
