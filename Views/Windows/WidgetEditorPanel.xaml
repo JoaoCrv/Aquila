@@ -630,7 +630,7 @@
                                    Text="Draws every widget in that state while this panel is open — the only way to tune Critical without waiting for the machine to run hot."/>
                     </StackPanel>
 
-                    <ui:CardExpander>
+                    <ui:CardExpander Icon="{ui:SymbolIcon SquareHint24}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Panel" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
@@ -691,7 +691,7 @@
                     </ui:CardExpander>
 
 
-                    <ui:CardExpander>
+                    <ui:CardExpander Icon="{ui:SymbolIcon Drop24}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Ramps" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
@@ -777,7 +777,7 @@
                     </ui:CardExpander>
 
 
-                    <ui:CardExpander
+                    <ui:CardExpander Icon="{ui:SymbolIcon Gauge24}"
                                          Visibility="{Binding ViewModel.ShowsDial, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Dial" FontWeight="SemiBold"/>
@@ -817,7 +817,7 @@
                     </ui:CardExpander>
 
 
-                    <ui:CardExpander
+                    <ui:CardExpander Icon="{ui:SymbolIcon DataLine24}"
                                          Visibility="{Binding ViewModel.ShowsLine, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Line" FontWeight="SemiBold"/>
@@ -859,7 +859,7 @@
                     </ui:CardExpander>
 
 
-                    <ui:CardExpander
+                    <ui:CardExpander Icon="{ui:SymbolIcon DataBarHorizontal24}"
                                          Visibility="{Binding ViewModel.ShowsBar, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Bar" FontWeight="SemiBold"/>
@@ -887,7 +887,7 @@
                     </ui:CardExpander>
 
 
-                    <ui:CardExpander
+                    <ui:CardExpander Icon="{ui:SymbolIcon NumberSymbol24}"
                                          Visibility="{Binding ViewModel.ShowsNumber, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Number" FontWeight="SemiBold"/>
@@ -907,7 +907,7 @@
                     </ui:CardExpander>
 
 
-                    <ui:CardExpander>
+                    <ui:CardExpander Icon="{ui:SymbolIcon TextT24}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Title" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
@@ -934,7 +934,7 @@
                     </ui:CardExpander>
 
 
-                    <ui:CardExpander
+                    <ui:CardExpander Icon="{ui:SymbolIcon TextNumberFormat24}"
                                          Visibility="{Binding ViewModel.ShowsValue, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Reading" FontWeight="SemiBold"/>
