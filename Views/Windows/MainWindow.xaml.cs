@@ -19,6 +19,7 @@ namespace Aquila.Views.Windows
         private Action? _balloonClick;
 
         private System.Drawing.Icon _baseIcon = System.Drawing.SystemIcons.Application;
+        private System.Windows.Forms.ToolStripMenuItem? _updateItem;
         private System.Drawing.Icon? _badgedIcon;
 
         // Tracks normal-state bounds so we always have a valid non-maximized size to persist
@@ -89,6 +90,22 @@ namespace Aquila.Views.Windows
 
             var menu = new System.Windows.Forms.ContextMenuStrip();
             menu.Items.Add("Open Aquila", null, (_, _) => TrayOpen());
+
+            // The tray is where someone running Aquila hidden actually lives, and arranging widgets is the
+            // one thing they would otherwise have to open the whole window to reach — only to have it
+            // minimise itself again a second later, because you cannot edit a desktop you cannot see.
+            menu.Items.Add("Edit widgets on the desktop", null, (_, _) => TrayEditWidgets());
+
+            _updateItem = new System.Windows.Forms.ToolStripMenuItem(
+                "Update available — install…", null, (_, _) => TrayInstallUpdate())
+            {
+                // Hidden until there is one. An entry that is present but does nothing teaches people to
+                // ignore the menu, and the badge on the icon already says when to look.
+                Visible = false,
+            };
+
+            menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+            menu.Items.Add(_updateItem);
             menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             menu.Items.Add("Exit", null, (_, _) => TrayExit());
 
@@ -268,7 +285,41 @@ namespace Aquila.Views.Windows
 
                 _trayIcon.Text = available ? "Aquila — update available" : "Aquila";
                 _trayIcon.Icon = available ? (_badgedIcon ??= BuildBadgedIcon(_baseIcon)) : _baseIcon;
+
+                if (_updateItem is not null) _updateItem.Visible = available;
             });
+        }
+
+        /// <summary>
+        /// Starts a desktop edit session from the tray.
+        ///
+        /// Resolved when clicked rather than injected: the view model is a singleton either way, and
+        /// asking for it in this window's constructor would tie two objects together at startup that have
+        /// no reason to know about each other until somebody opens a menu.
+        /// </summary>
+        private void TrayEditWidgets()
+        {
+            var widgets = App.Services.GetService(typeof(ViewModels.Pages.WidgetsViewModel))
+                as ViewModels.Pages.WidgetsViewModel;
+
+            widgets?.StartEditingCommand.Execute(null);
+        }
+
+        /// <summary>The same path the Settings page takes, so there is one update flow and not two.</summary>
+        private async void TrayInstallUpdate()
+        {
+            try
+            {
+                await _updateService.RunUserInitiatedUpdateAsync(request =>
+                    System.Windows.MessageBox.Show(request.Message, request.Title,
+                        System.Windows.MessageBoxButton.YesNo,
+                        System.Windows.MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message, "Update failed",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
         }
 
         /// <summary>Draws a dot on the app icon. Generated once and cached: Icon.FromHandle wraps a native
