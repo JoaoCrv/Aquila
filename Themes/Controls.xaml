@@ -1,8 +1,96 @@
+<!--
+    THE RULES.
+
+    Every Style the app defines, in one place, shared by every theme — Fluent included. A theme brings
+    VALUES (Themes/Base.xaml and Themes/<Name>/*.xaml); it never brings rules. If it did, the button style
+    would be copied into each theme and fixing one padding would become one fix per theme, which is the
+    scattering this file exists to end.
+
+    Two rules hold it together:
+
+      1. ALWAYS BasedOn. A Style without it replaces the control's template, and the control comes back
+         stripped to the bone. It has happened twice — a ui:Card that vanished, and a header style that did
+         nothing at all — both before this was written down.
+
+      2. NO LITERAL COLOURS OR SIZES. Everything resolves a token, so a theme can change it. A literal here
+         is a value a theme cannot reach, which makes the theme a half-truth.
+-->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                     xmlns:controls="clr-namespace:Aquila.Controls"
                     xmlns:helpers="clr-namespace:Aquila.Helpers">
 
+    <!-- ════════════════════════════════════════════════════════════════
+         Surfaces and controls
+         ════════════════════════════════════════════════════════════════ -->
+
+    <!-- NO IMPLICIT STYLES FOR KIT CONTROLS HERE.
+
+         A Style keyed {x:Type ui:CardExpander} in a dictionary merged into Application.Resources collides
+         with the kit's own, and the failure is an ArgumentException while the app's resources load —
+         before any window and before the first log line, so it looks like the app simply refuses to open.
+         Measured, not guessed: it happens with or without ControlsDictionary merged here.
+
+         What they were for is better served anyway: Surface.Kind INHERITS, so a container declares it once
+         for everything inside it, and a per-window margin is a window's business, not a rule. -->
+
+    <!-- A button carrying an icon and no words.
+
+         The kit's padding is sized for a label, so an icon inside it sits in a wide, flat lozenge — which
+         is what fifteen buttons in the widget editor looked like, two of which had a padding set by hand
+         because somebody noticed and the other thirteen because nobody had yet. Square padding and a
+         minimum square size make it a button around an icon instead. -->
+    <Style x:Key="IconButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="Padding" Value="{DynamicResource Aquila.Space.Tight}"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         Pages — the frame a page is drawn in
+         ════════════════════════════════════════════════════════════════ -->
+    <Style x:Key="BasePageStyle" TargetType="{x:Type Page}">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="ui:Design.Background" Value="{DynamicResource ApplicationBackgroundBrush}" />
+        <Setter Property="Margin" Value="12,16,12,24" />
+    </Style>
+
+    <!-- Shared by every page built from setting cards: the explanation under a card's title, and the
+         plain text heading that groups them. Here rather than per page so the two do not drift. -->
+    <Style x:Key="SettingHint" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Opacity" Value="0.6" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+
+    <Style x:Key="SectionHeading" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="2,20,0,8" />
+    </Style>
+
+    <!-- BasedOn is not optional. An implicit style without it REPLACES the default rather than extending
+         it, template included — the cards lost their chrome entirely and rendered as bare content. -->
+    <Style TargetType="{x:Type ui:CardControl}" BasedOn="{StaticResource {x:Type ui:CardControl}}">
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <!-- CardExpander has no hover of its own — its template (read from WPF-UI's source) triggers only on
+         IsExpanded and IsEnabled. Its header border does use {TemplateBinding Background}, so a trigger
+         here reaches the visual. Kept for the two sections that are still expanders.
+
+         It lives at application level rather than in MainWindow.Resources because pages are loaded into
+         the navigation frame, and a style sitting in the window did not reach them. -->
+    <Style TargetType="{x:Type ui:CardExpander}" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
     <!-- ════════════════════════════════════════════════════════════════
          Typography — section headers, row labels and values
          ════════════════════════════════════════════════════════════════ -->
@@ -186,5 +274,4 @@
     <Style x:Key="FanBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
         <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
     </Style>
-
 </ResourceDictionary>

@@ -70,7 +70,7 @@
          stops being the thing you see. It is what brings the ambers close to a flame, which is the point
          — the palette comes from the logo, and on Windows' pale grey material it read as ordinary orange.
 
-         The Fluent style leaves this Transparent (see Aquila.Default.xaml) and so gets plain Mica. Same
+         The Fluent style leaves this Transparent (see Themes/Base.xaml) and so gets plain Mica. Same
          rule Fluent already follows for the accent and the surfaces: nothing of ours on top.
 
          Painted here rather than on the window, because WPF-UI sets Window.Background to Transparent so

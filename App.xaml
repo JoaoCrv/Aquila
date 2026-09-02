@@ -1,4 +1,4 @@
-﻿<Application
+<Application
     x:Class="Aquila.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,12 +11,13 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
-                <!-- The theme overlay (Themes/Aquila.Dark.xaml or .Light.xaml) is not merged here: it is
-                     chosen at runtime and swapped by AppearanceService. Aquila.Default.xaml is, because it
+                <!-- The theme overlay (Themes/<Name>/Dark.xaml or Light.xaml) is not merged here: it is
+                     chosen at runtime and swapped by AppearanceService. Base.xaml is, because it
                      holds the profile role keys that must exist before anything renders. -->
-                <ResourceDictionary Source="Themes/Aquila.Default.xaml" />
-                <ResourceDictionary Source="Styles/SensorStyles.xaml" />
-                <ResourceDictionary Source="Styles/PageStyles.xaml" />
+                <!-- Values first, then rules: a rule resolves a token, so the token has to exist by the
+                     time it is read. A theme overlay is merged on top of these at runtime. -->
+                <ResourceDictionary Source="Themes/Base.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

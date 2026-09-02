@@ -29,6 +29,18 @@
 
          It must exist here regardless: a theme overlay can be swapped out, and a key that vanishes from
          under a DynamicResource would leave the window with no background at all. -->
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SPACING — a named scale, never free margins.
+
+         A theme that can put any margin anywhere stops painting badly and starts breaking layouts. Four
+         steps and a corner radius are enough to make a theme feel denser or airier without letting it
+         move anything.
+         ═══════════════════════════════════════════════════════════════════ -->
+
+    <Thickness x:Key="Aquila.Space.Tight">6</Thickness>
+    <Thickness x:Key="Aquila.Space.Snug">10</Thickness>
+    <Thickness x:Key="Aquila.Space.Roomy">14</Thickness>
+
     <SolidColorBrush x:Key="Aquila.Window.Scrim"     Color="Transparent"/>
 
     <SolidColorBrush x:Key="Aquila.Scheme.Accent"    Color="#F5A623"/>

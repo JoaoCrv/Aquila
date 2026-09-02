@@ -27,8 +27,8 @@ public sealed class AppearanceService(
     ColorProfileService profiles,
     ILogger<AppearanceService> logger)
 {
-    private const string DarkOverlay = "pack://application:,,,/Themes/Aquila.Dark.xaml";
-    private const string LightOverlay = "pack://application:,,,/Themes/Aquila.Light.xaml";
+    private const string DarkOverlay = "pack://application:,,,/Themes/Aquila/Dark.xaml";
+    private const string LightOverlay = "pack://application:,,,/Themes/Aquila/Light.xaml";
 
     private ResourceDictionary? _overlay;
     private bool _watching;

@@ -314,7 +314,7 @@ que não existem: o documento descrevia um plano, não o código.)*
 | Sessões de preset | rascunho, criados e apagados vivem em memória; o disco só é tocado ao gravar, e Discard desfaz tudo |
 | `DesktopWidgetService` | `Paint` por série, ramp **por nome** e re-apontável; `PreviewRole` força um estado para se poder afinar o `critical` |
 | `ColorProfileService` | ainda vivo: carrega `Profiles/*.json` e publica `Aquila.Scheme.{Role}` — **é o que vai sair** |
-| `Aquila.Scheme.*` | 21 ficheiros, **7 chaves**: `Normal`, `Elevated`, `Alert`, `Critical`, `Series`, `Accent`, `Track` |
+| `Aquila.Scheme.*` | 21 ficheiros, **9 chaves**: `Normal`, `Elevated`, `Alert`, `Critical`, `Series1/2/3`, `Accent`, `Track` |
 | `VitalMonitor` | limites em vigor + `RoleFor`/`BrushFor`; `Current` estático para o XAML alcançar |
 | `AppearanceService` | troca de tema (`UserPreferenceChanged` + `AppsUseLightTheme`; **não** `SystemThemeWatcher.Watch`) |
 

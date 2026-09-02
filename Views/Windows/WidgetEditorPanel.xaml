@@ -38,6 +38,10 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <helpers:MatchConverter x:Key="Match"/>
 
+        <Style TargetType="ui:CardExpander" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="Opacity" Value="0.7"/>
             <Setter Property="FontSize" Value="12"/>
@@ -50,9 +54,6 @@
             <Setter Property="Margin" Value="8,0,0,4"/>
         </Style>
 
-        <Style TargetType="ui:CardExpander" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
-            <Setter Property="Margin" Value="0,0,0,4"/>
-        </Style>
         <!-- A name that reads as a title until you reach for it.
              A boxed input sitting under a picker showing the same word looks like two fields for one
              thing. Drawn as a heading with its edges hidden, it says what the preset is called; the
@@ -102,7 +103,7 @@
                  edge would eventually cover the very widget being edited. -->
             <StackPanel Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Header_Drag">
                 <DockPanel>
-                    <ui:Button DockPanel.Dock="Left" Margin="0,0,8,0" Padding="6,2"
+                    <ui:Button Style="{StaticResource IconButton}" DockPanel.Dock="Left" Margin="0,0,8,0"
                                Appearance="Transparent" Icon="{ui:SymbolIcon ArrowLeft24}"
                                ToolTip="Back to the widget"
                                Visibility="{Binding ViewModel.EditingPreset, Converter={StaticResource BoolToVisibility}}"
@@ -119,7 +120,7 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Expander.Expanded="OnCardExpanded">
+                <StackPanel Expander.Expanded="OnCardExpanded" controls:Surface.Kind="Card">
 
                     <ui:CardExpander Icon="{ui:SymbolIcon Grid24}" IsExpanded="True">
                         <ui:CardExpander.Header>
@@ -269,7 +270,7 @@
                                                       ItemsSource="{Binding DataContext.ViewModel.RampNames,
                                                                    RelativeSource={RelativeSource AncestorType=Window}}"
                                                       SelectedItem="{Binding Ramp}"/>
-                                            <ui:Button Grid.Column="4"
+                                            <ui:Button Style="{StaticResource IconButton}" Grid.Column="4"
                                                        Icon="{ui:SymbolIcon Dismiss24}"
                                                        ToolTip="Remove this reading"
                                                        Command="{Binding DataContext.ViewModel.RemoveSeriesCommand,
@@ -294,7 +295,7 @@
                             <DockPanel>
                                 <!-- Everything that acts on the preset showing in the list, in the order
                                      it is reached for: open it, copy it, then the rest. -->
-                                <ui:Button x:Name="PresetMenuButton" DockPanel.Dock="Right" Margin="6,0,0,0"
+                                <ui:Button Style="{StaticResource IconButton}" x:Name="PresetMenuButton" DockPanel.Dock="Right" Margin="6,0,0,0"
                                            Icon="{ui:SymbolIcon MoreHorizontal24}"
                                            ToolTip="More"
                                            Click="OnPresetMenu">
@@ -345,7 +346,7 @@
 
                                 <!-- Beside the list, because it is about the preset in the list: it makes
                                      a new one FROM the one showing, rather than from nothing. -->
-                                <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0"
+                                <ui:Button Style="{StaticResource IconButton}" DockPanel.Dock="Right" Margin="6,0,0,0"
                                            Icon="{ui:SymbolIcon Copy24}"
                                            ToolTip="New preset, starting from this one"
                                            Command="{Binding ViewModel.NewPresetCommand}"/>
@@ -375,9 +376,8 @@
                                                 <TextBlock Grid.Column="1" Text="{Binding Name}"
                                                            VerticalAlignment="Center"/>
 
-                                                <ui:Button x:Name="Remove" Grid.Column="2"
-                                                           Visibility="Collapsed" Appearance="Transparent"
-                                                           Padding="4,0" Margin="8,0,0,0"
+                                                <ui:Button Style="{StaticResource IconButton}" x:Name="Remove" Grid.Column="2"
+                                                           Visibility="Collapsed" Appearance="Transparent" Margin="8,0,0,0"
                                                            Icon="{ui:SymbolIcon Delete24}"
                                                            ToolTip="Delete this preset"
                                                            PreviewMouseLeftButtonDown="OnDeletePreset"/>
@@ -603,7 +603,7 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Expander.Expanded="OnCardExpanded">
+                <StackPanel Expander.Expanded="OnCardExpanded" controls:Surface.Kind="Card">
 
                     <StackPanel Margin="0,0,0,8">
                         <TextBlock Text="Preview on desktop" FontWeight="SemiBold" FontSize="12"
@@ -704,7 +704,7 @@
                                 <DataTemplate>
                                     <StackPanel Margin="0,0,0,16">
                                         <DockPanel Margin="0,0,0,8">
-                                            <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0" Padding="6,2"
+                                            <ui:Button Style="{StaticResource IconButton}" DockPanel.Dock="Right" Margin="6,0,0,0"
                                                        Icon="{ui:SymbolIcon Delete24}"
                                                        ToolTip="Remove this ramp"
                                                        Visibility="{Binding CanDelete, Converter={StaticResource BoolToVisibility}}"

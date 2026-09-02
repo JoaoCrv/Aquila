@@ -16,7 +16,7 @@
         <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
     </UserControl.Resources>
 
-    <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
+    <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
             <Grid.RowDefinitions>
