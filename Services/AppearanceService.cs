@@ -25,10 +25,9 @@ namespace Aquila.Services;
 public sealed class AppearanceService(
     SettingsService settings,
     ColorProfileService profiles,
+    ThemeCatalog themes,
     ILogger<AppearanceService> logger)
 {
-    private const string DarkOverlay = "pack://application:,,,/Themes/Aquila/Dark.xaml";
-    private const string LightOverlay = "pack://application:,,,/Themes/Aquila/Light.xaml";
 
     private ResourceDictionary? _overlay;
     private bool _watching;
@@ -42,6 +41,7 @@ public sealed class AppearanceService(
 
     public void Initialize()
     {
+        themes.Load();
         profiles.Load();
 
         if (!_watching)
@@ -102,14 +102,13 @@ public sealed class AppearanceService(
             _overlay = null;
         }
 
-        if (settings.Current.ThemeStyle == "Fluent") return;
+        // Null for Fluent, and for a theme that is no longer installed — a layout naming a theme that
+        // has gone should leave the app plain rather than refuse to draw.
+        if (themes.Overlay(settings.Current.ThemeStyle, IsDark) is not { } source) return;
 
         try
         {
-            _overlay = new ResourceDictionary
-            {
-                Source = new Uri(IsDark ? DarkOverlay : LightOverlay, UriKind.Absolute),
-            };
+            _overlay = new ResourceDictionary { Source = new Uri(source, UriKind.Absolute) };
             merged.Add(_overlay);
         }
         catch (Exception ex)

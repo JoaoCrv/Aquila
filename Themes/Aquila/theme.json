@@ -1,0 +1,8 @@
+{
+  "name": "Aquila",
+  "author": "Aquila",
+  "description": "A casca da aplicação: superfície quente e escura, com o âmbar que é a sua identidade.",
+  "dark": true,
+  "light": false,
+  "suggestedPreset": "ember"
+}

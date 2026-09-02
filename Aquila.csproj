@@ -39,6 +39,8 @@
          in Documents\Aquila\profiles and override these by id. -->
     <EmbeddedResource Include="Profiles\*.json" />
     <EmbeddedResource Include="Presets\*.json" />
+    <!-- One manifest per theme folder: the name for the picker, and the preset it suggests. -->
+    <EmbeddedResource Include="Themes/**/theme.json" />
   </ItemGroup>
 
   <ItemGroup>
