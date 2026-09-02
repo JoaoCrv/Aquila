@@ -26,6 +26,7 @@ namespace Aquila.ViewModels.Pages
         private readonly INavigationService _navigation;
         private readonly AppearanceService _theme;
         private readonly ColorProfileService _profiles;
+        private readonly ThemeCatalog _themes;
 
         /// <summary>
         /// When each family of readings stops being ordinary, edited in one place.
@@ -52,7 +53,7 @@ namespace Aquila.ViewModels.Pages
 
         public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
             INavigationService navigation, AppearanceService theme, ColorProfileService profiles,
-            VitalMonitor vitals)
+            ThemeCatalog themes, VitalMonitor vitals)
         {
             Thresholds = [.. Models.Thresholds.Configurable.Select(key => new ThresholdRow(vitals, key))];
 
@@ -62,6 +63,7 @@ namespace Aquila.ViewModels.Pages
             _navigation = navigation;
             _theme = theme;
             _profiles = profiles;
+            _themes = themes;
             _updateService.StatusChanged += OnUpdateStatusChanged;
             _settings.Changed += OnSettingsChangedExternally;
         }
@@ -89,21 +91,35 @@ namespace Aquila.ViewModels.Pages
 
         /// <summary>Which look. Kept apart from brightness so the two never become a combinatorial list
         /// with an ambiguous "System" entry in it.</summary>
-        public IReadOnlyList<ThemeOption> ThemeStyleOptions { get; } =
-        [
-            new("Aquila", "Aquila"),
-            new("Fluent", "Windows Fluent"),
-        ];
+        /// <summary>Every theme installed, plus Fluent — which is not a folder but the absence of one,
+        /// and is offered last because it is the answer for someone who wants their Windows accent rather
+        /// than ours.</summary>
+        public IReadOnlyList<ThemeOption> ThemeStyleOptions { get; private set; } = [];
 
         [ObservableProperty] private ThemeOption? _selectedThemeStyle;
 
         /// <summary>How bright.</summary>
-        public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
+        private static readonly ThemeOption[] AllSides =
         [
             new("System", "Match Windows"),
             new("Light", "Light"),
             new("Dark", "Dark"),
         ];
+
+        /// <summary>
+        /// The sides this theme actually has.
+        ///
+        /// A theme may ship one — Aquila is dark only — and offering a side it cannot dress would either
+        /// leave the app half-themed or quietly override what was asked for. Neither is honest, so the
+        /// choice simply is not offered, and the hint underneath says why.
+        /// </summary>
+        public IReadOnlyList<ThemeOption> ThemeOptions { get; private set; } = AllSides;
+
+        public bool CanChooseSide => ThemeOptions.Count > 1;
+
+        public string SideHint => CanChooseSide
+            ? "Match Windows follows the system light/dark setting."
+            : $"{SelectedThemeStyle?.Label} ships one side only, so there is nothing to choose here.";
 
         [ObservableProperty] private ThemeOption? _selectedTheme;
 
@@ -210,6 +226,15 @@ namespace Aquila.ViewModels.Pages
         {
             _externalUpdate = true;
 
+            // Built here rather than in a field initialiser: the catalogue is loaded during startup, and a
+            // list captured before that would be Fluent and nothing else, for the life of the window.
+            ThemeStyleOptions =
+            [
+                .. _themes.Themes.Select(t => new ThemeOption(t.Id, t.Name)),
+                new(ThemeCatalog.Fluent, "Windows Fluent"),
+            ];
+            OnPropertyChanged(nameof(ThemeStyleOptions));
+
             SelectedThemeStyle = ThemeStyleOptions.FirstOrDefault(o => o.Id == _settings.Current.ThemeStyle)
                                  ?? ThemeStyleOptions[0];
             SelectedTheme = ThemeOptions.FirstOrDefault(o => o.Id == _settings.Current.Theme)
@@ -232,10 +257,32 @@ namespace Aquila.ViewModels.Pages
 
         partial void OnSelectedThemeStyleChanged(ThemeOption? value)
         {
+            OfferSides(value);
+
             if (!_isInitialized || _externalUpdate || value is null) return;
             _settings.Current.ThemeStyle = value.Id;
             _settings.Save();
             _theme.Apply();
+        }
+
+        /// <summary>Narrows the brightness list to what the chosen theme can dress, and moves the
+        /// selection when what was picked is no longer on offer.</summary>
+        private void OfferSides(ThemeOption? style)
+        {
+            var theme = _themes.For(style?.Id);
+
+            // Fluent dresses neither side itself, so it follows Windows like anything unstyled would.
+            ThemeOptions = theme is null || theme.HasBothSides
+                ? AllSides
+                : [.. AllSides.Where(o => o.Id == (theme.Dark ? "Dark" : "Light"))];
+
+            OnPropertyChanged(nameof(ThemeOptions));
+            OnPropertyChanged(nameof(CanChooseSide));
+            OnPropertyChanged(nameof(SideHint));
+
+            if (SelectedTheme is null || ThemeOptions.Any(o => o.Id == SelectedTheme.Id)) return;
+
+            SelectedTheme = ThemeOptions[0];
         }
 
         partial void OnSelectedThemeChanged(ThemeOption? value)

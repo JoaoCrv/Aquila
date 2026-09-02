@@ -56,10 +56,11 @@
             <ui:CardControl.Header>
                 <StackPanel>
                     <TextBlock Text="Brightness" />
-                    <TextBlock Style="{StaticResource SettingHint}" Text="Match Windows follows the system light/dark setting." />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="{Binding ViewModel.SideHint}" />
                 </StackPanel>
             </ui:CardControl.Header>
             <ComboBox MinWidth="160"
+                      IsEnabled="{Binding ViewModel.CanChooseSide}"
                       ItemsSource="{Binding ViewModel.ThemeOptions}"
                       SelectedItem="{Binding ViewModel.SelectedTheme}"
                       DisplayMemberPath="Label" />
