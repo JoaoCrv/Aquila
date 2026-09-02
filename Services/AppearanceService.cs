@@ -7,13 +7,13 @@ using Wpf.Ui.Controls;
 namespace Aquila.Services;
 
 /// <summary>
-/// Owns what the application looks like: how bright the window is, and — through
-/// <see cref="ColorProfileService"/> — which colour profile the data is painted with.
+/// Owns what the application looks like: how bright the window is, which theme dresses it, and — through
+/// <see cref="PresetService"/> — which preset the app's own surfaces paint their data with.
 ///
-/// Two ideas, kept apart on purpose. The THEME is Aquila's own look, ours, one per brightness. The
-/// PROFILE is what the data wears, and users are expected to mix them: the new theme with the Sky
-/// profile is a combination we want to work, and eventually different profiles on different surfaces at
-/// once. A profile can therefore never be allowed to dress the window.
+/// Two axes, kept apart on purpose. The THEME is the application: backgrounds, lettering, spacing, its own
+/// semantic colours. The PRESET is what the data wears, and the two are meant to be mixed — widgets to
+/// match a wallpaper over the stock shell is the case the separation exists for. A preset therefore never
+/// dresses the window, and a theme never decides what a reading looks like.
 ///
 /// The two theme settings are kept orthogonal — STYLE (Aquila or plain Fluent) and BRIGHTNESS (Light,
 /// Dark, or follow Windows) — rather than enumerated as one list. Two controls beat four entries plus an
@@ -24,7 +24,7 @@ namespace Aquila.Services;
 /// </summary>
 public sealed class AppearanceService(
     SettingsService settings,
-    ColorProfileService profiles,
+    PresetService presets,
     ThemeCatalog themes,
     ILogger<AppearanceService> logger)
 {
@@ -42,7 +42,6 @@ public sealed class AppearanceService(
     public void Initialize()
     {
         themes.Load();
-        profiles.Load();
 
         if (!_watching)
         {
@@ -88,7 +87,7 @@ public sealed class AppearanceService(
         //    updateAccent: false, or this pass would overwrite what it is here to publish.
         ApplicationThemeManager.Apply(theme, WindowBackdropType.Mica, updateAccent: false);
 
-        ApplyProfile();                         // 5. the profile's colours, for the data
+        ApplyProfile();                         // 5. the surface preset's colours, for the data
     }
 
     /// <summary>Puts our theme file over WPF-UI's, or takes it off. Fluent gets nothing of ours.</summary>
@@ -153,11 +152,11 @@ public sealed class AppearanceService(
         Apply();
     }
 
-    /// <summary>Re-publishes the active profile without touching the theme — for when only the profile
+    /// <summary>Re-publishes the surface preset without touching the theme — for when only the preset
     /// changed.</summary>
     public void ApplyProfile()
     {
-        profiles.Apply(settings.Current.ColorProfileId, IsDark);
+        presets.Publish(settings.Current.DashboardPresetId);
         Changed?.Invoke();
     }
 

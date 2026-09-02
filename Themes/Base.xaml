@@ -2,12 +2,13 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         COLOUR PROFILE ROLES — the keys the whole UI binds to.
+         SCHEME — the keys the app's own surfaces bind to for DATA.
 
-         Everything that paints data resolves one of these, always through
-         {DynamicResource}: Aquila.Scheme.Alert and friends. ColorProfileService
-         overwrites them in Application.Resources whenever the profile or the
-         theme changes.
+         Everything on an app surface that paints data resolves one of these,
+         always through {DynamicResource}. PresetService overwrites them in
+         Application.Resources from the dashboard's preset. Desktop widgets do
+         not use them: each one resolves its own preset, because each may wear
+         a different one.
 
          They live HERE, in the dictionary that is always merged, rather than
          in a profile — profiles are files on disk that users add and delete,
@@ -15,12 +16,13 @@
          This file is the guarantee that every role always exists.
 
          The values below are only the pre-load fallback, so the first frame
-         has something to draw before the active profile is published. They
-         mirror Ember, the default profile (Profiles/ember.json).
+         has something to draw before the preset is published. They are Ember's
+         colours written out by hand, because XAML cannot read the JSON — the
+         one duplication here that cannot be removed, so change both or neither.
 
          The hardware-named tokens that used to live here — Aquila.Cpu,
          Aquila.Chart.Gpu and the rest — are gone. Their colours were not
-         lost: they are Profiles/classic.json, selectable like any other.
+         lost: they are Presets/classic.json, selectable like any other.
          ═══════════════════════════════════════════════════════════════════ -->
 
     <!-- Window scrim, over the backdrop. Transparent here on purpose: this is what the FLUENT style

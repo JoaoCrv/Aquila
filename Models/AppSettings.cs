@@ -18,7 +18,10 @@ public class AppSettings
 
     /// <summary>Id of the active colour profile. Independent of the theme: one dresses the data, the
     /// other the window, and the user is expected to mix them freely.</summary>
-    public string ColorProfileId    { get; set; } = "ember";
+    /// <summary>The preset the app's own surfaces are drawn in — the dashboard's cards, the pages, the
+    /// pressure pills. Replaces ColorProfileId, which named the same thing in the format presets have
+    /// since replaced.</summary>
+    public string DashboardPresetId { get; set; } = "ember";
 
     /// <summary>The preset a widget wears when it names none, and what everything falls back to when the
     /// one it names is gone. Stored rather than compiled in, so "make this my default" is a thing a user

@@ -313,8 +313,9 @@ que não existem: o documento descrevia um plano, não o código.)*
 | `PresetService` | carrega `Presets/*.json` (4 embutidos) e `Documents\Aquila\presets`; resolve **por widget**; **não publica nada globalmente** |
 | Sessões de preset | rascunho, criados e apagados vivem em memória; o disco só é tocado ao gravar, e Discard desfaz tudo |
 | `DesktopWidgetService` | `Paint` por série, ramp **por nome** e re-apontável; `PreviewRole` força um estado para se poder afinar o `critical` |
-| `ColorProfileService` | ainda vivo: carrega `Profiles/*.json` e publica `Aquila.Scheme.{Role}` — **é o que vai sair** |
-| `Aquila.Scheme.*` | 21 ficheiros, **9 chaves**: `Normal`, `Elevated`, `Alert`, `Critical`, `Series1/2/3`, `Accent`, `Track` |
+| `PresetService.Publish` | põe o preset da dashboard nas nove chaves `Aquila.Scheme.*`, para as superfícies da própria app |
+| `Aquila.Scheme.*` | **9 chaves** de dados: `Normal`, `Elevated`, `Alert`, `Critical`, `Series1/2/3`, `Accent`, `Track` |
+| `Aquila.Chrome.*` | o que a app diz **sobre si própria**: `Accent`, `Danger`, `Caution`, `Success` |
 | `VitalMonitor` | limites em vigor + `RoleFor`/`BrushFor`; `Current` estático para o XAML alcançar |
 | `AppearanceService` | troca de tema (`UserPreferenceChanged` + `AppsUseLightTheme`; **não** `SystemThemeWatcher.Watch`) |
 
@@ -475,9 +476,9 @@ Uma marca pode chamar "XYZ Theme" ao seu pack a nível de marketing sem tocar no
   partilhado. Aparece no JSON, no editor e no código.
 - **Ordem de execução:** ~~`SensorEntry` com `Hardware`+`Metric`~~ → ~~hierarquia~~ → ~~`Surface` num campo
   só~~ → ~~Backdrop no catálogo~~ → ~~`PresetService` e formato~~ → ~~editor de presets~~ (tudo feito) →
-  **a casca ganha variantes** → **a casca larga as cores de dados** → **os profiles morrem** → packs.
+  ~~a casca ganha variantes~~ → ~~a casca larga as cores de dados~~ → ~~os profiles morrem~~ (feito
+  2026-09-02) → **packs**.
 
-  A ordem dos três que faltam não é negociável. Matar os profiles primeiro arrastaria a casca para dentro do
-  sistema de presets, que é exactamente o que este documento diz para não acontecer: enquanto a casca não
-  tiver `danger`, `success` e companhia, ela continua a ir buscar a cor à paleta dos dados por não haver
-  outro sítio.
+  A ordem daqueles três não era negociável, e confirmou-se: matar os profiles primeiro arrastaria a casca
+  para dentro do sistema de presets. Enquanto ela não teve `danger` e companhia, continuou a ir buscar a
+  cor à paleta dos dados por não haver outro sítio.

@@ -66,41 +66,20 @@
                       DisplayMemberPath="Label" />
         </ui:CardControl>
 
-        <!-- Colour profile: one JSON file each, ours embedded and the user's in Documents\Aquila\profiles.
-             Duplicate is the only way to edit one of ours, which is deliberate — a built-in that cannot be
-             broken is always somewhere to get back to. -->
+        <!-- The preset the app's own surfaces wear. Making and editing presets belongs to the widget
+             editor; this only chooses which one dresses the dashboard and the pages. -->
         <ui:CardControl Icon="{ui:SymbolIcon PaintBrush24}">
             <ui:CardControl.Header>
                 <StackPanel>
-                    <TextBlock Text="Colour profile" />
+                    <TextBlock Text="Dashboard preset" />
                     <TextBlock Style="{StaticResource SettingHint}"
-                               Text="{Binding ViewModel.ColorProfileDescription, Mode=OneWay}" />
+                               Text="{Binding ViewModel.SurfacePresetDescription, Mode=OneWay}" />
                 </StackPanel>
             </ui:CardControl.Header>
             <ComboBox MinWidth="160"
-                      ItemsSource="{Binding ViewModel.ColorProfiles}"
-                      SelectedItem="{Binding ViewModel.SelectedColorProfile}"
-                      DisplayMemberPath="DisplayName" />
-        </ui:CardControl>
-
-        <ui:CardControl Icon="{ui:SymbolIcon Options24}">
-            <ui:CardControl.Header>
-                <StackPanel>
-                    <TextBlock Text="Manage profiles" />
-                    <TextBlock Style="{StaticResource SettingHint}" Text="Built-in profiles are read-only. Duplicate one to make it yours, then edit the JSON and reload." />
-                </StackPanel>
-            </ui:CardControl.Header>
-            <StackPanel Orientation="Horizontal">
-                <ui:Button Content="Duplicate to edit"
-                           Icon="{ui:SymbolIcon Copy24}"
-                           Command="{Binding ViewModel.DuplicateColorProfileCommand, Mode=OneWay}" />
-                <ui:Button Margin="8,0,0,0" Content="Open folder"
-                           Icon="{ui:SymbolIcon FolderOpen24}"
-                           Command="{Binding ViewModel.OpenProfilesFolderCommand, Mode=OneWay}" />
-                <ui:Button Margin="8,0,0,0" Content="Reload"
-                           Icon="{ui:SymbolIcon ArrowClockwise24}"
-                           Command="{Binding ViewModel.ReloadColorProfilesCommand, Mode=OneWay}" />
-            </StackPanel>
+                      ItemsSource="{Binding ViewModel.Presets}"
+                      SelectedItem="{Binding ViewModel.SelectedSurfacePreset}"
+                      DisplayMemberPath="Name" />
         </ui:CardControl>
 
         <ui:CardControl Icon="{ui:SymbolIcon Timer24}">

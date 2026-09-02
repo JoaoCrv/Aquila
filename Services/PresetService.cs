@@ -1,4 +1,6 @@
 using System.IO;
+using System.Windows;
+using System.Windows.Media;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aquila.Models;
@@ -9,13 +11,13 @@ namespace Aquila.Services;
 /// <summary>
 /// Loads and saves presets — the visual half of a widget, one JSON file each.
 ///
-/// Twin of <see cref="ColorProfileService"/> in shape, and its eventual replacement: built-ins embedded in
-/// the assembly, the user's own in <c>Documents\Aquila\presets</c>, and a matching id overriding a built-in
-/// so one of ours can be customised.
+/// Built-ins embedded in the assembly, the user's own in <c>Documents\Aquila\presets</c>, and a matching
+/// id overriding a built-in so one of ours can be customised.
 ///
-/// What it deliberately does NOT do is publish anything globally. A colour profile pushes its roles into
-/// Application.Resources because one profile dresses the whole app; presets are resolved per widget, and a
-/// global publish is exactly what would make "different presets on different widgets" impossible.
+/// Resolution is PER WIDGET, because each may wear a different preset. The one exception is
+/// <see cref="Publish"/>, which puts a preset's colours onto the Aquila.Scheme.* keys for the app's own
+/// surfaces — those are a single surface sharing one preset, and publishing is simply how a static XAML
+/// subtree gets dressed without every element resolving a preset in code.
 ///
 /// Failures are never fatal. A missing or malformed preset costs that preset, not the app's ability to draw
 /// — and <see cref="Fallback"/> means a widget always has something to wear.
@@ -123,6 +125,65 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
     private readonly Dictionary<string, Preset> _originals = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _created = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Preset> _deleted = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Puts a preset's colours onto the <c>Aquila.Scheme.*</c> keys the app's own surfaces bind to.
+    ///
+    /// This is the one place a preset is published globally, and it is not a contradiction of resolving
+    /// them per widget: a widget is dressed individually because each one may wear a different preset,
+    /// while the app's own surfaces — the dashboard's cards, the pages, the pills — are a SINGLE surface
+    /// and share one. Publishing is simply how a static XAML subtree gets dressed without every element
+    /// resolving a preset in code.
+    ///
+    /// The three series slots map onto the preset's ramps in order, which is what a widget's own lines
+    /// already do through DefaultRamp: a card asking for Series2 is asking for the second ramp. Below the
+    /// count of ramps they fall back to primary, by the same rule as RampFor.
+    ///
+    /// WPF's resources are hierarchical, so a second surface with a preset of its own would publish the
+    /// same keys into its own scope and override these for everything inside it. Nothing here has to
+    /// change for that to work; there is simply only one surface today.
+    /// </summary>
+    public void Publish(string? id)
+    {
+        var preset = For(id);
+        var resources = Application.Current?.Resources;
+        if (resources is null) return;
+
+        var ramps = preset.Ramps.Values.ToList();
+        Ramp Nth(int i) => i < ramps.Count ? ramps[i] : preset.RampFor(Ramp.Primary);
+
+        var primary = preset.RampFor(Ramp.Primary);
+
+        resources["Aquila.Scheme.Normal"] = Brush(primary.Normal);
+        resources["Aquila.Scheme.Elevated"] = Brush(primary.Elevated);
+        resources["Aquila.Scheme.Alert"] = Brush(primary.Alert);
+        resources["Aquila.Scheme.Critical"] = Brush(primary.Critical);
+
+        resources["Aquila.Scheme.Series1"] = Brush(Nth(0).Normal);
+        resources["Aquila.Scheme.Series2"] = Brush(Nth(1).Normal);
+        resources["Aquila.Scheme.Series3"] = Brush(Nth(2).Normal);
+
+        // A reading at rest, which is what an unjudged value shows.
+        resources["Aquila.Scheme.Accent"] = Brush(primary.Normal);
+        resources["Aquila.Scheme.Track"] = Brush(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
+    }
+
+    private static SolidColorBrush Brush(string hex, double opacity = 1)
+    {
+        try
+        {
+            var colour = (Color)ColorConverter.ConvertFromString(hex);
+            colour.A = (byte)Math.Clamp(opacity * 255, 0, 255);
+
+            var brush = new SolidColorBrush(colour);
+            brush.Freeze();
+            return brush;
+        }
+        catch
+        {
+            return new SolidColorBrush(Colors.Transparent);
+        }
+    }
 
     /// <summary>The locked presets edited in this session — the ones whose changes have nowhere to go
     /// unless the user is asked. Empty is the normal case, and nothing is asked then.</summary>

@@ -25,7 +25,7 @@ namespace Aquila.ViewModels.Pages
         private readonly AquilaService _aquila;
         private readonly INavigationService _navigation;
         private readonly AppearanceService _theme;
-        private readonly ColorProfileService _profiles;
+        private readonly PresetService _presets;
         private readonly ThemeCatalog _themes;
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace Aquila.ViewModels.Pages
         private PollingOption _selectedPollingInterval = null!;
 
         public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
-            INavigationService navigation, AppearanceService theme, ColorProfileService profiles,
+            INavigationService navigation, AppearanceService theme, PresetService presets,
             ThemeCatalog themes, VitalMonitor vitals)
         {
             Thresholds = [.. Models.Thresholds.Configurable.Select(key => new ThresholdRow(vitals, key))];
@@ -62,7 +62,7 @@ namespace Aquila.ViewModels.Pages
             _aquila = aquila;
             _navigation = navigation;
             _theme = theme;
-            _profiles = profiles;
+            _presets = presets;
             _themes = themes;
             _updateService.StatusChanged += OnUpdateStatusChanged;
             _settings.Changed += OnSettingsChangedExternally;
@@ -123,14 +123,18 @@ namespace Aquila.ViewModels.Pages
 
         [ObservableProperty] private ThemeOption? _selectedTheme;
 
-        public ObservableCollection<ColorProfile> ColorProfiles { get; } = [];
+        /// <summary>The presets the app's own surfaces can wear. Chosen here and nowhere else: making
+        /// and editing them belongs to the widget editor, and a second place to manage them would be the
+        /// duplication this whole change exists to remove.</summary>
+        public ObservableCollection<Preset> Presets { get; } = [];
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(ColorProfileDescription))]
-        private ColorProfile? _selectedColorProfile;
+        [NotifyPropertyChangedFor(nameof(SurfacePresetDescription))]
+        private Preset? _selectedSurfacePreset;
 
-        public string ColorProfileDescription =>
-            SelectedColorProfile?.Description ?? "Colours for widgets, cards and charts.";
+        public string SurfacePresetDescription =>
+            SelectedSurfacePreset?.Description
+            ?? "The colours the dashboard, the pages and the pressure pills are drawn in. Widgets on the desktop wear their own.";
 
         [ObservableProperty]
         private string _appVersion = string.Empty;
@@ -247,12 +251,12 @@ namespace Aquila.ViewModels.Pages
 
         private void RefreshProfileList()
         {
-            ColorProfiles.Clear();
-            foreach (var profile in _profiles.Profiles) ColorProfiles.Add(profile);
+            Presets.Clear();
+            foreach (var preset in _presets.Presets) Presets.Add(preset);
 
-            SelectedColorProfile =
-                ColorProfiles.FirstOrDefault(p => p.Id == _settings.Current.ColorProfileId)
-                ?? ColorProfiles.FirstOrDefault();
+            SelectedSurfacePreset =
+                Presets.FirstOrDefault(p => p.Id == _settings.Current.DashboardPresetId)
+                ?? Presets.FirstOrDefault();
         }
 
         partial void OnSelectedThemeStyleChanged(ThemeOption? value)
@@ -293,54 +297,16 @@ namespace Aquila.ViewModels.Pages
             _theme.Apply();
         }
 
-        partial void OnSelectedColorProfileChanged(ColorProfile? value)
+        partial void OnSelectedSurfacePresetChanged(Preset? value)
         {
             if (!_isInitialized || _externalUpdate || value is null) return;
-            _settings.Current.ColorProfileId = value.Id;
+            _settings.Current.DashboardPresetId = value.Id;
             _settings.Save();
             _theme.ApplyProfile();
         }
 
-        /// <summary>Copies the active profile into the user folder and selects it. Built-ins are read-only,
-        /// so this is how one gets customised — and starting from something that already works beats
-        /// starting from an empty file and a format to guess at.</summary>
-        [RelayCommand]
-        private void DuplicateColorProfile()
-        {
-            if (SelectedColorProfile is null) return;
 
-            try
-            {
-                var path = _profiles.Duplicate(SelectedColorProfile);
-                var id = System.IO.Path.GetFileNameWithoutExtension(path);
 
-                RefreshProfileList();
-                SelectedColorProfile = ColorProfiles.FirstOrDefault(p => p.Id == id) ?? SelectedColorProfile;
-
-                OpenProfilesFolder();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"The profile could not be copied.\n\n{ex.Message}",
-                    "Colour profiles", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-
-        /// <summary>Re-reads the folder, so an edit made in a text editor shows up without a restart.</summary>
-        [RelayCommand]
-        private void ReloadColorProfiles()
-        {
-            _profiles.Load();
-            RefreshProfileList();
-            _theme.ApplyProfile();
-        }
-
-        [RelayCommand]
-        private void OpenProfilesFolder()
-        {
-            System.IO.Directory.CreateDirectory(AquilaPaths.Profiles);
-            Process.Start(new ProcessStartInfo(AquilaPaths.Profiles) { UseShellExecute = true });
-        }
 
         partial void OnSelectedPollingIntervalChanged(PollingOption value)
         {
