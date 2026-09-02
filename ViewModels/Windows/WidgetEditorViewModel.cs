@@ -31,6 +31,10 @@ public enum WidgetChange
 }
 
 
+/// <summary>One ramp, flattened for display. A record rather than the Ramp itself so the summary cannot
+/// accidentally become a second way to edit one.</summary>
+public record RampPreview(string Name, string Normal, string Elevated, string Alert, string Critical);
+
 public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor, SensorEntry Entry)
 {
     public string Display => $"{Component} — {Name}";
@@ -91,6 +95,93 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         : preset.IsBuiltIn
             ? "Built in, so it cannot be changed. Edit freely — you are asked where to keep it when you finish."
             : $"Every widget wearing {preset.Name} follows what you change here.";
+
+    /// <summary>
+    /// Whether the panel is showing the preset instead of the widget.
+    ///
+    /// One panel, two views, because it was doing two jobs at once and saying so with decoration —
+    /// headings, then rules, then cards — none of which made the scope unmistakable. Sliding to a view of
+    /// its own does: on the left you are editing this widget, on the right you are editing something every
+    /// widget wearing it shares. The boundary stops needing to be marked when it becomes the navigation.
+    /// </summary>
+    [ObservableProperty] private bool _editingPreset;
+
+    /// <summary>Which view is on screen. Both carry HasTarget, because a panel pointed at nothing shows
+    /// neither — an editor full of controls that change nothing is worse than an empty panel saying so.</summary>
+    public bool ShowsWidgetView => HasTarget && !EditingPreset;
+
+    public bool ShowsPresetView => HasTarget && EditingPreset;
+
+    partial void OnEditingPresetChanged(bool value) => NotifyView();
+
+    private void NotifyView()
+    {
+        OnPropertyChanged(nameof(ShowsWidgetView));
+        OnPropertyChanged(nameof(ShowsPresetView));
+        OnPropertyChanged(nameof(PanelTitle));
+        OnPropertyChanged(nameof(PanelSubtitle));
+    }
+
+    [RelayCommand]
+    private void EditPreset() => EditingPreset = SelectedPreset is not null;
+
+    [RelayCommand]
+    private void ClosePreset() => EditingPreset = false;
+
+    /// <summary>How many widgets wear the chosen preset. Supplied by the host, which is the only thing that
+    /// knows the layout — and shown BEFORE the preset is opened, because the number is the whole reason to
+    /// hesitate before changing one.</summary>
+    public Func<string, int>? CountWearers { get; set; }
+
+    public string WornBy => SelectedPreset is not { } preset
+        ? string.Empty
+        : (CountWearers?.Invoke(preset.Id) ?? 0) switch
+        {
+            0 => "Worn by nothing yet",
+            1 => "Worn by 1 widget",
+            var n => $"Worn by {n} widgets",
+        };
+
+    /// <summary>Whether this preset is the one new widgets wear. Shown rather than acted on twice: the
+    /// menu entry is pointless when it already is.</summary>
+    public bool IsDefaultPreset =>
+        SelectedPreset is { } preset &&
+        string.Equals(preset.Id, presets.DefaultId, StringComparison.OrdinalIgnoreCase);
+
+    [RelayCommand]
+    private void SetAsDefault()
+    {
+        if (SelectedPreset is not { } preset) return;
+
+        presets.SetDefault(preset);
+        OnPropertyChanged(nameof(IsDefaultPreset));
+        OnPropertyChanged(nameof(PresetNote));
+    }
+
+    /// <summary>
+    /// What a preset contains, at a glance: every ramp, end to end.
+    ///
+    /// A summary rather than a sample of one colour. A preset IS its ramps — the rest is measurement — so
+    /// four swatches per ramp says more about what you are about to wear than any single square could.
+    /// </summary>
+    public IReadOnlyList<RampPreview> RampPreviews =>
+        SelectedPreset is not { } preset
+            ? []
+            : [.. preset.Ramps.Select(r =>
+                new RampPreview(r.Key, r.Value.Normal, r.Value.Elevated, r.Value.Alert, r.Value.Critical))];
+
+    /// <summary>
+    /// A state to draw every widget in, regardless of what its reading actually says.
+    ///
+    /// Null is the normal case — the readings speak for themselves. Set, it is the only practical way to
+    /// judge the critical colour: the alternative is heating the machine up on purpose and editing while
+    /// it is hot.
+    /// </summary>
+    [ObservableProperty] private string? _previewState;
+
+    partial void OnPreviewStateChanged(string? value) => PreviewRequested?.Invoke(value);
+
+    public event Action<string?>? PreviewRequested;
 
     /// <summary>Raised when a preset is removed, so the host can put the widgets wearing it back on the
     /// default — something the panel has no way to reach on its own.</summary>
@@ -405,6 +496,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         OnPropertyChanged(nameof(CanUpdatePreset));
         OnPropertyChanged(nameof(PresetNote));
         OnPropertyChanged(nameof(Swatches));
+        OnPropertyChanged(nameof(WornBy));
+        OnPropertyChanged(nameof(PanelTitle));
+        OnPropertyChanged(nameof(IsDefaultPreset));
+        OnPropertyChanged(nameof(RampPreviews));
 
         if (preset is null) return;
 
@@ -524,6 +619,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Value.Show = ValueShown;
 
         OnPropertyChanged(nameof(PresetNote));
+        OnPropertyChanged(nameof(RampPreviews));
         Changed?.Invoke(WidgetChange.Dress);
     }
 
@@ -718,6 +814,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         OnPropertyChanged(nameof(RampNames));
         OnPropertyChanged(nameof(CanDeleteRamp));
         OnPropertyChanged(nameof(PanelTitle));
+        OnPropertyChanged(nameof(PanelSubtitle));
     }
 
     [ObservableProperty]
@@ -818,9 +915,17 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// editing. Falls back to the kind's name, because a title is allowed to be empty and a heading is not.
     /// </summary>
     public string PanelTitle =>
-        _target is null ? "Widget"
+        EditingPreset ? SelectedPreset?.Name ?? "Preset"
+        : _target is null ? "Widget"
         : !string.IsNullOrWhiteSpace(Title) ? Title.Trim()
         : SelectedKind?.Name ?? "Widget";
+
+    /// <summary>The line under the title. In the preset view it says how far the changes reach, which is
+    /// the one thing somebody needs to know before touching anything there.</summary>
+    public string PanelSubtitle =>
+        EditingPreset ? $"Editing a preset — {WornBy.ToLowerInvariant()}."
+        : _target is null ? "Click a widget on the desktop to edit it."
+        : "Changes land on the desktop as you make them.";
 
     /// <summary>Whether there is anything to edit. The panel is long-lived and spends part of its life
     /// pointed at nothing, and a form full of controls that change nothing reads as broken.</summary>
@@ -852,11 +957,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     public void Clear()
     {
         _loaded = false;
+        EditingPreset = false;
+        PreviewState = null;
         _target = null;
         Chosen.Clear();
         SelectedSensor = null;
         SensorFilter = string.Empty;
         OnPropertyChanged(nameof(HasTarget));
+        NotifyView();
         OnPropertyChanged(nameof(PanelTitle));
     }
 
@@ -888,6 +996,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         ApplyFilter();
 
         _target = target;
+
+        // Back to the widget. Reaching for another widget while a preset is open is asking about the
+        // widget, and leaving the panel on the shared asset would answer a question nobody asked.
+        EditingPreset = false;
 
         // Before the rows, which offer this preset's ramps. Set after them and every row would be listing
         // the ramps of whichever widget was open before.
@@ -944,6 +1056,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         // The form is gated on this: the panel spends part of its life pointed at nothing, and everything
         // below the header is hidden until it is pointed at something.
         OnPropertyChanged(nameof(HasTarget));
+        NotifyView();
 
         // Chosen is refilled above, after the kind was set, so anything reading both is out of date by now.
         NotifySeriesState();

@@ -20,6 +20,11 @@ public class AppSettings
     /// other the window, and the user is expected to mix them freely.</summary>
     public string ColorProfileId    { get; set; } = "ember";
 
+    /// <summary>The preset a widget wears when it names none, and what everything falls back to when the
+    /// one it names is gone. Stored rather than compiled in, so "make this my default" is a thing a user
+    /// can say.</summary>
+    public string DefaultPresetId   { get; set; } = "ember";
+
     public int    PollingIntervalMs { get; set; } = 1000;
     public bool   MinimizeToTray   { get; set; } = false;
     public bool   StartMinimized   { get; set; } = false;

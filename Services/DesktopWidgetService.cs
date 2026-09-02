@@ -268,6 +268,13 @@ public sealed class DesktopWidgetService
         _panel = new Views.Windows.WidgetEditorPanel(_aquila.State.Hardware, _presets);
         _panel.ViewModel.Changed += OnPanelEdited;
         _panel.ViewModel.PresetRemoved += DropPreset;
+        _panel.ViewModel.PreviewRequested += PreviewRole;
+
+        // The panel cannot count them itself: the layout is the service's. A widget naming no preset is
+        // wearing the base, so it counts towards it.
+        _panel.ViewModel.CountWearers = id => _widgets?.Count(w =>
+            string.Equals(w.Preset, id, StringComparison.OrdinalIgnoreCase) ||
+            (string.IsNullOrWhiteSpace(w.Preset) && id == _presets.DefaultId)) ?? 0;
         _panel.AddRequested += OnAddRequested;
         _panel.RemoveRequested += RemoveFromPanel;
 
@@ -396,7 +403,7 @@ public sealed class DesktopWidgetService
 
         foreach (var widget in _dressed)
             if (string.Equals(widget.Preset, locked.Id, StringComparison.OrdinalIgnoreCase) ||
-                (string.IsNullOrWhiteSpace(widget.Preset) && locked.Id == PresetService.BaseId))
+                (string.IsNullOrWhiteSpace(widget.Preset) && locked.Id == _presets.DefaultId))
                 widget.Preset = variant.Id;
     }
 
@@ -424,6 +431,11 @@ public sealed class DesktopWidgetService
 
         _panel.ViewModel.Changed -= OnPanelEdited;
         _panel.ViewModel.PresetRemoved -= DropPreset;
+        _panel.ViewModel.PreviewRequested -= PreviewRole;
+
+        // Whatever was being previewed stops being previewed. A widget left frozen in Critical after the
+        // editor closed would be a monitor that lies.
+        PreviewRole(null);
         _panel.AddRequested -= OnAddRequested;
         _panel.RemoveRequested -= RemoveFromPanel;
 
@@ -1026,6 +1038,25 @@ public sealed class DesktopWidgetService
     /// tracked in a list: the element leaves the canvas whenever the widget is rebuilt, so the subscription
     /// ends itself and there is no bookkeeping to fall out of step with what is on screen.
     /// </summary>
+    /// <summary>
+    /// Draws every widget as though its reading were in this state, or null to go back to the truth.
+    ///
+    /// Tuning the critical colour otherwise means waiting for the machine to actually run hot, which is
+    /// both slow and the wrong moment to be fiddling with an editor. It touches nothing real — not the
+    /// reading, not the thresholds, not the file — so there is no state to get stuck in beyond the panel
+    /// being open, and closing it puts everything back.
+    /// </summary>
+    public static void PreviewRole(string? role)
+    {
+        if (_previewRole == role) return;
+
+        _previewRole = role;
+        PreviewChanged?.Invoke();
+    }
+
+    private static string? _previewRole;
+    private static event Action? PreviewChanged;
+
     private static Action<Ramp> Paint(FrameworkElement piece, DependencyProperty property,
         SensorNode sensor, Ramp ramp, MetricKey? metric)
     {
@@ -1040,6 +1071,7 @@ public sealed class DesktopWidgetService
         Repaint();
         sensor.PropertyChanged += OnSensorChanged;
         piece.Unloaded += OnUnloaded;
+        PreviewChanged += Repaint;
 
         if (monitor is not null) monitor.Changed += Repaint;
 
@@ -1047,9 +1079,11 @@ public sealed class DesktopWidgetService
         {
             // No judgeable scale means no state to be in, so it rests on the ramp's Normal. A watt count
             // measured against the percentage steps would sit at critical and mean nothing.
-            var role = sensor.Value is { } value && metric is { } key
-                ? monitor?.RoleFor(value, key) ?? "Normal"
-                : "Normal";
+            // The forced state wins while it is set, and nothing else knows it happened.
+            var role = _previewRole
+                ?? (sensor.Value is { } value && metric is { } key
+                    ? monitor?.RoleFor(value, key) ?? "Normal"
+                    : "Normal");
 
             piece.SetValue(property, Tint(current[role], 1));
         }
@@ -1063,6 +1097,7 @@ public sealed class DesktopWidgetService
         {
             sensor.PropertyChanged -= OnSensorChanged;
             piece.Unloaded -= OnUnloaded;
+            PreviewChanged -= Repaint;
             if (monitor is not null) monitor.Changed -= Repaint;
         }
 

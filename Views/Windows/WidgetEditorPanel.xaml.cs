@@ -48,12 +48,12 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
         if (definition is null)
         {
             ViewModel.Clear();
-            SubtitleText.Text = "Click a widget on the desktop to edit it.";
             return;
         }
 
+        // The subtitle is bound now: it has to say which of the two views you are in, and only the view
+        // model knows that.
         ViewModel.Load(_hardware, definition, presetSensorIdentifier: null);
-        SubtitleText.Text = "Changes land on the desktop as you make them.";
     }
 
     /// <summary>The definition currently shown, so the host knows what Remove refers to.</summary>
@@ -94,6 +94,29 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     }
 
     /// <summary>
+    /// Opens the preset menu under its button.
+    ///
+    /// A ContextMenu lives in a visual tree of its own, so it inherits no DataContext and every binding
+    /// inside it would silently find nothing. Handed the window's here, once, at the moment it opens.
+    /// </summary>
+    private void OnPresetMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu } button) return;
+
+        menu.PlacementTarget = button;
+        menu.DataContext = DataContext;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>Renaming is the name box, so the menu entry goes there rather than opening a dialog that
+    /// would ask for the same thing in a second place.</summary>
+    private void OnRenamePreset(object sender, RoutedEventArgs e)
+    {
+        PresetNameBox.Focus();
+        PresetNameBox.SelectAll();
+    }
+
+    /// <summary>
     /// Removes the preset on the row the pointer is over.
     ///
     /// Handled on the PREVIEW of the button press, not on its Click. A ComboBoxItem selects on mouse-down,
@@ -122,6 +145,11 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     private void OnCardExpanded(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is not Expander opened || sender is not Panel cards) return;
+
+        // Only for the set this panel actually owns. Expanded bubbles, so a section opening INSIDE one of
+        // these cards reaches here too — and since it is not among the children, the loop below would find
+        // no match to skip and close every card, the one containing it included.
+        if (!cards.Children.Contains(opened)) return;
 
         foreach (var card in cards.Children.OfType<Expander>())
             if (!ReferenceEquals(card, opened))

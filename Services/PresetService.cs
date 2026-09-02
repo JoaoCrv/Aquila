@@ -20,11 +20,35 @@ namespace Aquila.Services;
 /// Failures are never fatal. A missing or malformed preset costs that preset, not the app's ability to draw
 /// — and <see cref="Fallback"/> means a widget always has something to wear.
 /// </summary>
-public sealed class PresetService(ILogger<PresetService> logger)
+public sealed class PresetService(ILogger<PresetService> logger, SettingsService settings)
 {
     /// <summary>The preset that carries the app's own identity. Shipped, never editable, never deleted:
-    /// duplicating it is how variation starts, and it is what everything falls back to.</summary>
+    /// duplicating it is how variation starts, and it is the last thing left to fall back to.</summary>
     public const string BaseId = "ember";
+
+    /// <summary>
+    /// The preset a widget wears when it names none.
+    ///
+    /// A setting rather than <see cref="BaseId"/> directly, because "everything I make should look like
+    /// this one" is a reasonable thing to want and there is nothing in the format standing in its way. The
+    /// shipped one remains the floor: a default naming something that no longer exists resolves back to it
+    /// rather than leaving widgets undressed.
+    /// </summary>
+    public string DefaultId
+    {
+        get
+        {
+            var wanted = settings.Current.DefaultPresetId;
+            return !string.IsNullOrWhiteSpace(wanted) && _presets.Any(p =>
+                string.Equals(p.Id, wanted, StringComparison.OrdinalIgnoreCase)) ? wanted : BaseId;
+        }
+    }
+
+    public void SetDefault(Preset preset)
+    {
+        settings.Current.DefaultPresetId = preset.Id;
+        settings.Save();
+    }
 
     private static readonly JsonSerializerOptions _read = new()
     {
@@ -84,7 +108,7 @@ public sealed class PresetService(ILogger<PresetService> logger)
         (string.IsNullOrWhiteSpace(id)
             ? null
             : _presets.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)))
-        ?? _presets.FirstOrDefault(p => p.Id == BaseId)
+        ?? _presets.FirstOrDefault(p => string.Equals(p.Id, DefaultId, StringComparison.OrdinalIgnoreCase))
         ?? _presets.FirstOrDefault()
         ?? Fallback;
 
