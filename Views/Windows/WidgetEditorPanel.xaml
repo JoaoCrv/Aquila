@@ -438,8 +438,11 @@
                                     </ItemsControl>
 
                                     <DockPanel Margin="0,6,0,0">
+                                        <!-- Shown in itself. A font's name tells you far less about it
+                                             than one word set in it does. -->
                                         <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center"
-                                                   FontSize="11" Opacity="0.5"
+                                                   FontSize="12" Opacity="0.6"
+                                                   FontFamily="{Binding ViewModel.FontFamily}"
                                                    Text="{Binding ViewModel.FontFamily}"/>
                                         <ui:Badge HorizontalAlignment="Left" Appearance="Light">
                                             <TextBlock FontSize="11" Text="{Binding ViewModel.WornBy}"/>
@@ -675,93 +678,101 @@
 
                         <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
                         <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
-                                  SelectedItem="{Binding ViewModel.FontFamily}"/>
+                                  SelectedItem="{Binding ViewModel.FontFamily}">
+                            <!-- Every name set in its own face, so the list is a specimen sheet rather
+                                 than a list of words. -->
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                         </StackPanel>
                     </ui:CardExpander>
 
 
                     <ui:CardExpander>
                         <ui:CardExpander.Header>
-                            <TextBlock Text="Colours" FontWeight="SemiBold"/>
+                            <TextBlock Text="Ramps" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,12,0,0">
-                        <DockPanel>
-                            <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0"
-                                       Icon="{ui:SymbolIcon Delete24}"
-                                       ToolTip="Delete this ramp"
-                                       IsEnabled="{Binding ViewModel.CanDeleteRamp}"
-                                       Command="{Binding ViewModel.DeleteRampCommand}"/>
-                            <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0"
-                                       Icon="{ui:SymbolIcon Add24}"
-                                       ToolTip="New ramp, starting from this one"
-                                       Command="{Binding ViewModel.AddRampCommand}"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.RampNames}"
-                                      SelectedItem="{Binding ViewModel.SelectedRampName}"/>
-                        </DockPanel>
+                        <!-- Every ramp at once. A picker showing one at a time hid the thing worth seeing: the second ramp
+                             is chosen against the first, and side by side you can tell whether they belong together. -->
+                        <ItemsControl ItemsSource="{Binding ViewModel.RampRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,16">
+                                        <DockPanel Margin="0,0,0,8">
+                                            <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0" Padding="6,2"
+                                                       Icon="{ui:SymbolIcon Delete24}"
+                                                       ToolTip="Remove this ramp"
+                                                       Visibility="{Binding CanDelete, Converter={StaticResource BoolToVisibility}}"
+                                                       Command="{Binding DeleteCommand}"/>
 
-                        <!-- The ramp end to end. Four colours are hard to judge as four text boxes and
-                             easy to judge as a strip, and this is the one part of a preset where the
-                             relationship between the colours is the point. -->
-                        <UniformGrid Rows="1" Height="8" Margin="0,10,0,0">
-                            <Border Background="{Binding ViewModel.RampNormal}"/>
-                            <Border Background="{Binding ViewModel.RampElevated}"/>
-                            <Border Background="{Binding ViewModel.RampAlert}"/>
-                            <Border Background="{Binding ViewModel.RampCritical}"/>
-                        </UniformGrid>
+                                            <!-- Not a mode: it writes the same colour into all four stops, which is what a
+                                                 colour that never changes already IS in this format. -->
+                                            <ui:ToggleSwitch DockPanel.Dock="Right" VerticalAlignment="Center"
+                                                             IsChecked="{Binding Fixed}"/>
+                                            <TextBlock DockPanel.Dock="Right" Text="Fixed colour" Margin="0,0,8,0"
+                                                       VerticalAlignment="Center" FontSize="11" Opacity="0.5"/>
 
-                            <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="72"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Normal" VerticalAlignment="Center"
-                                           Style="{StaticResource FieldLabel}"/>
-                                <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
-                                                     Color="{Binding ViewModel.RampNormal, Mode=TwoWay}"
-                                                     Swatches="{Binding ViewModel.Swatches}"/>
-                            </Grid>
-                            <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="72"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Elevated" VerticalAlignment="Center"
-                                           Style="{StaticResource FieldLabel}"/>
-                                <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
-                                                     Color="{Binding ViewModel.RampElevated, Mode=TwoWay}"
-                                                     Swatches="{Binding ViewModel.Swatches}"/>
-                            </Grid>
-                            <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="72"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Alert" VerticalAlignment="Center"
-                                           Style="{StaticResource FieldLabel}"/>
-                                <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
-                                                     Color="{Binding ViewModel.RampAlert, Mode=TwoWay}"
-                                                     Swatches="{Binding ViewModel.Swatches}"/>
-                            </Grid>
-                            <Grid Margin="0,6,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="72"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Critical" VerticalAlignment="Center"
-                                           Style="{StaticResource FieldLabel}"/>
-                                <controls:ColorField Grid.Column="1" HorizontalAlignment="Left"
-                                                     Color="{Binding ViewModel.RampCritical, Mode=TwoWay}"
-                                                     Swatches="{Binding ViewModel.Swatches}"/>
-                            </Grid>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
+                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
 
-                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,6,0,0" FontSize="11"
-                                   Opacity="0.5" TextWrapping="Wrap"
-                                   Text="Which of the four a reading is drawn in is decided by the reading itself, against the limits in Settings. A ramp with four equal colours simply never changes."/>
+                                        <UniformGrid Rows="1"
+                                                     Visibility="{Binding Varies, Converter={StaticResource BoolToVisibility}}">
+                                        <StackPanel Margin="0,0,6,0">
+                                            <controls:ColorField Height="30" HorizontalAlignment="Stretch"
+                                                                 Color="{Binding Normal, Mode=TwoWay}"
+                                                                 Swatches="{Binding DataContext.ViewModel.Swatches,
+                                                                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            <TextBlock Text="NORMAL" FontSize="10" Opacity="0.5" Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,6,0">
+                                            <controls:ColorField Height="30" HorizontalAlignment="Stretch"
+                                                                 Color="{Binding Elevated, Mode=TwoWay}"
+                                                                 Swatches="{Binding DataContext.ViewModel.Swatches,
+                                                                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            <TextBlock Text="ELEVATED" FontSize="10" Opacity="0.5" Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,6,0">
+                                            <controls:ColorField Height="30" HorizontalAlignment="Stretch"
+                                                                 Color="{Binding Alert, Mode=TwoWay}"
+                                                                 Swatches="{Binding DataContext.ViewModel.Swatches,
+                                                                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            <TextBlock Text="ALERT" FontSize="10" Opacity="0.5" Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0">
+                                            <controls:ColorField Height="30" HorizontalAlignment="Stretch"
+                                                                 Color="{Binding Critical, Mode=TwoWay}"
+                                                                 Swatches="{Binding DataContext.ViewModel.Swatches,
+                                                                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            <TextBlock Text="CRITICAL" FontSize="10" Opacity="0.5" Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                        </UniformGrid>
+
+                                        <StackPanel Visibility="{Binding Fixed, Converter={StaticResource BoolToVisibility}}">
+                                            <controls:ColorField Height="30" HorizontalAlignment="Stretch"
+                                                                 Color="{Binding Normal, Mode=TwoWay}"
+                                                                 Swatches="{Binding DataContext.ViewModel.Swatches,
+                                                                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
+                                            <TextBlock Text="EVERY STATE" FontSize="10" Opacity="0.5" Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                   Icon="{ui:SymbolIcon Add24}" Content="Add ramp"
+                                   Command="{Binding ViewModel.AddRampCommand}"/>
                         </StackPanel>
                     </ui:CardExpander>
 

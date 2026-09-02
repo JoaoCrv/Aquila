@@ -33,6 +33,75 @@ public enum WidgetChange
 
 /// <summary>One ramp, flattened for display. A record rather than the Ramp itself so the summary cannot
 /// accidentally become a second way to edit one.</summary>
+/// <summary>
+/// One ramp in the editor: four stops, or one when it is fixed.
+///
+/// "Fixed colour" writes the same colour into all four stops rather than adding a mode. That keeps the
+/// format's own rule intact — a colour that never changes IS a ramp that goes nowhere — so nothing
+/// downstream needs to know the difference, and turning it back off leaves four stops to spread again.
+/// </summary>
+public partial class RampRow : ObservableObject
+{
+    private readonly Action<RampRow> _changed;
+    private readonly Action _delete;
+
+    public RampRow(string name, Ramp ramp, Action<RampRow> changed, Action delete)
+    {
+        Name = name;
+        _changed = changed;
+        _delete = delete;
+
+        _normal = ramp.Normal;
+        _elevated = ramp.Elevated;
+        _alert = ramp.Alert;
+        _critical = ramp.Critical;
+
+        // Read from the colours themselves rather than stored: four equal stops is what fixed MEANS, so
+        // there is no second fact that could disagree with them.
+        _fixed = ramp.Normal == ramp.Elevated && ramp.Elevated == ramp.Alert && ramp.Alert == ramp.Critical;
+    }
+
+    public string Name { get; }
+
+    /// <summary>Primary is where every fallback ends, so it is the one ramp that cannot be removed.</summary>
+    public bool CanDelete => !string.Equals(Name, Ramp.Primary, StringComparison.OrdinalIgnoreCase);
+
+    [ObservableProperty] private string _normal;
+    [ObservableProperty] private string _elevated;
+    [ObservableProperty] private string _alert;
+    [ObservableProperty] private string _critical;
+    [ObservableProperty] private bool _fixed;
+
+    public bool Varies => !Fixed;
+
+    partial void OnNormalChanged(string value)
+    {
+        if (Fixed) Flatten();
+        _changed(this);
+    }
+
+    partial void OnElevatedChanged(string value) => _changed(this);
+    partial void OnAlertChanged(string value) => _changed(this);
+    partial void OnCriticalChanged(string value) => _changed(this);
+
+    partial void OnFixedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(Varies));
+        if (value) Flatten();
+        _changed(this);
+    }
+
+    private void Flatten()
+    {
+        Elevated = Normal;
+        Alert = Normal;
+        Critical = Normal;
+    }
+
+    [RelayCommand]
+    private void Delete() => _delete();
+}
+
 public record RampPreview(string Name, string Normal, string Elevated, string Alert, string Critical);
 
 public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor, SensorEntry Entry)
@@ -307,51 +376,45 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     // --- Colours. The only part of a preset that carries meaning rather than measurement: four stops
     // from ordinary to critical, and which one shows is decided by the reading, not by the preset. ---
 
-    [ObservableProperty] private string _selectedRampName = Ramp.Primary;
-    [ObservableProperty] private string _rampNormal = "#60CDFF";
-    [ObservableProperty] private string _rampElevated = "#F5A623";
-    [ObservableProperty] private string _rampAlert = "#FF6B35";
-    [ObservableProperty] private string _rampCritical = "#FF4444";
+    /// <summary>
+    /// Every ramp the preset has, all editable at once.
+    ///
+    /// A picker showing one at a time hid the thing worth seeing: a preset's ramps are a system, and the
+    /// second one is chosen against the first. Side by side you can tell whether they belong together,
+    /// which is the whole question being asked.
+    /// </summary>
+    public ObservableCollection<RampRow> RampRows { get; } = [];
 
-    /// <summary>Whether the chosen ramp can go. Primary never can: it is what every ramp falls back to,
-    /// and a preset with none would have nothing to answer with.</summary>
-    public bool CanDeleteRamp =>
-        RampNames.Count > 1 && !string.Equals(SelectedRampName, Ramp.Primary, StringComparison.OrdinalIgnoreCase);
-
-    partial void OnSelectedRampNameChanged(string value)
+    /// <summary>
+    /// Writes a row back into the preset it came from.
+    ///
+    /// Through the dictionary by name, never through RampFor — that answers with primary for a name the
+    /// preset does not have, so writing through it would pour one ramp's colours into another.
+    /// </summary>
+    private void EditRamp(RampRow row)
     {
-        ReadRamp();
-        OnPropertyChanged(nameof(CanDeleteRamp));
+        if (_reading || !_loaded || SelectedPreset is not { } chosen) return;
+
+        var preset = presets.Draft(chosen);
+        if (!preset.Ramps.TryGetValue(row.Name, out var ramp)) return;
+
+        ramp.Normal = row.Normal;
+        ramp.Elevated = row.Elevated;
+        ramp.Alert = row.Alert;
+        ramp.Critical = row.Critical;
+
+        OnPropertyChanged(nameof(RampPreviews));
+        Changed?.Invoke(WidgetChange.Dress);
     }
 
-    partial void OnRampNormalChanged(string value) => Dress();
-    partial void OnRampElevatedChanged(string value) => Dress();
-    partial void OnRampAlertChanged(string value) => Dress();
-    partial void OnRampCriticalChanged(string value) => Dress();
-
-    /// <summary>Fills the four stops from the chosen ramp without writing anything back.</summary>
-    private void ReadRamp()
+    /// <summary>Rebuilds the rows from a preset. They are recreated rather than updated: a ramp added or
+    /// removed changes how many there are, and a row bound to a name that no longer exists writes into
+    /// nothing.</summary>
+    private void ReadRamps(Preset preset)
     {
-        if (SelectedPreset is not { } preset) return;
-
-        var ramp = preset.RampFor(SelectedRampName);
-
-        // Saved and restored rather than forced back to false. Read() assigns SelectedRampName from inside
-        // its own guard, so this runs nested — and clearing the flag on the way out would leave the rest of
-        // Read() writing the form INTO the preset it is reading from.
-        var was = _reading;
-        _reading = true;
-        try
-        {
-            RampNormal = ramp.Normal;
-            RampElevated = ramp.Elevated;
-            RampAlert = ramp.Alert;
-            RampCritical = ramp.Critical;
-        }
-        finally
-        {
-            _reading = was;
-        }
+        RampRows.Clear();
+        foreach (var (name, ramp) in preset.Ramps)
+            RampRows.Add(new RampRow(name, ramp, EditRamp, () => DeleteRamp(name)));
     }
 
     /// <summary>
@@ -369,31 +432,38 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         var preset = presets.Draft(chosen);
         var name = FreeRampName(preset);
 
+        // From the last one rather than from blue: a second series usually wants a variation on the
+        // first, and a ramp that starts as a copy is one edit from right where a default is four.
+        var last = preset.Ramps.Values.LastOrDefault() ?? Ramp.Neutral;
+
         preset.Ramps[name] = new Ramp
         {
-            Normal = RampNormal,
-            Elevated = RampElevated,
-            Alert = RampAlert,
-            Critical = RampCritical,
+            Normal = last.Normal,
+            Elevated = last.Elevated,
+            Alert = last.Alert,
+            Critical = last.Critical,
         };
 
+        ReadRamps(preset);
         OnPropertyChanged(nameof(RampNames));
-        SelectedRampName = name;
+        OnPropertyChanged(nameof(RampPreviews));
         Changed?.Invoke(WidgetChange.Dress);
     }
 
-    /// <summary>Removes the chosen ramp. Any series naming it draws in primary from the next tick, because
-    /// that is what RampFor already answers for a name a preset does not have — so nothing has to be
-    /// repointed and no reading is left with nothing to be drawn in.</summary>
-    [RelayCommand]
-    private void DeleteRamp()
+    /// <summary>Removes a ramp. Any series naming it draws in primary from the next tick, because that is
+    /// what RampFor already answers for a name a preset does not have — so nothing has to be repointed and
+    /// no reading is left with nothing to be drawn in.</summary>
+    private void DeleteRamp(string name)
     {
-        if (!CanDeleteRamp || SelectedPreset is not { } chosen) return;
+        if (SelectedPreset is not { } chosen) return;
+        if (string.Equals(name, Ramp.Primary, StringComparison.OrdinalIgnoreCase)) return;
 
-        presets.Draft(chosen).Ramps.Remove(SelectedRampName);
+        var preset = presets.Draft(chosen);
+        preset.Ramps.Remove(name);
 
+        ReadRamps(preset);
         OnPropertyChanged(nameof(RampNames));
-        SelectedRampName = Ramp.Primary;
+        OnPropertyChanged(nameof(RampPreviews));
         Changed?.Invoke(WidgetChange.Dress);
     }
 
@@ -534,13 +604,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             UnitSize = preset.Number.UnitSize;
             NumberPanel = preset.Number.Panel;
 
-            SelectedRampName = preset.Ramps.ContainsKey(SelectedRampName) ? SelectedRampName : Ramp.Primary;
-
-            var ramp = preset.RampFor(SelectedRampName);
-            RampNormal = ramp.Normal;
-            RampElevated = ramp.Elevated;
-            RampAlert = ramp.Alert;
-            RampCritical = ramp.Critical;
+            ReadRamps(preset);
 
             FontFamily = preset.FontFamily ?? ThemeFont;
             TitleSize = preset.Title.Size;
@@ -578,16 +642,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Border.Opacity = BorderOpacity / 100;
         preset.Border.Thickness = BorderThickness;
         preset.Border.CornerRadius = CornerRadius;
-
-        // Through the dictionary, never through RampFor. That answers with primary when a name is
-        // missing, so writing through it would quietly pour one ramp's colours into another.
-        if (preset.Ramps.TryGetValue(SelectedRampName, out var ramp))
-        {
-            ramp.Normal = RampNormal;
-            ramp.Elevated = RampElevated;
-            ramp.Alert = RampAlert;
-            ramp.Critical = RampCritical;
-        }
 
         preset.Gauge.Thickness = ArcThickness;
         preset.Gauge.Corner = ArcCorner;
@@ -812,7 +866,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         OnPropertyChanged(nameof(ShowsValue));
         OnPropertyChanged(nameof(CanHideValue));
         OnPropertyChanged(nameof(RampNames));
-        OnPropertyChanged(nameof(CanDeleteRamp));
         OnPropertyChanged(nameof(PanelTitle));
         OnPropertyChanged(nameof(PanelSubtitle));
     }

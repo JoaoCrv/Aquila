@@ -8,7 +8,9 @@
     <Grid>
         <!-- The closed state is the colour itself. Nothing else is needed to say "this is a colour and you
              may change it" — the same reasoning as the preset name that only shows its edges on hover. -->
-        <Border x:Name="Swatch" Width="24" Height="24" CornerRadius="4"
+        <!-- Sized by whoever places it, with a floor rather than a fixed size: a stop in a ramp is a wide
+             block, a colour beside a label is a small square, and both are this control. -->
+        <Border x:Name="Swatch" MinWidth="24" MinHeight="24" CornerRadius="4"
                 BorderThickness="1" Cursor="Hand"
                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                 MouseLeftButtonUp="OnOpen"/>
