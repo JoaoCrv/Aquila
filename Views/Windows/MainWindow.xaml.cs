@@ -20,6 +20,7 @@ namespace Aquila.Views.Windows
 
         private System.Drawing.Icon _baseIcon = System.Drawing.SystemIcons.Application;
         private System.Windows.Forms.ToolStripMenuItem? _updateItem;
+        private System.Windows.Forms.ToolStripSeparator? _updateSeparator;
         private System.Drawing.Icon? _badgedIcon;
 
         // Tracks normal-state bounds so we always have a valid non-maximized size to persist
@@ -104,7 +105,11 @@ namespace Aquila.Views.Windows
                 Visible = false,
             };
 
-            menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+            // The rule above it travels with it. Two separators with nothing between them is a gap
+            // that reads as a missing entry, which is worse than no rule at all.
+            _updateSeparator = new System.Windows.Forms.ToolStripSeparator { Visible = false };
+
+            menu.Items.Add(_updateSeparator);
             menu.Items.Add(_updateItem);
             menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             menu.Items.Add("Exit", null, (_, _) => TrayExit());
@@ -287,6 +292,7 @@ namespace Aquila.Views.Windows
                 _trayIcon.Icon = available ? (_badgedIcon ??= BuildBadgedIcon(_baseIcon)) : _baseIcon;
 
                 if (_updateItem is not null) _updateItem.Visible = available;
+                if (_updateSeparator is not null) _updateSeparator.Visible = available;
             });
         }
 
