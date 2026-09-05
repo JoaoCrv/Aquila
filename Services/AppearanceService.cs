@@ -43,6 +43,13 @@ public sealed class AppearanceService(
     {
         themes.Load();
 
+        // Loaded here, beside the themes, and not by the caller: this service PUBLISHES a preset, so it
+        // has to be the thing that makes sure there is one. When the caller owned the ordering, Publish
+        // ran twelve lines before Load and painted everything in the fallback's blue while the settings
+        // page — built later — correctly showed the chosen preset. The list said one thing and the screen
+        // another.
+        presets.Load();
+
         if (!_watching)
         {
             // Watching the OS switch ourselves, rather than through WPF-UI's SystemThemeWatcher, is

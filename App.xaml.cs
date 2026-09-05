@@ -170,9 +170,9 @@ namespace Aquila
             if (settings.Current.EnableVerboseLogging)
                 LogLevel.MinimumLevel = LogEventLevel.Debug;
 
-            // Before StartAsync, which is what shows the main window: loads the colour profiles, applies
-            // the theme, and starts watching Windows' light/dark switch. Doing it after would render the
-            // first frame in the wrong theme and then correct it in view of the user.
+            // Before StartAsync, which is what shows the main window: loads the themes and the presets,
+            // applies both, and starts watching Windows' light/dark switch. Doing it after would render
+            // the first frame undressed and then correct it in view of the user.
             _host.Services.GetRequiredService<AppearanceService>().Initialize();
 
             // Before StartAsync too, and for the same reason: the XAML converter that colours the cards
@@ -181,11 +181,6 @@ namespace Aquila
             var vitals = _host.Services.GetRequiredService<VitalMonitor>();
             vitals.Load();
             VitalMonitor.Current = vitals;
-
-            // Before StartAsync for the third time, and the same reason again: the desktop widgets are built
-            // as the shell comes up and each one asks for the preset it wears. Loaded afterwards, every
-            // widget would be dressed in the fallback and the editor would offer an empty list to pick from.
-            _host.Services.GetRequiredService<PresetService>().Load();
 
             await _host.StartAsync();
 
