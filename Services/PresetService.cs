@@ -106,6 +106,18 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
     /// machine; both land on the base, because a widget drawn in the house colours is better than a widget
     /// not drawn.
     /// </summary>
+    /// <summary>
+    /// Whether a preset by this id is really installed.
+    ///
+    /// <see cref="For"/> cannot answer it: it exists never to return null, so it walks its fallbacks and
+    /// hands back the base for a name nobody has. That is right for dressing a widget and useless for
+    /// deciding whether to offer something — a theme suggesting a preset the user does not have should
+    /// ask nothing at all.
+    /// </summary>
+    public bool Has(string? id) =>
+        !string.IsNullOrWhiteSpace(id) &&
+        _presets.Any(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+
     public Preset For(string? id) =>
         (string.IsNullOrWhiteSpace(id)
             ? null

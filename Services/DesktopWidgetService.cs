@@ -370,6 +370,26 @@ public sealed class DesktopWidgetService
     /// the next person to read it cannot tell a deletion from a typo. Cleared to empty rather than to the
     /// base's id, because "whatever the default is" is exactly what these widgets are now wearing.
     /// </summary>
+    /// <summary>
+    /// Puts every widget in one preset — including the ones somebody chose individually.
+    ///
+    /// Destructive by design and only ever reached from a question that says so. The gentle answer to the
+    /// same question is to change the DEFAULT preset, which the widgets naming none already follow; this
+    /// is for when someone wants the whole desktop to match and does not mind losing the exceptions.
+    ///
+    /// The layout is loaded if it has not been: the request was about every widget, and widgets that exist
+    /// only in a file are still widgets.
+    /// </summary>
+    public void WearEverywhere(string presetId)
+    {
+        _widgets ??= _layout.Load();
+
+        foreach (var widget in _widgets) widget.Preset = presetId;
+
+        RestyleAll();
+        SaveUnlessEditing();
+    }
+
     public void DropPreset(Preset preset)
     {
         _presets.Delete(preset);

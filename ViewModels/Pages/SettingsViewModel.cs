@@ -267,6 +267,62 @@ namespace Aquila.ViewModels.Pages
             _settings.Current.ThemeStyle = value.Id;
             _settings.Save();
             _theme.Apply();
+
+            OfferSuggestedPreset(value);
+        }
+
+        /// <summary>
+        /// Offers the preset a theme was made to go with — the single link between the two axes, and it
+        /// runs only in this direction.
+        ///
+        /// Never imposed. A theme dresses the application and a preset dresses the data, and someone may
+        /// perfectly well want widgets matching a wallpaper over our own shell; taking that away because
+        /// they changed theme would be answering a question they did not ask.
+        ///
+        /// Silent when the preset is not installed, and silent when it is already in use. A dialog that
+        /// appears to tell you nothing changed is a dialog people learn to dismiss unread.
+        /// </summary>
+        private async void OfferSuggestedPreset(ThemeOption style)
+        {
+            if (_themes.For(style.Id) is not { SuggestedPreset: { Length: > 0 } id }) return;
+            if (!_presets.Has(id)) return;
+
+            var already = string.Equals(_settings.Current.DashboardPresetId, id, StringComparison.OrdinalIgnoreCase)
+                       && string.Equals(_settings.Current.DefaultPresetId, id, StringComparison.OrdinalIgnoreCase);
+            if (already) return;
+
+            var preset = _presets.For(id);
+
+            var box = new Wpf.Ui.Controls.MessageBox
+            {
+                Title = $"{style.Label} suggests the {preset.Name} preset",
+                Content =
+                    $"{style.Label} was made to go with {preset.Name}. It can dress the dashboard and the "
+                    + "pages, and be what new widgets wear.\n\n"
+                    + "Widgets you have already given a preset of their own keep it, unless you ask for "
+                    + "everything.",
+                PrimaryButtonText = "Use it, and keep my widgets",
+                SecondaryButtonText = "Use it everywhere",
+                CloseButtonText = "Leave things as they are",
+            };
+
+            var answer = await box.ShowDialogAsync();
+            if (answer == Wpf.Ui.Controls.MessageBoxResult.None) return;
+
+            _settings.Current.DashboardPresetId = id;
+            _settings.Current.DefaultPresetId = id;
+            _settings.Save();
+
+            // Every widget, including the ones chosen by hand — only on the answer that says so.
+            if (answer == Wpf.Ui.Controls.MessageBoxResult.Secondary &&
+                App.Services.GetService(typeof(Services.DesktopWidgetService)) is Services.DesktopWidgetService widgets)
+                widgets.WearEverywhere(id);
+
+            _theme.ApplyProfile();
+
+            _externalUpdate = true;
+            try { RefreshProfileList(); }
+            finally { _externalUpdate = false; }
         }
 
         /// <summary>Narrows the brightness list to what the chosen theme can dress, and moves the
