@@ -74,11 +74,23 @@ public sealed class AppearanceService(
     /// </summary>
     public void Apply()
     {
-        IsDark = settings.Current.Theme switch
+        var wanted = settings.Current.Theme switch
         {
             "Light" => false,
             "Dark" => true,
             _ => !IsSystemLight(),
+        };
+
+        // A theme with one side wins over the request. Not out of stubbornness: WPF-UI's base would swap
+        // to light while the overlay handed back the only side it has, and the window came out in a pale
+        // Fluent wearing dark tokens — half-dressed, which is the state the settings picker already
+        // refuses to allow. Decided HERE so every way in obeys it: the picker, this toggle, and Windows
+        // switching itself at sunset.
+        IsDark = themes.For(settings.Current.ThemeStyle) switch
+        {
+            { HasBothSides: true } or null => wanted,
+            { Dark: true } => true,
+            _ => false,
         };
 
         var theme = IsDark ? ApplicationTheme.Dark : ApplicationTheme.Light;
@@ -152,8 +164,16 @@ public sealed class AppearanceService(
     /// depend on what Windows happens to be set to. Following the system again is a deliberate choice,
     /// and it stays in Settings where deliberate choices live.
     /// </summary>
+    /// <summary>Whether there is a second side to switch to. False for a theme that ships one, which is
+    /// what hides the title bar's toggle: a control that visibly does nothing is worse than no control.
+    /// </summary>
+    public bool CanToggleBrightness =>
+        themes.For(settings.Current.ThemeStyle) is not { HasBothSides: false };
+
     public void ToggleBrightness()
     {
+        if (!CanToggleBrightness) return;
+
         settings.Current.Theme = IsDark ? "Light" : "Dark";
         settings.Save();
         Apply();

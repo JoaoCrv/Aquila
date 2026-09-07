@@ -21,6 +21,10 @@ namespace Aquila.ViewModels.Windows
         public SymbolRegular ThemeToggleIcon =>
             _appearance.IsDark ? SymbolRegular.WeatherSunny24 : SymbolRegular.WeatherMoon24;
 
+        /// <summary>Hidden for a theme that ships one side. The Settings picker greys out for the same
+        /// reason; a toggle that cannot toggle would be the one way left to ask for the impossible.</summary>
+        public bool CanToggleTheme => _appearance.CanToggleBrightness;
+
         public string ThemeToggleTooltip =>
             _appearance.IsDark ? "Switch to light" : "Switch to dark";
 
@@ -44,6 +48,7 @@ namespace Aquila.ViewModels.Windows
             {
                 OnPropertyChanged(nameof(ThemeToggleIcon));
                 OnPropertyChanged(nameof(ThemeToggleTooltip));
+                OnPropertyChanged(nameof(CanToggleTheme));
             };
 
             _uiService.PropertyChanged += (s, e) =>

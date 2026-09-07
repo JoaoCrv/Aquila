@@ -165,6 +165,7 @@
                     Appearance="Transparent" BorderThickness="0"
                     Cursor="Hand"
                     Command="{Binding ViewModel.ToggleThemeCommand, Mode=OneWay}"
+                    Visibility="{Binding ViewModel.CanToggleTheme, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}"
                     ToolTip="{Binding ViewModel.ThemeToggleTooltip, Mode=OneWay}">
                     <!-- Sized against the caption glyphs beside it, not on its own: a toggle noticeably
                          larger than the close button reads as a different class of control. -->
