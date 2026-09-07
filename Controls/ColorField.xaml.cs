@@ -107,9 +107,10 @@ public partial class ColorField : UserControl
         var w = Field.ActualWidth > 0 ? Field.ActualWidth : 188;
         var h = Field.ActualHeight > 0 ? Field.ActualHeight : 120;
 
-        Canvas.SetLeft(Crosshair, _saturation * w - 6);
-        Canvas.SetTop(Crosshair, (1 - _value) * h - 6);
-        Canvas.SetLeft(HueMark, _hue / 360 * (Hue.ActualWidth > 0 ? Hue.ActualWidth : 188) - 2);
+        // Half the marker's own size, so the middle of it lands on the value it reports.
+        Canvas.SetLeft(Crosshair, _saturation * w - 7);
+        Canvas.SetTop(Crosshair, (1 - _value) * h - 7);
+        Canvas.SetLeft(HueMark, _hue / 360 * (Hue.ActualWidth > 0 ? Hue.ActualWidth : 188) - 3);
     }
 
     private void Commit()

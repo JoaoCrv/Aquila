@@ -37,12 +37,14 @@
                             </Border.Background>
                         </Border>
                         <Canvas ClipToBounds="True">
-                            <Ellipse x:Name="Crosshair" Width="12" Height="12" StrokeThickness="2"
-                                     Stroke="White" IsHitTestVisible="False">
-                                <Ellipse.Effect>
-                                    <DropShadowEffect BlurRadius="3" ShadowDepth="0" Opacity="0.8"/>
-                                </Ellipse.Effect>
-                            </Ellipse>
+                            <!-- Two rings, dark outside and light inside, so one of them always contrasts.
+                                 A single white ring is invisible in the top-left corner of this field,
+                                 which is white by definition — and that has nothing to do with the app's
+                                 theme, which is where this was first filed. -->
+                            <Grid x:Name="Crosshair" Width="14" Height="14" IsHitTestVisible="False">
+                                <Ellipse Stroke="#CC000000" StrokeThickness="3"/>
+                                <Ellipse Stroke="White" StrokeThickness="1.5" Margin="1"/>
+                            </Grid>
                         </Canvas>
                     </Grid>
 
@@ -63,8 +65,13 @@
                             </Border.Background>
                         </Border>
                         <Canvas ClipToBounds="True">
-                            <Rectangle x:Name="HueMark" Width="4" Height="16" RadiusX="2" RadiusY="2"
-                                       Stroke="White" StrokeThickness="2" IsHitTestVisible="False"/>
+                            <!-- Same two rings: the hue bar runs through yellow and cyan, where white
+                                 alone disappears. -->
+                            <Grid x:Name="HueMark" Width="6" Height="16" IsHitTestVisible="False">
+                                <Rectangle Stroke="#CC000000" StrokeThickness="3" RadiusX="3" RadiusY="3"/>
+                                <Rectangle Stroke="White" StrokeThickness="1.5" RadiusX="3" RadiusY="3"
+                                           Margin="1"/>
+                            </Grid>
                         </Canvas>
                     </Grid>
 
