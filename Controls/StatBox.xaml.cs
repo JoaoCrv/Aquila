@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Aquila.Models;
 
 namespace Aquila.Controls;
 
@@ -45,6 +46,28 @@ public partial class StatBox : UserControl, IStatStyle
     public static readonly DependencyProperty ShowPanelProperty =
         DependencyProperty.Register(nameof(ShowPanel), typeof(bool), typeof(StatBox),
             new PropertyMetadata(true, (d, _) => ((StatBox)d).Apply()));
+
+    public static readonly DependencyProperty ValueFontProperty =
+        DependencyProperty.Register(nameof(ValueFont), typeof(string), typeof(StatBox),
+            new PropertyMetadata(null, (d, _) => ((StatBox)d).WearValue()));
+
+    public static readonly DependencyProperty ValueWeightProperty =
+        DependencyProperty.Register(nameof(ValueWeight), typeof(TextWeight), typeof(StatBox),
+            new PropertyMetadata(TextWeight.Regular, (d, _) => ((StatBox)d).WearValue()));
+
+    public string? ValueFont
+    {
+        get => (string?)GetValue(ValueFontProperty);
+        set => SetValue(ValueFontProperty, value);
+    }
+
+    public TextWeight ValueWeight
+    {
+        get => (TextWeight)GetValue(ValueWeightProperty);
+        set => SetValue(ValueWeightProperty, value);
+    }
+
+    private void WearValue() => ValueText.Wear(ValueFont, ValueWeight);
 
     public static readonly DependencyProperty ValueSizeProperty =
         DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(StatBox),

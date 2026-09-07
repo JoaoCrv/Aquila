@@ -20,7 +20,8 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
     /// <summary>The look the current series was built with. Thickness, text size and whether the number is
     /// drawn are all baked into the series when it is generated, so changing any of them means building it
     /// again — but only then, or the gauge would animate from zero on every tick.</summary>
-    private (double Thickness, double Corner, double ValueSize, bool ShowValue, SKColor Track) _lastStyle;
+    private (double Thickness, double Corner, double ValueSize, bool ShowValue, SKColor Track,
+        string? Font, TextWeight Weight) _lastStyle;
 
     /// <summary>Shows or hides the value arc without rebuilding it.</summary>
     private Action<bool>? _setArcVisible;
@@ -62,6 +63,28 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
     public static readonly DependencyProperty SweepProperty =
         DependencyProperty.Register(nameof(Sweep), typeof(GaugeSweep), typeof(RadialGauge),
             new PropertyMetadata(GaugeSweep.Dial, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty ValueFontProperty =
+        DependencyProperty.Register(nameof(ValueFont), typeof(string), typeof(RadialGauge),
+            new PropertyMetadata(null, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty ValueWeightProperty =
+        DependencyProperty.Register(nameof(ValueWeight), typeof(TextWeight), typeof(RadialGauge),
+            new PropertyMetadata(TextWeight.Regular, (d, _) => ((RadialGauge)d).Render()));
+
+    /// <summary>The centre number's face. It reaches SkiaSharp rather than WPF, which is why it never
+    /// followed the font inherited down the visual tree — the gauge's label is painted, not laid out.</summary>
+    public string? ValueFont
+    {
+        get => (string?)GetValue(ValueFontProperty);
+        set => SetValue(ValueFontProperty, value);
+    }
+
+    public TextWeight ValueWeight
+    {
+        get => (TextWeight)GetValue(ValueWeightProperty);
+        set => SetValue(ValueWeightProperty, value);
+    }
 
     public static readonly DependencyProperty ValueSizeProperty =
         DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(RadialGauge),
@@ -178,7 +201,7 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         var track = TrackBrush is SolidColorBrush t
             ? new SKColor(t.Color.R, t.Color.G, t.Color.B, (byte)(t.Color.A * t.Opacity))
             : new SKColor(255, 255, 255, 20);
-        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue, track);
+        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue, track, ValueFont, ValueWeight);
 
         // The start angle and the sweep have to be set together — 270 degrees starting at the top puts the
         // gap on the right, which reads as a broken ring rather than a dial.
@@ -195,7 +218,8 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         if (_point is null || color != _lastColor || style != _lastStyle)
         {
             var (series, point, setArcVisible) =
-                AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner, track);
+                AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner, track,
+                    ValueFont, ValueWeight);
             _point = point;
             _setArcVisible = setArcVisible;
             _lastColor = color;

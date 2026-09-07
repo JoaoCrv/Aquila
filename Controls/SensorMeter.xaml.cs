@@ -139,6 +139,26 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
         DependencyProperty.Register(nameof(ShowValue), typeof(bool), typeof(SensorMeter),
             new PropertyMetadata(true, (d, _) => ((SensorMeter)d).Apply()));
 
+    public static readonly DependencyProperty ValueFontProperty =
+        DependencyProperty.Register(nameof(ValueFont), typeof(string), typeof(SensorMeter),
+            new PropertyMetadata(null, (d, _) => ((SensorMeter)d).Apply()));
+
+    public static readonly DependencyProperty ValueWeightProperty =
+        DependencyProperty.Register(nameof(ValueWeight), typeof(TextWeight), typeof(SensorMeter),
+            new PropertyMetadata(TextWeight.Regular, (d, _) => ((SensorMeter)d).Apply()));
+
+    public string? ValueFont
+    {
+        get => (string?)GetValue(ValueFontProperty);
+        set => SetValue(ValueFontProperty, value);
+    }
+
+    public TextWeight ValueWeight
+    {
+        get => (TextWeight)GetValue(ValueWeightProperty);
+        set => SetValue(ValueWeightProperty, value);
+    }
+
     public static readonly DependencyProperty ValueSizeProperty =
         DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(SensorMeter),
             new PropertyMetadata(13d, (d, _) => ((SensorMeter)d).Apply()));
@@ -197,11 +217,13 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
         InlineValueColumn.Width = ShowValue ? ValueWidth : new GridLength(0);
         InlineValueText.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
         InlineValueText.FontSize = ValueSize;
+        InlineValueText.Wear(ValueFont, ValueWeight);
 
         // In the Top layout the number shares a row with the label. A widget leaves that label empty, so
         // with the number gone the whole row is blank margin — collapse it too.
         TopRow.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
         TopValueText.FontSize = ValueSize;
+        TopValueText.Wear(ValueFont, ValueWeight);
 
         InlineBar.BarThickness = BarThickness;
         TopBar.BarThickness = BarThickness;

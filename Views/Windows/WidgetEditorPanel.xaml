@@ -442,8 +442,8 @@
                                              than one word set in it does. -->
                                         <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center"
                                                    FontSize="12" Opacity="0.6"
-                                                   FontFamily="{Binding ViewModel.FontFamily}"
-                                                   Text="{Binding ViewModel.FontFamily}"/>
+                                                   FontFamily="{Binding ViewModel.TitleFont}"
+                                                   Text="{Binding ViewModel.TitleFont}"/>
                                         <ui:Badge HorizontalAlignment="Left" Appearance="Light">
                                             <TextBlock FontSize="11" Text="{Binding ViewModel.WornBy}"/>
                                         </ui:Badge>
@@ -676,17 +676,6 @@
                         <Slider Minimum="0" Maximum="24"
                                 Value="{Binding ViewModel.CornerRadius}"/>
 
-                        <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                        <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
-                                  SelectedItem="{Binding ViewModel.FontFamily}">
-                            <!-- Every name set in its own face, so the list is a specimen sheet rather
-                                 than a list of words. -->
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -913,6 +902,21 @@
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,12,0,0">
+                        <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
+                                  SelectedItem="{Binding ViewModel.TitleFont}">
+                            <!-- Every name set in its own face, so the list is a specimen sheet rather than a
+                                 list of words. -->
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="Weight" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                        <ComboBox ItemsSource="{Binding ViewModel.Weights}"
+                                  SelectedItem="{Binding ViewModel.TitleWeight}"/>
+
                         <DockPanel Margin="0,10,0,0">
                             <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                        Text="{Binding ViewModel.TitleSize, StringFormat={}{0:F0} px}"/>
@@ -941,6 +945,21 @@
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,12,0,0">
+                            <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
+                                      SelectedItem="{Binding ViewModel.ValueFont}">
+                                <!-- Every name set in its own face, so the list is a specimen sheet rather than a
+                                     list of words. -->
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Text="Weight" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.Weights}"
+                                      SelectedItem="{Binding ViewModel.ValueWeight}"/>
+
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                            Text="{Binding ViewModel.ValueSize, StringFormat={}{0:F0} px}"/>

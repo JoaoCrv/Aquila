@@ -63,11 +63,10 @@ public sealed class Preset : INotifyPropertyChanged
     /// </summary>
     public Dictionary<string, Ramp> Ramps { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>The typeface, for everything the preset dresses. One per preset rather than one per text
-    /// role: a design with two families in it is two designs, and the second is nearly always a mistake.
-    /// Null means the app's own, which is also what an importing machine falls back to when it does not
-    /// have the family installed.</summary>
-    public string? FontFamily { get; set; }
+    // No FontFamily here any more. It lived at this level on the reasoning that two families are two
+    // designs — which is an opinion rather than a constraint, and pairing a display face for the label
+    // with a plain one for the number is ordinary typography. It also could not be found: somebody
+    // looking for a font setting looks where the text settings are. Title and Value carry their own.
 
     public PresetFill Background { get; set; } = new();
     public PresetBorder Border { get; set; } = new();
@@ -148,7 +147,12 @@ public sealed class PresetBorder : PresetFill
 /// </summary>
 public sealed class PresetText
 {
+    /// <summary>Null means the app's own face — also what an importing machine falls back to when it does
+    /// not have the named one installed.</summary>
+    public string? FontFamily { get; set; }
+
     public double Size { get; set; } = 18;
+    public TextWeight Weight { get; set; } = TextWeight.Regular;
     public TextAlign Align { get; set; } = TextAlign.Center;
     public bool Show { get; set; } = true;
 }
@@ -157,7 +161,10 @@ public sealed class PresetText
 /// reading — and it carries a placement the reading has no use for.</summary>
 public sealed class PresetTitle
 {
+    public string? FontFamily { get; set; }
+
     public double Size { get; set; } = 11;
+    public TextWeight Weight { get; set; } = TextWeight.Regular;
     public double Opacity { get; set; } = 0.6;
     public TitlePlacement Placement { get; set; } = TitlePlacement.Top;
 }

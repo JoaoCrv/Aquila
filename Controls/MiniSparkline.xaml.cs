@@ -48,6 +48,21 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
     /// preset could not reach it.</summary>
     public double ValueSize { get => ValueText.FontSize; set => ValueText.FontSize = value; }
 
+    private string? _valueFont;
+    private TextWeight _valueWeight = TextWeight.Regular;
+
+    public string? ValueFont
+    {
+        get => _valueFont;
+        set { _valueFont = value; ValueText.Wear(_valueFont, _valueWeight); }
+    }
+
+    public TextWeight ValueWeight
+    {
+        get => _valueWeight;
+        set { _valueWeight = value; ValueText.Wear(_valueFont, _valueWeight); }
+    }
+
     public double LineThickness { get => Spark.LineThickness; set => Spark.LineThickness = value; }
     public Models.ChartFill Fill { get => Spark.Fill; set => Spark.Fill = value; }
     public double Smoothness { get => Spark.Smoothness; set => Spark.Smoothness = value; }

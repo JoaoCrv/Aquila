@@ -830,15 +830,15 @@ public sealed class DesktopWidgetService
         border.Width = definition.Width;
         border.Height = definition.Height;
 
-        // Set on the outermost element so the title, the reading and anything else made of words inherit
-        // it from one assignment. Cleared rather than given a default when the preset names nothing: an
-        // explicit family would override the theme's, and "nothing" is asking to keep the theme's.
-        if (string.IsNullOrWhiteSpace(preset.FontFamily)) border.ClearValue(TextElement.FontFamilyProperty);
-        else TextElement.SetFontFamily(border, new FontFamily(preset.FontFamily));
+        // No font is set here. Inheriting one down the tree reached every piece made of TextBlocks and
+        // silently missed the gauge, whose number SkiaSharp paints rather than lays out. Each role now
+        // carries its own face, applied where it is drawn.
 
         if (border.Child is not LabeledTile tile) return;
 
         tile.Title = definition.Title;
+        tile.TitleFont = preset.Title.FontFamily;
+        tile.TitleWeight = preset.Title.Weight;
         tile.TitleSize = preset.Title.Size;
         tile.TitleOpacity = preset.Title.Opacity;
         tile.TitlePlacement = preset.Title.Placement;
@@ -849,7 +849,12 @@ public sealed class DesktopWidgetService
         // First, and for anything that draws a reading. Kept out of the per-kind blocks below because it
         // is the one setting they all share, and repeating it in each is how the sparkline came to be the
         // only kind it did not reach.
-        if (piece is IValueStyle value) value.ValueSize = preset.Value.Size;
+        if (piece is IValueStyle value)
+        {
+            value.ValueSize = preset.Value.Size;
+            value.ValueFont = preset.Value.FontFamily;
+            value.ValueWeight = preset.Value.Weight;
+        }
 
         if (piece is IChartStyle line)
         {

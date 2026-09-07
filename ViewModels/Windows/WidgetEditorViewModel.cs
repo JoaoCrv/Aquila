@@ -536,18 +536,25 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     public IReadOnlyList<string> FontFamilies { get; } =
         [ThemeFont, .. Fonts.SystemFontFamilies.Select(f => f.Source).Distinct().OrderBy(n => n)];
 
-    [ObservableProperty] private string _fontFamily = ThemeFont;
+    [ObservableProperty] private string _titleFont = ThemeFont;
+    [ObservableProperty] private TextWeight _titleWeight = TextWeight.Regular;
     [ObservableProperty] private double _titleSize = 11;
     [ObservableProperty] private double _titleOpacity = 60;
     [ObservableProperty] private TitlePlacement _titlePlacement = TitlePlacement.Top;
+    [ObservableProperty] private string _valueFont = ThemeFont;
+    [ObservableProperty] private TextWeight _valueWeight = TextWeight.Regular;
     [ObservableProperty] private double _valueSize = 18;
     [ObservableProperty] private TextAlign _valueAlign = TextAlign.Center;
     [ObservableProperty] private bool _valueShown = true;
 
     public IReadOnlyList<TitlePlacement> Placements { get; } = Enum.GetValues<TitlePlacement>();
+    public IReadOnlyList<TextWeight> Weights { get; } = Enum.GetValues<TextWeight>();
     public IReadOnlyList<TextAlign> Alignments { get; } = Enum.GetValues<TextAlign>();
 
-    partial void OnFontFamilyChanged(string value) => Dress();
+    partial void OnTitleFontChanged(string value) => Dress();
+    partial void OnTitleWeightChanged(TextWeight value) => Dress();
+    partial void OnValueFontChanged(string value) => Dress();
+    partial void OnValueWeightChanged(TextWeight value) => Dress();
     partial void OnTitleSizeChanged(double value) => Dress();
     partial void OnTitleOpacityChanged(double value) => Dress();
     partial void OnTitlePlacementChanged(TitlePlacement value) => Dress();
@@ -606,10 +613,13 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
             ReadRamps(preset);
 
-            FontFamily = preset.FontFamily ?? ThemeFont;
+            TitleFont = preset.Title.FontFamily ?? ThemeFont;
+            TitleWeight = preset.Title.Weight;
             TitleSize = preset.Title.Size;
             TitleOpacity = preset.Title.Opacity * 100;
             TitlePlacement = preset.Title.Placement;
+            ValueFont = preset.Value.FontFamily ?? ThemeFont;
+            ValueWeight = preset.Value.Weight;
             ValueSize = preset.Value.Size;
             ValueAlign = preset.Value.Align;
             ValueShown = preset.Value.Show;
@@ -664,10 +674,13 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         // Null rather than the label, so a preset that defers to the theme says so in the file instead of
         // freezing today's theme font into itself.
-        preset.FontFamily = FontFamily == ThemeFont ? null : FontFamily;
+        preset.Title.FontFamily = TitleFont == ThemeFont ? null : TitleFont;
+        preset.Title.Weight = TitleWeight;
         preset.Title.Size = TitleSize;
         preset.Title.Opacity = TitleOpacity / 100;
         preset.Title.Placement = TitlePlacement;
+        preset.Value.FontFamily = ValueFont == ThemeFont ? null : ValueFont;
+        preset.Value.Weight = ValueWeight;
         preset.Value.Size = ValueSize;
         preset.Value.Align = ValueAlign;
         preset.Value.Show = ValueShown;

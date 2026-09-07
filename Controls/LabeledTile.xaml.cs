@@ -25,6 +25,26 @@ public partial class LabeledTile : UserControl
         DependencyProperty.Register(nameof(TitlePlacement), typeof(TitlePlacement), typeof(LabeledTile),
             new PropertyMetadata(TitlePlacement.Top, (d, _) => ((LabeledTile)d).Apply()));
 
+    public static readonly DependencyProperty TitleFontProperty =
+        DependencyProperty.Register(nameof(TitleFont), typeof(string), typeof(LabeledTile),
+            new PropertyMetadata(null, (d, _) => ((LabeledTile)d).Apply()));
+
+    public static readonly DependencyProperty TitleWeightProperty =
+        DependencyProperty.Register(nameof(TitleWeight), typeof(TextWeight), typeof(LabeledTile),
+            new PropertyMetadata(TextWeight.Regular, (d, _) => ((LabeledTile)d).Apply()));
+
+    public string? TitleFont
+    {
+        get => (string?)GetValue(TitleFontProperty);
+        set => SetValue(TitleFontProperty, value);
+    }
+
+    public TextWeight TitleWeight
+    {
+        get => (TextWeight)GetValue(TitleWeightProperty);
+        set => SetValue(TitleWeightProperty, value);
+    }
+
     public static readonly DependencyProperty TitleSizeProperty =
         DependencyProperty.Register(nameof(TitleSize), typeof(double), typeof(LabeledTile),
             new PropertyMetadata(11d, (d, _) => ((LabeledTile)d).Apply()));
@@ -74,6 +94,7 @@ public partial class LabeledTile : UserControl
     {
         TitleText.Text = Title;
         TitleText.FontSize = TitleSize;
+        TitleText.Wear(TitleFont, TitleWeight);
         TitleText.Opacity = TitleOpacity;
         Body.Content = Tile;
 

@@ -14,4 +14,10 @@ namespace Aquila.Controls;
 public interface IValueStyle
 {
     double ValueSize { get; set; }
+
+    /// <summary>The face, or null for the app's own. A string rather than a FontFamily because the gauge
+    /// draws its number through SkiaSharp, which has never heard of WPF's type.</summary>
+    string? ValueFont { get; set; }
+
+    Aquila.Models.TextWeight ValueWeight { get; set; }
 }

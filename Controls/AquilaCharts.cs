@@ -6,6 +6,7 @@ using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Extensions;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
+using Aquila.Models;
 
 namespace Aquila.Controls;
 
@@ -24,7 +25,8 @@ public static class AquilaCharts
     /// </summary>
     public static (IEnumerable<ISeries> Series, ObservableValue Point, Action<bool> SetArcVisible) SolidGauge(
         SKColor color, double columnWidth = 14, double labelSize = 24, bool showLabel = true,
-        double cornerRadius = 0, SKColor? track = null)
+        double cornerRadius = 0, SKColor? track = null,
+        string? font = null, Aquila.Models.TextWeight weight = Aquila.Models.TextWeight.Regular)
     {
         // A cap cannot be rounder than the arc is thick. Past half the width the geometry starts eating
         // into the arc, and LiveCharts' rounding is already unreliable enough at the edges without being
@@ -57,7 +59,16 @@ public static class AquilaCharts
                 // Native centre label: integer only (default shows the raw double — the "550003..."
                 // we saw was the unformatted value mid-animation).
                 // Null hides the number entirely — an arc on its own, with the widget's own title above it.
-                series.DataLabelsPaint = showLabel ? new SolidColorPaint(new SKColor(235, 235, 235)) : null;
+                // The label is PAINTED, not laid out, so it inherits nothing from the visual tree above
+                // it — which is why the preset's typeface used to reach every piece except this one.
+                series.DataLabelsPaint = showLabel
+                    ? new SolidColorPaint(new SKColor(235, 235, 235))
+                    {
+                        FontFamily = string.IsNullOrWhiteSpace(font) ? null : font,
+                        SKFontStyle = new SKFontStyle(
+                            weight.ToSkiaWeight(), SKFontStyleWidth.Normal, SKFontStyleSlant.Upright),
+                    }
+                    : null;
                 series.DataLabelsSize = labelSize;
                 series.DataLabelsPosition = PolarLabelsPosition.ChartCenter;
                 series.DataLabelsFormatter = p => p.Coordinate.PrimaryValue.ToString("F0");

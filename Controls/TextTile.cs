@@ -31,6 +31,22 @@ public sealed class TextTile : TextBlock, ISensorPiece, ICaptionStyle
         set => FontSize = value;
     }
 
+
+    private string? _valueFont;
+    private TextWeight _valueWeight = TextWeight.Regular;
+
+    public string? ValueFont
+    {
+        get => _valueFont;
+        set { _valueFont = value; this.Wear(_valueFont, _valueWeight); }
+    }
+
+    public TextWeight ValueWeight
+    {
+        get => _valueWeight;
+        set { _valueWeight = value; this.Wear(_valueFont, _valueWeight); }
+    }
+
     public TextAlign Align
     {
         get => TextAlignment.ToAlign();
