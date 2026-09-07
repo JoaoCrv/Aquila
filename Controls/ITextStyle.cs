@@ -9,10 +9,9 @@ public interface ITextStyle : IValueStyle
 }
 
 /// <summary>A piece that shows words the user wrote, and optionally a reading after them.</summary>
-public interface ICaptionStyle : ITextStyle
+public interface ICaptionStyle : ITextStyle, IUnitStyle
 {
     string Caption { get; set; }
-    bool ShowUnit { get; set; }
 }
 
 /// <summary>A piece that shows the time or the date.</summary>

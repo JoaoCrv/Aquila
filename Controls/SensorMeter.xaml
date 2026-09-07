@@ -24,7 +24,7 @@
                 Accent="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"
                 Maximum="{Binding Maximum, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
             <TextBlock x:Name="InlineValueText" Grid.Column="2" Style="{StaticResource RowValue}"
-                       Text="{Binding ValueText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                       Text="{Binding DisplayText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
         </Grid>
 
         <StackPanel x:Name="TopLayout">
@@ -36,7 +36,7 @@
                 <TextBlock Grid.Column="0" Style="{StaticResource RowLabel}"
                            Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 <TextBlock x:Name="TopValueText" Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                           Text="{Binding ValueText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                           Text="{Binding DisplayText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
             </Grid>
             <controls:SensorBar x:Name="TopBar" Margin="0,2,0,6"
                 Sensor="{Binding Sensor, RelativeSource={RelativeSource AncestorType=UserControl}}"

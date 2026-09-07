@@ -25,7 +25,8 @@
     "color": "#2B2420",
     "opacity": 1.0,
     "thickness": 1,
-    "cornerRadius": 8
+    "cornerRadius": 8,
+    "padding": 10
   },
   "gauge": {
     "thickness": 14,
@@ -53,10 +54,13 @@
     "panel": false
   },
   "title": {
+    "color": "#FFFFFF",
     "size": 11,
-    "opacity": 0.55
+    "opacity": 0.55,
+    "align": "Center"
   },
   "value": {
+    "color": "#FFFFFF",
     "size": 18,
     "align": "Center"
   }

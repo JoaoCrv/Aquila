@@ -334,6 +334,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
                 offered.Add(preset.Background.Color);
                 offered.Add(preset.Border.Color);
+                offered.Add(preset.Title.Color);
+                offered.Add(preset.Value.Color);
             }
 
             offered.AddRange(Neutrals);
@@ -350,6 +352,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private double _borderOpacity = 25;
     [ObservableProperty] private double _borderThickness;
     [ObservableProperty] private double _cornerRadius = 8;
+    [ObservableProperty] private double _padding = 10;
+
+    [ObservableProperty] private string _titleColor = "#FFFFFF";
+    [ObservableProperty] private string _valueColor = "#FFFFFF";
 
     partial void OnBackgroundColorChanged(string value) => Dress();
     partial void OnBackgroundOpacityChanged(double value) => Dress();
@@ -357,6 +363,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnBorderOpacityChanged(double value) => Dress();
     partial void OnBorderThicknessChanged(double value) => Dress();
     partial void OnCornerRadiusChanged(double value) => Dress();
+    partial void OnPaddingChanged(double value) => Dress();
 
     // Which sections apply. Asked of the CATALOG rather than of the piece, so the editor knows what to
     // show before it has built anything — and a kind that is not a dial simply cannot be given dial
@@ -369,9 +376,18 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>Whether this kind draws a reading at all, and so whether a size for one means anything.</summary>
     public bool ShowsValue => SelectedKind?.HasValue == true;
 
-    /// <summary>Whether the reading can be turned off. Only where the graphic still says something without
-    /// it — a dial or a bar. Hiding the words of a Text widget leaves an empty widget.</summary>
-    public bool CanHideValue => ShowsDial || ShowsBar;
+    /// <summary>
+    /// Whether the reading can be turned off: there has to be a reading, and something has to be left when
+    /// it goes. A dial becomes a ring, a bar a bar, a sparkline a trend.
+    ///
+    /// The full Chart is excluded by <see cref="ShowsValue"/> — it draws no number to hide — and the stat
+    /// and the two word kinds by having no graphic, so hiding the reading would leave an empty widget.
+    /// </summary>
+    public bool CanHideValue => ShowsValue && (ShowsDial || ShowsBar || ShowsLine);
+
+    /// <summary>Whether this kind's reading has a unit to hide. The clock draws a reading and has none.
+    /// </summary>
+    public bool ShowsUnit => SelectedKind?.HasUnit == true;
 
     // --- Colours. The only part of a preset that carries meaning rather than measurement: four stops
     // from ordinary to critical, and which one shows is decided by the reading, not by the preset. ---
@@ -541,16 +557,21 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private double _titleSize = 11;
     [ObservableProperty] private double _titleOpacity = 60;
     [ObservableProperty] private TitlePlacement _titlePlacement = TitlePlacement.Top;
+    [ObservableProperty] private TextAlign _titleAlign = TextAlign.Center;
     [ObservableProperty] private string _valueFont = ThemeFont;
     [ObservableProperty] private TextWeight _valueWeight = TextWeight.Regular;
     [ObservableProperty] private double _valueSize = 18;
     [ObservableProperty] private TextAlign _valueAlign = TextAlign.Center;
     [ObservableProperty] private bool _valueShown = true;
+    [ObservableProperty] private bool _unitShown = true;
 
     public IReadOnlyList<TitlePlacement> Placements { get; } = Enum.GetValues<TitlePlacement>();
     public IReadOnlyList<TextWeight> Weights { get; } = Enum.GetValues<TextWeight>();
     public IReadOnlyList<TextAlign> Alignments { get; } = Enum.GetValues<TextAlign>();
 
+    partial void OnTitleAlignChanged(TextAlign value) => Dress();
+    partial void OnTitleColorChanged(string value) => Dress();
+    partial void OnValueColorChanged(string value) => Dress();
     partial void OnTitleFontChanged(string value) => Dress();
     partial void OnTitleWeightChanged(TextWeight value) => Dress();
     partial void OnValueFontChanged(string value) => Dress();
@@ -560,7 +581,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnTitlePlacementChanged(TitlePlacement value) => Dress();
     partial void OnValueSizeChanged(double value) => Dress();
     partial void OnValueAlignChanged(TextAlign value) => Dress();
-    partial void OnValueShownChanged(bool value) => Dress();
+    partial void OnValueShownChanged(bool value) => Apply();
+    partial void OnUnitShownChanged(bool value) => Apply();
 
     /// <summary>True while the form is being filled FROM a preset, so the writes that causes are not read
     /// back as edits. Without it, merely switching preset would mark the new one as edited — it would be
@@ -588,6 +610,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             BackgroundColor = preset.Background.Color;
             BackgroundOpacity = preset.Background.Opacity * 100;
             BorderColor = preset.Border.Color;
+            Padding = preset.Border.Padding;
             BorderOpacity = preset.Border.Opacity * 100;
             BorderThickness = preset.Border.Thickness;
             CornerRadius = preset.Border.CornerRadius;
@@ -613,16 +636,18 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
             ReadRamps(preset);
 
+            TitleColor = preset.Title.Color;
+            TitleAlign = preset.Title.Align;
             TitleFont = preset.Title.FontFamily ?? ThemeFont;
             TitleWeight = preset.Title.Weight;
             TitleSize = preset.Title.Size;
             TitleOpacity = preset.Title.Opacity * 100;
             TitlePlacement = preset.Title.Placement;
+            ValueColor = preset.Value.Color;
             ValueFont = preset.Value.FontFamily ?? ThemeFont;
             ValueWeight = preset.Value.Weight;
             ValueSize = preset.Value.Size;
             ValueAlign = preset.Value.Align;
-            ValueShown = preset.Value.Show;
         }
         finally
         {
@@ -649,6 +674,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Background.Color = BackgroundColor;
         preset.Background.Opacity = BackgroundOpacity / 100;
         preset.Border.Color = BorderColor;
+        preset.Border.Padding = Padding;
         preset.Border.Opacity = BorderOpacity / 100;
         preset.Border.Thickness = BorderThickness;
         preset.Border.CornerRadius = CornerRadius;
@@ -674,16 +700,18 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         // Null rather than the label, so a preset that defers to the theme says so in the file instead of
         // freezing today's theme font into itself.
+        preset.Title.Color = TitleColor;
+        preset.Title.Align = TitleAlign;
         preset.Title.FontFamily = TitleFont == ThemeFont ? null : TitleFont;
         preset.Title.Weight = TitleWeight;
         preset.Title.Size = TitleSize;
         preset.Title.Opacity = TitleOpacity / 100;
         preset.Title.Placement = TitlePlacement;
+        preset.Value.Color = ValueColor;
         preset.Value.FontFamily = ValueFont == ThemeFont ? null : ValueFont;
         preset.Value.Weight = ValueWeight;
         preset.Value.Size = ValueSize;
         preset.Value.Align = ValueAlign;
-        preset.Value.Show = ValueShown;
 
         OnPropertyChanged(nameof(PresetNote));
         OnPropertyChanged(nameof(RampPreviews));
@@ -858,30 +886,21 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         Apply(WidgetChange.Structure);
     }
 
-    /// <summary>Everything the chosen kind and the series list decide together. Raised from every place that
-    /// changes either one, so the button, its label and the hint can never disagree with the list under
-    /// them — four separate notifications in three places was how they drifted apart.</summary>
-    private void NotifySeriesState()
-    {
-        OnPropertyChanged(nameof(ReplacesSeries));
-        OnPropertyChanged(nameof(CanAdd));
-        OnPropertyChanged(nameof(SeriesHint));
-        OnPropertyChanged(nameof(AddLabel));
-        OnPropertyChanged(nameof(ShowsDataSection));
-        OnPropertyChanged(nameof(ShowsTextOptions));
-        OnPropertyChanged(nameof(ShowsCaptionOptions));
-        OnPropertyChanged(nameof(ShowsClockOptions));
-        OnPropertyChanged(nameof(ShowsChartData));
-        OnPropertyChanged(nameof(ShowsDial));
-        OnPropertyChanged(nameof(ShowsLine));
-        OnPropertyChanged(nameof(ShowsBar));
-        OnPropertyChanged(nameof(ShowsNumber));
-        OnPropertyChanged(nameof(ShowsValue));
-        OnPropertyChanged(nameof(CanHideValue));
-        OnPropertyChanged(nameof(RampNames));
-        OnPropertyChanged(nameof(PanelTitle));
-        OnPropertyChanged(nameof(PanelSubtitle));
-    }
+    /// <summary>
+    /// Everything the chosen kind and the series list decide together. Raised from every place that changes
+    /// either one, so the button, its label and the hint can never disagree with the list under them — four
+    /// separate notifications in three places was how they drifted apart.
+    ///
+    /// An empty name, which WPF reads as "every property on this object", rather than the eighteen it used
+    /// to name one by one. That list was a promise to remember, and it was broken the first time it was
+    /// tested: a nineteenth computed property arrived, went unlisted, and its control was evaluated once
+    /// against a null kind and never asked again — a checkbox that could not appear, with nothing wrong
+    /// where anybody would look for it.
+    ///
+    /// The cost of asking for all of them is a re-read of the bindings on one panel, and only when the kind
+    /// or the series change — a click, never a tick. Cheaper than the class of bug it removes.
+    /// </summary>
+    private void NotifySeriesState() => OnPropertyChanged(string.Empty);
 
     [ObservableProperty]
     private string _title = string.Empty;
@@ -961,6 +980,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         _target.Text = Caption;
         _target.ClockFormat = SelectedClockFormat;
+        _target.ShowValue = ValueShown;
+        _target.ShowUnit = UnitShown;
 
         _target.PointCount = (int)PointCount;
         _target.Scale = SelectedScale;
@@ -1109,6 +1130,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         Caption = target.Text;
         SelectedClockFormat = target.ClockFormat;
+        ValueShown = target.ShowValue;
+        UnitShown = target.ShowUnit;
 
         PointCount = target.PointCount;
         SelectedScale = target.Scale;

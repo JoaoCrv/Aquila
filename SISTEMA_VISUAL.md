@@ -164,6 +164,20 @@ vermelho da casa — exige querer, em vez de bastar trocar um algarismo.
 
 Elementos de moldura (fundos, bordas, títulos) têm cor directa + opacidade separada.
 
+**O preset tem de ser seguro de experimentar.** Nada nele pode mudar **o que** está no ecrã — só como se lê.
+Por isso o `showValue` e o `showUnit` vivem no widget e não no preset: são informação, não apresentação.
+Trocar Ember por Sky nunca pode fazer desaparecer um número que se estava a ler, e dois mostradores lado a
+lado — um para ler e outro decorativo — exigiriam dois presets a diferir num booleano, que é exactamente a
+duplicação que os presets existem para evitar.
+
+**`value.color` não é uma excepção a isto.** Uma leitura *julgada* recebe a cor do seu ramp, pintada por
+cima; `value.color` é a cor com que o texto é desenhado quando **nada o está a julgar** — um relógio, uma
+legenda sem sensor por trás. Um ramp responde "como está isto", e um relógio não está a fazer nada. As duas
+coisas nunca podem discordar sobre o mesmo número porque nunca se aplicam ao mesmo número.
+
+Antes de existir, esse texto era um `Brushes.White` no construtor do widget: o relógio era permanentemente
+branco e nenhum preset lhe chegava.
+
 **Ramp primário como fallback:** um chart com mais linhas do que ramps desenha, usando o `primary` nas
 restantes, em vez de rebentar ou inventar.
 

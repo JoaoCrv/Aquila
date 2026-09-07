@@ -21,7 +21,7 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
     /// drawn are all baked into the series when it is generated, so changing any of them means building it
     /// again — but only then, or the gauge would animate from zero on every tick.</summary>
     private (double Thickness, double Corner, double ValueSize, bool ShowValue, SKColor Track,
-        string? Font, TextWeight Weight) _lastStyle;
+        string? Font, TextWeight Weight, SKColor Label, string? Unit, string Decimals) _lastStyle;
 
     /// <summary>Shows or hides the value arc without rebuilding it.</summary>
     private Action<bool>? _setArcVisible;
@@ -63,6 +63,30 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
     public static readonly DependencyProperty SweepProperty =
         DependencyProperty.Register(nameof(Sweep), typeof(GaugeSweep), typeof(RadialGauge),
             new PropertyMetadata(GaugeSweep.Dial, (d, _) => ((RadialGauge)d).Render()));
+
+    public static readonly DependencyProperty ShowUnitProperty =
+        DependencyProperty.Register(nameof(ShowUnit), typeof(bool), typeof(RadialGauge),
+            new PropertyMetadata(true, (d, _) => ((RadialGauge)d).Render()));
+
+    /// <summary>Whether the centre number carries its unit. It is drawn at the reading's own size, because
+    /// the label is a single SkiaSharp paint — the stat's separate unit size has nothing to act on here.
+    /// </summary>
+    public bool ShowUnit
+    {
+        get => (bool)GetValue(ShowUnitProperty);
+        set => SetValue(ShowUnitProperty, value);
+    }
+
+    public static readonly DependencyProperty ValueBrushProperty =
+        DependencyProperty.Register(nameof(ValueBrush), typeof(Brush), typeof(RadialGauge),
+            new PropertyMetadata(null, (d, _) => ((RadialGauge)d).Render()));
+
+    /// <summary>The centre number's colour. Null leaves the built-in near-white.</summary>
+    public Brush? ValueBrush
+    {
+        get => (Brush?)GetValue(ValueBrushProperty);
+        set => SetValue(ValueBrushProperty, value);
+    }
 
     public static readonly DependencyProperty ValueFontProperty =
         DependencyProperty.Register(nameof(ValueFont), typeof(string), typeof(RadialGauge),
@@ -201,7 +225,15 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         var track = TrackBrush is SolidColorBrush t
             ? new SKColor(t.Color.R, t.Color.G, t.Color.B, (byte)(t.Color.A * t.Opacity))
             : new SKColor(255, 255, 255, 20);
-        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue, track, ValueFont, ValueWeight);
+        var label = ValueBrush is SolidColorBrush l
+            ? new SKColor(l.Color.R, l.Color.G, l.Color.B, (byte)(l.Color.A * l.Opacity))
+            : new SKColor(235, 235, 235);
+        // Both baked into the series when it is generated, so they belong in the comparison below or a
+        // preset that turns the unit off would not be noticed until something else forced a rebuild.
+        var unit = ShowUnit ? Sensor.Unit : null;
+        var decimals = Sensor.Decimals();
+        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue, track, ValueFont, ValueWeight, label,
+            unit, decimals);
 
         // The start angle and the sweep have to be set together — 270 degrees starting at the top puts the
         // gap on the right, which reads as a broken ring rather than a dial.
@@ -219,7 +251,7 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         {
             var (series, point, setArcVisible) =
                 AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner, track,
-                    ValueFont, ValueWeight);
+                    ValueFont, ValueWeight, label, unit, decimals);
             _point = point;
             _setArcVisible = setArcVisible;
             _lastColor = color;

@@ -62,6 +62,11 @@ public sealed record WidgetKindInfo(
     /// nothing but shape — a full chart and a backdrop — so the editor does not offer a size for text
     /// they never draw.</summary>
     public bool HasValue { get; init; } = true;
+
+    /// <summary>Whether its reading comes with a unit, and so whether offering to hide one means anything.
+    /// False for the clock — it draws a reading and there is no unit a time could carry — and for the two
+    /// kinds that draw no reading at all.</summary>
+    public bool HasUnit { get; init; } = true;
 }
 
 public static class WidgetCatalog
@@ -102,7 +107,7 @@ public static class WidgetCatalog
             300, 160,
             BuildChart,
             [SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty])
-            { HasLine = true, HasValue = false },
+            { HasLine = true, HasValue = false, HasUnit = false },
 
         // No accent properties, so MaxSeries is 0 — the first kind that reads nothing at all. Everything it
         // draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is empty
@@ -112,7 +117,7 @@ public static class WidgetCatalog
             "A plate to sit behind other widgets. Reads nothing.",
             240, 160,
             _ => new Grid(),
-            []) { NeedsReading = false, HasValue = false },
+            []) { NeedsReading = false, HasValue = false, HasUnit = false },
 
         // One accent property, so it MAY take a reading; NeedsReading false, so it does not have to. It is
         // the first kind where the ceiling and the requirement differ.
@@ -128,7 +133,7 @@ public static class WidgetCatalog
             "The time or the date, in this machine's own format.",
             200, 70,
             _ => new ClockTile(),
-            []) { NeedsReading = false, HasClock = true },
+            []) { NeedsReading = false, HasClock = true, HasUnit = false },
     ];
 
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which
@@ -153,12 +158,15 @@ public static class WidgetCatalog
             ValueWidth = new GridLength(64),
         };
 
-        var unit = string.IsNullOrWhiteSpace(sensor.Unit) ? "" : " " + sensor.Unit;
+        // The unit is set beside the number rather than baked into its format string. A format string is
+        // fixed when the binding is made, so a preset turning the unit off would have needed the widget
+        // rebuilt — and a rebuild is for structure, never for style.
+        meter.Unit = sensor.Unit ?? string.Empty;
 
         meter.SetBinding(SensorMeter.ValueTextProperty, new Binding(nameof(SensorNode.Value))
         {
             Source = sensor,
-            StringFormat = $"{{0:{Decimals(sensor)}}}{unit}",
+            StringFormat = $"{{0:{SensorFormat.Decimals(sensor.Unit)}}}",
             FallbackValue = "--",
         });
 
@@ -177,7 +185,7 @@ public static class WidgetCatalog
         box.SetBinding(StatBox.ValueProperty, new Binding(nameof(SensorNode.Value))
         {
             Source = sensor,
-            StringFormat = $"{{0:{Decimals(sensor)}}}",
+            StringFormat = $"{{0:{SensorFormat.Decimals(sensor.Unit)}}}",
             FallbackValue = "--",
         });
 
@@ -199,6 +207,4 @@ public static class WidgetCatalog
         MaxY = series[0].Unit == "%" ? 100 : double.NaN,
     };
 
-    /// <summary>Volts need decimals to mean anything; everything else reads better rounded.</summary>
-    private static string Decimals(SensorNode sensor) => sensor.Unit == "V" ? "F2" : "F0";
 }

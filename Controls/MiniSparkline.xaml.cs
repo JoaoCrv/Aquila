@@ -11,7 +11,8 @@ namespace Aquila.Controls;
 /// number from <see cref="SensorNode.Value"/>. A thin wrapper over <see cref="SparklineChart"/> so
 /// the dashboard and desktop widgets share one piece (sibling of <see cref="RadialGauge"/>).
 /// </summary>
-public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IValueStyle
+public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IValueStyle, IUnitStyle,
+    IHideableValue
 {
     public MiniSparkline()
     {
@@ -99,6 +100,25 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
         UpdateValue();
     }
 
-    private void UpdateValue() =>
-        ValueText.Text = Sensor?.Value is { } v ? $"{v:F0} {Sensor.Unit}" : string.Empty;
+    private bool _showValue = true;
+
+    public bool ShowValue
+    {
+        get => _showValue;
+        set
+        {
+            _showValue = value;
+            ValueText.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    private bool _showUnit = true;
+
+    public bool ShowUnit
+    {
+        get => _showUnit;
+        set { _showUnit = value; UpdateValue(); }
+    }
+
+    private void UpdateValue() => ValueText.Text = Sensor.Reading(_showUnit, string.Empty);
 }

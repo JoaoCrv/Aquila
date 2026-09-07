@@ -136,17 +136,35 @@ public sealed class PresetBorder : PresetFill
 
     public double Thickness { get; set; }
     public double CornerRadius { get; set; } = 8;
+
+    /// <summary>The space between the panel and what it holds. Here rather than in a section of its own
+    /// because thickness, corner radius and padding are three properties of the same box — the widget's
+    /// backing Border — and a section holding one number would only be a place to lose it.
+    ///
+    /// A preset that says how round the panel is and not how much room is inside it can style a gauge and
+    /// still crowd a stat, which is what a hardcoded 10 did to every preset ever written.</summary>
+    public double Padding { get; set; } = 10;
 }
 
 /// <summary>
 /// The reading itself: the number in a gauge, the big figure in a stat, the words in a Text widget.
 ///
-/// <see cref="Show"/> rather than an opacity of zero. It used to be read as <c>Opacity &gt; 0</c>, which
-/// made a half-faded number unreachable and the honest "arc on its own" case an accident of arithmetic —
-/// two meanings on one field, and the one people actually want was the one that did not work.
+/// Only how it is drawn. Whether it is drawn, and whether it carries its unit, moved to the widget: those
+/// decide what is on the screen rather than how it looks, and a preset has to be safe to try on. See
+/// <see cref="DesktopWidgetDefinition.ShowValue"/>.
 /// </summary>
 public sealed class PresetText
 {
+    /// <summary>
+    /// The colour a reading is drawn in where nothing is judging it — a clock, a caption with no sensor
+    /// behind it.
+    ///
+    /// A colour and not a ramp, and that is not a hole in the rule: a ramp answers "how is this doing",
+    /// and a clock is not doing anything. Where there IS a reading to judge, the ramp is painted over
+    /// this, so the two can never disagree about the same number.
+    /// </summary>
+    public string Color { get; set; } = "#FFFFFF";
+
     /// <summary>Null means the app's own face — also what an importing machine falls back to when it does
     /// not have the named one installed.</summary>
     public string? FontFamily { get; set; }
@@ -154,18 +172,26 @@ public sealed class PresetText
     public double Size { get; set; } = 18;
     public TextWeight Weight { get; set; } = TextWeight.Regular;
     public TextAlign Align { get; set; } = TextAlign.Center;
-    public bool Show { get; set; } = true;
 }
 
 /// <summary>The widget's label. Faint by default and settable, because a title is a caption rather than a
 /// reading — and it carries a placement the reading has no use for.</summary>
 public sealed class PresetTitle
 {
+    /// <summary>A label represents nothing, so it carries a colour directly — the format's own rule for
+    /// frame parts. It was a hardcoded white until now, and therefore invisible over a pale panel.</summary>
+    public string Color { get; set; } = "#FFFFFF";
+
     public string? FontFamily { get; set; }
 
     public double Size { get; set; } = 11;
     public TextWeight Weight { get; set; } = TextWeight.Regular;
     public double Opacity { get; set; } = 0.6;
+
+    /// <summary>Which end of its own line the label sits at. Only visible with the title above or below —
+    /// docked to a side it is a column as wide as its text, and there is nothing to align it within.</summary>
+    public TextAlign Align { get; set; } = TextAlign.Center;
+
     public TitlePlacement Placement { get; set; } = TitlePlacement.Top;
 }
 
@@ -203,6 +229,12 @@ public sealed class PresetNumber
     // No Size. How big a reading is drawn is Value.Size, for every kind that draws one — a stat with a
     // size of its own meant the editor's "reading size" silently did nothing to the one widget that is
     // nothing but a reading.
+    // No ShowUnit. It was here for one afternoon, on the reasoning that the unit belonged beside the
+    // size that draws it — but the size is the stat's alone and the unit is every reading's, so the two
+    // do not in fact belong together. It reads Value.ShowUnit now.
+
+    /// <summary>How big the unit is drawn beside the number. The stat only: it is the one piece that draws
+    /// the unit separately, so it is the one piece that can give it a size of its own.</summary>
     public double UnitSize { get; set; } = 13;
 
     /// <summary>Whether the number carries a rounded fill of its own. Off suits a desktop widget, which

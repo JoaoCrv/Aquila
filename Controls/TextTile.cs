@@ -99,14 +99,7 @@ public sealed class TextTile : TextBlock, ISensorPiece, ICaptionStyle
             return;
         }
 
-        // Volts need decimals to mean anything; everything else reads better rounded. Same rule the other
-        // pieces use, so the same sensor is written the same way wherever it appears.
-        var value = _sensor.Value is { } v
-            ? v.ToString(_sensor.Unit == "V" ? "F2" : "F0")
-            : "--";
-
-        var unit = _showUnit ? _sensor.Unit ?? string.Empty : string.Empty;
-        var reading = string.IsNullOrEmpty(unit) ? value : $"{value}{unit}";
+        var reading = _sensor.Reading(_showUnit);
 
         Text = string.IsNullOrWhiteSpace(_caption) ? reading : $"{_caption} {reading}";
     }

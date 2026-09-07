@@ -26,7 +26,8 @@ public static class AquilaCharts
     public static (IEnumerable<ISeries> Series, ObservableValue Point, Action<bool> SetArcVisible) SolidGauge(
         SKColor color, double columnWidth = 14, double labelSize = 24, bool showLabel = true,
         double cornerRadius = 0, SKColor? track = null,
-        string? font = null, Aquila.Models.TextWeight weight = Aquila.Models.TextWeight.Regular)
+        string? font = null, Aquila.Models.TextWeight weight = Aquila.Models.TextWeight.Regular,
+        SKColor? label = null, string? unit = null, string decimals = "F0")
     {
         // A cap cannot be rounder than the arc is thick. Past half the width the geometry starts eating
         // into the arc, and LiveCharts' rounding is already unreliable enough at the edges without being
@@ -65,7 +66,7 @@ public static class AquilaCharts
                 // has deprecated in favour of exactly this call. A null family asks Skia for its default,
                 // which is what "the app's own face" means once we are outside WPF.
                 series.DataLabelsPaint = showLabel
-                    ? new SolidColorPaint(new SKColor(235, 235, 235))
+                    ? new SolidColorPaint(label ?? new SKColor(235, 235, 235))
                     {
                         SKTypeface = SKTypeface.FromFamilyName(
                             string.IsNullOrWhiteSpace(font) ? null : font,
@@ -74,7 +75,11 @@ public static class AquilaCharts
                     : null;
                 series.DataLabelsSize = labelSize;
                 series.DataLabelsPosition = PolarLabelsPosition.ChartCenter;
-                series.DataLabelsFormatter = p => p.Coordinate.PrimaryValue.ToString("F0");
+                // Was "F0" flat, which drew a 1.24 V rail as "1". The decimals come from the sensor's
+                // unit now, by the same rule the stat and the meter already used.
+                series.DataLabelsFormatter = string.IsNullOrEmpty(unit)
+                    ? p => p.Coordinate.PrimaryValue.ToString(decimals)
+                    : p => p.Coordinate.PrimaryValue.ToString(decimals) + unit;
             }),
             new GaugeItem(GaugeItem.Background, series =>
             {

@@ -175,6 +175,22 @@ public class DesktopWidgetDefinition
 
     /// <summary>What a Text widget says. Shown alone, or before the reading when one is chosen — the value
     /// and its unit are formatted by the app, so nobody has to learn a format string to write "CPU".</summary>
+    /// <summary>
+    /// Whether the reading is drawn at all. Only the kinds whose graphic stands on its own can be asked —
+    /// a dial or a bar — and the editor offers it nowhere else.
+    ///
+    /// Here rather than in the preset, where it started. A preset has to be safe to try on: changing from
+    /// one to another should change how things are read, never what is on the screen to read. And the
+    /// decision is per widget by nature — two dials side by side, one you read and one that is decoration,
+    /// needed two presets differing by a boolean, which is the duplication presets exist to prevent.
+    /// </summary>
+    public bool ShowValue { get; set; } = true;
+
+    /// <summary>Whether the reading carries its unit. Same reasoning as <see cref="ShowValue"/>: the unit
+    /// is information, and whether it is worth repeating depends on what the title above already says —
+    /// which is a fact about this widget, not about a palette.</summary>
+    public bool ShowUnit { get; set; } = true;
+
     public string Text { get; set; } = string.Empty;
 
     /// <summary>What a Clock widget shows. Which of time or date is content; how big it is drawn is not.</summary>

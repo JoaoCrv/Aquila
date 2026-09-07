@@ -33,7 +33,49 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
 
     public static readonly DependencyProperty ValueTextProperty =
         DependencyProperty.Register(nameof(ValueText), typeof(string), typeof(SensorMeter),
+            new PropertyMetadata("--", (d, _) => ((SensorMeter)d).Compose()));
+
+    public static readonly DependencyProperty UnitProperty =
+        DependencyProperty.Register(nameof(Unit), typeof(string), typeof(SensorMeter),
+            new PropertyMetadata(string.Empty, (d, _) => ((SensorMeter)d).Compose()));
+
+    public static readonly DependencyProperty ShowUnitProperty =
+        DependencyProperty.Register(nameof(ShowUnit), typeof(bool), typeof(SensorMeter),
+            new PropertyMetadata(true, (d, _) => ((SensorMeter)d).Compose()));
+
+    public static readonly DependencyProperty DisplayTextProperty =
+        DependencyProperty.Register(nameof(DisplayText), typeof(string), typeof(SensorMeter),
             new PropertyMetadata("--"));
+
+    /// <summary>The unit to put after <see cref="ValueText"/>, when there is one to add.
+    ///
+    /// Separate from the value rather than baked into its format string, which is how the desktop widget
+    /// used to do it: a format string is fixed when the binding is made, so turning the unit off would have
+    /// meant rebuilding the widget — and rebuilding is reserved for structure. The dashboard cards set
+    /// neither this nor ShowUnit and go on formatting their own text, unchanged.</summary>
+    public string Unit
+    {
+        get => (string)GetValue(UnitProperty);
+        set => SetValue(UnitProperty, value);
+    }
+
+    public bool ShowUnit
+    {
+        get => (bool)GetValue(ShowUnitProperty);
+        set => SetValue(ShowUnitProperty, value);
+    }
+
+    /// <summary>What is actually drawn: the caller's number, plus the unit if there is one and it is
+    /// wanted. Read-only from outside — a property of its own for the same reason StatBox has UnitText,
+    /// namely that writing over the caller's own binding would break the cards that rely on it.</summary>
+    public string DisplayText
+    {
+        get => (string)GetValue(DisplayTextProperty);
+        private set => SetValue(DisplayTextProperty, value);
+    }
+
+    private void Compose() =>
+        DisplayText = ShowUnit && !string.IsNullOrEmpty(Unit) ? ValueText + Unit : ValueText;
 
     public static readonly DependencyProperty AccentProperty =
         DependencyProperty.Register(nameof(Accent), typeof(Brush), typeof(SensorMeter),

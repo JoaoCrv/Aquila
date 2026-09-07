@@ -5,12 +5,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
              d:DesignHeight="140" d:DesignWidth="140">
-    <!-- A title placed around any content (gauge, sparkline, ...). Title font/colour inherit from
-         the theme/context; only placement (Top/Bottom/Left/Right) is configurable. -->
+    <!-- A title placed around any content (gauge, sparkline, ...). Everything about how it is drawn —
+         colour, face, weight, size, opacity, side and alignment — comes from the preset through the
+         properties in the code-behind. Nothing here is a decision; the values below are only what an
+         un-dressed tile looks like in the designer. -->
     <DockPanel x:Name="Root" LastChildFill="True">
         <TextBlock x:Name="TitleText"
                    DockPanel.Dock="Top"
-                   HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    FontSize="11" Opacity="0.6"
                    Margin="0,0,0,4"

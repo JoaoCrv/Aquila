@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Aquila.Models;
 
 namespace Aquila.Controls;
@@ -25,6 +26,18 @@ public partial class LabeledTile : UserControl
         DependencyProperty.Register(nameof(TitlePlacement), typeof(TitlePlacement), typeof(LabeledTile),
             new PropertyMetadata(TitlePlacement.Top, (d, _) => ((LabeledTile)d).Apply()));
 
+    public static readonly DependencyProperty TitleBrushProperty =
+        DependencyProperty.Register(nameof(TitleBrush), typeof(Brush), typeof(LabeledTile),
+            new PropertyMetadata(null, (d, _) => ((LabeledTile)d).Apply()));
+
+    /// <summary>The label's own colour. Deliberately not Foreground, which is what the content inherits:
+    /// a title and the reading under it are allowed to differ, and usually should.</summary>
+    public Brush? TitleBrush
+    {
+        get => (Brush?)GetValue(TitleBrushProperty);
+        set => SetValue(TitleBrushProperty, value);
+    }
+
     public static readonly DependencyProperty TitleFontProperty =
         DependencyProperty.Register(nameof(TitleFont), typeof(string), typeof(LabeledTile),
             new PropertyMetadata(null, (d, _) => ((LabeledTile)d).Apply()));
@@ -43,6 +56,17 @@ public partial class LabeledTile : UserControl
     {
         get => (TextWeight)GetValue(TitleWeightProperty);
         set => SetValue(TitleWeightProperty, value);
+    }
+
+    public static readonly DependencyProperty TitleAlignProperty =
+        DependencyProperty.Register(nameof(TitleAlign), typeof(TextAlign), typeof(LabeledTile),
+            new PropertyMetadata(TextAlign.Center, (d, _) => ((LabeledTile)d).Apply()));
+
+    /// <summary>Which end of its line the label sits at.</summary>
+    public TextAlign TitleAlign
+    {
+        get => (TextAlign)GetValue(TitleAlignProperty);
+        set => SetValue(TitleAlignProperty, value);
     }
 
     public static readonly DependencyProperty TitleSizeProperty =
@@ -95,7 +119,23 @@ public partial class LabeledTile : UserControl
         TitleText.Text = Title;
         TitleText.FontSize = TitleSize;
         TitleText.Wear(TitleFont, TitleWeight);
+
+        // Cleared rather than left holding the last brush, so a tile told nothing falls back to what it
+        // inherits instead of keeping a colour from the preset before it.
+        if (TitleBrush is null) TitleText.ClearValue(TextBlock.ForegroundProperty);
+        else TitleText.Foreground = TitleBrush;
         TitleText.Opacity = TitleOpacity;
+
+        // Does nothing while the title is docked to a side: there the TextBlock is only as wide as its
+        // own text, so there is no room to move it in. Left as it is rather than hidden from the editor,
+        // because a setting that appears and disappears with an unrelated one is harder to trust than a
+        // setting that visibly has no effect yet.
+        TitleText.HorizontalAlignment = TitleAlign switch
+        {
+            TextAlign.Left  => HorizontalAlignment.Left,
+            TextAlign.Right => HorizontalAlignment.Right,
+            _               => HorizontalAlignment.Center,
+        };
         Body.Content = Tile;
 
         // An empty title still occupies a line, which a piece with nothing above it would wear as a gap.

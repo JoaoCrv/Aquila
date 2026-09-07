@@ -280,6 +280,21 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <!-- What is shown of the reading, beside the readings themselves. Not in the
+                                 preset: a preset has to be safe to try on, and these two change what is on
+                                 the screen rather than how it looks. -->
+                            <CheckBox Margin="0,14,0,0" Content="Show the unit"
+                                      Visibility="{Binding ViewModel.ShowsUnit, Converter={StaticResource BoolToVisibility}}"
+                                      IsChecked="{Binding ViewModel.UnitShown}"/>
+
+                            <StackPanel Visibility="{Binding ViewModel.CanHideValue, Converter={StaticResource BoolToVisibility}}">
+                                <CheckBox Margin="0,10,0,0" Content="Show the reading"
+                                          IsChecked="{Binding ViewModel.ValueShown}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                           Opacity="0.5" TextWrapping="Wrap"
+                                           Text="Off leaves the dial or bar drawing on its own, with the title above it."/>
+                            </StackPanel>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -676,6 +691,14 @@
                         <Slider Minimum="0" Maximum="24"
                                 Value="{Binding ViewModel.CornerRadius}"/>
 
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                       Text="{Binding ViewModel.Padding, StringFormat={}{0:F0} px}"/>
+                            <TextBlock Text="Padding" Style="{StaticResource FieldLabel}"/>
+                        </DockPanel>
+                        <Slider Minimum="0" Maximum="32"
+                                Value="{Binding ViewModel.Padding}"/>
+
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -883,12 +906,12 @@
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,12,0,0">
-                            <DockPanel Margin="0,10,0,0">
+                            <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                            Text="{Binding ViewModel.UnitSize, StringFormat={}{0:F0} px}"/>
                                 <TextBlock Text="Unit size" Style="{StaticResource FieldLabel}"/>
                             </DockPanel>
-                            <Slider Minimum="0" Maximum="24"
+                            <Slider Minimum="6" Maximum="24"
                                     Value="{Binding ViewModel.UnitSize}"/>
                             <CheckBox Margin="0,10,0,0" Content="Panel behind the number"
                                       IsChecked="{Binding ViewModel.NumberPanel}"/>
@@ -902,7 +925,11 @@
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,12,0,0">
-                        <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="Colour" Style="{StaticResource FieldLabel}"/>
+                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TitleColor, Mode=TwoWay}"
+                                             Swatches="{Binding ViewModel.Swatches}"/>
+
+                        <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
                         <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
                                   SelectedItem="{Binding ViewModel.TitleFont}">
                             <!-- Every name set in its own face, so the list is a specimen sheet rather than a
@@ -934,6 +961,13 @@
                         <TextBlock Text="Title side" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
                         <ComboBox ItemsSource="{Binding ViewModel.Placements}"
                                   SelectedItem="{Binding ViewModel.TitlePlacement}"/>
+
+                        <TextBlock Text="Title align" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                        <ComboBox ItemsSource="{Binding ViewModel.Alignments}"
+                                  SelectedItem="{Binding ViewModel.TitleAlign}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                   Opacity="0.5" TextWrapping="Wrap"
+                                   Text="Applies with the title above or below. Docked to a side it is already as narrow as its text."/>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -945,7 +979,14 @@
                         </ui:CardExpander.Header>
 
                         <StackPanel Margin="0,12,0,0">
-                            <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="Colour" Style="{StaticResource FieldLabel}"/>
+                            <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.ValueColor, Mode=TwoWay}"
+                                                 Swatches="{Binding ViewModel.Swatches}"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                       Opacity="0.5" TextWrapping="Wrap"
+                                       Text="Shows where nothing is judging the number — a clock, a caption. A reading with a sensor behind it takes its ramp's colour instead."/>
+
+                            <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
                             <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
                                       SelectedItem="{Binding ViewModel.ValueFont}">
                                 <!-- Every name set in its own face, so the list is a specimen sheet rather than a
@@ -971,13 +1012,6 @@
                             <ComboBox ItemsSource="{Binding ViewModel.Alignments}"
                                       SelectedItem="{Binding ViewModel.ValueAlign}"/>
 
-                            <StackPanel Visibility="{Binding ViewModel.CanHideValue, Converter={StaticResource BoolToVisibility}}">
-                                <CheckBox Margin="0,10,0,0" Content="Show the reading"
-                                          IsChecked="{Binding ViewModel.ValueShown}"/>
-                                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                           Opacity="0.5" TextWrapping="Wrap"
-                                           Text="Off leaves the dial or bar drawing on its own, with the title above it."/>
-                            </StackPanel>
                         </StackPanel>
                     </ui:CardExpander>
                 </StackPanel>

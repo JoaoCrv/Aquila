@@ -805,6 +805,12 @@ public sealed class DesktopWidgetService
         if (piece is ICaptionStyle caption) caption.Caption = definition.Text;
         if (piece is IClockStyle clock) clock.Format = definition.ClockFormat;
 
+        // What is on screen, so it belongs here beside the caption and the clock's format rather than in
+        // Dress with the colours. Both used to come from the preset, which meant trying on a preset could
+        // silently remove a number you were reading.
+        if (piece is IUnitStyle unit) unit.ShowUnit = definition.ShowUnit;
+        if (piece is IHideableValue hideable) hideable.ShowValue = definition.ShowValue;
+
         if (piece is IChartStyle chart)
         {
             chart.PointCount = definition.PointCount;
@@ -827,6 +833,7 @@ public sealed class DesktopWidgetService
         border.BorderBrush = Tint(preset.Border.Color, preset.Border.Opacity);
         border.BorderThickness = new Thickness(preset.Border.Thickness);
         border.CornerRadius = new CornerRadius(preset.Border.CornerRadius);
+        border.Padding = new Thickness(preset.Border.Padding);
         border.Width = definition.Width;
         border.Height = definition.Height;
 
@@ -837,10 +844,18 @@ public sealed class DesktopWidgetService
         if (border.Child is not LabeledTile tile) return;
 
         tile.Title = definition.Title;
+        tile.TitleBrush = Tint(preset.Title.Color, 1);
+
+        // Set on the tile so it inherits down to whatever inside does not paint itself — the clock, the
+        // words of a caption. Where a reading IS judged, Paint writes the ramp over this, so the colour
+        // here only ever shows where nothing has an opinion about the number.
+        tile.Foreground = Tint(preset.Value.Color, 1);
+
         tile.TitleFont = preset.Title.FontFamily;
         tile.TitleWeight = preset.Title.Weight;
         tile.TitleSize = preset.Title.Size;
         tile.TitleOpacity = preset.Title.Opacity;
+        tile.TitleAlign = preset.Title.Align;
         tile.TitlePlacement = preset.Title.Placement;
     }
 
@@ -867,10 +882,10 @@ public sealed class DesktopWidgetService
 
         if (piece is IGaugeStyle dial)
         {
+            dial.ValueBrush = Tint(preset.Value.Color, 1);
             dial.ArcThickness = preset.Gauge.Thickness;
             dial.ArcCorner = preset.Gauge.Corner;
             dial.Sweep = preset.Gauge.Sweep;
-            dial.ShowValue = preset.Value.Show;
             dial.TrackBrush = Tint(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
 
@@ -879,13 +894,11 @@ public sealed class DesktopWidgetService
             bar.BarThickness = preset.Bar.Thickness;
             bar.BarCorner = preset.Bar.Corner;
             bar.Layout = preset.Bar.Layout;
-            bar.ShowValue = preset.Value.Show;
         }
 
         if (piece is IStatStyle stat)
         {
             stat.UnitSize = preset.Number.UnitSize;
-            stat.ShowUnit = preset.Number.UnitSize > 0;
             stat.ShowPanel = preset.Number.Panel;
         }
 
@@ -1026,11 +1039,7 @@ public sealed class DesktopWidgetService
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.
-        var widget = new Border
-        {
-            Padding = new Thickness(10),
-            Child = new LabeledTile { Tile = piece, Foreground = Brushes.White },
-        };
+        var widget = new Border { Child = new LabeledTile { Tile = piece } };
 
         Frame(widget, definition, preset);
 
