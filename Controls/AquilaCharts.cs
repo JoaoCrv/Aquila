@@ -61,11 +61,14 @@ public static class AquilaCharts
                 // Null hides the number entirely — an arc on its own, with the widget's own title above it.
                 // The label is PAINTED, not laid out, so it inherits nothing from the visual tree above
                 // it — which is why the preset's typeface used to reach every piece except this one.
+                // Through SKTypeface rather than the paint's FontFamily and SKFontStyle, which the library
+                // has deprecated in favour of exactly this call. A null family asks Skia for its default,
+                // which is what "the app's own face" means once we are outside WPF.
                 series.DataLabelsPaint = showLabel
                     ? new SolidColorPaint(new SKColor(235, 235, 235))
                     {
-                        FontFamily = string.IsNullOrWhiteSpace(font) ? null : font,
-                        SKFontStyle = new SKFontStyle(
+                        SKTypeface = SKTypeface.FromFamilyName(
+                            string.IsNullOrWhiteSpace(font) ? null : font,
                             weight.ToSkiaWeight(), SKFontStyleWidth.Normal, SKFontStyleSlant.Upright),
                     }
                     : null;
