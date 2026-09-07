@@ -142,6 +142,10 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private string _updateStatusMessage = "Check manually for new Aquila releases.";
 
+        /// <summary>Passed through untouched: the service classified it where it was written.</summary>
+        [ObservableProperty]
+        private StatusKind _updateStatusKind = StatusKind.Plain;
+
         [ObservableProperty]
         private bool _isCheckingForUpdates;
 
@@ -192,6 +196,7 @@ namespace Aquila.ViewModels.Pages
 
             AppVersion = $"Current version: {GetAssemblyVersion()}";
             UpdateStatusMessage = _updateService.StatusMessage;
+            UpdateStatusKind = _updateService.StatusKind;
             SelectedPollingInterval =
                 PollingIntervalOptions.FirstOrDefault(o => o.Ms == _settings.Current.PollingIntervalMs)
                 ?? PollingIntervalOptions[1];
@@ -220,6 +225,7 @@ namespace Aquila.ViewModels.Pages
         private void OnUpdateStatusChanged()
         {
             UpdateStatusMessage = _updateService.StatusMessage;
+            UpdateStatusKind = _updateService.StatusKind;
         }
 
         // ── Appearance ─────────────────────────────────────────────────────────────────────────────

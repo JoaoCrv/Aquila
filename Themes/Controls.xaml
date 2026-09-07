@@ -35,6 +35,34 @@
          What they were for is better served anyway: Surface.Kind INHERITS, so a container declares it once
          for everything inside it, and a per-window margin is a window's business, not a rule. -->
 
+    <!-- A line of status text, coloured by what it is REPORTING rather than by what it says.
+
+         The kind is set on the element (controls:Status.Kind), so this is a rule about text and not a
+         rule about one page. It first bound through the ancestor Page to a property named
+         UpdateStatusKind, which worked exactly once and would have failed silently anywhere else.
+
+         Triggers rather than a converter, so the brushes stay DynamicResource and follow a theme change
+         while the message sits there unchanged. A converter resolves once, and the colour would be a
+         theme behind until the next message arrived. -->
+    <Style x:Key="StatusText" TargetType="TextBlock">
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Opacity" Value="0.8"/>
+        <Style.Triggers>
+            <Trigger Property="controls:Status.Kind" Value="Good">
+                <Setter Property="Foreground" Value="{DynamicResource Aquila.Chrome.Success}"/>
+                <Setter Property="Opacity" Value="1"/>
+            </Trigger>
+            <Trigger Property="controls:Status.Kind" Value="Caution">
+                <Setter Property="Foreground" Value="{DynamicResource Aquila.Chrome.Caution}"/>
+                <Setter Property="Opacity" Value="1"/>
+            </Trigger>
+            <Trigger Property="controls:Status.Kind" Value="Bad">
+                <Setter Property="Foreground" Value="{DynamicResource Aquila.Chrome.Danger}"/>
+                <Setter Property="Opacity" Value="1"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- A button carrying an icon and no words.
 
          The kit's padding is sized for a label, so an icon inside it sits in a wide, flat lozenge — which

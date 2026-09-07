@@ -7,6 +7,7 @@
     xmlns:local="clr-namespace:Aquila.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:controls="clr-namespace:Aquila.Controls"
     Title="SettingsPage"
     d:DataContext="{d:DesignInstance local:SettingsPage,
                                      IsDesignTimeCreatable=False}"
@@ -270,7 +271,8 @@
             <StackPanel Margin="0,4,0,0">
                 <TextBlock Style="{StaticResource SettingHint}" Margin="0"
                            Text="Aquila can check silently on startup and will notify you before any download or restart." />
-                <TextBlock Margin="0,8,0,0" Opacity="0.8" TextWrapping="Wrap"
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource StatusText}"
+                           controls:Status.Kind="{Binding ViewModel.UpdateStatusKind, Mode=OneWay}"
                            Text="{Binding ViewModel.UpdateStatusMessage, Mode=OneWay}" />
 
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">

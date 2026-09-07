@@ -4,6 +4,8 @@ using Velopack.Sources;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
 
+using Aquila.Models;
+
 namespace Aquila.Services
 {
     public sealed class UpdateService
@@ -21,6 +23,14 @@ namespace Aquila.Services
         public event Action? StatusChanged;
 
         public bool IsUpdateAvailable { get; private set; }
+
+        /// <summary>
+        /// What KIND of thing the status is saying, so the UI can colour it without reading the sentence.
+        ///
+        /// Classified where it is written rather than matched on the text afterwards: the writer is the
+        /// only one who knows, and matching strings breaks the first time somebody rewords one.
+        /// </summary>
+        public StatusKind StatusKind { get; private set; } = StatusKind.Plain;
         public string StatusMessage { get; private set; } = DefaultStatusMessage;
         public UpdateInfo? PendingUpdateInfo { get; private set; }
 
@@ -87,7 +97,7 @@ namespace Aquila.Services
 
             if (!installNow)
             {
-                SetStatus("Update available, but installation was cancelled.");
+                SetStatus("Update available, but installation was cancelled.", StatusKind.Caution);
                 return;
             }
 
@@ -105,7 +115,7 @@ namespace Aquila.Services
 
             if (!restartNow)
             {
-                SetStatus("Update downloaded. Restart the app later to apply it.");
+                SetStatus("Update downloaded. Restart the app later to apply it.", StatusKind.Good);
                 return;
             }
 
@@ -126,14 +136,14 @@ namespace Aquila.Services
                 {
                     IsUpdateAvailable = false;
                     PendingUpdateInfo = null;
-                    SetStatus("You're already on the latest version.");
+                    SetStatus("You're already on the latest version.", StatusKind.Good);
 
                     return UpdateCheckResult.UpToDate(StatusMessage);
                 }
 
                 IsUpdateAvailable = true;
                 PendingUpdateInfo = updateInfo;
-                SetStatus("Update available. Open Settings to download and install it.");
+                SetStatus("Update available. Open Settings to download and install it.", StatusKind.Caution);
 
                 return UpdateCheckResult.Available(StatusMessage, updateInfo);
             }
@@ -165,12 +175,12 @@ namespace Aquila.Services
                 var manager = new UpdateManager(_source);
                 await manager.DownloadUpdatesAsync(targetUpdate);
 
-                SetStatus("Update downloaded successfully. Restart Aquila to apply it.");
+                SetStatus("Update downloaded successfully. Restart Aquila to apply it.", StatusKind.Good);
                 return UpdateDownloadResult.Success("Update downloaded successfully.", targetUpdate);
             }
             catch (Exception ex)
             {
-                SetStatus($"The update download failed. {ex.Message}");
+                SetStatus($"The update download failed. {ex.Message}", StatusKind.Bad);
                 return UpdateDownloadResult.Failed(StatusMessage);
             }
         }
@@ -181,9 +191,10 @@ namespace Aquila.Services
             manager.ApplyUpdatesAndRestart(updateInfo);
         }
 
-        private void SetStatus(string message)
+        private void SetStatus(string message, StatusKind kind = StatusKind.Plain)
         {
             StatusMessage = message;
+            StatusKind = kind;
             StatusChanged?.Invoke();
         }
     }
