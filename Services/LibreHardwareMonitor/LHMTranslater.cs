@@ -1,4 +1,5 @@
-﻿using Aquila.Models;
+﻿using Aquila.Controls;
+using Aquila.Models;
 using Aquila.Models.Nodes;
 using LibreHardwareMonitor.Hardware;
 using System.Collections.Generic;
@@ -181,6 +182,9 @@ public class LHMTranslater
             var dimm = node.GetOrCreateDimm(index - 1);
             dimm.Name = hw.Name;
 
+            // Per pass, for the reason given in TranslateGpu.
+            var temperature = false;
+
             foreach (var sensor in hw.Sensors)
             {
                 switch (sensor.SensorType)
@@ -205,10 +209,13 @@ public class LHMTranslater
                                     Fill(dimm.CriticalTemperature, sensor, "°C");
                                 break;
                             default:
-                                if (dimm.Temperature.Value is null
+                                if (!temperature
                                     && !sensor.Name.Contains("Limit", StringComparison.OrdinalIgnoreCase)
                                     && !sensor.Name.Contains("Resolution", StringComparison.OrdinalIgnoreCase))
+                                {
                                     Fill(dimm.Temperature, sensor, "°C");
+                                    temperature = true;
+                                }
                                 break;
                         }
                         break;
@@ -301,6 +308,13 @@ public class LHMTranslater
     {
         node.Name = hw.Name;
 
+        // Per pass, not per node: they answer "has one been seen THIS time round", which is the question
+        // the old guards only answered correctly once. Testing the destination's own value instead means
+        // the test says "empty" on the first pass and "taken" on every pass after, so the first sensor
+        // lands in Primary once and then every later reading is diverted to Secondary for ever.
+        var core = false;
+        var fan = false;
+
         foreach (var sensor in hw.Sensors)
         {
             switch (sensor.SensorType)
@@ -314,11 +328,34 @@ public class LHMTranslater
                     }
                     break;
 
+                // By name, like everything else here, and like SensorCatalog already promises by calling
+                // this node's Secondary "Hot Spot".
+                //
+                // It used to take whichever temperature the driver enumerated first, guarded by
+                // "Primary.Value is null". That guard means "nothing has claimed this yet" on the first
+                // pass and "something already has" on every pass after, so its sense inverted after one
+                // tick: Primary froze at the reading taken at launch and never moved again, while all
+                // three temperatures took turns overwriting Secondary. The dashboard showed a GPU
+                // temperature from the moment the app opened, all day — 57 °C beside Task Manager's 45.
                 case SensorType.Temperature:
-                    if (node.Temperature.Primary.Value is null)
-                        Fill(node.Temperature.Primary, sensor, "°C");
-                    else
-                        Fill(node.Temperature.Secondary, sensor, "°C");
+                    switch (sensor.Name)
+                    {
+                        case "GPU Core":
+                            Fill(node.Temperature.Primary, sensor, "°C");
+                            core = true;
+                            break;
+
+                        case "GPU Hot Spot":
+                            Fill(node.Temperature.Secondary, sensor, "°C");
+                            break;
+
+                        // An integrated GPU reports no "GPU Core" at all — this machine's offers only
+                        // "GPU VR SoC" — so the first temperature it does report stands in, and stands
+                        // aside the moment a real core temperature arrives.
+                        default:
+                            if (!core) Fill(node.Temperature.Primary, sensor, "°C");
+                            break;
+                    }
                     break;
 
                 case SensorType.Clock:
@@ -344,10 +381,15 @@ public class LHMTranslater
                     break;
 
                 case SensorType.Fan:
-                    if (node.Fan.Primary.Value is null)
+                    if (!fan)
+                    {
                         Fill(node.Fan.Primary, sensor, "RPM");
+                        fan = true;
+                    }
                     else
+                    {
                         Fill(node.Fan.Secondary, sensor, "RPM");
+                    }
                     break;
 
                 case SensorType.SmallData:
@@ -375,8 +417,8 @@ public class LHMTranslater
         {
             switch (sensor.Name)
             {
-                case "Upload Speed": Fill(node.Throughput.Upload, sensor, "B/s"); break;
-                case "Download Speed": Fill(node.Throughput.Download, sensor, "B/s"); break;
+                case "Upload Speed": Fill(node.Throughput.Upload, sensor, SensorFormat.BytesPerSecond); break;
+                case "Download Speed": Fill(node.Throughput.Download, sensor, SensorFormat.BytesPerSecond); break;
                 case "Data Uploaded": Fill(node.Data.Uploaded, sensor, "GB"); break;
                 case "Data Downloaded": Fill(node.Data.Downloaded, sensor, "GB"); break;
             }
@@ -388,6 +430,12 @@ public class LHMTranslater
     {
         node.Name = hw.Name;
 
+        // See the note in TranslateGpu: guarding on the destination's own value froze this at whatever was
+        // read when the app opened. NVMe drives report "Composite Temperature", which matches none of the
+        // names below, so EVERY drive fell through to the default and every drive's temperature was a
+        // fossil — 52 °C on screen all afternoon.
+        var temperature = false;
+
         foreach (var sensor in hw.Sensors)
         {
             switch (sensor.SensorType)
@@ -396,14 +444,22 @@ public class LHMTranslater
                     switch (sensor.Name)
                     {
                         case "Temperature":
-                            Fill(node.Temperature.Primary, sensor, "°C"); break;
+                        case "Composite Temperature":
+                            Fill(node.Temperature.Primary, sensor, "°C");
+                            temperature = true;
+                            break;
                         case "Temperature 1":
+                        case "Warning Temperature":
                             Fill(node.Temperature.Warning, sensor, "°C"); break;
                         case "Temperature 2":
+                        case "Critical Temperature":
                             Fill(node.Temperature.Critical, sensor, "°C"); break;
                         default:
-                            if (node.Temperature.Primary.Value is null)
+                            if (!temperature)
+                            {
                                 Fill(node.Temperature.Primary, sensor, "°C");
+                                temperature = true;
+                            }
                             break;
                     }
                     break;
@@ -442,8 +498,15 @@ public class LHMTranslater
                 case SensorType.Throughput:
                     switch (sensor.Name)
                     {
-                        case "Read Rate": Fill(node.Throughput.ReadRate, sensor, "MB/s"); break;
-                        case "Write Rate": Fill(node.Throughput.WriteRate, sensor, "MB/s"); break;
+                        // B/s, like the network throughput two hundred lines above and like every
+                        // other SensorType.Throughput LibreHardwareMonitor reports. It said MB/s here,
+                        // which labelled the same bytes as megabytes: a log caught a drive reporting a
+                        // "Write Rate" of 2 286 766 MB/s — two terabytes a second — which is 2.3 MB/s.
+                        // The dashboard was unaffected because its cards run the value through
+                        // ThroughputConverter, whose own summary says the input is B/s; the desktop
+                        // widgets read the unit straight off the sensor and showed the lie.
+                        case "Read Rate": Fill(node.Throughput.ReadRate, sensor, SensorFormat.BytesPerSecond); break;
+                        case "Write Rate": Fill(node.Throughput.WriteRate, sensor, SensorFormat.BytesPerSecond); break;
                     }
                     break;
 

@@ -169,6 +169,17 @@
                             <!-- No accent picker here any more: colour belongs to a reading, not to the widget,
                                  and each row above carries its own. -->
                             <StackPanel Grid.Row="1" Margin="0,16,0,0">
+                                <!-- Under the type, because it IS one: having picked bars, the next thing
+                                     to say is which way they run. It sat in Data first, which was wrong —
+                                     that card is about which readings and what is shown of them, and this
+                                     is about the shape the widget takes. -->
+                                <StackPanel Margin="0,0,0,16"
+                                            Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="Bars run" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding ViewModel.BarDirections}"
+                                              SelectedItem="{Binding ViewModel.BarDirection}"/>
+                                </StackPanel>
+
                                 <TextBlock Text="Title" Style="{StaticResource FieldLabel}"/>
                                 <ui:TextBox PlaceholderText="Defaults to the sensor name"
                                             Text="{Binding ViewModel.Title, UpdateSourceTrigger=PropertyChanged}"/>
@@ -280,6 +291,14 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <ui:Button Margin="0,6,0,0" HorizontalAlignment="Left"
+                                       Appearance="Secondary"
+                                       Icon="{ui:SymbolIcon Drop24}"
+                                       Content="Same ramp for all"
+                                       ToolTip="Gives every reading the colour of the first one."
+                                       Visibility="{Binding ViewModel.CanMatchRamps, Converter={StaticResource BoolToVisibility}}"
+                                       Command="{Binding ViewModel.MatchRampsCommand}"/>
 
                             <!-- What is shown of the reading, beside the readings themselves. Not in the
                                  preset: a preset has to be safe to try on, and these two change what is on
@@ -1017,9 +1036,22 @@
                 </StackPanel>
             </ScrollViewer>
 
+            <!-- Pointed at nothing. Row 1 was simply blank here, which read as the panel being broken
+                 rather than as it waiting. -->
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Margin="24"
+                        Visibility="{Binding ViewModel.ShowsNothing, Converter={StaticResource BoolToVisibility}}">
+                <ui:SymbolIcon Symbol="SquareHint24" FontSize="32" HorizontalAlignment="Center" Opacity="0.35"/>
+                <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontWeight="SemiBold"
+                           Text="No widget selected"/>
+                <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" TextAlignment="Center"
+                           TextWrapping="Wrap" Opacity="0.6" MaxWidth="240"
+                           Text="Click a widget on the desktop to edit it, or add one below."/>
+            </StackPanel>
+
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
                         Margin="0,12,0,0"
-                        Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
+                        Visibility="{Binding ViewModel.ShowsWidgetActions, Converter={StaticResource BoolToVisibility}}">
                 <ui:Button Content="Add widget" Appearance="Primary"
                            Icon="{ui:SymbolIcon Add24}"
                            Click="Add_Click"/>

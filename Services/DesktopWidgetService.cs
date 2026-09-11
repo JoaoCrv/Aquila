@@ -809,6 +809,7 @@ public sealed class DesktopWidgetService
         // Dress with the colours. Both used to come from the preset, which meant trying on a preset could
         // silently remove a number you were reading.
         if (piece is IUnitStyle unit) unit.ShowUnit = definition.ShowUnit;
+        if (piece is IOrientedBars bars) bars.Direction = definition.BarDirection;
         if (piece is IHideableValue hideable) hideable.ShowValue = definition.ShowValue;
 
         if (piece is IChartStyle chart)
@@ -1020,7 +1021,9 @@ public sealed class DesktopWidgetService
 
         for (var i = 0; i < resolved.Count; i++)
         {
-            var repaint = Paint(piece, kind.AccentProperties[i], resolved[i], ramps[i],
+            // The piece is still handed over for its lifetime — the subscriptions below tear down on
+            // its Unloaded — while WHERE the colour lands now comes from the kind.
+            var repaint = Paint(piece, kind.Accent.For(piece, i), resolved[i], ramps[i],
                 MetricKey.Parse(chosen[i].Metric));
 
             // The NAME is captured, never the ramp. Resolved again against whatever preset arrives, so a
@@ -1091,7 +1094,7 @@ public sealed class DesktopWidgetService
     private static string? _previewRole;
     private static event Action? PreviewChanged;
 
-    private static Action<Ramp> Paint(FrameworkElement piece, DependencyProperty property,
+    private static Action<Ramp> Paint(FrameworkElement piece, Action<Brush> apply,
         SensorNode sensor, Ramp ramp, MetricKey? metric)
     {
         var monitor = VitalMonitor.Current;
@@ -1119,7 +1122,7 @@ public sealed class DesktopWidgetService
                     ? monitor?.RoleFor(value, key) ?? "Normal"
                     : "Normal");
 
-            piece.SetValue(property, Tint(current[role], 1));
+            apply(Tint(current[role], 1));
         }
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)

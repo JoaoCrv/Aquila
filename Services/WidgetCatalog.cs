@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -15,9 +16,9 @@ namespace Aquila.Services;
 /// <param name="Create">Builds the piece from the resolved sensors, in the order the user added them.
 /// Never called with an empty list. The controls watch each node's INPC, so handing them over is all that
 /// is needed — they follow the existing AquilaService tick with no extra timer.</param>
-/// <param name="AccentProperties">One property per series this kind can draw, in the same order. Its
-/// length IS the limit — a kind cannot accept a reading it has nowhere to colour, so the editor and the
-/// builder can never disagree about how many are allowed.</param>
+/// <param name="Accent">How many readings this kind draws and where each one's colour goes. A kind
+/// cannot accept a reading it has nowhere to colour, so the editor and the builder can never disagree
+/// about how many are allowed.</param>
 public sealed record WidgetKindInfo(
     DesktopWidgetKind Kind,
     string Name,
@@ -25,9 +26,9 @@ public sealed record WidgetKindInfo(
     double DefaultWidth,
     double DefaultHeight,
     Func<IReadOnlyList<SensorNode>, FrameworkElement> Create,
-    IReadOnlyList<DependencyProperty> AccentProperties)
+    SeriesPaint Accent)
 {
-    public int MaxSeries => AccentProperties.Count;
+    public int MaxSeries => Accent.Max;
 
     /// <summary>
     /// Whether this kind is useless without a reading.
@@ -63,6 +64,10 @@ public sealed record WidgetKindInfo(
     /// they never draw.</summary>
     public bool HasValue { get; init; } = true;
 
+    /// <summary>Whether this kind can be turned on its side. The meter is a bar and cannot: its label and
+    /// its value sit beside it in a layout that reads one way only.</summary>
+    public bool HasDirection { get; init; }
+
     /// <summary>Whether its reading comes with a unit, and so whether offering to hide one means anything.
     /// False for the clock — it draws a reading and there is no unit a time could carry — and for the two
     /// kinds that draw no reading at all.</summary>
@@ -78,46 +83,47 @@ public static class WidgetCatalog
             "A dial. Best for a percentage, like load.",
             170, 190,
             series => new RadialGauge { Sensor = series[0] },
-            [RadialGauge.AccentProperty]) { HasDial = true },
+            SeriesPaint.Properties(RadialGauge.AccentProperty)) { HasDial = true },
 
         new(DesktopWidgetKind.MiniSparkline,
             "Sparkline",
             "A small line chart of the recent history.",
             240, 100,
             series => new MiniSparkline { Sensor = series[0] },
-            [MiniSparkline.AccentProperty]) { HasLine = true },
+            SeriesPaint.Properties(MiniSparkline.AccentProperty)) { HasLine = true },
 
         new(DesktopWidgetKind.SensorMeter,
             "Meter",
             "A bar with the value beside it.",
             240, 80,
             series => BuildMeter(series[0]),
-            [SensorMeter.AccentProperty]) { HasBar = true },
+            SeriesPaint.Properties(SensorMeter.AccentProperty)) { HasBar = true },
 
         new(DesktopWidgetKind.StatBox,
             "Number",
             "Just the reading, large, with its unit.",
             150, 120,
             series => BuildStatBox(series[0]),
-            [StatBox.AccentProperty]) { HasNumber = true },
+            SeriesPaint.Properties(StatBox.AccentProperty)) { HasNumber = true },
 
         new(DesktopWidgetKind.SparklineChart,
             "Chart",
             "The same trend as a sparkline, with room to read it. Takes two readings.",
             300, 160,
             BuildChart,
-            [SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty])
+            SeriesPaint.Properties(
+                SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty))
             { HasLine = true, HasValue = false, HasUnit = false },
 
-        // No accent properties, so MaxSeries is 0 — the first kind that reads nothing at all. Everything it
-        // draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is empty
-        // on purpose rather than a rectangle of its own, which would be a second one behind the first.
+        // Nowhere to put a colour, so MaxSeries is 0 — the first kind that reads nothing at all. Everything
+        // it draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is
+        // empty on purpose rather than a rectangle of its own, which would be a second one behind the first.
         new(DesktopWidgetKind.Backdrop,
             "Backdrop",
             "A plate to sit behind other widgets. Reads nothing.",
             240, 160,
             _ => new Grid(),
-            []) { NeedsReading = false, HasValue = false, HasUnit = false },
+            SeriesPaint.None) { NeedsReading = false, HasValue = false, HasUnit = false },
 
         // One accent property, so it MAY take a reading; NeedsReading false, so it does not have to. It is
         // the first kind where the ceiling and the requirement differ.
@@ -126,14 +132,26 @@ public static class WidgetCatalog
             "Words of your own, alone or beside a reading.",
             200, 60,
             series => new TextTile { Sensor = series.Count > 0 ? series[0] : null },
-            [TextBlock.ForegroundProperty]) { NeedsReading = false, HasCaption = true },
+            SeriesPaint.Properties(TextBlock.ForegroundProperty))
+            { NeedsReading = false, HasCaption = true },
 
         new(DesktopWidgetKind.Clock,
             "Clock",
             "The time or the date, in this machine's own format.",
             200, 70,
             _ => new ClockTile(),
-            []) { NeedsReading = false, HasClock = true, HasUnit = false },
+            SeriesPaint.None) { NeedsReading = false, HasClock = true, HasUnit = false },
+
+        // The first kind whose count the hardware decides. Sixteen is a ceiling, not a shape: this machine
+        // has sixteen CPU cores and the editor stops offering more there, but four readings make four bars.
+        // Each keeps its own ramp, so a core going amber says so on its own.
+        new(DesktopWidgetKind.Bars,
+            "Bars",
+            "A row of vertical bars, one per reading. Good for per-core load.",
+            260, 140,
+            series => new SensorBars(series),
+            SeriesPaint.Many(16, (piece, i, brush) => ((SensorBars)piece).PaintBar(i, brush)))
+            { HasBar = true, HasDirection = true },
     ];
 
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which
@@ -144,8 +162,8 @@ public static class WidgetCatalog
     /// <summary>
     /// SensorMeter takes the displayed number as a pre-formatted string — the Sensor property only drives
     /// the bar — the same convention as StatBox, where the caller decides the format. The dashboard cards
-    /// hardcode both format and unit because each knows its sensor; a generic widget cannot, so it binds
-    /// Value and bakes that sensor's own unit into the format string.
+    /// hardcode both format and unit because each knows its sensor; a generic widget cannot, so it asks
+    /// SensorFormat, through the converter below.
     /// </summary>
     private static SensorMeter BuildMeter(SensorNode sensor)
     {
@@ -158,17 +176,11 @@ public static class WidgetCatalog
             ValueWidth = new GridLength(64),
         };
 
-        // The unit is set beside the number rather than baked into its format string. A format string is
-        // fixed when the binding is made, so a preset turning the unit off would have needed the widget
-        // rebuilt — and a rebuild is for structure, never for style.
-        meter.Unit = sensor.Unit ?? string.Empty;
-
-        meter.SetBinding(SensorMeter.ValueTextProperty, new Binding(nameof(SensorNode.Value))
-        {
-            Source = sensor,
-            StringFormat = $"{{0:{SensorFormat.Decimals(sensor.Unit)}}}",
-            FallbackValue = "--",
-        });
+        // The unit is bound rather than assigned, because for a throughput sensor it is not fixed: the
+        // same drive reads B/s when idle and MB/s when busy, and the unit has to follow the number. It is
+        // still separate FROM the number, so a preset turning the unit off stays a restyle and never a
+        // rebuild.
+        Bind(meter, SensorMeter.ValueTextProperty, SensorMeter.UnitProperty, sensor);
 
         return meter;
     }
@@ -180,16 +192,55 @@ public static class WidgetCatalog
     /// </summary>
     private static StatBox BuildStatBox(SensorNode sensor)
     {
-        var box = new StatBox { Unit = sensor.Unit ?? string.Empty };
+        var box = new StatBox();
 
-        box.SetBinding(StatBox.ValueProperty, new Binding(nameof(SensorNode.Value))
+        Bind(box, StatBox.ValueProperty, StatBox.UnitProperty, sensor);
+
+        return box;
+    }
+
+    /// <summary>
+    /// Points a piece's number and its unit at one sensor, both formatted by <see cref="SensorFormat"/>.
+    ///
+    /// Two bindings off the same value, because the unit is not a constant: a throughput sensor reads B/s
+    /// idle and MB/s busy, and a unit assigned once would go on claiming bytes while the number had moved
+    /// to megabytes. One converter instance serves both — it holds the sensor's own unit, which is what
+    /// decides whether there is anything to scale at all.
+    /// </summary>
+    private static void Bind(
+        DependencyObject target, DependencyProperty number, DependencyProperty unit, SensorNode sensor)
+    {
+        var format = new ReadingPart(sensor.Unit);
+
+        BindingOperations.SetBinding(target, number, new Binding(nameof(SensorNode.Value))
         {
             Source = sensor,
-            StringFormat = $"{{0:{SensorFormat.Decimals(sensor.Unit)}}}",
+            Converter = format,
             FallbackValue = "--",
         });
 
-        return box;
+        BindingOperations.SetBinding(target, unit, new Binding(nameof(SensorNode.Value))
+        {
+            Source = sensor,
+            Converter = format,
+            ConverterParameter = "unit",
+            FallbackValue = string.Empty,
+        });
+    }
+
+    /// <summary>One half of a formatted reading, chosen by the parameter. Private because it exists for
+    /// the two pieces that take their number as a pre-formatted string; everything else asks SensorFormat
+    /// directly.</summary>
+    private sealed class ReadingPart(string? unit) : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var (text, scaled) = SensorFormat.Parts(value as float?, unit);
+            return string.Equals(parameter as string, "unit", StringComparison.Ordinal) ? scaled : text;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
     }
 
     /// <summary>

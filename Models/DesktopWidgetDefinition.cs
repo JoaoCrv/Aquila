@@ -23,6 +23,10 @@ public enum DesktopWidgetKind
 
     /// <summary>The time or the date, on a clock of its own rather than the hardware poll.</summary>
     Clock,
+
+    /// <summary>A row of vertical bars, one per reading — an equaliser. The only kind whose count the
+    /// hardware decides rather than the catalogue.</summary>
+    Bars,
 }
 
 /// <summary>
@@ -78,6 +82,22 @@ public enum ChartScale
 
 /// <summary>Where a piece of text sits in the space it is given.</summary>
 public enum TextAlign { Left, Center, Right }
+
+/// <summary>
+/// Which way a row of bars runs.
+///
+/// On the widget and not in the preset, by the preset's own test: swapping Ember for Sky must never turn
+/// an equaliser on its side. It changes nothing about what is on screen, but it is a fact about how THIS
+/// widget fits the space it was placed in — the same category as how wide it is.
+/// </summary>
+public enum BarDirection
+{
+    /// <summary>Standing up, growing from the bottom. The equaliser.</summary>
+    Vertical,
+
+    /// <summary>Lying down, growing from the left. A stack of meters, one per reading.</summary>
+    Horizontal,
+}
 
 /// <summary>
 /// What a clock shows. Presets rather than a pattern, because a pattern is a language and this has to work
@@ -190,6 +210,10 @@ public class DesktopWidgetDefinition
     /// is information, and whether it is worth repeating depends on what the title above already says —
     /// which is a fact about this widget, not about a palette.</summary>
     public bool ShowUnit { get; set; } = true;
+
+    /// <summary>Which way a bars widget runs. Meaningless to every other kind, which is why the catalogue
+    /// declares who can be asked.</summary>
+    public BarDirection BarDirection { get; set; } = BarDirection.Vertical;
 
     public string Text { get; set; } = string.Empty;
 

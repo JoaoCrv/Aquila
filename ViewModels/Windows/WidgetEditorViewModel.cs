@@ -181,12 +181,28 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     public bool ShowsPresetView => HasTarget && EditingPreset;
 
+    /// <summary>Pointed at nothing, and not part-way through a preset. The panel says so here, which is
+    /// what the note above always claimed it did.</summary>
+    public bool ShowsNothing => !HasTarget && !EditingPreset;
+
+    /// <summary>
+    /// The widget buttons — and deliberately NOT <see cref="ShowsWidgetView"/>.
+    ///
+    /// Add is the one control that means something when nothing is selected, and it was hidden along with
+    /// the form: the panel could edit a widget and remove one, but could not make one, and the only way to
+    /// get a first widget was the Widgets page. Remove already carried its own IsEnabled, which says the
+    /// row was meant to survive an empty selection and only the condition on it was wrong.
+    /// </summary>
+    public bool ShowsWidgetActions => !EditingPreset;
+
     partial void OnEditingPresetChanged(bool value) => NotifyView();
 
     private void NotifyView()
     {
         OnPropertyChanged(nameof(ShowsWidgetView));
         OnPropertyChanged(nameof(ShowsPresetView));
+        OnPropertyChanged(nameof(ShowsNothing));
+        OnPropertyChanged(nameof(ShowsWidgetActions));
         OnPropertyChanged(nameof(PanelTitle));
         OnPropertyChanged(nameof(PanelSubtitle));
     }
@@ -389,6 +405,38 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// </summary>
     public bool ShowsUnit => SelectedKind?.HasUnit == true;
 
+    /// <summary>Whether this kind can be turned on its side.</summary>
+    public bool ShowsDirection => SelectedKind?.HasDirection == true;
+
+    /// <summary>Whether there is more than one reading, and so whether making them match means anything.
+    /// </summary>
+    public bool CanMatchRamps => Chosen.Count > 1;
+
+    /// <summary>
+    /// Gives every reading the first one's ramp.
+    ///
+    /// A convenience over the data, not a second place to store a ramp. A widget-level "they all share
+    /// one" would be a ramp decided in two places — the widget's and each series' — and those two would
+    /// have to be kept agreeing forever. This writes the answer into the rows, where a ramp already lives,
+    /// and afterwards nothing can disagree because there is still only one copy of it.
+    ///
+    /// Sixteen bars is where it earns its place: the default gives series N the preset's Nth ramp, so an
+    /// equaliser on a two-ramp preset came out with exactly one bar a different colour, which reads as a
+    /// fault rather than as a design.
+    /// </summary>
+    [RelayCommand]
+    private void MatchRamps()
+    {
+        if (Chosen.Count < 2) return;
+
+        var ramp = Chosen[0].Ramp;
+        foreach (var row in Chosen) row.SetRampQuietly(ramp);
+
+        Apply();
+    }
+
+    public IReadOnlyList<BarDirection> BarDirections { get; } = Enum.GetValues<BarDirection>();
+
     // --- Colours. The only part of a preset that carries meaning rather than measurement: four stops
     // from ordinary to critical, and which one shows is decided by the reading, not by the preset. ---
 
@@ -564,6 +612,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private TextAlign _valueAlign = TextAlign.Center;
     [ObservableProperty] private bool _valueShown = true;
     [ObservableProperty] private bool _unitShown = true;
+    [ObservableProperty] private BarDirection _barDirection = BarDirection.Vertical;
 
     public IReadOnlyList<TitlePlacement> Placements { get; } = Enum.GetValues<TitlePlacement>();
     public IReadOnlyList<TextWeight> Weights { get; } = Enum.GetValues<TextWeight>();
@@ -583,6 +632,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnValueAlignChanged(TextAlign value) => Dress();
     partial void OnValueShownChanged(bool value) => Apply();
     partial void OnUnitShownChanged(bool value) => Apply();
+    partial void OnBarDirectionChanged(BarDirection value) => Apply();
 
     /// <summary>True while the form is being filled FROM a preset, so the writes that causes are not read
     /// back as edits. Without it, merely switching preset would mark the new one as edited — it would be
@@ -982,6 +1032,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ClockFormat = SelectedClockFormat;
         _target.ShowValue = ValueShown;
         _target.ShowUnit = UnitShown;
+        _target.BarDirection = BarDirection;
 
         _target.PointCount = (int)PointCount;
         _target.Scale = SelectedScale;
@@ -1132,6 +1183,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         SelectedClockFormat = target.ClockFormat;
         ValueShown = target.ShowValue;
         UnitShown = target.ShowUnit;
+        BarDirection = target.BarDirection;
 
         PointCount = target.PointCount;
         SelectedScale = target.Scale;
@@ -1180,6 +1232,18 @@ public partial class SeriesRow : ObservableObject
 {
     private readonly Action _changed;
 
+    /// <summary>True while a caller is changing every row at once. The picker still updates — this is not
+    /// a way to write a value nobody sees — but the rebuild is left to the caller, which does it once at
+    /// the end instead of once per row.</summary>
+    private bool _bulk;
+
+    public void SetRampQuietly(string ramp)
+    {
+        _bulk = true;
+        Ramp = ramp;
+        _bulk = false;
+    }
+
     public SeriesRow(SensorOption sensor, string ramp, Action changed)
     {
         Sensor = sensor;
@@ -1195,5 +1259,8 @@ public partial class SeriesRow : ObservableObject
 
     [ObservableProperty] private string _ramp;
 
-    partial void OnRampChanged(string value) => _changed();
+    partial void OnRampChanged(string value)
+    {
+        if (!_bulk) _changed();
+    }
 }

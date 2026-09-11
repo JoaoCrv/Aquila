@@ -58,8 +58,9 @@ public class MockDriver : IHardwareDriver
         // Network
         var net = GetOrAdd(state.Hardware.Networks);
         net.Name = "Ethernet";
-        FillSensor(net.Throughput.Download, _rng.NextSingle() * 100, 0, 1000, "MB/s");
-        FillSensor(net.Throughput.Upload, _rng.NextSingle() * 10, 0, 1000, "MB/s");
+        // Bytes per second, like the real driver: 100 Mbit/s is twelve and a half MILLION here.
+        FillSensor(net.Throughput.Download, _rng.NextSingle() * 12e6f, 0, 12e6f, "B/s");
+        FillSensor(net.Throughput.Upload, _rng.NextSingle() * 1.2e6f, 0, 12e6f, "B/s");
 
         // Storage
         var ssd = GetOrAdd(state.Hardware.Storages);
@@ -67,8 +68,9 @@ public class MockDriver : IHardwareDriver
         FillSensor(ssd.Temperature.Primary, 38f, 20, 70, "°C");
         FillSensor(ssd.Load.UsedSpace, 65f, 0, 100, "%");
         FillSensor(ssd.Level.Life, 98f, 0, 100, "%");
-        FillSensor(ssd.Throughput.ReadRate, _rng.NextSingle() * 7000, 0, 7000, "MB/s");
-        FillSensor(ssd.Throughput.WriteRate, _rng.NextSingle() * 5000, 0, 5000, "MB/s");
+        // Bytes per second, like the real driver: a 7 GB/s drive reports seven thousand MILLION here.
+        FillSensor(ssd.Throughput.ReadRate, _rng.NextSingle() * 7e9f, 0, 7e9f, "B/s");
+        FillSensor(ssd.Throughput.WriteRate, _rng.NextSingle() * 5e9f, 0, 5e9f, "B/s");
     }
 
     private static T GetOrAdd<T>(List<T> list) where T : new()
