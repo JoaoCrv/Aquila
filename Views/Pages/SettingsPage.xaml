@@ -96,6 +96,19 @@
                       DisplayMemberPath="Label" />
         </ui:CardControl>
 
+        <ui:CardControl Icon="{ui:SymbolIcon Play24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Motion" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Whether a reading travels to its new value or jumps to it. Dials and bars sweep; numbers and trends never do. Off costs nothing." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ComboBox MinWidth="120"
+                      ItemsSource="{Binding ViewModel.MotionOptions}"
+                      SelectedItem="{Binding ViewModel.SelectedMotion}"
+                      DisplayMemberPath="Label" />
+        </ui:CardControl>
+
         <!-- ── Behaviour ───────────────────────────────────────────────────────────────────────── -->
         <!-- ── Limits ──────────────────────────────────────────────────────────────────────────── -->
         <TextBlock Style="{StaticResource SectionHeading}" Text="Limits" />

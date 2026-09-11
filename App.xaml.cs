@@ -170,6 +170,16 @@ namespace Aquila
             if (settings.Current.EnableVerboseLogging)
                 LogLevel.MinimumLevel = LogEventLevel.Debug;
 
+            // Thirty rather than the library's sixty. This is a monitor: it draws for hours in the corner
+            // of a screen, and every frame it spends is taken from the machine it is measuring. Half the
+            // frames are not visible in a 300 ms sweep and are plainly visible in a task manager.
+            LiveChartsCore.LiveCharts.RenderingSettings.LiveChartsRenderLoopFPS = 30;
+
+            // A static for the same reason as VitalMonitor.Current below: the pieces that animate are
+            // controls built by WidgetCatalog and by XAML, and neither can be handed anything by the
+            // container.
+            Controls.Motion.Apply(settings.Current);
+
             // Before StartAsync, which is what shows the main window: loads the themes and the presets,
             // applies both, and starts watching Windows' light/dark switch. Doing it after would render
             // the first frame undressed and then correct it in view of the user.

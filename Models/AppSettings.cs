@@ -29,6 +29,15 @@ public class AppSettings
     public string DefaultPresetId   { get; set; } = "ember";
 
     public int    PollingIntervalMs { get; set; } = 1000;
+
+    /// <summary>How long a reading takes to travel to its new value. Zero is no animation — the duration
+    /// IS the switch, following the charting library's own convention, so there is no second field beside
+    /// it that could say otherwise.
+    ///
+    /// 300 ms and not zero. With a one-second poll, a widget shows the true value for whatever is left of
+    /// the second, so this is the ceiling of what can be spent before the display is more often in transit
+    /// than correct.</summary>
+    public int    AnimationSpeedMs  { get; set; } = 300;
     public bool   MinimizeToTray   { get; set; } = false;
     public bool   StartMinimized   { get; set; } = false;
     public double WindowLeft       { get; set; } = double.NaN;

@@ -324,7 +324,14 @@ public partial class SparklineChart : UserControl, IChartStyle
     {
         Values          = values,
         GeometryStroke  = null,
-        AnimationsSpeed = TimeSpan.Zero,
+        // Never animated, whatever the setting says, and not for the reason it looks like. This chart's X
+        // axis is TIME: easing a point into place draws a reading as having arrived gradually, at moments
+        // between two polls when nothing was read. A bar has only a magnitude, so a sweep misrepresents
+        // nothing; a trend has a when, and a sweep would misrepresent it.
+        //
+        // LiveCharts.DisableAnimations rather than TimeSpan.Zero: it is one millisecond, and it is the
+        // library's own constant for this.
+        AnimationsSpeed = LiveChartsCore.LiveCharts.DisableAnimations,
         IsHoverable     = false,
     };
 

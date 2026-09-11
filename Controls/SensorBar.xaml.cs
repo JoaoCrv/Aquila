@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Aquila.Models;
 
 namespace Aquila.Controls;
@@ -68,8 +70,16 @@ public partial class SensorBar : UserControl
         var b = (SensorBar)d;
         if (e.OldValue is SensorNode old) old.PropertyChanged -= b.OnSensorPropertyChanged;
         if (e.NewValue is SensorNode now) now.PropertyChanged += b.OnSensorPropertyChanged;
+
+        // Forgotten with the sensor it belonged to, or the bar would try to travel from the old sensor's
+        // last reading to the new one's first — two unrelated numbers with a sweep drawn between them.
+        b._shown = double.NaN;
         b.Render();
     }
+
+    /// <summary>The value the bar was last sent to. Kept so an update that changes something else — the
+    /// accent, the scale — does not restart a sweep that is already under way.</summary>
+    private double _shown = double.NaN;
 
     private void OnSensorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -90,18 +100,32 @@ public partial class SensorBar : UserControl
         if (!IsLoaded || Sensor is null)
             return;
 
-        // Same scale rule as RadialGauge: explicit Min/Max win; otherwise % → 0..100, else the
-        // sensor's observed range (Sensor.Min/Max are observed extremes, not the true scale).
         double min = double.IsNaN(Minimum) ? 0 : Minimum;
-        double max =
-            !double.IsNaN(Maximum) ? Maximum
-            : Sensor.Unit == "%" ? 100
-            : (Sensor.Max ?? 100);
+        double max = SensorScale.Ceiling(Sensor, Maximum);
         if (max <= min) max = min + 1;
 
         Bar.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;
         Bar.Minimum = min;
         Bar.Maximum = max;
-        Bar.Value = System.Math.Clamp(Sensor.Value ?? 0, min, max);
+
+        var target = System.Math.Clamp(Sensor.Value ?? 0, min, max);
+        if (target.Equals(_shown)) return;
+
+        _shown = target;
+
+        if (!Motion.Enabled)
+        {
+            // Released rather than left holding: a property under an animation ignores assignment, so a
+            // bar animated once and then switched to instant would freeze at whatever it last swept to.
+            Bar.BeginAnimation(RangeBase.ValueProperty, null);
+            Bar.Value = target;
+            return;
+        }
+
+        // No From, deliberately: the animation starts wherever the bar is currently DRAWN, so a reading
+        // that lands mid-sweep redirects smoothly instead of jumping back to begin again. It is also why
+        // a poll faster than the sweep degrades into a slower sweep rather than into a stutter.
+        Bar.BeginAnimation(RangeBase.ValueProperty,
+            new DoubleAnimation(target, Motion.Speed) { EasingFunction = Motion.WpfEasing });
     }
 }

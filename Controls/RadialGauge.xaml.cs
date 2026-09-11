@@ -210,16 +210,17 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
 
         double value = Sensor.Value ?? 0;
 
-        // Scale: explicit Min/Max win; otherwise % sensors are 0..100, others fall back to the
-        // sensor's observed range. (Sensor.Min/Max are observed extremes, not the true scale, so
-        // they must not drive a percentage gauge.)
         double min = double.IsNaN(Minimum) ? 0 : Minimum;
-        double max =
-            !double.IsNaN(Maximum) ? Maximum
-            : Sensor.Unit == "%" ? 100
-            : (Sensor.Max ?? 100);
+        double max = SensorScale.Ceiling(Sensor, Maximum);
         if (max <= min) max = min + 1;
         value = System.Math.Clamp(value, min, max);
+
+        // Set on the CHART and not on the series: the series bakes its style in when it is generated,
+        // so putting the speed there would rebuild the gauge — and a rebuilt gauge animates up from zero.
+        // Assigned only when it differs, because this runs on every tick.
+        if (Chart.AnimationsSpeed != Motion.ChartSpeed) Chart.AnimationsSpeed = Motion.ChartSpeed;
+        if (!ReferenceEquals(Chart.EasingFunction, Motion.ChartEasing))
+            Chart.EasingFunction = Motion.ChartEasing;
 
         var color = ResolveColor();
         var track = TrackBrush is SolidColorBrush t
@@ -257,6 +258,16 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
             _lastColor = color;
             _lastStyle = style;
             Chart.Series = series;
+        }
+
+        // Also on the series, not only on the chart above. A series that names no speed is documented to
+        // inherit the chart's, but that could not be confirmed from the assembly, and a setting that
+        // silently does nothing is worse than one that is set twice. Plain property assignment on ISeries,
+        // so nothing is regenerated and the arc does not restart.
+        foreach (var s in Chart.Series ?? [])
+        {
+            if (s.AnimationsSpeed != Motion.ChartSpeed) s.AnimationsSpeed = Motion.ChartSpeed;
+            if (!ReferenceEquals(s.EasingFunction, Motion.ChartEasing)) s.EasingFunction = Motion.ChartEasing;
         }
 
         Chart.MaxValue = max - min;

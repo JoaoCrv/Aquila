@@ -14,6 +14,10 @@ namespace Aquila.ViewModels.Pages
 {
     public record PollingOption(string Label, int Ms);
 
+    /// <summary>A named duration rather than a slider. The useful distinctions are "none", "barely" and
+    /// "clearly", and a slider from 0 to 400 offers four hundred answers to a question with three.</summary>
+    public record MotionOption(string Label, int Ms);
+
     /// <summary>One entry in the theme list. <c>Id</c> is what goes into settings ("Light", "Dark",
     /// "System"); <c>Label</c> is what the user reads.</summary>
     public record ThemeOption(string Id, string Label);
@@ -50,6 +54,20 @@ namespace Aquila.ViewModels.Pages
 
         [ObservableProperty]
         private PollingOption _selectedPollingInterval = null!;
+
+        /// <summary>Capped at 400 ms on purpose. The poll is one second, so a reading is drawn correctly
+        /// for whatever is left after the sweep — past this the widget is in transit more often than it is
+        /// right, and a monitor that never settles on the value has stopped being one.</summary>
+        public List<MotionOption> MotionOptions { get; } =
+        [
+            new("Off",       0),
+            new("Subtle",  150),
+            new("Smooth",  300),
+            new("Relaxed", 400),
+        ];
+
+        [ObservableProperty]
+        private MotionOption _selectedMotion = null!;
 
         public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
             INavigationService navigation, AppearanceService theme, PresetService presets,
@@ -200,6 +218,10 @@ namespace Aquila.ViewModels.Pages
             SelectedPollingInterval =
                 PollingIntervalOptions.FirstOrDefault(o => o.Ms == _settings.Current.PollingIntervalMs)
                 ?? PollingIntervalOptions[1];
+
+            SelectedMotion =
+                MotionOptions.FirstOrDefault(o => o.Ms == _settings.Current.AnimationSpeedMs)
+                ?? MotionOptions[2];
 
             MinimizeToTray   = _settings.Current.MinimizeToTray;
             StartMinimized   = _settings.Current.StartMinimized;
@@ -376,6 +398,18 @@ namespace Aquila.ViewModels.Pages
             _aquila.SetInterval(value.Ms);
             _settings.Current.PollingIntervalMs = value.Ms;
             _settings.Save();
+        }
+
+        /// <summary>Applied to the static as well as saved: the pieces read it on their next tick, so
+        /// the change is visible within a second without anything having to subscribe to anything.</summary>
+        partial void OnSelectedMotionChanged(MotionOption value)
+        {
+            if (!_isInitialized) return;
+
+            _settings.Current.AnimationSpeedMs = value.Ms;
+            _settings.Save();
+
+            Controls.Motion.Apply(_settings.Current);
         }
 
         partial void OnMinimizeToTrayChanged(bool value)
