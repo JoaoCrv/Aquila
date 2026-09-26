@@ -62,12 +62,34 @@
     <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="#2B2420"/>
 
     <!-- Controls -->
-    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="#251F1A"/>
+    <!-- #33333A from the design canvas. Solid rather than the kit's translucent fill, which washes
+         out over Mica and left buttons reading as glyphs floating beside a title. -->
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="#33333A"/>
+
+    <!-- Just off white: pure white on that face is the hardest thing on screen, and pulls the eye to the
+         chrome instead of the data. -->
+    <SolidColorBrush x:Key="TextFillColorPrimaryBrush"              Color="#D6D6D8"/>
     <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"         Color="#201A16"/>
     <SolidColorBrush x:Key="ControlFillColorTertiaryBrush"          Color="#1B1613"/>
-    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="#302823"/>
-    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="#3A302A"/>
-    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="#302823"/>
+    <!-- ONE outline colour, and every name for it points here.
+
+         A field is built from two stacked borders: ContentBorder draws all four sides in BorderBrush, and
+         on top of it AccentBorder draws the bottom one alone — Fluent's elevation line, the shading that
+         makes a control look slightly raised. They are separate brushes, so a theme that sets one and not
+         the other gets three sides in one colour and the fourth in another, which reads as a missing
+         bottom border rather than as two colours.
+
+         This theme's warm #302823 was that fourth colour. It works against the kit's translucent fills and
+         disappears against the solid face the controls wear now, so the outline and the elevation line are
+         the same colour here and cannot drift apart again. The elevation effect goes with it — deliberate:
+         the design is flat, and a raised edge was never something this theme asked for. -->
+    <Color x:Key="Aquila.Control.StrokeColor">#33FFFFFF</Color>
+
+    <SolidColorBrush x:Key="Aquila.Control.Stroke"                  Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="TextControlElevationBorderBrush"        Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="#4DFFFFFF"/>
 
     <!-- Separators -->
     <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush"         Color="#2B2420"/>

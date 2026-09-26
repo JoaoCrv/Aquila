@@ -20,6 +20,16 @@
 
     <!-- The shell's own highlight. Ember here, because that IS the app's identity — and separate from
          whatever a preset is painting its readings, which is the whole point of the two axes. -->
+    <!-- The design canvas is dark only, so these are the same relationship read the other way up: a
+         control a shade darker than its ground, outlined in black at a tenth rather than white. -->
+    <SolidColorBrush x:Key="Aquila.Control.Fill"   Color="#E8E8EA"/>
+    <Color x:Key="Aquila.Control.StrokeColor">#33000000</Color>
+    <SolidColorBrush x:Key="Aquila.Control.Stroke" Color="{StaticResource Aquila.Control.StrokeColor}"/>
+
+    <SolidColorBrush x:Key="Aquila.Control.Text"   Color="#1A1A1C"/>
+    <SolidColorBrush x:Key="Aquila.Control.ChosenFill" Color="#1FDA3B01"/>
+    <SolidColorBrush x:Key="Aquila.Control.ChosenText" Color="#8A2400"/>
+
     <SolidColorBrush x:Key="Aquila.Chrome.Accent" Color="#DA3B01"/>
 
     <!-- Scrim over the window's Mica — see the note in Dark.xaml. -->
@@ -40,9 +50,14 @@
     <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"         Color="#F4EEE9"/>
     <SolidColorBrush x:Key="ControlFillColorTertiaryBrush"          Color="#EDE6DF"/>
-    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="#E3D9D1"/>
-    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="#D6CAC0"/>
-    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="#E3D9D1"/>
+    <!-- Same arrangement as the dark side: see the note there. -->
+    <Color x:Key="Aquila.Control.StrokeColor">#33000000</Color>
+
+    <SolidColorBrush x:Key="Aquila.Control.Stroke"                  Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="TextControlElevationBorderBrush"        Color="{StaticResource Aquila.Control.StrokeColor}"/>
+    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="#4D000000"/>
 
     <!-- Separators -->
     <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush"         Color="#E8DFD7"/>

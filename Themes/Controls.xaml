@@ -25,15 +25,142 @@
          Surfaces and controls
          ════════════════════════════════════════════════════════════════ -->
 
-    <!-- NO IMPLICIT STYLES FOR KIT CONTROLS HERE.
+    <!-- AN IMPLICIT STYLE FOR A KIT CONTROL MUST CHAIN TO THE KIT'S.
 
-         A Style keyed {x:Type ui:CardExpander} in a dictionary merged into Application.Resources collides
-         with the kit's own, and the failure is an ArgumentException while the app's resources load —
-         before any window and before the first log line, so it looks like the app simply refuses to open.
-         Measured, not guessed: it happens with or without ControlsDictionary merged here.
+         Write `<Style TargetType="{x:Type ui:X}">` with no BasedOn and the app throws an ArgumentException
+         while Application.Resources loads — before any window and before the first log line, so it looks
+         like the app simply refuses to open. That is what this note used to forbid outright, and the ban
+         was too wide: `BasedOn="{StaticResource {x:Type ui:X}}"` resolves the kit's style at parse time and
+         extends it, and the CardExpander rule below plus the three field rules above have run that way
+         without incident. Re-measured 2026-09-24 by starting the app, which is the only test that catches
+         this failure.
 
-         What they were for is better served anyway: Surface.Kind INHERITS, so a container declares it once
-         for everything inside it, and a per-window margin is a window's business, not a rule. -->
+         Prefer Surface.Kind where it fits regardless: it INHERITS, so a container declares it once for
+         everything inside, and a per-window margin is a window's business rather than a rule. -->
+
+    <!-- The same face and outline the icon buttons wear, on the controls you type or choose in. The
+         design gives a combo the identical treatment as a button, and without it a combo over Mica is a
+         word with a chevron beside it rather than a field.
+
+         Implicit styles, done here rather than in one panel's resources because these controls appear on
+         every page. See the note above for why chaining to the kit's style is what makes that safe. -->
+    <!-- Height only. Colour stays the kit's, so Appearance="Primary" is still orange — what is being
+         made uniform here is the row, not the palette.
+
+         A MINIMUM, with the vertical padding taken away. Height was set outright first and it clipped: WPF
+         does not shrink a padding to make content fit, it cuts — the word "Done" lost its lower half and a
+         combo lost its bottom border, because the kit's padding plus a line of text asks for more than 32.
+         With no vertical padding the content is about nineteen pixels and the minimum decides, so every
+         control still lands on the same height; and anything that one day needs more grows instead of
+         losing a piece of itself. -->
+    <Style TargetType="{x:Type ui:Button}" BasedOn="{StaticResource {x:Type ui:Button}}">
+        <Setter Property="MinHeight" Value="{DynamicResource Aquila.Size.Control}"/>
+        <Setter Property="Padding" Value="12,4"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Style.Triggers>
+            <!-- The face lands on the quiet buttons and nowhere else. Hung on Secondary rather than set
+                 outright and undone for Primary, because undoing means naming the kit's accent brushes and
+                 they would then be ours to keep in step. If this ever stops matching the kit's default the
+                 trigger simply does not fire: the buttons look as they did before, which is a failure worth
+                 having. -->
+            <Trigger Property="Appearance" Value="Secondary">
+                <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- The plain WPF TextBox, which the kit restyles and the app still uses in two places. Left out, it
+         would be the one field on screen with a different face. -->
+    <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="MinHeight" Value="{DynamicResource Aquila.Size.Control}"/>
+                <!-- Vertical padding, not zero. Zeroed, the bottom border vanished from every field: the kit lays
+             the content AND the underline out from Padding, so with no room below there is nowhere for that
+             line to be drawn. MinHeight still decides the height — content plus this is under 32 — so the
+             row stays level and nothing is clipped, which is the whole point of a minimum. -->
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+    </Style>
+
+    <!-- A button that stays down. The four state buttons under "Preview on desktop" and the fill toggles:
+         same face as everything else at rest, and when chosen an accent outline over a wash rather than a
+         solid block — see the token for why. -->
+    <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}">
+        <Setter Property="MinHeight" Value="{DynamicResource Aquila.Size.Control}"/>
+        <Setter Property="Padding" Value="12,4"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Aquila.Control.ChosenFill}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                <Setter Property="Foreground" Value="{DynamicResource Aquila.Control.ChosenText}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- No face: a checkbox is a mark and a word, not a field. Only the height, so it sits on the same
+         line as everything beside it. -->
+    <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource {x:Type CheckBox}}">
+        <Setter Property="MinHeight" Value="{DynamicResource Aquila.Size.Control}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- A list is a field you pick in, so it wears the same face. No height: its own is the point. -->
+    <Style TargetType="{x:Type ListBox}" BasedOn="{StaticResource {x:Type ListBox}}">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style TargetType="{x:Type ComboBox}" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="MinHeight" Value="{DynamicResource Aquila.Size.Control}"/>
+                <!-- Vertical padding, not zero. Zeroed, the bottom border vanished from every field: the kit lays
+             the content AND the underline out from Padding, so with no room below there is nowhere for that
+             line to be drawn. MinHeight still decides the height — content plus this is under 32 — so the
+             row stays level and nothing is clipped, which is the whole point of a minimum. -->
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+    </Style>
+
+    <Style TargetType="{x:Type ui:TextBox}" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+        <Setter Property="MinHeight" Value="{DynamicResource Aquila.Size.Control}"/>
+                <!-- Vertical padding, not zero. Zeroed, the bottom border vanished from every field: the kit lays
+             the content AND the underline out from Padding, so with no room below there is nowhere for that
+             line to be drawn. MinHeight still decides the height — content plus this is under 32 — so the
+             row stays level and nothing is clipped, which is the whole point of a minimum. -->
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+    </Style>
+
+    <Style TargetType="{x:Type ui:NumberBox}" BasedOn="{StaticResource {x:Type ui:NumberBox}}">
+        <Setter Property="MinHeight" Value="{DynamicResource Aquila.Size.Control}"/>
+                <!-- Vertical padding, not zero. Zeroed, the bottom border vanished from every field: the kit lays
+             the content AND the underline out from Padding, so with no room below there is nowhere for that
+             line to be drawn. MinHeight still decides the height — content plus this is under 32 — so the
+             row stays level and nothing is clipped, which is the whole point of a minimum. -->
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+    </Style>
 
     <!-- A line of status text, coloured by what it is REPORTING rather than by what it says.
 
@@ -65,15 +192,60 @@
 
     <!-- A button carrying an icon and no words.
 
-         The kit's padding is sized for a label, so an icon inside it sits in a wide, flat lozenge — which
-         is what fifteen buttons in the widget editor looked like, two of which had a padding set by hand
-         because somebody noticed and the other thirteen because nobody had yet. Square padding and a
-         minimum square size make it a button around an icon instead. -->
+         The kit's padding is sized for a label, so an icon inside it sat in a wide, flat lozenge — which is
+         what fifteen buttons in the widget editor looked like, two of which had a padding set by hand
+         because somebody noticed and the other thirteen because nobody had yet.
+
+         Square by construction, not by arithmetic. It used to set a padding and MinWidth 0 and hope: the
+         width came out as the icon plus twelve while the height stayed at whatever minimum the kit imposes,
+         so the two matched only by accident. Both sides are said now, from one token, and the padding goes
+         to zero because a fixed square has no use for it — the icon is centred in the box instead. -->
     <Style x:Key="IconButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-        <Setter Property="Padding" Value="{DynamicResource Aquila.Space.Tight}"/>
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        <Setter Property="Width" Value="{DynamicResource Aquila.Size.Control}"/>
+        <Setter Property="Height" Value="{DynamicResource Aquila.Size.Control}"/>
         <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- "Add one more" — an outline of where a thing would go, not a thing.
+         A filled button of the same width as the list above it competes with the list; dashes read as an
+         empty slot, which is what adding a ramp actually is. Taken from the design canvas, where every
+         other button is solid and this one alone is not. -->
+    <Style x:Key="GhostButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="{DynamicResource Aquila.Space.Snug}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Rectangle x:Name="Dashes" StrokeThickness="1" StrokeDashArray="3 3"
+                                   RadiusX="{DynamicResource Aquila.Radius.ControlPx}"
+                                   RadiusY="{DynamicResource Aquila.Radius.ControlPx}"
+                                   Stroke="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Dashes" Property="Stroke"
+                                    Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- ════════════════════════════════════════════════════════════════

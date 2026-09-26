@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
     <!-- ═══════════════════════════════════════════════════════════════════
          SCHEME — the keys the app's own surfaces bind to for DATA.
@@ -56,6 +57,25 @@
          button going purple with it.
          ═══════════════════════════════════════════════════════════════════ -->
 
+    <!-- No control face, outline or text colour here, and that is the point.
+
+         They were here, as Aquila.Control.Fill / .Stroke / .Text, and it was a mistake twice over. They
+         were a second name for something the kit already names — ControlFillColorDefaultBrush and its two
+         companions, which the Aquila theme was ALREADY overriding — so there were two sources of truth for
+         one outline, and they disagreed through three rounds of fixes. And a colour stated HERE reaches
+         Fluent, where the rule is that Fluent gets nothing of ours: a dark field on a light Fluent window,
+         which is exactly what shipped.
+
+         The rules in Controls.xaml resolve the kit's keys instead. Under Fluent that is the kit's own
+         value, light or dark, as it should be; under Aquila the theme overrides it. -->
+
+    <!-- A control that is CHOSEN. From the design: the accent as an outline over a wash of itself, never a
+         solid fill — a filled state button competes with the data it is about, and there are four of them
+         in a row. The text lifts towards the accent rather than to white, so the chosen one reads warm
+         instead of merely brighter. -->
+    <SolidColorBrush x:Key="Aquila.Control.ChosenFill" Color="#1FFF6B35"/>
+    <SolidColorBrush x:Key="Aquila.Control.ChosenText" Color="#FFB597"/>
+
     <SolidColorBrush x:Key="Aquila.Chrome.Accent"   Color="#FF6B35"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Danger"   Color="#E74856"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Caution"  Color="#FFB900"/>
@@ -67,6 +87,23 @@
 
     <CornerRadius x:Key="Aquila.Radius.Card">8</CornerRadius>
     <CornerRadius x:Key="Aquila.Radius.Control">4</CornerRadius>
+
+    <!-- How tall a control is. EVERY control: a button, a combo, a text box, a number box — and it is
+         also the width of a square icon button, which is why one number answers both.
+
+         Said rather than left to each control's own padding. The kit sizes each one from its content plus
+         whatever padding suits a label, so a combo beside a button came out a pixel or two shorter — near
+         enough to look like a mistake and not near enough to look deliberate. A row of controls only lines
+         up if something says so. -->
+    <sys:Double x:Key="Aquila.Size.Control">32</sys:Double>
+
+    <!-- A radius as a plain number. CornerRadius is what a Border takes and a Rectangle cannot: the ghost
+         button draws its dashes with a Rectangle, which wants two doubles. -->
+    <sys:Double x:Key="Aquila.Radius.ControlPx">6</sys:Double>
+
+    <!-- The air between stacked cards. From the design canvas, which sets 12 against our 4 — the cards
+         were reading as one mass rather than as separate things. -->
+    <Thickness x:Key="Aquila.Space.BetweenCards">0,0,0,12</Thickness>
 
     <Thickness x:Key="Aquila.Space.Tight">6</Thickness>
     <Thickness x:Key="Aquila.Space.Snug">10</Thickness>
