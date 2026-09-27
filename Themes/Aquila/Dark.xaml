@@ -43,11 +43,6 @@
     <!-- The window itself. -->
     <Color x:Key="Aquila.Surface.App">#202024</Color>
 
-    <!-- Sunken WITHIN a card — a CardExpander's expanded content sits here, slightly under the card that
-         holds it rather than above it. Lighter than App because it is measured against the card, not the
-         window. -->
-    <Color x:Key="Aquila.Surface.Well">#252529</Color>
-
     <!-- Raised: cards, the title-bar chips, StatBox, HeaderChip, the stacked bar's track, the storage
          rows. Anything small that sits ON the page rather than being the page. -->
     <Color x:Key="Aquila.Surface.Card">#2A2A2F</Color>
@@ -99,10 +94,6 @@
     <!-- The same outline, asserted: a control under the pointer. Solid too, and a step up from the line
          above — leaving a translucent white beside a solid grey is how a family stops being one. -->
     <Color x:Key="Aquila.Line.Strong">#5C5C62</Color>
-
-    <!-- The quiet line: a card's edge and a divider. Warm rather than white, because these separate
-         surfaces rather than marking something you act on. -->
-    <Color x:Key="Aquila.Line.Quiet">#2B2420</Color>
 
     <!-- Just off white: pure white on the control face is the hardest thing on screen and pulls the eye to
          the chrome instead of the data. -->
@@ -156,10 +147,14 @@
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="{StaticResource Aquila.Surface.Below}"/>
     <SolidColorBrush x:Key="LayerFillColorDefaultBrush"             Color="{StaticResource Aquila.Surface.Card}"/>
 
-    <!-- CardBackgroundFillColorSecondary is NOT a hover fill despite the name: it is what CardExpander
-         paints behind its expanded content, which is a well. -->
+    <!-- There is no WELL. A level for the inside of an open CardExpander was declared here and painted
+         nothing: the kit binds the expanded content's Border to CardBackground, the same key as the
+         header, so there is no second colour to give it without retemplating the control. The
+         Surface.Kind enum still has a Well member and no XAML anywhere declares it.
+
+         Recorded rather than quietly dropped, because the idea is sound and may come back — it just needs
+         a template before it needs a colour. -->
     <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"    Color="{StaticResource Aquila.Surface.Card}"/>
-    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"  Color="{StaticResource Aquila.Surface.Well}"/>
 
     <!-- Controls -->
     <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="{StaticResource Aquila.Surface.Control}"/>
@@ -173,8 +168,38 @@
     <SolidColorBrush x:Key="TextControlElevationBorderBrush"        Color="{StaticResource Aquila.Line}"/>
     <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="{StaticResource Aquila.Line.Strong}"/>
 
-    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="{StaticResource Aquila.Line.Quiet}"/>
-    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush"         Color="{StaticResource Aquila.Line.Quiet}"/>
+    <!-- A card has NO EDGE. It is told apart from the ground by being lighter than it, and a line around
+         that was saying the same thing a second time — four cards in a column read as a list of outlines
+         rather than as four things. The border is kept at one pixel and painted the colour of the face, so
+         the card is simply one pixel bigger; transparent would instead let the ground show through as a
+         hairline halo, which is a line again.
+
+         CardBorderBrush and CardBackground, not CardStrokeColorDefaultBrush and CardBackgroundFillColor-
+         DefaultBrush: the card is another kit control with a family of its own, found by building one and
+         asking its Border which resource it was holding. The two stroke keys were painted magenta and cyan
+         to see where they land and neither appeared anywhere in the app, so they are not claimed — a key
+         claimed for something that does not exist is a claim nobody can check. -->
+    <SolidColorBrush x:Key="CardBackground"                         Color="{StaticResource Aquila.Surface.Card}"/>
+    <SolidColorBrush x:Key="CardBorderBrush"                        Color="{StaticResource Aquila.Surface.Card}"/>
+    <!-- The one state a card says anything in. Neither kit template has a hover trigger, so these keys
+         are reached only through the IsMouseOver rule in Controls.xaml — the rule says when, these say
+         what. CardBorderBrushPointerOver is OURS: WPF-UI has no such key, so do not go looking for it in
+         the kit. It exists because the face and the edge have to move together, and the edge has no
+         hover key of its own to move with.
+
+         Both are the same level, and it is the level that makes the card grow rather than gain an outline:
+         an edge that stayed at the resting colour would appear as a dark ring the moment you pointed at
+         it — an outline arriving exactly when we had decided a card has none.
+
+         CardBackgroundPressed and CardBorderBrushPressed were here and are gone: neither card has an
+         IsPressed trigger in its template or its style chain, so nothing ever read them.
+
+         It borrows the resting CONTROL face rather than earning a level of its own. The two are the same
+         thing said twice over: "the surface directly under your pointer". A level shared on purpose is
+         what the palette is for; a fifth grey that happens to equal the fourth is what it exists to
+         prevent. -->
+    <SolidColorBrush x:Key="CardBackgroundPointerOver"              Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="CardBorderBrushPointerOver"             Color="{StaticResource Aquila.Surface.Control}"/>
 
     <!-- ── Controls that keep a family of their own ──────────────────
          A field, a combo and a switch each carry a full set of keys under their own name, and read NONE of

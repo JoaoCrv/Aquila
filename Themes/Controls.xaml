@@ -260,8 +260,23 @@
 
     <!-- BasedOn is not optional. An implicit style without it REPLACES the default rather than extending
          it, template included — the cards lost their chrome entirely and rendered as bare content. -->
+    <!-- A card lights up under the pointer, and that is the only thing it ever says about itself.
+         Neither card has a hover state of its own: read out of the kit, there is no IsMouseOver trigger in
+         either template or in either style chain, so CardBackgroundPointerOver is a key nothing reaches.
+         The trigger below is what makes it exist — the rule says WHEN, the theme says what colour, which
+         is why this points at the resource and not at a brush of ours.
+
+         A CardControl derives from ButtonBase and a CardExpander's header is a header you click, so both
+         earn it. It reaches the face because the kit's style sets Background on the CONTROL and the
+         template binds to it — the one place today where a setter of ours has a path. -->
     <Style TargetType="{x:Type ui:CardControl}" BasedOn="{StaticResource {x:Type ui:CardControl}}">
         <Setter Property="Margin" Value="0,0,0,4" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundPointerOver}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrushPointerOver}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- CardExpander has no hover of its own — its template (read from WPF-UI's source) triggers only on
@@ -272,8 +287,11 @@
          the navigation frame, and a style sitting in the window did not reach them. -->
     <Style TargetType="{x:Type ui:CardExpander}" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
         <Style.Triggers>
+            <!-- Was SubtleFillColorSecondaryBrush, a translucent white: over Mica it composited with the
+                 wallpaper and read as a gradient creeping across the card rather than as a state. -->
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundPointerOver}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrushPointerOver}" />
             </Trigger>
         </Style.Triggers>
     </Style>
