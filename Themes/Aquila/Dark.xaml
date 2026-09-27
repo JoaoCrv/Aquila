@@ -69,7 +69,11 @@
          more brightly than a live one is the statement backwards.
 
          Solid, and a level like any other, so it recedes by the same amount everywhere regardless of the
-         wallpaper underneath. -->
+         wallpaper underneath.
+
+         THE FACE of every disabled control, whatever the control. With Aquila.Line.Disabled and
+         Aquila.Text.Disabled below, these three are the whole of what "unavailable" looks like in this
+         application — one line each, and no control may state it for itself. -->
     <Color x:Key="Aquila.Surface.Disabled">#26262B</Color>
 
     <!-- Scrim over the window's Mica: App at ~70%. Our colour leads and the material is left as depth
@@ -102,6 +106,12 @@
 
     <!-- Just off white: pure white on the control face is the hardest thing on screen and pulls the eye to
          the chrome instead of the data. -->
+    <!-- The outline of a control that cannot be used. A step below Aquila.Line, and it happens to equal
+         the resting control face — which is exactly why it needs a name of its own rather than pointing at
+         Aquila.Surface.Control. Sharing a value is fine; sharing an ENTRY means changing the disabled
+         outline would repaint the face of every live control on the way past. -->
+    <Color x:Key="Aquila.Line.Disabled">#33333A</Color>
+
     <Color x:Key="Aquila.Text">#D6D6D8</Color>
 
     <!-- The same text, unavailable. Far enough down to read as off rather than as merely dim. -->
@@ -129,6 +139,7 @@
          and there are four of them in a row. The quiet one is the accent lifted towards white, so the
          chosen item reads warm rather than merely brighter. -->
     <Color x:Key="Aquila.Accent.Wash">#1FFF6B35</Color>
+    <Color x:Key="Aquila.Accent.WashOver">#33FF6B35</Color>
     <Color x:Key="Aquila.Accent.Quiet">#FFB597</Color>
 
     <!-- ── THE ASSIGNMENTS ─────────────────────────────────────────────
@@ -181,14 +192,14 @@
     <SolidColorBrush x:Key="TextControlBackgroundPointerOver"       Color="{StaticResource Aquila.Surface.Hover}"/>
     <SolidColorBrush x:Key="TextControlBackgroundFocused"           Color="{StaticResource Aquila.Surface.Control}"/>
     <SolidColorBrush x:Key="TextControlBackgroundDisabled"          Color="{StaticResource Aquila.Surface.Disabled}"/>
-    <SolidColorBrush x:Key="TextControlBorderBrushDisabled"         Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="TextControlBorderBrushDisabled"         Color="{StaticResource Aquila.Line.Disabled}"/>
     <SolidColorBrush x:Key="TextControlForegroundDisabled"          Color="{StaticResource Aquila.Text.Disabled}"/>
 
     <SolidColorBrush x:Key="ComboBoxBackground"                     Color="{StaticResource Aquila.Surface.Control}"/>
     <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver"          Color="{StaticResource Aquila.Surface.Hover}"/>
     <SolidColorBrush x:Key="ComboBoxBackgroundFocused"              Color="{StaticResource Aquila.Surface.Control}"/>
     <SolidColorBrush x:Key="ComboBoxBackgroundDisabled"             Color="{StaticResource Aquila.Surface.Disabled}"/>
-    <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled"            Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled"            Color="{StaticResource Aquila.Line.Disabled}"/>
     <SolidColorBrush x:Key="ComboBoxForegroundDisabled"             Color="{StaticResource Aquila.Text.Disabled}"/>
 
     <!-- The button has one too. Its resting face was the only one of these that already looked right, which
@@ -202,7 +213,7 @@
     <SolidColorBrush x:Key="ButtonBackgroundPointerOver"            Color="{StaticResource Aquila.Surface.Hover}"/>
     <SolidColorBrush x:Key="ButtonBackgroundPressed"                Color="{StaticResource Aquila.Surface.Pressed}"/>
     <SolidColorBrush x:Key="ButtonBackgroundDisabled"               Color="{StaticResource Aquila.Surface.Disabled}"/>
-    <SolidColorBrush x:Key="ButtonBorderBrushDisabled"              Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ButtonBorderBrushDisabled"              Color="{StaticResource Aquila.Line.Disabled}"/>
     <SolidColorBrush x:Key="ButtonForegroundDisabled"               Color="{StaticResource Aquila.Text.Disabled}"/>
 
     <!-- A button that stays down. Checked is left to the kit's accent, like everything else chosen. -->
@@ -210,13 +221,66 @@
     <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver"      Color="{StaticResource Aquila.Surface.Hover}"/>
     <SolidColorBrush x:Key="ToggleButtonBackgroundPressed"          Color="{StaticResource Aquila.Surface.Pressed}"/>
     <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled"         Color="{StaticResource Aquila.Surface.Disabled}"/>
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled"        Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled"        Color="{StaticResource Aquila.Line.Disabled}"/>
     <SolidColorBrush x:Key="ToggleButtonForegroundDisabled"         Color="{StaticResource Aquila.Text.Disabled}"/>
 
     <!-- The generic pair, for everything with no family of its own: check box, list, the number box's
          chevrons. Last line of defence rather than the main mechanism. -->
     <SolidColorBrush x:Key="ControlFillColorDisabledBrush"          Color="{StaticResource Aquila.Surface.Disabled}"/>
     <SolidColorBrush x:Key="TextFillColorDisabledBrush"             Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <!-- The rest of "unavailable", so that nothing is left at the kit's translucency. A check box; a card
+         you cannot open; a toggle button that is down AND disabled; an accent button that is disabled,
+         which has to stop being orange or it reads as the one thing on screen asking to be pressed.
+
+         Left alone deliberately: SubtleFillColorDisabled, because a subtle control is TRANSPARENT at rest
+         and a solid face would appear from nowhere the moment it was disabled. RadioButton, Hyperlink and
+         TimePicker keys are not here because the app has none of those — a key claimed for a control that
+         does not exist is a claim nobody can check. -->
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUncheckedDisabled"   Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedDisabled" Color="{StaticResource Aquila.Line.Disabled}"/>
+    <SolidColorBrush x:Key="CheckBoxForegroundUncheckedDisabled"            Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <SolidColorBrush x:Key="CardBackgroundDisabled"                 Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="CardBorderBrushDisabled"                Color="{StaticResource Aquila.Line.Disabled}"/>
+    <SolidColorBrush x:Key="CardForegroundDisabled"                 Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <!-- A toggle button that is DOWN. The kit paints it as a solid accent block with near-black lettering,
+         which is right for Fluent and wrong here: our chosen state is an outline over a wash of itself, so
+         the kit's text colour — chosen to sit on solid orange — landed black on a dark ground and the word
+         disappeared. Four of these sit in a row under "Preview on desktop"; the selected one was the only
+         one that could not be read.
+
+         ToggleButtonForegroundCheckedPointerOver IS THE HOVER FILL, not a text colour. Read straight out
+         of the template: every other state pairs Panel.Background with a ...Background... key, and this
+         one alone reaches for the ...Foreground... one. It is a mis-wiring in WPF-UI 4.3.0, so the name
+         cannot be trusted and the value has to suit what it actually paints. Nothing sets the lettering in
+         that state, which is why it keeps whatever ToggleButtonForegroundChecked gave it.
+
+         The checked OUTLINE is the kit's AccentControlElevationBorderBrush and is not ours to place: it
+         already holds our accent, because AppearanceService fills the whole accent family from it. A
+         BorderBrush setter was written in the Style for this and never did anything — the template sets
+         Border.BorderBrush by name, which beats a style setter on the control. -->
+    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked"          Color="{StaticResource Aquila.Accent.Wash}"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="{StaticResource Aquila.Accent.WashOver}"/>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed"   Color="{StaticResource Aquila.Accent.WashOver}"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundChecked"          Color="{StaticResource Aquila.Accent.Quiet}"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed"   Color="{StaticResource Aquila.Accent.Quiet}"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed"  Color="{StaticResource Aquila.Accent}"/>
+
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled"  Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedDisabled" Color="{StaticResource Aquila.Line.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedDisabled"  Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <!-- A disabled accent button INHERITS the general disabled look rather than keeping a dimmed accent of
+         its own — face, outline and text, all three. It is the same argument as everywhere else: there is
+         one thing "unavailable" looks like, and a control does not get to say it differently. The outline
+         is the one that is easy to forget, and forgetting it leaves a button wearing our face and our text
+         with the kit's edge — the third thing that should not exist. -->
+    <SolidColorBrush x:Key="AccentFillColorDisabledBrush"           Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="ControlStrokeColorOnAccentDisabledBrush" Color="{StaticResource Aquila.Line.Disabled}"/>
+    <SolidColorBrush x:Key="AccentTextFillColorDisabledBrush"       Color="{StaticResource Aquila.Text.Disabled}"/>
+    <SolidColorBrush x:Key="TextOnAccentFillColorDisabledBrush"     Color="{StaticResource Aquila.Text.Disabled}"/>
 
     <!-- Only the switch's OFF side is claimed. On stays the kit's accent: a switch that is on is a thing
          that is chosen, and everything chosen in this app answers to the accent. The knob is left alone
@@ -229,7 +293,12 @@
     <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver"       Color="{StaticResource Aquila.Line.Strong}"/>
     <SolidColorBrush x:Key="ToggleSwitchStrokeOffPressed"           Color="{StaticResource Aquila.Line.Strong}"/>
     <SolidColorBrush x:Key="ToggleSwitchFillOffDisabled"            Color="{StaticResource Aquila.Surface.Disabled}"/>
-    <SolidColorBrush x:Key="ToggleSwitchStrokeOffDisabled"          Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOffDisabled"          Color="{StaticResource Aquila.Line.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleSwitchFillOnDisabled"             Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOnDisabled"           Color="{StaticResource Aquila.Line.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOffDisabled"        Color="{StaticResource Aquila.Text.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleSwitchKnobFillOnDisabled"         Color="{StaticResource Aquila.Text.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleSwitchContentForegroundDisabled"  Color="{StaticResource Aquila.Text.Disabled}"/>
 
     <!-- Text -->
     <SolidColorBrush x:Key="TextFillColorPrimaryBrush"              Color="{StaticResource Aquila.Text}"/>

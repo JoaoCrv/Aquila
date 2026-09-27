@@ -90,13 +90,10 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Style.Triggers>
-            <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Aquila.Control.ChosenFill}"/>
-                <Setter Property="BorderBrush" Value="{DynamicResource Aquila.Chrome.Accent}"/>
-                <Setter Property="Foreground" Value="{DynamicResource Aquila.Control.ChosenText}"/>
-            </Trigger>
-        </Style.Triggers>
+        <!-- No IsChecked trigger. All three setters that were here — face, outline and lettering — did
+             nothing: the template sets Panel.Background, Border.BorderBrush and TextElement.Foreground by
+             TARGET NAME from its own resource keys, and a setter reaching a named part of a template beats
+             a style setter on the control every time. The chosen state is dressed in the theme instead. -->
     </Style>
 
     <!-- The switch wears the same face as the fields rather than the one the design canvas draws for it.
