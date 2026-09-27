@@ -92,6 +92,32 @@ public sealed class Preset : INotifyPropertyChanged
         name is not null && Ramps.TryGetValue(name, out var ramp) ? ramp
         : Ramps.TryGetValue(Ramp.Primary, out var primary) ? primary
         : Ramp.Neutral;
+
+    /// <summary>
+    /// Renames a ramp IN PLACE, keeping its position.
+    ///
+    /// The dictionary is rebuilt rather than re-keyed, because position carries meaning here: Publish maps
+    /// Series1/2/3 onto the ramps in order, and a widget that names no ramp takes them the same way. Simply
+    /// removing and re-adding would move the ramp to the end and silently repaint two other series.
+    ///
+    /// Refuses a blank name and refuses a collision, and says so rather than throwing: the caller is a text
+    /// box, where a half-typed name is a normal thing to be holding for a moment.
+    /// </summary>
+    public bool RenameRamp(string from, string to)
+    {
+        to = to?.Trim() ?? string.Empty;
+
+        if (to.Length == 0 || !Ramps.ContainsKey(from)) return false;
+        if (string.Equals(from, to, StringComparison.OrdinalIgnoreCase)) return true;
+        if (Ramps.ContainsKey(to)) return false;
+
+        var rebuilt = new Dictionary<string, Ramp>(Ramps.Comparer);
+        foreach (var (name, ramp) in Ramps)
+            rebuilt[string.Equals(name, from, StringComparison.OrdinalIgnoreCase) ? to : name] = ramp;
+
+        Ramps = rebuilt;
+        return true;
+    }
 }
 
 /// <summary>

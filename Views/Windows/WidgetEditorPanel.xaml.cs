@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Aquila.Models;
 using Aquila.ViewModels.Windows;
@@ -108,6 +109,59 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
         menu.IsOpen = true;
     }
 
+    /// <summary>
+    /// Opens one ramp row's menu.
+    ///
+    /// The menu takes the ROW's data context, not the window's. Every entry in it acts on that one ramp,
+    /// and a menu holding the window would remove whichever ramp the view model happened to think was
+    /// current — which is not a thing the view model even tracks.
+    /// </summary>
+    private void OnRampMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu } button) return;
+
+        menu.PlacementTarget = button;
+        menu.DataContext = button.DataContext;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Puts the caret in the row's own name box, the way Rename does for a preset.
+    ///
+    /// The box is found by walking out to the row and back down, never by x:Name: every row is built from
+    /// the same template, so a name would answer with whichever one happened to be registered last.
+    /// </summary>
+    private void OnRenameRamp(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Parent: ContextMenu { PlacementTarget: DependencyObject target } }) return;
+        if (Descendant<TextBox>(Ancestor<DockPanel>(target)) is not { } box) return;
+
+        box.Focus();
+        box.SelectAll();
+    }
+
+    private static T? Ancestor<T>(DependencyObject? from) where T : DependencyObject
+    {
+        for (; from is not null; from = VisualTreeHelper.GetParent(from))
+            if (from is T hit) return hit;
+
+        return null;
+    }
+
+    private static T? Descendant<T>(DependencyObject? from) where T : DependencyObject
+    {
+        if (from is null) return null;
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(from); i++)
+        {
+            var child = VisualTreeHelper.GetChild(from, i);
+            if (child is T hit) return hit;
+            if (Descendant<T>(child) is { } deeper) return deeper;
+        }
+
+        return null;
+    }
+
     /// <summary>Renaming is the name box, so the menu entry goes there rather than opening a dialog that
     /// would ask for the same thing in a second place.</summary>
     private void OnRenamePreset(object sender, RoutedEventArgs e)
@@ -161,7 +215,8 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     }
 
     /// <summary>
-    /// Enter keeps a renamed preset, Escape puts the old name back.
+    /// Enter keeps a typed name, Escape puts the old one back. Used by the preset's name box and by a
+    /// ramp's — the behaviour was never about presets, only about a box you rename something in.
     ///
     /// The binding commits on lost focus, which is what makes clicking away keep the name too — Enter only
     /// brings that moment forward. Escape has to restore the target by hand, because a binding that has not
@@ -170,7 +225,7 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// Focus is cleared either way: the box only looks editable while it is being edited, and one left
     /// outlined after Enter would suggest the name had not been taken.
     /// </summary>
-    private void OnPresetNameKey(object sender, KeyEventArgs e)
+    private void OnNameKey(object sender, KeyEventArgs e)
     {
         if (sender is not TextBox box) return;
 

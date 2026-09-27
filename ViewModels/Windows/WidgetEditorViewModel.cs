@@ -43,13 +43,23 @@ public enum WidgetChange
 public partial class RampRow : ObservableObject
 {
     private readonly Action<RampRow> _changed;
-    private readonly Action _delete;
+    private readonly Action<RampRow> _delete;
+    private readonly Func<string, string, bool> _rename;
 
-    public RampRow(string name, Ramp ramp, Action<RampRow> changed, Action delete)
+    /// <summary>The name this row currently answers to. Kept beside Name because a rename arrives as "it
+    /// is now X" and the preset has to be told what it was called BEFORE — and because a refused rename
+    /// has to be put back.</summary>
+    private string _committed;
+    private bool _renaming;
+
+    public RampRow(string name, Ramp ramp, Action<RampRow> changed, Action<RampRow> delete,
+                   Func<string, string, bool> rename)
     {
-        Name = name;
+        _name = name;
+        _committed = name;
         _changed = changed;
         _delete = delete;
+        _rename = rename;
 
         _normal = ramp.Normal;
         _elevated = ramp.Elevated;
@@ -61,10 +71,44 @@ public partial class RampRow : ObservableObject
         _fixed = ramp.Normal == ramp.Elevated && ramp.Elevated == ramp.Alert && ramp.Alert == ramp.Critical;
     }
 
-    public string Name { get; }
+    /// <summary>
+    /// The ramp's name, and the key it is stored under — there is no separate label.
+    ///
+    /// A display name over a stable key was the other way to do this and was not worth it: it puts two
+    /// names on one thing, and the one the user reads stops being the one the file holds. A ramp's name
+    /// IS how a series points at it, so renaming is renaming an identifier and every reference moves with
+    /// it. DesktopWidgetService does the moving.
+    /// </summary>
+    [ObservableProperty] private string _name;
 
-    /// <summary>Primary is where every fallback ends, so it is the one ramp that cannot be removed.</summary>
-    public bool CanDelete => !string.Equals(Name, Ramp.Primary, StringComparison.OrdinalIgnoreCase);
+    /// <summary>Primary is where every fallback ends, so it is the one ramp that cannot be removed — nor
+    /// renamed, which would be the same removal with extra steps.</summary>
+    public bool CanDelete => !string.Equals(_committed, Ramp.Primary, StringComparison.OrdinalIgnoreCase);
+
+    public bool CanRename => CanDelete;
+
+    /// <summary>
+    /// Takes the typed name to the preset, and puts it back if it is refused.
+    ///
+    /// Blank and already-taken are both ordinary things to be holding for a moment in a text box, so they
+    /// are answered by restoring the old name rather than by an error. The guard is what stops that
+    /// restore from arriving back here as another rename.
+    /// </summary>
+    partial void OnNameChanged(string value)
+    {
+        if (_renaming) return;
+
+        _renaming = true;
+        try
+        {
+            if (_rename(_committed, value)) _committed = value.Trim();
+            Name = _committed;
+        }
+        finally
+        {
+            _renaming = false;
+        }
+    }
 
     [ObservableProperty] private string _normal;
     [ObservableProperty] private string _elevated;
@@ -99,7 +143,7 @@ public partial class RampRow : ObservableObject
     }
 
     [RelayCommand]
-    private void Delete() => _delete();
+    private void Delete() => _delete(this);
 }
 
 public record RampPreview(string Name, string Normal, string Elevated, string Alert, string Critical);
@@ -478,7 +522,37 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     {
         RampRows.Clear();
         foreach (var (name, ramp) in preset.Ramps)
-            RampRows.Add(new RampRow(name, ramp, EditRamp, () => DeleteRamp(name)));
+            RampRows.Add(new RampRow(name, ramp, EditRamp, row => DeleteRamp(row.Name), RenameRamp));
+    }
+
+    /// <summary>
+    /// Renames a ramp and repoints everything that named it.
+    ///
+    /// The rows are deliberately NOT rebuilt. A rename arrives from the text box the user is still in, and
+    /// clearing the collection underneath it would take the caret with it — so the row keeps itself and
+    /// only the things that read a name from elsewhere are refreshed.
+    ///
+    /// The series pickers in THIS widget are repointed quietly, and before RampNames is announced: the
+    /// combo holds its selection by string, so a list that changed first would find the old name missing
+    /// and write a null back over the series.
+    /// </summary>
+    private bool RenameRamp(string from, string to)
+    {
+        if (_reading || !_loaded || SelectedPreset is not { } chosen) return false;
+        if (string.Equals(from, Ramp.Primary, StringComparison.OrdinalIgnoreCase)) return false;
+
+        var preset = presets.Draft(chosen);
+        if (!presets.RenameRamp(preset, from, to)) return false;
+
+        var renamed = to.Trim();
+        foreach (var row in Chosen)
+            if (string.Equals(row.Ramp, from, StringComparison.OrdinalIgnoreCase))
+                row.SetRampQuietly(renamed);
+
+        OnPropertyChanged(nameof(RampNames));
+        OnPropertyChanged(nameof(RampPreviews));
+        Changed?.Invoke(WidgetChange.Dress);
+        return true;
     }
 
     /// <summary>

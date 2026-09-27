@@ -441,7 +441,7 @@
                             <TextBox x:Name="PresetNameBox" Margin="-6,8,0,0" Style="{StaticResource InlineTitle}"
                                      IsEnabled="{Binding ViewModel.CanUpdatePreset}"
                                      ToolTip="Click to rename. Enter to keep it, Escape to put it back."
-                                     KeyDown="OnPresetNameKey"
+                                     KeyDown="OnNameKey"
                                      Text="{Binding ViewModel.PresetName, UpdateSourceTrigger=LostFocus}"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
@@ -737,11 +737,32 @@
                                 <DataTemplate>
                                     <StackPanel Margin="0,0,0,16">
                                         <DockPanel Margin="0,0,0,8">
+                                            <!-- Everything that acts on this one ramp, behind the same button as
+                                                 everything that acts on the preset. Removing was a bare bin icon that
+                                                 appeared and vanished with CanDelete, so primary's row was a different
+                                                 shape from the others for a reason you could only infer. -->
                                             <ui:Button Style="{StaticResource IconButton}" DockPanel.Dock="Right" Margin="6,0,0,0"
-                                                       Icon="{ui:SymbolIcon Delete24}"
-                                                       ToolTip="Remove this ramp"
-                                                       Visibility="{Binding CanDelete, Converter={StaticResource BoolToVisibility}}"
-                                                       Command="{Binding DeleteCommand}"/>
+                                                       Icon="{ui:SymbolIcon MoreHorizontal24}"
+                                                       ToolTip="More"
+                                                       Click="OnRampMenu">
+                                                <ui:Button.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Rename" Click="OnRenameRamp"
+                                                                  IsEnabled="{Binding CanRename}">
+                                                            <MenuItem.Icon>
+                                                                <ui:SymbolIcon Symbol="Rename24"/>
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                        <Separator/>
+                                                        <MenuItem Header="Remove" Command="{Binding DeleteCommand}"
+                                                                  IsEnabled="{Binding CanDelete}">
+                                                            <MenuItem.Icon>
+                                                                <ui:SymbolIcon Symbol="Delete24"/>
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                    </ContextMenu>
+                                                </ui:Button.ContextMenu>
+                                            </ui:Button>
 
                                             <!-- Not a mode: it writes the same colour into all four stops, which is what a
                                                  colour that never changes already IS in this format. -->
@@ -750,8 +771,18 @@
                                             <TextBlock DockPanel.Dock="Right" Text="Fixed colour" Margin="0,0,8,0"
                                                        VerticalAlignment="Center" FontSize="11" Opacity="0.5"/>
 
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
-                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <!-- The name is the KEY, not a label: a series points at its ramp by this
+                                                 string, so renaming here moves every reference with it.
+
+                                                 Drawn as the row's heading and editable where it stands, exactly as the
+                                                 preset's own name is — the same gesture for the same kind of thing. The
+                                                 menu's Rename only puts the caret here; it teaches where the name lives
+                                                 rather than opening a second place to type it. -->
+                                            <TextBox Style="{StaticResource InlineTitle}" FontSize="13" Margin="-6,0,0,0"
+                                                     IsEnabled="{Binding CanRename}"
+                                                     ToolTip="Click to rename. Enter to keep it, Escape to put it back."
+                                                     KeyDown="OnNameKey"
+                                                     Text="{Binding Name, UpdateSourceTrigger=LostFocus}"/>
                                         </DockPanel>
 
                                         <UniformGrid Rows="1"

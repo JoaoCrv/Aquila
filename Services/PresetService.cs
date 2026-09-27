@@ -217,6 +217,24 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         return preset;
     }
 
+    /// <summary>
+    /// Raised after a ramp is renamed: the preset's id, the old name, the new one.
+    ///
+    /// A series names its ramp with a string, so the references have to move with it — and this service is
+    /// not the one to move them. It knows nothing about widgets and is the better for it; whoever owns the
+    /// definitions listens instead.
+    /// </summary>
+    public event Action<string, string, string>? RampRenamed;
+
+    /// <summary>Renames a ramp on a draft of the preset. False when the name is blank or already taken.</summary>
+    public bool RenameRamp(Preset preset, string from, string to)
+    {
+        if (!Draft(preset).RenameRamp(from, to)) return false;
+
+        RampRenamed?.Invoke(preset.Id, from, to.Trim());
+        return true;
+    }
+
     /// <summary>Puts every edited preset back as it was and ends the session.</summary>
     public void Revert()
     {

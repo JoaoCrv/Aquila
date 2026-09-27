@@ -53,6 +53,7 @@ public sealed class DesktopWidgetService
         _surfaces = surfaces;
         _layout = layout;
         _presets = presets;
+        _presets.RampRenamed += OnRampRenamed;
         _surfaces.WidgetMoved += OnWidgetMoved;
         _surfaces.WidgetResized += OnWidgetResized;
         _surfaces.WidgetScreenChanged += OnWidgetScreenChanged;
@@ -478,6 +479,38 @@ public sealed class DesktopWidgetService
     /// Only kinds that NEED a reading. A backdrop has none by design, and sweeping by series count alone
     /// would have deleted every one of them the first time a session was saved.
     /// </summary>
+    /// <summary>
+    /// Moves every reference when a ramp is renamed.
+    ///
+    /// A rename that touched only the preset would leave each series naming something that is no longer
+    /// there — and RampFor answers PRIMARY for a name a preset does not have, so two lines would quietly
+    /// become one colour without anything reporting a problem. Deleting a ramp relies on exactly that
+    /// fallback and is right to; renaming must not, because nothing was removed.
+    ///
+    /// Matched on the RESOLVED preset, not on the stored string: a widget that names none wears the
+    /// default, and renaming a ramp in the default would otherwise skip every one of them.
+    ///
+    /// Done on the spot rather than held until Save, which is safe because the two sessions end together —
+    /// Discard restores the widget snapshot and calls PresetService.Revert in the same breath, so a rename
+    /// and the references that followed it are undone as one.
+    /// </summary>
+    private void OnRampRenamed(string presetId, string from, string to)
+    {
+        if (_widgets is null) return;
+
+        foreach (var widget in _widgets)
+        {
+            if (!string.Equals(_presets.For(widget.Preset).Id, presetId, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            foreach (var series in widget.Series)
+                if (string.Equals(series.Ramp, from, StringComparison.OrdinalIgnoreCase))
+                    series.Ramp = to;
+        }
+
+        SaveUnlessEditing();
+    }
+
     private void DropEmptyWidgets() =>
         _widgets?.RemoveAll(w => w.Series.Count == 0 && WidgetCatalog.For(w.Kind).NeedsReading);
 
@@ -1026,14 +1059,22 @@ public sealed class DesktopWidgetService
             var repaint = Paint(piece, kind.Accent.For(piece, i), resolved[i], ramps[i],
                 MetricKey.Parse(chosen[i].Metric));
 
-            // The NAME is captured, never the ramp. Resolved again against whatever preset arrives, so a
-            // series that named nothing still follows the new preset's own default rather than being
-            // frozen to the one it was built under.
-            var name = chosen[i].Ramp;
+            // The SERIES is captured — not the ramp, and not its name either.
+            //
+            // The ramp would freeze the colours to the preset the piece was built under. The NAME was the
+            // first fix for that and froze the POINTER instead: renaming a ramp moves every series onto
+            // the new name, but a piece still holding the old string asks for something that is no longer
+            // there, and RampFor answers primary. That is what turned a widget's colours to primary the
+            // moment anything re-dressed it, while rebuilding it — toggling the widgets off and on —
+            // brought them back, because a rebuild captures the name again.
+            //
+            // Reading the series at dress time keeps both ends current: a series that names nothing still
+            // follows the new preset's own default, and one that was renamed follows the rename.
+            var reading = chosen[i];
             var index = i;
 
             repaints.Add(dressed => repaint(
-                dressed.RampFor(string.IsNullOrEmpty(name) ? DefaultRamp(dressed, index) : name)));
+                dressed.RampFor(string.IsNullOrEmpty(reading.Ramp) ? DefaultRamp(dressed, index) : reading.Ramp)));
         }
 
         Dress(piece, preset);
