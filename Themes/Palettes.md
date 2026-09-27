@@ -43,7 +43,14 @@ competed quietly with the data it was drawing.
 **The scrim's last six digits must equal `App`.** It is the window's own colour at seventy percent over the
 Mica, written out because XAML cannot add an alpha to another colour.
 
-**Re-check the states against the new ground.** They are relative to the surface under them and nothing
-verifies that. Moving the card to `#2A2A2F` put `Aquila.Surface.Pressed` (`#2B2B31`) two points away from
-it, so a pressed button disappears into the card it sits on; `Aquila.Surface.Disabled` (`#26262B`) went
-from sitting above the card to sitting below it, turning a disabled control from raised to sunken.
+**Re-check the states against the new ground, by the transition and not by the pair.** A state is only
+ever seen as a change from another state. `Aquila.Surface.Pressed` (`#2B2B31`) sits 0.85 dE from this card
+and looks alarming written down, but it is reached only from hover (7.92 dE away) or from rest (3.79),
+so the press reads perfectly well.
+
+The one to actually look at is `Aquila.Surface.Disabled` (`#26262B`), 1.90 dE from the card: a resting
+state, with no transition to carry it, legible only because the text greys with it. It also went from
+sitting above this card to sitting below it, turning a disabled control from raised to sunken.
+
+And before reaching for a new number: app to card is 4.88 dE, card to rest 4.43. There is no room to
+insert a level between them — anything placed inside lands about 2.2 from each neighbour.
