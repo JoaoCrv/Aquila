@@ -224,6 +224,42 @@
     <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver"          Color="{StaticResource Aquila.Surface.Hover}"/>
     <SolidColorBrush x:Key="ComboBoxBackgroundFocused"              Color="{StaticResource Aquila.Surface.Control}"/>
     <SolidColorBrush x:Key="ComboBoxBackgroundDisabled"             Color="{StaticResource Aquila.Surface.Disabled}"/>
+
+    <!-- The open list. It wears the CONTROL face rather than a plane of its own, because that is what it
+         is: the combo you just opened, continued downwards. A card's level would have made a list dropped
+         over a card invisibly the same colour as it.
+
+         ComboBoxItemBackgroundSelected is the row under the POINTER, whatever the name says — read out of
+         the template, the trigger is IsHighlighted, which is one state for the pointer and the keyboard
+         together. There is no separate hover key to give it, so the row takes the hover level and the
+         two inputs agree by construction.
+
+         What says "this is the chosen one" is the accent pill down the left edge, which is the kit's and
+         stays the kit's. The text is not asked to say it a second time. -->
+    <SolidColorBrush x:Key="ComboBoxDropDownBackground"             Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush"            Color="{StaticResource Aquila.Line}"/>
+    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground"        Color="{StaticResource Aquila.Text}"/>
+    <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected"         Color="{StaticResource Aquila.Surface.Hover}"/>
+    <SolidColorBrush x:Key="ComboBoxItemForeground"                 Color="{StaticResource Aquila.Text}"/>
+    <SolidColorBrush x:Key="ComboBoxItemForegroundSelected"         Color="{StaticResource Aquila.Text}"/>
+
+    <!-- The scroll bar, four keys and all four live — read off a real one rather than guessed.
+
+         ScrollBarTrackFillPointerOver is THE TRACK, not a hover state: the template binds the track's
+         Border to it outright and lets the expand animation decide when the track is seen at all. Third
+         key today whose name describes a state it does not have.
+
+         The track and the end buttons take the control face, because an expanded scroll bar IS a control
+         you are about to drag. The thumb takes the assertive line: it is the one part that has to be
+         found against both the track when expanded AND the page when collapsed, and a line level is what
+         we already use for "visible without being loud".
+
+         The arrows take the text colour. They are glyphs, and a glyph too quiet to read is a button with
+         no label. -->
+    <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver"          Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ScrollBarButtonBackground"              Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ScrollBarThumbFill"                     Color="{StaticResource Aquila.Line.Strong}"/>
+    <SolidColorBrush x:Key="ScrollBarButtonArrowForeground"         Color="{StaticResource Aquila.Text}"/>
     <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled"            Color="{StaticResource Aquila.Line.Disabled}"/>
     <SolidColorBrush x:Key="ComboBoxForegroundDisabled"             Color="{StaticResource Aquila.Text.Disabled}"/>
 
