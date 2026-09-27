@@ -260,6 +260,30 @@
     <SolidColorBrush x:Key="ScrollBarButtonBackground"              Color="{StaticResource Aquila.Surface.Control}"/>
     <SolidColorBrush x:Key="ScrollBarThumbFill"                     Color="{StaticResource Aquila.Line.Strong}"/>
     <SolidColorBrush x:Key="ScrollBarButtonArrowForeground"         Color="{StaticResource Aquila.Text}"/>
+
+    <!-- The slider. Its GEOMETRY needed nothing: the kit already builds a four pixel track with a radius
+         of two and a twelve pixel thumb dot, which is exactly what the design canvas asks for, so there is
+         no rule for this control at all — only colour.
+
+         Built from three painted parts, read off a live one: a track, an outer circle and a dot inside it.
+         Both halves of the thumb take the TEXT level, so it comes out as one plain pale disc.
+
+         The dot was the accent, and it is deliberately not. The accent is how this application says
+         something about itself — a primary button, the chosen one of four, a rail. A slider's handle is
+         not making a statement; it is showing where a number currently sits, and a number is not an
+         opinion. Orange there also put a second accent on screen beside the widget the slider is editing,
+         where the only orange should be the data's. -->
+    <SolidColorBrush x:Key="SliderTrackFill"                        Color="{StaticResource Aquila.Line}"/>
+    <SolidColorBrush x:Key="SliderTrackFillPointerOver"             Color="{StaticResource Aquila.Line.Strong}"/>
+    <SolidColorBrush x:Key="SliderTickBarFill"                      Color="{StaticResource Aquila.Line}"/>
+    <SolidColorBrush x:Key="SliderOuterThumbBackground"             Color="{StaticResource Aquila.Text}"/>
+    <SolidColorBrush x:Key="SliderThumbBackground"                  Color="{StaticResource Aquila.Text}"/>
+    <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver"       Color="{StaticResource Aquila.Text}"/>
+
+    <!-- The thumb's edge. A gradient of translucent black in the kit, which is the same shape of problem
+         as the field's elevation line: a translucency takes its real colour from whatever it lands on.
+         Solid, and the same line as everything else round here. -->
+    <SolidColorBrush x:Key="CircleElevationBorderBrush"             Color="{StaticResource Aquila.Line}"/>
     <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled"            Color="{StaticResource Aquila.Line.Disabled}"/>
     <SolidColorBrush x:Key="ComboBoxForegroundDisabled"             Color="{StaticResource Aquila.Text.Disabled}"/>
 
