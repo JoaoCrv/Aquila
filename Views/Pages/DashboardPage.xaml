@@ -23,7 +23,7 @@
         <!-- Header chip. Bordered, unlike the old plain fill: with a page title now beside them these
              have to read as belonging to the header rather than floating over the cards. -->
         <Style x:Key="HeaderChip" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>

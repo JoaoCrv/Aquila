@@ -4,94 +4,238 @@
     <!-- ═══════════════════════════════════════════════════════════════════
          AQUILA DARK — the default theme.
 
-         A theme dresses the WINDOW: background, cards, borders, accent. What
-         the data is painted with comes from the active colour profile, and
-         the two are chosen independently. Nothing in here mentions a sensor.
+         A theme dresses the WINDOW: background, cards, borders, accent. What the data is painted with
+         comes from the active preset, and the two are chosen independently. Nothing in here mentions a
+         sensor.
 
-         It is merged on top of WPF-UI's Fluent dark base, so it only has to
-         name the keys it disagrees with; everything unlisted stays Fluent.
-         That keeps a theme small enough to be read in one sitting and to
-         survive a WPF-UI upgrade.
+         It is merged on top of WPF-UI's Fluent dark base, so it only has to name the keys it disagrees
+         with; everything unlisted stays Fluent. That keeps a theme small enough to read in one sitting and
+         to survive a WPF-UI upgrade.
 
-         The neutrals carry a trace of the logo's warmth instead of being
-         pure grey. It reads as a deliberate surface rather than a tint, and
-         it lets the data colours sit on something related to them without
-         competing for attention. Text is left alone on purpose: warming it
-         costs contrast, and there is nothing to gain.
+         The surfaces are cool neutrals, barely off grey. The warmth is all in the accent and in whatever
+         preset is painting the data — the ground is the one thing on screen that is not saying anything,
+         so it stays out of the way of everything that is.
+
+         ── The file has two halves, and the split is the point ──
+
+         THE PALETTE names LEVELS, not parts. A level is a depth, and several things legitimately live at
+         the same one: a card, a title-bar chip, a StatBox and the stacked bar's track are all "Card". They
+         say so here, once, so they cannot drift apart — which they did, for months, until four of them were
+         found sharing a colour by accident and a fifth had wandered off.
+
+         Naming by part instead — Chip.Fill, StatBox.Fill, Track.Fill — gives three entries that are equal
+         today and need not be tomorrow. Naming by level makes the sharing deliberate.
+
+         THE ASSIGNMENTS say who lives where. Every key below, ours or the kit's, points at a level and
+         states nothing of its own. To restyle, move a level; to move one part between levels, change one
+         line here.
+
+         The vocabulary is the app's own: App, Card and Well are what Surface.Kind already calls them, so
+         there is one language for depth rather than two.
          ═══════════════════════════════════════════════════════════════════ -->
 
-    <!-- Read by AppearanceService and handed to WPF-UI, which derives its whole
-         accent family (hover, pressed, text, selection) from this one value.
-         Declaring it here rather than in C# is what makes a theme file
-         self-contained. -->
-    <!-- A deeper ember than the amber this used to be. #F5A623 is where the logo's gradient starts, and
-         as chrome it read as pale next to the light theme's #CA5010 — the same control changing weight
-         between the two brightnesses rather than just its lightness.
+    <!-- ── THE PALETTE ─────────────────────────────────────────────────
+         Darkest to lightest. Each comment says who lives at that level. -->
 
-         Sharing a hue with step 4 of the data ramp is fine here, and only here: this accent dresses the
-         window — rail, focus, buttons — and never a reading. Colour means intensity on the data, and
-         nothing on the chrome. -->
-    <Color x:Key="Aquila.Theme.Accent">#FF6B35</Color>
+    <!-- Under the window: the recessed ground behind scrolling content. -->
+    <Color x:Key="Aquila.Surface.Below">#1A1A1E</Color>
 
-    <!-- The shell's own highlight. Ember here, because that IS the app's identity — and separate from
-         whatever a preset is painting its readings, which is the whole point of the two axes. -->
-    <SolidColorBrush x:Key="Aquila.Chrome.Accent" Color="#FF6B35"/>
+    <!-- The window itself. -->
+    <Color x:Key="Aquila.Surface.App">#202024</Color>
 
-    <!-- Scrim over the window's Mica. Alpha D1 is ~82%, as in the mockup: enough of our own colour to
-         stop the wallpaper deciding how warm the app looks, enough material left to keep its depth. -->
-    <!-- Scrim over the window's Mica, at ~70%. Our colour leads and the material is left as depth rather
-         than as the thing you see — which is the point of it: the palette is drawn from the logo, and on
-         Windows' pale grey material the ambers read as ordinary orange instead of as flame.
+    <!-- Sunken WITHIN a card — a CardExpander's expanded content sits here, slightly under the card that
+         holds it rather than above it. Lighter than App because it is measured against the card, not the
+         window. -->
+    <Color x:Key="Aquila.Surface.Well">#252529</Color>
 
-         Tinting the material itself is not possible: WPF-UI drives the modern DWM backdrop, which takes a
-         type and no colour. The alpha lives in the brush because opacity on a DynamicResource would fade
-         every control above it too. -->
-    <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="#B315110E"/>
+    <!-- Raised: cards, the title-bar chips, StatBox, HeaderChip, the stacked bar's track, the storage
+         rows. Anything small that sits ON the page rather than being the page. -->
+    <Color x:Key="Aquila.Surface.Card">#2A2A2F</Color>
 
-    <!-- Surfaces, darkest to lightest -->
-    <SolidColorBrush x:Key="ApplicationBackgroundBrush"             Color="#15110E"/>
-    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"      Color="#15110E"/>
-    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#12100D"/>
-    <SolidColorBrush x:Key="LayerFillColorDefaultBrush"             Color="#1F1A16"/>
+    <!-- Something you can press or type in, at rest. From the design canvas, and solid: the kit's
+         translucent fills wash out over Mica, which is why buttons read as glyphs floating beside a title
+         instead of as things you can press. -->
+    <Color x:Key="Aquila.Surface.Control">#33333A</Color>
 
-    <!-- Cards. Secondary is NOT the hover fill despite the name — it is what CardExpander paints behind
-         its expanded CONTENT, so it belongs slightly under the card rather than above it. Hover lives in
-         a style of ours; see MainWindow.xaml. -->
-    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"    Color="#1F1A16"/>
-    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"  Color="#1A1512"/>
-    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="#2B2420"/>
+    <!-- The same control under the pointer, and pressed. Lighter then darker, which is the direction
+         Fluent moves in. These are STATES: nothing at rest may borrow them — that is precisely how tuning
+         a hover once repainted seven resting surfaces across the app. -->
+    <Color x:Key="Aquila.Surface.Hover">#3C3C44</Color>
+    <Color x:Key="Aquila.Surface.Pressed">#2B2B31</Color>
+
+    <!-- A control that cannot be used. BELOW the resting face, which is the whole point: the kit's own
+         disabled state is a translucency — white at about four percent over whatever is behind — and over
+         Mica it came out at #353435, LIGHTER than a control you can actually press. A dead control glowing
+         more brightly than a live one is the statement backwards.
+
+         Solid, and a level like any other, so it recedes by the same amount everywhere regardless of the
+         wallpaper underneath. -->
+    <Color x:Key="Aquila.Surface.Disabled">#26262B</Color>
+
+    <!-- Scrim over the window's Mica: App at ~70%. Our colour leads and the material is left as depth
+         rather than as the thing you see — the palette is drawn from the logo, and on Windows' pale grey
+         material the ambers read as ordinary orange instead of as flame.
+
+         Written out rather than derived, because XAML cannot add an alpha to another colour. Keep the last
+         six digits equal to App. Tinting the material itself is not possible: WPF-UI drives the modern DWM
+         backdrop, which takes a type and no colour, and opacity on the brush would fade every control
+         above it too. -->
+    <Color x:Key="Aquila.Surface.Scrim">#B3202024</Color>
+
+    <!-- The outline of anything you can press or type in. One colour, and every name for it points here:
+         a field is built from TWO stacked borders, the second of which draws the bottom edge alone —
+         Fluent's elevation line — from a key of its own. Set one and not the other and three sides change
+         while the fourth does not, which reads as a missing bottom border rather than as two colours.
+
+         SOLID, not a white at a fifth. A translucent line takes its real colour from whatever is behind it,
+         and behind this is Mica — which changes with the wallpaper. The outline was drifting from window to
+         window and from desktop to desktop; stated outright it is the same line everywhere. -->
+    <Color x:Key="Aquila.Line">#48484E</Color>
+
+    <!-- The same outline, asserted: a control under the pointer. Solid too, and a step up from the line
+         above — leaving a translucent white beside a solid grey is how a family stops being one. -->
+    <Color x:Key="Aquila.Line.Strong">#5C5C62</Color>
+
+    <!-- The quiet line: a card's edge and a divider. Warm rather than white, because these separate
+         surfaces rather than marking something you act on. -->
+    <Color x:Key="Aquila.Line.Quiet">#2B2420</Color>
+
+    <!-- Just off white: pure white on the control face is the hardest thing on screen and pulls the eye to
+         the chrome instead of the data. -->
+    <Color x:Key="Aquila.Text">#D6D6D8</Color>
+
+    <!-- The same text, unavailable. Far enough down to read as off rather than as merely dim. -->
+    <Color x:Key="Aquila.Text.Disabled">#6E6E74</Color>
+
+    <!-- The shell's own highlight — rail, focus, buttons — and never a reading. WPF-UI derives its whole
+         accent family from this one value.
+
+         Sharing a hue with step 4 of a data ramp is fine, and only here: colour means intensity on the
+         data and nothing on the chrome. A deeper ember than the amber this once was; #F5A623 is where the
+         logo's gradient starts and read as pale for chrome.
+
+         THE ONLY STATEMENT OF IT. AppearanceService reads this key by name and hands it to WPF-UI, which
+         derives its whole accent family from it — the primary buttons, the focus outline, the navigation
+         rail. So this one line moves every orange in the application, and nothing else needs touching. -->
+    <Color x:Key="Aquila.Accent">#FF6B35</Color>
+
+    <!-- Two shades OF the accent, rather than two colours. XAML has no arithmetic — it cannot put an alpha
+         on a colour or lighten one — so they have to be written out. They are written HERE, touching the
+         accent, so that keeping them in step is a matter of reading three adjacent lines instead of
+         remembering that they exist somewhere else.
+
+         The wash is the accent at about twelve percent, for a control that is CHOSEN: an outline over a
+         tint of itself, never a solid block — a filled state button competes with the data it is about,
+         and there are four of them in a row. The quiet one is the accent lifted towards white, so the
+         chosen item reads warm rather than merely brighter. -->
+    <Color x:Key="Aquila.Accent.Wash">#1FFF6B35</Color>
+    <Color x:Key="Aquila.Accent.Quiet">#FFB597</Color>
+
+    <!-- ── THE ASSIGNMENTS ─────────────────────────────────────────────
+         Who lives at which level. Nothing below states a colour of its own. -->
+
+    <SolidColorBrush x:Key="Aquila.Chrome.Accent"                   Color="{StaticResource Aquila.Accent}"/>
+    <SolidColorBrush x:Key="Aquila.Control.ChosenFill"              Color="{StaticResource Aquila.Accent.Wash}"/>
+    <SolidColorBrush x:Key="Aquila.Control.ChosenText"              Color="{StaticResource Aquila.Accent.Quiet}"/>
+    <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="{StaticResource Aquila.Surface.Scrim}"/>
+
+    <!-- Surfaces -->
+    <SolidColorBrush x:Key="ApplicationBackgroundBrush"             Color="{StaticResource Aquila.Surface.App}"/>
+    <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush"      Color="{StaticResource Aquila.Surface.App}"/>
+    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="{StaticResource Aquila.Surface.Below}"/>
+    <SolidColorBrush x:Key="LayerFillColorDefaultBrush"             Color="{StaticResource Aquila.Surface.Card}"/>
+
+    <!-- CardBackgroundFillColorSecondary is NOT a hover fill despite the name: it is what CardExpander
+         paints behind its expanded content, which is a well. -->
+    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"    Color="{StaticResource Aquila.Surface.Card}"/>
+    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"  Color="{StaticResource Aquila.Surface.Well}"/>
 
     <!-- Controls -->
-    <!-- #33333A from the design canvas. Solid rather than the kit's translucent fill, which washes
-         out over Mica and left buttons reading as glyphs floating beside a title. -->
-    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="#33333A"/>
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"           Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"         Color="{StaticResource Aquila.Surface.Hover}"/>
+    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush"          Color="{StaticResource Aquila.Surface.Pressed}"/>
 
-    <!-- Just off white: pure white on that face is the hardest thing on screen, and pulls the eye to the
-         chrome instead of the data. -->
-    <SolidColorBrush x:Key="TextFillColorPrimaryBrush"              Color="#D6D6D8"/>
-    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"         Color="#201A16"/>
-    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush"          Color="#1B1613"/>
-    <!-- ONE outline colour, and every name for it points here.
+    <!-- Lines. The three kit keys below are the two borders a field is built from, plus the outline every
+         other control wears — all one colour on purpose. -->
+    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="{StaticResource Aquila.Line}"/>
+    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="{StaticResource Aquila.Line}"/>
+    <SolidColorBrush x:Key="TextControlElevationBorderBrush"        Color="{StaticResource Aquila.Line}"/>
+    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="{StaticResource Aquila.Line.Strong}"/>
 
-         A field is built from two stacked borders: ContentBorder draws all four sides in BorderBrush, and
-         on top of it AccentBorder draws the bottom one alone — Fluent's elevation line, the shading that
-         makes a control look slightly raised. They are separate brushes, so a theme that sets one and not
-         the other gets three sides in one colour and the fourth in another, which reads as a missing
-         bottom border rather than as two colours.
+    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="{StaticResource Aquila.Line.Quiet}"/>
+    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush"         Color="{StaticResource Aquila.Line.Quiet}"/>
 
-         This theme's warm #302823 was that fourth colour. It works against the kit's translucent fills and
-         disappears against the solid face the controls wear now, so the outline and the elevation line are
-         the same colour here and cannot drift apart again. The elevation effect goes with it — deliberate:
-         the design is flat, and a raised edge was never something this theme asked for. -->
-    <Color x:Key="Aquila.Control.StrokeColor">#33FFFFFF</Color>
+    <!-- ── Controls that keep a family of their own ──────────────────
+         A field, a combo and a switch each carry a full set of keys under their own name, and read NONE of
+         the ControlFill ones above. Setting Background on the control does nothing at all: the template
+         never looks at it. This is the same shape of problem as the elevation line — a second name for one
+         thing, and only one of the two names being the one that paints.
 
-    <SolidColorBrush x:Key="Aquila.Control.Stroke"                  Color="{StaticResource Aquila.Control.StrokeColor}"/>
-    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"         Color="{StaticResource Aquila.Control.StrokeColor}"/>
-    <SolidColorBrush x:Key="ControlElevationBorderBrush"            Color="{StaticResource Aquila.Control.StrokeColor}"/>
-    <SolidColorBrush x:Key="TextControlElevationBorderBrush"        Color="{StaticResource Aquila.Control.StrokeColor}"/>
-    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush"       Color="#4DFFFFFF"/>
+         So every such family is brought back onto the palette here, one level each, rather than being left
+         at the kit's value beside controls that already follow ours. The test is a number box next to a
+         button: if they are not the same grey, a family has been missed.
 
-    <!-- Separators -->
-    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush"         Color="#2B2420"/>
+         Focused is deliberately the SAME level as at rest. Focus is already said by the accent underline;
+         saying it a second time with the face makes the field jump as the caret lands in it. -->
+    <SolidColorBrush x:Key="TextControlBackground"                  Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="TextControlBackgroundPointerOver"       Color="{StaticResource Aquila.Surface.Hover}"/>
+    <SolidColorBrush x:Key="TextControlBackgroundFocused"           Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="TextControlBackgroundDisabled"          Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="TextControlBorderBrushDisabled"         Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="TextControlForegroundDisabled"          Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <SolidColorBrush x:Key="ComboBoxBackground"                     Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver"          Color="{StaticResource Aquila.Surface.Hover}"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundFocused"              Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ComboBoxBackgroundDisabled"             Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled"            Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ComboBoxForegroundDisabled"             Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <!-- The button has one too. Its resting face was the only one of these that already looked right, which
+         means the kit happens to point it at the same place we do — happens to, with nothing holding it
+         there. Said outright it stops being a coincidence.
+
+         The FOREGROUND is deliberately not claimed for the live states: an accent button is white-on-orange
+         and takes that from here, so naming a text colour would grey the lettering on every primary button
+         in the app. Only the disabled one is ours, where there is no accent to disagree with. -->
+    <SolidColorBrush x:Key="ButtonBackground"                       Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ButtonBackgroundPointerOver"            Color="{StaticResource Aquila.Surface.Hover}"/>
+    <SolidColorBrush x:Key="ButtonBackgroundPressed"                Color="{StaticResource Aquila.Surface.Pressed}"/>
+    <SolidColorBrush x:Key="ButtonBackgroundDisabled"               Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="ButtonBorderBrushDisabled"              Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ButtonForegroundDisabled"               Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <!-- A button that stays down. Checked is left to the kit's accent, like everything else chosen. -->
+    <SolidColorBrush x:Key="ToggleButtonBackground"                 Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver"      Color="{StaticResource Aquila.Surface.Hover}"/>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed"          Color="{StaticResource Aquila.Surface.Pressed}"/>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled"         Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled"        Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ToggleButtonForegroundDisabled"         Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <!-- The generic pair, for everything with no family of its own: check box, list, the number box's
+         chevrons. Last line of defence rather than the main mechanism. -->
+    <SolidColorBrush x:Key="ControlFillColorDisabledBrush"          Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="TextFillColorDisabledBrush"             Color="{StaticResource Aquila.Text.Disabled}"/>
+
+    <!-- Only the switch's OFF side is claimed. On stays the kit's accent: a switch that is on is a thing
+         that is chosen, and everything chosen in this app answers to the accent. The knob is left alone
+         too — it is the moving part, and it reads against whichever side it is sitting on. -->
+    <SolidColorBrush x:Key="ToggleSwitchFillOff"                    Color="{StaticResource Aquila.Surface.Control}"/>
+    <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver"         Color="{StaticResource Aquila.Surface.Hover}"/>
+    <SolidColorBrush x:Key="ToggleSwitchFillOffPressed"             Color="{StaticResource Aquila.Surface.Pressed}"/>
+
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOff"                  Color="{StaticResource Aquila.Line}"/>
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver"       Color="{StaticResource Aquila.Line.Strong}"/>
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPressed"           Color="{StaticResource Aquila.Line.Strong}"/>
+    <SolidColorBrush x:Key="ToggleSwitchFillOffDisabled"            Color="{StaticResource Aquila.Surface.Disabled}"/>
+    <SolidColorBrush x:Key="ToggleSwitchStrokeOffDisabled"          Color="{StaticResource Aquila.Surface.Control}"/>
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="TextFillColorPrimaryBrush"              Color="{StaticResource Aquila.Text}"/>
+
+    <!-- ── EXCEPTIONS ──────────────────────────────────────────────────
+         A control that genuinely needs a colour of its own, rather than a level, belongs here — declared
+         as an exception so it reads as a decision instead of an oversight. Empty is the healthy state. -->
 
 </ResourceDictionary>

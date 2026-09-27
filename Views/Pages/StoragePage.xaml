@@ -70,12 +70,12 @@
                                                FontSize="14" FontWeight="SemiBold"
                                                TextTrimming="CharacterEllipsis"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                                 CornerRadius="3" Padding="5,2" Margin="0,0,4,0"
                                                 Visibility="{Binding DriveTypeTag, Converter={StaticResource NullToCollapsedConverter}}">
                                             <TextBlock Text="{Binding DriveTypeTag}" FontSize="10" Opacity="0.70"/>
                                         </Border>
-                                        <Border Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                                 CornerRadius="3" Padding="5,2" Margin="0,0,6,0">
                                             <TextBlock Text="{Binding FileSystem}" FontSize="10" Opacity="0.70"/>
                                         </Border>

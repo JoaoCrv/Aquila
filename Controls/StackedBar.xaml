@@ -9,7 +9,7 @@
          composition) — sibling of SensorBar, but for several shares of a whole instead of one
          sensor against a scale. Segments always fill the full width; code-behind builds one Grid
          star-column per segment, so the layout is proportional without any custom width math. -->
-    <Border CornerRadius="4" ClipToBounds="True" Background="{DynamicResource ControlFillColorSecondaryBrush}">
+    <Border CornerRadius="4" ClipToBounds="True" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
         <Grid x:Name="SegmentsHost"/>
     </Border>
 </UserControl>

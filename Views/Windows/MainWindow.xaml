@@ -198,7 +198,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border MinWidth="104" Margin="3,0" Padding="10,5" CornerRadius="6"
-                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                                     BorderThickness="1"
                                     Visibility="{Binding HasValue, Converter={StaticResource BoolToVisibilityConverter}}">

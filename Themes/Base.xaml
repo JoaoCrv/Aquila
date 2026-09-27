@@ -69,10 +69,10 @@
          The rules in Controls.xaml resolve the kit's keys instead. Under Fluent that is the kit's own
          value, light or dark, as it should be; under Aquila the theme overrides it. -->
 
-    <!-- A control that is CHOSEN. From the design: the accent as an outline over a wash of itself, never a
-         solid fill — a filled state button competes with the data it is about, and there are four of them
-         in a row. The text lifts towards the accent rather than to white, so the chosen one reads warm
-         instead of merely brighter. -->
+    <!-- A control that is CHOSEN. The FALLBACK only: an Aquila theme replaces both from its own palette,
+         beside the accent they are shades of. What is left here is what Fluent gets, and what any theme
+         gets that forgets to say — a key that vanished from under a DynamicResource would leave the chosen
+         state with no fill at all. -->
     <SolidColorBrush x:Key="Aquila.Control.ChosenFill" Color="#1FFF6B35"/>
     <SolidColorBrush x:Key="Aquila.Control.ChosenText" Color="#FFB597"/>
 

@@ -147,10 +147,15 @@ public sealed class AppearanceService(
     /// out, lightening for dark and darkening for light. That is why one accent came out pale amber in
     /// dark and deep orange in light, and why changing it barely moved anything — the derivation was
     /// overruling the theme file.
+    ///
+    /// It reads the PALETTE entry, Aquila.Accent, and not a key of its own. There was a second key here —
+    /// Aquila.Theme.Accent — holding the same six digits, so the one colour the whole app is built around
+    /// was written twice in one file and could be changed in one of the two places. A value stated twice
+    /// is a value that will eventually disagree with itself.
     /// </summary>
     private void ApplyAccent()
     {
-        if (_overlay?["Aquila.Theme.Accent"] is Color accent)
+        if (_overlay?["Aquila.Accent"] is Color accent)
             ApplicationAccentColorManager.Apply(accent, accent, accent, accent);
         else
             ApplicationAccentColorManager.ApplySystemAccent();
