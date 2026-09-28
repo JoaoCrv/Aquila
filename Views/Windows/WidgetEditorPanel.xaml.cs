@@ -109,6 +109,65 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
         menu.IsOpen = true;
     }
 
+    private const string PresetFilter = "Aquila preset (*.json)|*.json|All files (*.*)|*.*";
+
+    /// <summary>
+    /// Writes the preset on screen to a file.
+    ///
+    /// Offered under its id rather than its name, because that is what the file is called in the presets
+    /// folder — so a preset exported and then dropped back into that folder lands where it would have been
+    /// anyway, instead of arriving as a second copy under a different stem.
+    /// </summary>
+    private void OnExportPreset(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export preset",
+            Filter = PresetFilter,
+            FileName = ViewModel.ExportFileName,
+            DefaultExt = ".json",
+            AddExtension = true,
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        try
+        {
+            ViewModel.Export(dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            // The only failures left here are the file system's — a folder that vanished, a name already
+            // held open. Reported with the reason, because "export failed" alone tells you nothing you
+            // could act on.
+            MessageBox.Show(this, $"The preset could not be written. {ex.Message}",
+                "Export preset", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Reads a preset in from a file.
+    ///
+    /// Nothing is overwritten: the service gives an arriving preset a free id when the one it carries is
+    /// taken. So the only outcome worth reporting is a file that is not a preset at all.
+    /// </summary>
+    private void OnImportPreset(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Import preset",
+            Filter = PresetFilter,
+            Multiselect = false,
+            CheckFileExists = true,
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        if (!ViewModel.Import(dialog.FileName))
+            MessageBox.Show(this, "That file could not be read as an Aquila preset.",
+                "Import preset", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
     /// <summary>
     /// Opens one ramp row's menu.
     ///

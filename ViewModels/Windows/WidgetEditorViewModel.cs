@@ -362,6 +362,32 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         SelectedPreset = copy;
     }
 
+    /// <summary>A file name to offer when exporting: the id, which is what the file would be called in
+    /// the presets folder.</summary>
+    public string ExportFileName => SelectedPreset is { } preset ? $"{preset.Id}.json" : "preset.json";
+
+    /// <summary>Writes the preset on screen to a file, drafts and all.</summary>
+    public void Export(string path)
+    {
+        if (SelectedPreset is { } preset) presets.Export(preset, path);
+    }
+
+    /// <summary>
+    /// Reads a preset in and wears it. False when the file is not a preset.
+    ///
+    /// Selected afterwards, like a duplicate: importing one is asking to use it, and leaving it sitting
+    /// unselected in the list would make the gesture look as though it had failed. The list is announced
+    /// first — it gained a member and the picker is bound to a plain list, which cannot say so itself.
+    /// </summary>
+    public bool Import(string path)
+    {
+        if (presets.Import(path) is not { } imported) return false;
+
+        OnPropertyChanged(nameof(Presets));
+        SelectedPreset = imported;
+        return true;
+    }
+
     /// <summary>What the preset is called. Renaming changes the name alone — the id it is stored under
     /// never moves, because that is what the widgets reference.</summary>
     [ObservableProperty] private string _presetName = string.Empty;

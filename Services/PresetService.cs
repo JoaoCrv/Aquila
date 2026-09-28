@@ -405,6 +405,70 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         }
     }
 
+    /// <summary>
+    /// Writes a preset to a file of the user's choosing.
+    ///
+    /// The LIVE object, so a preset edited this session exports what is on screen rather than what is on
+    /// disk — you export what you are looking at, which is the only reading of Export that is not a trap.
+    ///
+    /// IsBuiltIn is [JsonIgnore] and does not travel. An exported built-in therefore arrives elsewhere as
+    /// an ordinary preset, which is exactly what it is there: nothing on that machine is protecting it.
+    /// </summary>
+    public void Export(Preset preset, string path) =>
+        File.WriteAllText(path, JsonSerializer.Serialize(preset, _write));
+
+    /// <summary>
+    /// Reads a preset from a file and adds it to the session. Null when the file is not one.
+    ///
+    /// IT NEVER OVERWRITES. A preset arriving with an id you already have takes a free one and the next
+    /// name up, exactly as Duplicate does. Someone sending you their Ember must not be able to replace
+    /// yours, and of everything in this editor an import is the one gesture whose damage you could not
+    /// see happening.
+    ///
+    /// That holds for built-ins too, although a user file with a matching id is normally how a built-in
+    /// gets customised. The difference is that the folder is a place you put things deliberately; an
+    /// import is a file from somebody else, and silently replacing Ember with their Ember is not what
+    /// anybody meant by "import".
+    ///
+    /// Registered the way a duplicate is, so it belongs to the session: Save writes the file and Discard
+    /// leaves nothing behind.
+    /// </summary>
+    public Preset? Import(string path)
+    {
+        Preset? read;
+
+        try
+        {
+            read = JsonSerializer.Deserialize<Preset>(File.ReadAllText(path), _read);
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Preset import failed: {Path}", path);
+            return null;
+        }
+
+        if (read is null) return null;
+
+        // A preset arriving without one is named after the file it came in, which is at least what the
+        // sender called it.
+        if (string.IsNullOrWhiteSpace(read.Name)) read.Name = Path.GetFileNameWithoutExtension(path);
+
+        read.IsBuiltIn = false;
+
+        if (string.IsNullOrWhiteSpace(read.Id) || Has(read.Id))
+        {
+            read.Name = NextName(read.Name);
+            read.Id = FreeId(Slug(read.Name, read.Id));
+        }
+
+        Register(read);
+        _created.Add(read.Id);
+        Sort();
+
+        logger.LogInformation("Preset imported as {Id} from {Path}", read.Id, path);
+        return read;
+    }
+
     /// <summary>A deep copy, through the serializer rather than by hand. A copy written field by field is a
     /// list that silently falls behind the format — which is exactly how a duplicated preset would start
     /// losing whatever was added last.</summary>
