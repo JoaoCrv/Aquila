@@ -23,6 +23,7 @@ public sealed class DesktopWidgetService
     private readonly AquilaService _aquila;
     private readonly DesktopSurfaceService _surfaces;
     private readonly DesktopLayoutService _layout;
+    private readonly NoticeService _notices;
     private readonly PresetService _presets;
 
     private List<DesktopWidgetDefinition>? _widgets;
@@ -47,12 +48,13 @@ public sealed class DesktopWidgetService
     private readonly HashSet<DesktopWidgetDefinition> _dressed = [];
 
     public DesktopWidgetService(AquilaService aquila, DesktopSurfaceService surfaces,
-        DesktopLayoutService layout, PresetService presets)
+        DesktopLayoutService layout, PresetService presets, NoticeService notices)
     {
         _aquila = aquila;
         _surfaces = surfaces;
         _layout = layout;
         _presets = presets;
+        _notices = notices;
         _presets.RampRenamed += OnRampRenamed;
         _surfaces.WidgetMoved += OnWidgetMoved;
         _surfaces.WidgetResized += OnWidgetResized;
@@ -103,12 +105,18 @@ public sealed class DesktopWidgetService
         }
         _byElement.Clear();
 
+        var silent = new List<string>();
+
         foreach (var definition in _widgets)
         {
             // Sensors can vanish between runs (hardware changed, driver renamed one). Build returns null
             // when none of them resolve; the definition is kept so the widget comes back if they do.
             var element = Build(definition, hardware);
-            if (element is null) continue;
+            if (element is null)
+            {
+                silent.Add(Names(definition));
+                continue;
+            }
 
             var surface = ResolveSurface(surfaces, definition);
 
@@ -118,7 +126,50 @@ public sealed class DesktopWidgetService
             _byElement[element] = definition;
         }
 
+        ReportSilentWidgets(silent);
     }
+
+    /// <summary>
+    /// Says which widgets are not being drawn, and stops saying it when they are.
+    ///
+    /// The line above this used to be a bare `continue`: a widget whose sensor is not on this machine
+    /// leaves a hole in the wallpaper and no account of itself anywhere. The definition is kept on purpose
+    /// — unplugging a drive should not delete the widget watching it — but "kept invisibly" and "gone" look
+    /// identical from the desktop.
+    ///
+    /// Reported from HERE rather than from Build, because Populate rebuilds the whole list from nothing
+    /// every time. That is what lets the condition genuinely clear itself instead of being patched up
+    /// incrementally: whatever is missing is recounted from scratch, so a sensor coming back withdraws the
+    /// notice without anybody having to remember that it had been raised.
+    ///
+    /// ONE condition, not one per widget. Three widgets not drawing is a single fact about the machine, and
+    /// three lines saying the same thing would be the panel padding itself.
+    /// </summary>
+    private void ReportSilentWidgets(List<string> silent)
+    {
+        const string key = "widgets.silent";
+
+        if (silent.Count == 0)
+        {
+            _notices.Clear(key);
+            return;
+        }
+
+        _notices.Set(
+            key,
+            silent.Count == 1
+                ? "A widget is not being drawn"
+                : $"{silent.Count} widgets are not being drawn",
+            $"{string.Join(", ", silent)} — the readings they name are not on this machine. They are kept, "
+            + "and come back on their own if it reports them again.",
+            Models.StatusKind.Caution);
+    }
+
+    /// <summary>What to call a widget in a message: what the user titled it, or failing that what kind it
+    /// is. A widget with no title is normal — the title is decoration on most kinds — and "a widget" three
+    /// times over would name nothing.</summary>
+    private static string Names(DesktopWidgetDefinition definition) =>
+        string.IsNullOrWhiteSpace(definition.Title) ? definition.Kind.ToString() : definition.Title;
 
     /// <summary>
     /// Finds the surface a widget belongs on, by stable monitor key, falling back to the primary screen so
