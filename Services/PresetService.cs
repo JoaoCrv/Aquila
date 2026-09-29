@@ -22,7 +22,8 @@ namespace Aquila.Services;
 /// Failures are never fatal. A missing or malformed preset costs that preset, not the app's ability to draw
 /// — and <see cref="Fallback"/> means a widget always has something to wear.
 /// </summary>
-public sealed class PresetService(ILogger<PresetService> logger, SettingsService settings)
+public sealed class PresetService(ILogger<PresetService> logger, SettingsService settings,
+    NoticeService notices)
 {
     /// <summary>The preset that carries the app's own identity. Shipped, never editable, never deleted:
     /// duplicating it is how variation starts, and it is the last thing left to fall back to.</summary>
@@ -82,6 +83,7 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
     public void Load()
     {
         _presets.Clear();
+        _unreadable.Clear();
 
         foreach (var preset in ReadEmbedded()) Register(preset);
         foreach (var preset in ReadUserFolder()) Register(preset);
@@ -93,6 +95,43 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         }
 
         Sort();
+        ReportUnreadable();
+    }
+
+    /// <summary>Files in the presets folder that would not parse on the last Load. Collected rather than
+    /// reported one by one: several broken files is one thing to say, and one line per file would be the
+    /// panel repeating itself.</summary>
+    private readonly List<string> _unreadable = [];
+
+    /// <summary>
+    /// Says which preset files could not be read, and stops saying it when they can.
+    ///
+    /// This was a log line and nothing else, which is to say it was nothing: somebody who edited a preset
+    /// by hand and left a comma out lost the preset from the list with no account of where it went. A file
+    /// that fails to parse is invisible in exactly the way a file that was deleted is.
+    ///
+    /// Recomputed whole on every Load, so fixing the file withdraws the notice. Unlike the widgets, the
+    /// folder is only read at startup, so in practice that means the next run — the condition is honest
+    /// either way, it just has fewer chances to clear.
+    /// </summary>
+    private void ReportUnreadable()
+    {
+        const string key = "presets.unreadable";
+
+        if (_unreadable.Count == 0)
+        {
+            notices.Clear(key);
+            return;
+        }
+
+        notices.Set(
+            key,
+            _unreadable.Count == 1
+                ? "A preset file could not be read"
+                : $"{_unreadable.Count} preset files could not be read",
+            $"{string.Join(", ", _unreadable)} — in {AquilaPaths.Presets}. Until the file parses, the "
+            + "presets inside it are not in the list.",
+            Models.StatusKind.Caution);
     }
 
     private void Sort() =>
@@ -565,6 +604,7 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Preset {File} could not be read", file);
+                _unreadable.Add(Path.GetFileName(file));
             }
 
             if (preset is null) continue;
