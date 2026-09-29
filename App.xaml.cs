@@ -60,6 +60,7 @@ namespace Aquila
                 services.AddSingleton<PresetService>();
                 services.AddSingleton<ThemeCatalog>();
                 services.AddSingleton<AppearanceService>();
+                services.AddSingleton<NoticeService>();
                 services.AddSingleton<UpdateService>();
                 services.AddSingleton<VitalMonitor>();
                 services.AddSingleton<AquilaService>();
@@ -85,6 +86,7 @@ namespace Aquila
                 services.AddSingleton<ITrayNotifier>(sp => (MainWindow)sp.GetRequiredService<INavigationWindow>());
                 services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<TitleBarViewModel>();
+                services.AddSingleton<NoticeCenterViewModel>();
 
                 services.AddSingleton<DashboardWindow>();
                 services.AddTransient<DashboardPage>(); // transient: DashboardWindow and MainWindow each get their own instance; ViewModel is the shared singleton
@@ -195,11 +197,29 @@ namespace Aquila
             await _host.StartAsync();
 
             _host.Services.GetRequiredService<AquilaService>().SetInterval(settings.Current.PollingIntervalMs);
+
+            // The first condition, and the one that made a notice panel worth building: without
+            // administrator rights LibreHardwareMonitor cannot open its driver, so temperatures, fan
+            // speeds and voltages simply are not there. The app already knew, and said nothing — half the
+            // readings were missing and the only explanation available was "this program does not work".
+            //
+            // Raised once. Elevation cannot change inside a process, so re-checking it would be asking a
+            // question whose answer is already written down.
+            var notices = _host.Services.GetRequiredService<NoticeService>();
+            if (!ElevationService.IsElevated())
+                notices.Set(
+                    "elevation",
+                    "Running without administrator rights",
+                    "Temperatures, fan speeds and voltages need them. Settings can set Aquila to start "
+                    + "elevated at logon.",
+                    Models.StatusKind.Caution);
+
             _ = Services.GetRequiredService<UpdateService>()
                 .CheckForUpdatesSilentlyAndNotifyAsync(
                     Services.GetService<ISnackbarService>(),
                     Services.GetService<ITrayNotifier>(),
-                    TimeSpan.FromSeconds(2));
+                    TimeSpan.FromSeconds(2),
+                    notices);
             _host.Services.GetRequiredService<AquilaService>();
         }
 

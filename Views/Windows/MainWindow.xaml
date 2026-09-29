@@ -157,6 +157,160 @@
                  right in the mockup's order. Sized to match them exactly — anything in this row that is
                  not the same height reads as pasted in. -->
             <ui:TitleBar.TrailingContent>
+              <StackPanel Orientation="Horizontal">
+
+                <!-- What the application has to say about itself. ONE bell for both kinds of entry: a
+                     CONDITION that is true now and clears itself, and an EVENT that happened and survives
+                     not being looked at. Two indicators would make the user learn which of two places to
+                     look, for a distinction that is ours and not theirs.
+
+                     Dimmed when there is nothing. Having nothing to report is the common case and should
+                     look like it, rather than like a control waiting to be pressed. -->
+                <ui:Button x:Name="NoticeButton"
+                           Width="44" Height="50" Padding="0"
+                           Appearance="Transparent" BorderThickness="0"
+                           Cursor="Hand"
+                           Command="{Binding ViewModel.Notices.ToggleCommand, Mode=OneWay}"
+                           ToolTip="{Binding ViewModel.Notices.Tooltip, Mode=OneWay}">
+                    <Grid>
+                        <ui:SymbolIcon FontSize="12" Symbol="Alert24">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="ui:SymbolIcon">
+                                    <Setter Property="Opacity" Value="0.45"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.Notices.HasAnything}" Value="True">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+
+                                        <!-- Coloured by the worst thing currently TRUE, never by an event.
+                                             An indicator that stayed lit after the thing it was about was
+                                             over would teach people to stop looking at it. -->
+                                        <DataTrigger Binding="{Binding ViewModel.Notices.Indicator}" Value="Good">
+                                            <Setter Property="Foreground" Value="{DynamicResource Aquila.Chrome.Success}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ViewModel.Notices.Indicator}" Value="Caution">
+                                            <Setter Property="Foreground" Value="{DynamicResource Aquila.Chrome.Caution}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ViewModel.Notices.Indicator}" Value="Bad">
+                                            <Setter Property="Foreground" Value="{DynamicResource Aquila.Chrome.Danger}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
+
+                        <!-- Unseen EVENTS only. A badge counting conditions could never reach zero while
+                             the cause persisted, and a badge that cannot be cleared stops being read. -->
+                        <Border Margin="14,0,0,14" Width="13" Height="13" CornerRadius="7"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="{DynamicResource Aquila.Chrome.Accent}"
+                                Visibility="{Binding ViewModel.Notices.HasUnseen, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="{Binding ViewModel.Notices.UnseenLabel}" FontSize="8"
+                                       FontWeight="SemiBold" Foreground="#FFFFFF"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                </ui:Button>
+
+                <!-- StaysOpen=False so anywhere else puts it away. A panel you have to aim at a second
+                     time to dismiss is a panel people leave open. -->
+                <Popup PlacementTarget="{Binding ElementName=NoticeButton}" Placement="Bottom"
+                       HorizontalOffset="-310" VerticalOffset="2"
+                       AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False"
+                       IsOpen="{Binding ViewModel.Notices.IsOpen, Mode=TwoWay}">
+                    <Border Width="360" MaxHeight="420" CornerRadius="8" BorderThickness="1"
+                            Background="{DynamicResource ApplicationBackgroundBrush}"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <Grid Margin="14,12,14,12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="8,2"
+                                           FontSize="11" Content="Clear" MinHeight="0"
+                                           ToolTip="Removes what happened, and leaves what is still true"
+                                           Visibility="{Binding ViewModel.Notices.CanClear, Converter={StaticResource BoolToVisibilityConverter}}"
+                                           Command="{Binding ViewModel.Notices.ClearCommand}"/>
+                                <TextBlock Text="Notices" FontWeight="SemiBold" FontSize="13"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+
+                            <!-- The empty state says the application is fine, not that the panel is. -->
+                            <TextBlock Grid.Row="1" Text="Nothing to report." FontSize="12" Opacity="0.5"
+                                       Margin="0,8,0,10"
+                                       Visibility="{Binding ViewModel.Notices.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding ViewModel.Notices.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="0,0,0,6" Padding="10,8" CornerRadius="6"
+                                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                                                <DockPanel>
+                                                    <!-- Offered for an event and never for a condition:
+                                                         dismissing something still true is a lie, and a
+                                                         panel tidied that way is worse than an untidy one. -->
+                                                    <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                                               Margin="6,0,0,0" Icon="{ui:SymbolIcon Dismiss24}"
+                                                               ToolTip="Dismiss"
+                                                               Visibility="{Binding CanDismiss, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                               Command="{Binding DataContext.ViewModel.Notices.DismissCommand,
+                                                                         RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                               CommandParameter="{Binding}"/>
+
+                                                    <!-- A bar rather than an icon: severity at a glance,
+                                                         without competing with the words beside it. -->
+                                                    <Border DockPanel.Dock="Left" Width="3" CornerRadius="2"
+                                                            Margin="0,0,10,0">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                                <Setter Property="Opacity" Value="0.3"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Kind}" Value="Good">
+                                                                        <Setter Property="Background" Value="{DynamicResource Aquila.Chrome.Success}"/>
+                                                                        <Setter Property="Opacity" Value="1"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Kind}" Value="Caution">
+                                                                        <Setter Property="Background" Value="{DynamicResource Aquila.Chrome.Caution}"/>
+                                                                        <Setter Property="Opacity" Value="1"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Kind}" Value="Bad">
+                                                                        <Setter Property="Background" Value="{DynamicResource Aquila.Chrome.Danger}"/>
+                                                                        <Setter Property="Opacity" Value="1"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Title}" FontSize="12"
+                                                                   FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                        <TextBlock Text="{Binding Detail}" FontSize="11"
+                                                                   Opacity="0.6" TextWrapping="Wrap"
+                                                                   Margin="0,2,0,0"/>
+                                                        <!-- Only an EVENT carries a time. For a condition
+                                                             the only thing that matters is that it is true
+                                                             now, and a timestamp would invite reading it as
+                                                             something already past. -->
+                                                        <TextBlock Text="{Binding At, StringFormat=HH:mm}"
+                                                                   FontSize="10" Opacity="0.4" Margin="0,3,0,0"
+                                                                   Visibility="{Binding CanDismiss, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Popup>
+
                 <!-- ui:Button with Appearance="Transparent" rather than a plain Button: the default
                      button style paints a filled box, which beside the caption buttons would look like
                      a control someone forgot to remove. -->
@@ -173,6 +327,7 @@
                                    Symbol="{Binding ViewModel.ThemeToggleIcon, Mode=OneWay}"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </ui:Button>
+              </StackPanel>
             </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
 

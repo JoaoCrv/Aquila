@@ -39,9 +39,16 @@ namespace Aquila.Services
         /// whether the window is actually on screen: Aquila normally starts minimized to the tray (and is
         /// hidden entirely in dashboard mode), so a snackbar drawn inside the main window would be shown to
         /// nobody — which is exactly what used to happen.
+        ///
+        /// The notice is raised as well, and always, whichever channel announced it. Announcing and
+        /// recording are different jobs: a balloon or a snackbar says "this just happened" and is gone
+        /// seconds later, which is right for an announcement and useless as a record. Aquila starts in the
+        /// tray, so the most likely reader of an update notice is somebody who was not at the machine —
+        /// and until now the notice was simply spent on an empty room.
         /// </summary>
         public async Task CheckForUpdatesSilentlyAndNotifyAsync(
-            ISnackbarService? snackbarService, ITrayNotifier? trayNotifier = null, TimeSpan? delay = null)
+            ISnackbarService? snackbarService, ITrayNotifier? trayNotifier = null, TimeSpan? delay = null,
+            NoticeService? notices = null)
         {
             try
             {
@@ -55,6 +62,11 @@ namespace Aquila.Services
 
                 const string title = "Update available";
                 const string message = "A new Aquila version is ready. Open Settings to install it.";
+
+                // A nudge rather than good news: nothing has gone right, there is something to do. Which
+                // is exactly the sort of judgement only the writer can make, and why StatusKind is set
+                // where a message is written instead of being guessed from its words.
+                notices?.Raise(title, message, Models.StatusKind.Plain);
 
                 // In-window while it's on screen, tray notification otherwise — never both, so the user
                 // isn't told twice.

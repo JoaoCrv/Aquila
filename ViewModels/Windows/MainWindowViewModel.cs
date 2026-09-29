@@ -34,13 +34,17 @@ namespace Aquila.ViewModels.Windows
         /// <summary>The title bar's own data. Kept apart so this view model stays about the window.</summary>
         public TitleBarViewModel TitleBar { get; }
 
+        /// <summary>What the application has to say about itself, kept apart for the same reason.</summary>
+        public NoticeCenterViewModel Notices { get; }
+
         public MainWindowViewModel(UiService uiService, UpdateService updateService,
-            AppearanceService appearance, TitleBarViewModel titleBar)
+            AppearanceService appearance, TitleBarViewModel titleBar, NoticeCenterViewModel notices)
         {
             _uiService = uiService;
             _updateService = updateService;
             _appearance = appearance;
             TitleBar = titleBar;
+            Notices = notices;
 
             // Also fires when the theme changes from Settings, or when Windows switches while we are
             // following it — the button has to agree with the window whoever moved it.
