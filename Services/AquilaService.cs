@@ -7,10 +7,12 @@ using System.Windows.Threading;
 
 namespace Aquila.Services;
 
-public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonitor vitals, ILogger<AquilaService> logger) : IDisposable
+public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonitor vitals,
+    NoticeService notices, ILogger<AquilaService> logger) : IDisposable
 {
     private readonly IHardwareDriver _driver = driver;
     private readonly AquilaState _state = state;
+    private readonly NoticeService _notices = notices;
     private readonly ILogger<AquilaService> _logger = logger;
     private readonly DispatcherTimer _timer = new();
     private bool _disposed;
@@ -34,10 +36,49 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     // TODO: replace with IHardwareDriver.RawTree when multi-driver support is added
     public IComputer? Computer => (_driver as LHMDriver)?.Computer;
 
+    /// <summary>
+    /// Starts polling, WHETHER OR NOT the driver came up.
+    ///
+    /// It used to let the failure through and the application died with it — a source that would not open
+    /// took the whole program, and what the user got was a crash rather than an explanation. That is the
+    /// wrong shape for two reasons. The small one is that a dead application has nowhere to say anything,
+    /// so the notice panel could never report the one failure it most needed to. The large one is that a
+    /// driver is a SOURCE, and the point of #12 is that there will be several: Aquila must be able to run
+    /// with one of them down, and eventually with LHM absent altogether.
+    ///
+    /// So the window opens, every reading is blank, and a condition says why. The blankness is then
+    /// explained rather than mysterious, which is the same argument as the elevation notice carried to the
+    /// case where elevation is not the cause.
+    ///
+    /// The driver still THROWS. It is right that it does — it is reporting that it could not start, and
+    /// deciding what that means for the application is not its business. This is where that decision
+    /// belongs, and it is the only place that has to change when there is more than one source to lose.
+    ///
+    /// The timer runs either way. LHMDriver.Populate already returns immediately when it has nothing open,
+    /// so a tick costs nothing — and when a second source exists, a tick that stopped would take the
+    /// working sources down with the broken one.
+    /// </summary>
     public void Start()
     {
         _logger.LogInformation("Hardware monitor starting");
-        _driver.Initialize();
+
+        try
+        {
+            _driver.Initialize();
+            _notices.Clear("driver");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Hardware source did not start; continuing without it");
+
+            _notices.Set(
+                "driver",
+                "No hardware readings",
+                "The monitoring driver did not start, so nothing can be read from this machine. "
+                + $"Restarting Aquila as administrator is the usual fix. ({ex.Message})",
+                Models.StatusKind.Bad);
+        }
+
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += OnTick;
         OnTick(null, EventArgs.Empty);
