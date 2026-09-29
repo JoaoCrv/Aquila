@@ -126,7 +126,7 @@ public sealed class DesktopWidgetService
             _byElement[element] = definition;
         }
 
-        ReportSilentWidgets(silent);
+        ReportSilentWidgets(silent, hardware);
     }
 
     /// <summary>
@@ -144,12 +144,22 @@ public sealed class DesktopWidgetService
     ///
     /// ONE condition, not one per widget. Three widgets not drawing is a single fact about the machine, and
     /// three lines saying the same thing would be the panel padding itself.
+    ///
+    /// SILENT WHEN THERE IS NOTHING TO READ AT ALL. This notice means "these particular widgets cannot find
+    /// their sensors", and with an empty hardware tree that sentence has stopped being about the widgets —
+    /// the source did not start, something else already says so, and this one would only send the user off
+    /// to inspect widgets that are fine. Decided from the HARDWARE rather than by asking whether the driver
+    /// condition is raised: that would tie this notice to another one by its key, which is the general
+    /// dependency mechanism we chose not to build, smuggled in for one case.
     /// </summary>
-    private void ReportSilentWidgets(List<string> silent)
+    private void ReportSilentWidgets(List<string> silent, HardwareNode hardware)
     {
         const string key = "widgets.silent";
 
-        if (silent.Count == 0)
+        var nothingToRead = hardware.Cpus.Count == 0 && hardware.Gpus.Count == 0
+            && hardware.Storages.Count == 0 && hardware.Networks.Count == 0;
+
+        if (silent.Count == 0 || nothingToRead)
         {
             _notices.Clear(key);
             return;
