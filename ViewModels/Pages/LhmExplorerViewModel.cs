@@ -210,7 +210,8 @@ namespace Aquila.ViewModels.Pages
             catch (Exception ex)
             {
                 Debug.WriteLine($"[LhmExplorerViewModel] report export failed: {ex}");
-                MessageBox.Show($"Failed to export the LibreHardwareMonitor report.\n\n{ex.Message}", "Aquila Explorer Export", MessageBoxButton.OK, MessageBoxImage.Error);
+                await Aquila.Services.Dialogs.Tell(
+                    "Export report", $"The report could not be written. {ex.Message}");
             }
             finally
             {

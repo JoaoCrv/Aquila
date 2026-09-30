@@ -122,6 +122,11 @@ namespace Aquila
             }
             catch (Exception ex)
             {
+                // THE ONE PLACE that still uses the system's message box, and deliberately. Everything
+                // else goes through Aquila.Services.Dialogs, which puts up a FluentWindow — and a
+                // FluentWindow needs the kit's resources, a dispatcher and a theme, none of which exist
+                // yet inside the App constructor. This is the failure that happens before the application
+                // does, so it wants the box that works when nothing else does.
                 MessageBox.Show("Velopack Startup Error: " + ex.ToString());
             }
         }

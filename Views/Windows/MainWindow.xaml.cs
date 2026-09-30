@@ -317,14 +317,11 @@ namespace Aquila.Views.Windows
             try
             {
                 await _updateService.RunUserInitiatedUpdateAsync(request =>
-                    System.Windows.MessageBox.Show(request.Message, request.Title,
-                        System.Windows.MessageBoxButton.YesNo,
-                        System.Windows.MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes);
+                    Aquila.Services.Dialogs.Ask(request.Title, request.Message, "Continue", "Not now"));
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(ex.Message, "Update failed",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                await Aquila.Services.Dialogs.Tell("Update failed", ex.Message);
             }
         }
 

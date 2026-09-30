@@ -439,9 +439,13 @@ namespace Aquila.ViewModels.Pages
                 StartWithWindows = !value;
                 _externalUpdate = false;
 
-                MessageBox.Show(
-                    "Aquila could not change the startup setting. This requires the app to be running with administrator privileges.",
-                    "Start with Windows", MessageBoxButton.OK, MessageBoxImage.Warning);
+                // Not awaited, and safe not to be: the toggle has already been put back on the line above,
+                // so nothing after this depends on the answer. A property-changed callback cannot await
+                // anyway, and forcing it to would block the thread the dialog needs to be answered on.
+                _ = Dialogs.Tell(
+                    "Start with Windows",
+                    "Aquila could not change the startup setting. This requires the app to be running "
+                    + "with administrator privileges.");
             }
         }
 
@@ -505,19 +509,13 @@ namespace Aquila.ViewModels.Pages
             }
         }
 
-        private static bool ConfirmUpdateAction(UpdatePromptRequest request) =>
-            MessageBox.Show(request.Message, request.Title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+        private static Task<bool> ConfirmUpdateAction(UpdatePromptRequest request) =>
+            Dialogs.Ask(request.Title, request.Message, "Continue", "Not now");
 
-        private static void ShowUpdateNotification(UpdatePromptRequest request)
-        {
-            var image = request.Kind switch
-            {
-                UpdatePromptKind.Warning => MessageBoxImage.Warning,
-                UpdatePromptKind.Error => MessageBoxImage.Error,
-                _ => MessageBoxImage.Information
-            };
-
-            MessageBox.Show(request.Message, request.Title, MessageBoxButton.OK, image);
-        }
+        /// <summary>The kind is no longer drawn as an icon. The kit's message box does not take one, and
+        /// the loss is small: a warning and an error read the same to somebody who is being told that a
+        /// download failed, and the sentence already says which it is.</summary>
+        private static Task ShowUpdateNotification(UpdatePromptRequest request) =>
+            Dialogs.Tell(request.Title, request.Message);
     }
 }

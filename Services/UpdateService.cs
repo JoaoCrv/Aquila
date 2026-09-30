@@ -88,23 +88,31 @@ namespace Aquila.Services
             }
         }
 
+        /// <summary>
+        /// Walks the user through an update, asking twice: before downloading and before restarting.
+        ///
+        /// The callbacks are ASYNC because the app's dialogs are. WPF-UI's message box has one way to be
+        /// shown and it returns a Task, so a synchronous predicate here would force every caller to block
+        /// on it — on the UI thread, which is the thread the dialog needs in order to answer. The contract
+        /// follows the dialog rather than the dialog fighting the contract.
+        /// </summary>
         public async Task RunUserInitiatedUpdateAsync(
-            Func<UpdatePromptRequest, bool> confirmAction,
-            Action<UpdatePromptRequest>? notifyAction = null)
+            Func<UpdatePromptRequest, Task<bool>> confirmAction,
+            Func<UpdatePromptRequest, Task>? notifyAction = null)
         {
             SetStatus("Checking for updates...");
 
             var checkResult = await CheckForUpdatesAsync();
             if (!checkResult.IsSuccess)
             {
-                notifyAction?.Invoke(UpdatePromptRequest.Warning(checkResult.Message));
+                await Notify(notifyAction, UpdatePromptRequest.Warning(checkResult.Message));
                 return;
             }
 
             if (!checkResult.IsUpdateAvailable || checkResult.UpdateInfo is null)
                 return;
 
-            var installNow = confirmAction(
+            var installNow = await confirmAction(
                 UpdatePromptRequest.Confirmation("A new Aquila update is available. Download and restart now?"));
 
             if (!installNow)
@@ -118,11 +126,11 @@ namespace Aquila.Services
             var downloadResult = await DownloadUpdateAsync(checkResult.UpdateInfo);
             if (!downloadResult.IsSuccess || downloadResult.UpdateInfo is null)
             {
-                notifyAction?.Invoke(UpdatePromptRequest.Error(downloadResult.Message));
+                await Notify(notifyAction, UpdatePromptRequest.Error(downloadResult.Message));
                 return;
             }
 
-            var restartNow = confirmAction(
+            var restartNow = await confirmAction(
                 UpdatePromptRequest.Confirmation("The update has been downloaded successfully. Restart Aquila now to apply it?"));
 
             if (!restartNow)
@@ -134,6 +142,12 @@ namespace Aquila.Services
             SetStatus("Restarting to apply the update...");
             ApplyUpdatesAndRestart(downloadResult.UpdateInfo);
         }
+
+        /// <summary>Awaits an optional notification. Written out rather than `notifyAction?.Invoke(...)`
+        /// because that returns a Task nobody awaits: the update would carry on underneath a dialog the
+        /// user is still reading, and the next one would open on top of it.</summary>
+        private static Task Notify(Func<UpdatePromptRequest, Task>? notify, UpdatePromptRequest request) =>
+            notify?.Invoke(request) ?? Task.CompletedTask;
 
         public async Task<UpdateCheckResult> CheckForUpdatesAsync(bool silent = false)
         {

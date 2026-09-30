@@ -34,7 +34,10 @@ public partial class WidgetsViewModel : ObservableObject
         _initialized = true;
 
         // The floating toolbar is the only way out of edit mode once the window is minimized.
-        _surface.EditingFinished += save => StopEditing(save);
+        //
+        // Started and not awaited, which an event handler cannot do anyway. Nothing follows it here, so
+        // the sequence inside StopEditing is the whole of the ordering that matters.
+        _surface.EditingFinished += save => _ = StopEditing(save);
     }
 
     public HardwareNode Hardware => _aquila.State.Hardware;
@@ -93,9 +96,22 @@ public partial class WidgetsViewModel : ObservableObject
         {
             // Turning the surface off mid-edit keeps the work: the user asked to hide the widgets, not to
             // throw away what they had just done to them.
-            if (IsEditingOnDesktop) StopEditing(save: true);
-            _surface.Hide();
+            //
+            // Hiding has to wait for the session to close, because closing it can ASK — a built-in preset
+            // edited during the session puts up a question, and hiding the surface underneath it would
+            // take the widgets away while the user was still deciding what to do with them. A property
+            // callback cannot await, so the order is held inside a method that can.
+            if (IsEditingOnDesktop) _ = StopEditingThenHide();
+            else _surface.Hide();
         }
+    }
+
+    /// <summary>Closes the edit session and only then hides the surface. Exists because the two cannot be
+    /// written in order anywhere else: the caller is a property-changed callback, which returns void.</summary>
+    private async Task StopEditingThenHide()
+    {
+        await StopEditing(save: true);
+        _surface.Hide();
     }
 
     /// <summary>Flashes a number on each monitor, like Windows' own Identify button — a momentary answer
@@ -147,19 +163,22 @@ public partial class WidgetsViewModel : ObservableObject
 
     /// <summary>Leaves edit mode, keeping the session's changes or throwing them away. Nothing was written
     /// while it was open, so this is the one moment either outcome is decided.</summary>
-    private void StopEditing(bool save)
+    private async Task StopEditing(bool save)
     {
         if (!IsEditingOnDesktop) return;
 
         // Asked only when there is something to lose. A confirmation that appears when nothing changed
         // teaches the user to dismiss it without reading, which is when it stops protecting anything.
+        //
+        // The buttons name the outcomes rather than saying Yes and No. "Discard" and "Keep editing" can be
+        // read without the sentence above them, which matters most here: this is the one dialog in the app
+        // where pressing the wrong button costs the user their work.
         if (!save && _widgets.HasUnsavedChanges &&
-            MessageBox.Show(
-                "Discard every change made since edit mode was entered?",
+            !await Dialogs.Ask(
                 "Discard changes",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No) != MessageBoxResult.Yes)
+                "Every change made since edit mode was entered will be thrown away.",
+                yes: "Discard",
+                no: "Keep editing"))
             return;
 
         // A locked preset cannot be written over, so changes made to one have nowhere to go unless the
@@ -167,13 +186,11 @@ public partial class WidgetsViewModel : ObservableObject
         // simply saved, the way editing anything of your own works everywhere else.
         if (save)
             foreach (var locked in _widgets.LockedEdits)
-                if (MessageBox.Show(
-                        $"\u201c{locked.Name}\u201d is a built-in preset and cannot be changed.\n\n" +
-                        "Keep your changes as a new preset? Choosing No puts it back as it was.",
+                if (await Dialogs.Ask(
                         "Built-in preset",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question,
-                        MessageBoxResult.Yes) == MessageBoxResult.Yes)
+                        $"\u201c{locked.Name}\u201d is a built-in preset and cannot be changed.",
+                        yes: "Save as a copy",
+                        no: "Put it back"))
                     _widgets.KeepAsNew(locked);
 
         IsEditingOnDesktop = false;

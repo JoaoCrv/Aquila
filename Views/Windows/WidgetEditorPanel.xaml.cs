@@ -118,7 +118,7 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// folder — so a preset exported and then dropped back into that folder lands where it would have been
     /// anyway, instead of arriving as a second copy under a different stem.
     /// </summary>
-    private void OnExportPreset(object sender, RoutedEventArgs e)
+    private async void OnExportPreset(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
@@ -140,8 +140,8 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
             // The only failures left here are the file system's — a folder that vanished, a name already
             // held open. Reported with the reason, because "export failed" alone tells you nothing you
             // could act on.
-            MessageBox.Show(this, $"The preset could not be written. {ex.Message}",
-                "Export preset", MessageBoxButton.OK, MessageBoxImage.Warning);
+            await Aquila.Services.Dialogs.Tell(
+                "Export preset", $"The preset could not be written. {ex.Message}", this);
         }
     }
 
@@ -151,7 +151,7 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// Nothing is overwritten: the service gives an arriving preset a free id when the one it carries is
     /// taken. So the only outcome worth reporting is a file that is not a preset at all.
     /// </summary>
-    private void OnImportPreset(object sender, RoutedEventArgs e)
+    private async void OnImportPreset(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
@@ -164,8 +164,8 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
         if (dialog.ShowDialog(this) != true) return;
 
         if (!ViewModel.Import(dialog.FileName))
-            MessageBox.Show(this, "That file could not be read as an Aquila preset.",
-                "Import preset", MessageBoxButton.OK, MessageBoxImage.Warning);
+            await Aquila.Services.Dialogs.Tell(
+                "Import preset", "That file could not be read as an Aquila preset.", this);
     }
 
     /// <summary>
