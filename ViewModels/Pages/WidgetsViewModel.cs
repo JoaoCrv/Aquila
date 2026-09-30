@@ -40,8 +40,6 @@ public partial class WidgetsViewModel : ObservableObject
         _surface.EditingFinished += save => _ = StopEditing(save);
     }
 
-    public HardwareNode Hardware => _aquila.State.Hardware;
-
     /// <summary>
     /// What exists on the desktop, and what is wrong with it.
     ///

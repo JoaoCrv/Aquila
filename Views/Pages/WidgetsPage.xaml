@@ -14,7 +14,6 @@
       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
     <Page.Resources>
-        <helpers:IntensityBrushConverter x:Key="Intensity"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     </Page.Resources>
 
@@ -108,105 +107,5 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- Preview only (#23): each reusable piece running on this machine's own sensors, read from the
-             AquilaService that already exists. No pinning flow here; that belongs to #24/#31. -->
-        <TextBlock Style="{StaticResource SectionHeading}" Text="Pieces"/>
-        <TextBlock Style="{StaticResource SettingHint}" Margin="2,-4,0,8"
-                   Text="Each reusable widget piece, live, using this machine's own sensors."/>
-
-        <controls:ResponsiveCardPanel Gap="8" MinCardWidth="220">
-
-            <!-- Radial Gauge -->
-            <ui:Card Padding="12,10">
-                <Grid HorizontalAlignment="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="160"/>
-                        <RowDefinition Height="48"/>
-                    </Grid.RowDefinitions>
-                    <controls:LabeledTile Grid.Row="0" VerticalAlignment="Top"
-                        Title="Radial Gauge" Width="160" Height="160">
-                        <controls:LabeledTile.Tile>
-                            <controls:RadialGauge
-                                Sensor="{Binding ViewModel.Hardware.Cpus[0].Load.Total}"
-                                Accent="{DynamicResource Aquila.Scheme.Accent}"/>
-                        </controls:LabeledTile.Tile>
-                    </controls:LabeledTile>
-                    <TextBlock Grid.Row="1" VerticalAlignment="Top"
-                               Text="CPU Usage — one value on a scale" FontSize="11" Opacity="0.5"
-                               Margin="0,8,0,0" HorizontalAlignment="Center"
-                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="160"/>
-                </Grid>
-            </ui:Card>
-
-            <!-- Mini Sparkline -->
-            <ui:Card Padding="12,10">
-                <Grid HorizontalAlignment="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="160"/>
-                        <RowDefinition Height="48"/>
-                    </Grid.RowDefinitions>
-                    <controls:LabeledTile Grid.Row="0" VerticalAlignment="Top"
-                        Title="Mini Sparkline" Width="220" Height="160">
-                        <controls:LabeledTile.Tile>
-                            <controls:MiniSparkline
-                                Sensor="{Binding ViewModel.Hardware.Cpus[0].Temperature.Primary}"
-                                Accent="{DynamicResource Aquila.Scheme.Accent}"/>
-                        </controls:LabeledTile.Tile>
-                    </controls:LabeledTile>
-                    <TextBlock Grid.Row="1" VerticalAlignment="Top"
-                               Text="CPU Temperature — trend line + current value" FontSize="11" Opacity="0.5"
-                               Margin="0,8,0,0" HorizontalAlignment="Center"
-                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="220"/>
-                </Grid>
-            </ui:Card>
-
-            <!-- Sensor Meter -->
-            <ui:Card Padding="12,10">
-                <Grid HorizontalAlignment="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="160"/>
-                        <RowDefinition Height="48"/>
-                    </Grid.RowDefinitions>
-                    <controls:LabeledTile Grid.Row="0" VerticalAlignment="Top"
-                        Title="Sensor Meter" Width="220">
-                        <controls:LabeledTile.Tile>
-                            <controls:SensorMeter
-                                Label="CPU"
-                                Sensor="{Binding ViewModel.Hardware.Cpus[0].Power.Package}"
-                                Accent="{DynamicResource Aquila.Scheme.Accent}"
-                                ValueText="{Binding ViewModel.Hardware.Cpus[0].Power.Package.Value, StringFormat='{}{0:F0}W', FallbackValue='--'}"/>
-                        </controls:LabeledTile.Tile>
-                    </controls:LabeledTile>
-                    <TextBlock Grid.Row="1" VerticalAlignment="Top"
-                               Text="CPU Power — labeled bar with a value" FontSize="11" Opacity="0.5"
-                               Margin="0,8,0,0" HorizontalAlignment="Center"
-                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="220"/>
-                </Grid>
-            </ui:Card>
-
-            <!-- Stat Box -->
-            <ui:Card Padding="12,10">
-                <Grid HorizontalAlignment="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="160"/>
-                        <RowDefinition Height="48"/>
-                    </Grid.RowDefinitions>
-                    <controls:LabeledTile Grid.Row="0" VerticalAlignment="Top"
-                        Title="Stat Box" Width="120">
-                        <controls:LabeledTile.Tile>
-                            <controls:StatBox
-                                Label="Temp" Unit="°C"
-                                Value="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, StringFormat='{}{0:F0}', FallbackValue='--'}"
-                                Accent="{Binding ViewModel.Hardware.Gpus[0].Temperature.Primary.Value, Converter={StaticResource Intensity}, ConverterParameter=Gpu.Temperature}"/>
-                        </controls:LabeledTile.Tile>
-                    </controls:LabeledTile>
-                    <TextBlock Grid.Row="1" VerticalAlignment="Top"
-                               Text="GPU Temperature — big number, colour-coded" FontSize="11" Opacity="0.5"
-                               Margin="0,8,0,0" HorizontalAlignment="Center"
-                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="120"/>
-                </Grid>
-            </ui:Card>
-
-        </controls:ResponsiveCardPanel>
     </StackPanel>
 </Page>

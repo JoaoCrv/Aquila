@@ -300,6 +300,51 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
                 new RampPreview(r.Key, r.Value.Normal, r.Value.Elevated, r.Value.Alert, r.Value.Critical))];
 
     /// <summary>
+    /// What the type picker's previews read: the CPU's two temperatures.
+    ///
+    /// One sample for every kind, not one chosen per kind — each takes as many as it can draw, so a gauge
+    /// shows the first and the chart draws both, and a new kind needs nothing added here. The preview's job
+    /// is to show the KIND; the reading this widget actually has is right below it, in Data.
+    ///
+    /// Only two, because that is what the model holds: CpuTemperatureNode has a Primary and a Secondary and
+    /// no per-core list, unlike load. So Bars previews as two bars rather than a row — honest, if a smaller
+    /// picture of what it is for, and padding the row with loads would put °C and % side by side in one
+    /// preview and teach the wrong thing about it.
+    ///
+    /// Temperature rather than load, and that was learned by looking: at rest a core's load sits at two or
+    /// three percent, so every dial came out empty, every bar flat and every sparkline pressed to the floor.
+    /// Correct, and demonstrating nothing. A temperature sits somewhere visible and wanders.
+    ///
+    /// Load is the fallback, not temperature's equal: without administrator rights there ARE no
+    /// temperatures, and a picker of blank previews would greet exactly the user who is already seeing less
+    /// than everyone else. Readings that were never filled are left out, so no bar in the sample reads "--".
+    /// </summary>
+    [ObservableProperty] private IReadOnlyList<SensorNode> _previewSensors = [];
+
+    /// <summary>The previews wear the chosen preset's primary colour at rest, so the picker looks like the
+    /// widget will rather than like a catalogue in someone else's colours.</summary>
+    public Brush? PreviewAccent =>
+        RampPreviews.FirstOrDefault() is { } first
+        && ColorConverter.ConvertFromString(first.Normal) is Color colour
+            ? new SolidColorBrush(colour)
+            : null;
+
+    /// <summary>
+    /// PreviewAccent is derived from RampPreviews and follows it here, in one place.
+    ///
+    /// RampPreviews is announced from six different edits — a ramp added, removed, renamed or recoloured,
+    /// the preset swapped, a session read. Echoing the second name at each of the six is how the seventh
+    /// forgets to, and the previews quietly keep last week's colour.
+    /// </summary>
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        if (e.PropertyName == nameof(RampPreviews))
+            base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(PreviewAccent)));
+    }
+
+    /// <summary>
     /// A state to draw every widget in, regardless of what its reading actually says.
     ///
     /// Null is the normal case — the readings speak for themselves. Set, it is the only practical way to
@@ -1232,6 +1277,18 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
                         component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry));
 
         ApplyFilter();
+
+        // Set once, on the first Load — every kind in the picker rebuilds its preview when this is assigned,
+        // and the hardware tree does not grow cores between one widget and the next.
+        if (PreviewSensors.Count == 0 && hardware.Cpus.Count > 0)
+        {
+            var cpu = hardware.Cpus[0];
+            SensorNode[] temperatures = [cpu.Temperature.Primary, cpu.Temperature.Secondary];
+
+            PreviewSensors = cpu.Temperature.Primary.Value is not null
+                ? [.. temperatures.Where(s => s.Value is not null)]
+                : [.. cpu.Load.Cores.Where(s => s.Value is not null)];
+        }
 
         _target = target;
 

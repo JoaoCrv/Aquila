@@ -159,6 +159,25 @@
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel>
+                                                <!-- The kind drawing itself, live, before you choose it. Built by the
+                                                     catalog — the same factory the desktop uses — so it cannot fall
+                                                     out of date the way the hand-written gallery on the Widgets page
+                                                     did, four kinds behind a catalog of nine.
+
+                                                     A fixed-height box with the piece scaled into it at its own
+                                                     proportions: a meter stays a strip and a gauge stays round,
+                                                     which is most of what tells them apart at a glance. -->
+                                                <Border Height="56" Margin="0,0,0,8" CornerRadius="4" Padding="6"
+                                                        Background="{DynamicResource Aquila.Window.Scrim}">
+                                                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                                                        <controls:KindPreview
+                                                            Kind="{Binding}"
+                                                            Sensors="{Binding DataContext.ViewModel.PreviewSensors,
+                                                                      RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            Accent="{Binding DataContext.ViewModel.PreviewAccent,
+                                                                     RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                    </Viewbox>
+                                                </Border>
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                                 <TextBlock Text="{Binding Description}" FontSize="11" Opacity="0.6"
                                                            TextWrapping="Wrap" Margin="0,2,0,0"/>
