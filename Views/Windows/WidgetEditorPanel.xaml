@@ -222,22 +222,8 @@
                         <StackPanel Margin="0,14,0,0">
 
                             <TextBlock Text="Sensor" Style="{StaticResource FieldLabel}"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <ui:TextBox Grid.Column="0" PlaceholderText="Search sensors…"
-                                            Text="{Binding ViewModel.SensorFilter, UpdateSourceTrigger=PropertyChanged}"/>
-                                <!-- Picking and pressing are deliberately separate. A click that added straight
-                                     from the list would be far too easy to do by accident while scrolling two
-                                     hundred sensors. The label says which of the two things the press does. -->
-                                <ui:Button Grid.Column="2" Appearance="Primary"
-                                           Content="{Binding ViewModel.AddLabel}"
-                                           IsEnabled="{Binding ViewModel.CanAdd}"
-                                           Command="{Binding ViewModel.AddSeriesCommand}"/>
-                            </Grid>
+                            <ui:TextBox PlaceholderText="Search sensors…"
+                                        Text="{Binding ViewModel.SensorFilter, UpdateSourceTrigger=PropertyChanged}"/>
                             <!-- A height of its own, and a scrollbar of its own. Left to measure freely
                                  inside the panel's scroller it would grow to two hundred rows and push
                                  everything below it off the bottom. -->
@@ -277,8 +263,21 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
 
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,4"
+                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,10,0,6"
                                        Text="{Binding ViewModel.SeriesHint}"/>
+
+                            <!-- BETWEEN the two lists, because that is what it does: it takes the sensor picked
+                                 in the list above and puts it in the list below. Beside the search box it read
+                                 as part of searching, and sat as far as it could from the rows it changes.
+
+                                 Picking and pressing are still deliberately separate. A click that added straight
+                                 from the list would be far too easy to do by accident while scrolling two
+                                 hundred sensors. The label says which of the two things the press does —
+                                 "instead" is the whole of the difference between adding and replacing. -->
+                            <ui:Button Appearance="Primary" HorizontalAlignment="Stretch" Margin="0,0,0,14"
+                                       Content="{Binding ViewModel.AddLabel}"
+                                       IsEnabled="{Binding ViewModel.CanAdd}"
+                                       Command="{Binding ViewModel.AddSeriesCommand}"/>
 
                             <!-- What the widget draws, in the order it was added. Each row names a RAMP from
                                  the preset, not a colour: which colour it shows depends on how the reading is

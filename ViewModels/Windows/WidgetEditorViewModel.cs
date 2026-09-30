@@ -1019,10 +1019,18 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             ? "This widget draws one reading. Pick another sensor to swap it."
             : Chosen.Count >= SelectedKind.MaxSeries
                 ? $"This widget draws {SelectedKind.MaxSeries} readings — that is all of them."
-                : $"Pick a sensor above and add it. Up to {SelectedKind.MaxSeries}.";
+                : $"Pick a sensor above. Up to {SelectedKind.MaxSeries}.";
 
-    /// <summary>The button says what pressing it will do, so the two behaviours are never a surprise.</summary>
-    public string AddLabel => ReplacesSeries ? "Replace" : "Add";
+    /// <summary>
+    /// The button says what pressing it will do, so the two behaviours are never a surprise.
+    ///
+    /// "Use this sensor", naming the thing the press acts on — the one picked in the list above — rather than
+    /// a bare "Add", which left the reader to work out what was being added and to where. The difference
+    /// between adding and replacing is carried by one word, "instead", which is only offered when there is
+    /// really something to replace (see ReplacesSeries): a one-reading widget that has none yet is simply
+    /// being given its first.
+    /// </summary>
+    public string AddLabel => ReplacesSeries ? "Use this sensor instead" : "Use this sensor";
 
     public bool CanAdd => SelectedSensor is not null
                           && SelectedKind is not null
