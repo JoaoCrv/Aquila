@@ -261,10 +261,35 @@
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,14,0,4"
                                        Text="{Binding ViewModel.SeriesHint}"/>
 
-                            <!-- What the widget draws, in the order it was added. Each row names a RAMP
-                                 from the preset, not a colour: which colour a ramp shows depends on how the
-                                 reading is doing, so there is nothing fixed to put in a swatch. Two readings
-                                 on one ramp are one reading, which is why they start on different ones. -->
+                            <!-- What the widget draws, in the order it was added. Each row names a RAMP from
+                                 the preset, not a colour: which colour it shows depends on how the reading is
+                                 doing. Two readings on one ramp are one reading, which is why they start on
+                                 different ones.
+
+                                 "Drawn in" rather than "Colour", and that is not fussiness: the format calls
+                                 these ramps precisely so the word colour stays free for the fixed kind — a
+                                 theme's, a caption's, value.color. A phrase names the RELATIONSHIP and
+                                 borrows no noun that already has an owner. Scheme and Palette were out for
+                                 the same reason: Aquila.Scheme.* and the theme palette are both taken. -->
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="4"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Reading"/>
+                                <TextBlock Grid.Column="2" Style="{StaticResource FieldLabel}" Text="Drawn in"/>
+
+                                <!-- Reserves the width of the rows' remove button so the labels line up with
+                                     what they label. The token goes on an element's Width, a Double, and NOT
+                                     on the ColumnDefinition's, which is a GridLength: a DynamicResource is not
+                                     type-checked at build, so that version compiled cleanly and threw the
+                                     first time the panel was opened. -->
+                                <Border Grid.Column="4" Width="{DynamicResource Aquila.Size.Control}"/>
+                            </Grid>
+
                             <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -279,10 +304,40 @@
                                             <TextBlock Grid.Column="0" VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
                                                        Text="{Binding Sensor.Display}"/>
+                                            <!-- The ramp is SHOWN, not named. A combo reading "primary" beside a
+                                                 sensor is a word where the thing should be: four swatches say
+                                                 "this changes with the reading" without anybody having to be
+                                                 told, and they teach the word instead of replacing it.
+
+                                                 The strip is deliberately the one the preset card already
+                                                 draws — the same four stops in the same order, so a ramp looks
+                                                 like itself wherever you meet it.
+
+                                                 Bound by VALUE and not by item: the list is rebuilt whenever a
+                                                 ramp is added, renamed or recoloured, and SelectedItem holding
+                                                 an object from the previous list would come back null and
+                                                 write that over the series. -->
                                             <ComboBox Grid.Column="2"
-                                                      ItemsSource="{Binding DataContext.ViewModel.RampNames,
+                                                      ItemsSource="{Binding DataContext.ViewModel.RampPreviews,
                                                                    RelativeSource={RelativeSource AncestorType=Window}}"
-                                                      SelectedItem="{Binding Ramp}"/>
+                                                      SelectedValuePath="Name"
+                                                      SelectedValue="{Binding Ramp}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <UniformGrid Rows="1" Width="34" Height="10"
+                                                                         VerticalAlignment="Center" Margin="0,0,8,0">
+                                                                <Border Background="{Binding Normal}"/>
+                                                                <Border Background="{Binding Elevated}"/>
+                                                                <Border Background="{Binding Alert}"/>
+                                                                <Border Background="{Binding Critical}"/>
+                                                            </UniformGrid>
+                                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
                                             <ui:Button Style="{StaticResource IconButton}" Grid.Column="4"
                                                        Icon="{ui:SymbolIcon Dismiss24}"
                                                        ToolTip="Remove this reading"
