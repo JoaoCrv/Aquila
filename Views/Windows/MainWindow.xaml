@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:helpers="clr-namespace:Aquila.Helpers"
+    xmlns:controls="clr-namespace:Aquila.Controls"
     Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
     Width="1600"
     Height="900"
@@ -352,28 +353,8 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border MinWidth="104" Margin="3,0" Padding="10,5" CornerRadius="6"
-                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                                    BorderThickness="1"
-                                    Visibility="{Binding HasValue, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <StackPanel>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{Binding Label}"
-                                                   FontSize="9" FontWeight="Bold" Opacity="0.45"
-                                                   VerticalAlignment="Center" Margin="0,0,10,0" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Text}"
-                                                   Style="{StaticResource MonoValue}" FontSize="11.5" />
-                                    </Grid>
-                                    <ProgressBar Style="{StaticResource ThinBar}" Height="2" Margin="0,4,0,0"
-                                                 Value="{Binding Percent}"
-                                                 Foreground="{Binding Level, Converter={StaticResource Intensity}, ConverterParameter=Pressure}" />
-                                </StackPanel>
-                            </Border>
+                            <!-- Shared with the tray flyout; see Controls/VitalPill. -->
+                            <controls:VitalPill Margin="3,0"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
         </ItemsControl>

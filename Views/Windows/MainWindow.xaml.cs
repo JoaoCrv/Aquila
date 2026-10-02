@@ -19,8 +19,8 @@ namespace Aquila.Views.Windows
         private Action? _balloonClick;
 
         private System.Drawing.Icon _baseIcon = System.Drawing.SystemIcons.Application;
-        private System.Windows.Forms.ToolStripMenuItem? _updateItem;
-        private System.Windows.Forms.ToolStripSeparator? _updateSeparator;
+        private TrayMenu? _trayMenu;
+        private TrayFlyout? _trayFlyout;
         private System.Drawing.Icon? _badgedIcon;
 
         // Tracks normal-state bounds so we always have a valid non-maximized size to persist
@@ -89,40 +89,24 @@ namespace Aquila.Views.Windows
 
             _baseIcon = icon; // kept so the badge can be added and removed without re-extracting
 
-            var menu = new System.Windows.Forms.ContextMenuStrip();
-            menu.Items.Add("Open Aquila", null, (_, _) => TrayOpen());
-
-            // The tray is where someone running Aquila hidden actually lives, and arranging widgets is the
-            // one thing they would otherwise have to open the whole window to reach — only to have it
-            // minimise itself again a second later, because you cannot edit a desktop you cannot see.
-            menu.Items.Add("Edit widgets on the desktop", null, (_, _) => TrayEditWidgets());
-
-            _updateItem = new System.Windows.Forms.ToolStripMenuItem(
-                "Update available — install…", null, (_, _) => TrayInstallUpdate())
-            {
-                // Hidden until there is one. An entry that is present but does nothing teaches people to
-                // ignore the menu, and the badge on the icon already says when to look.
-                Visible = false,
-            };
-
-            // The rule above it travels with it. Two separators with nothing between them is a gap
-            // that reads as a missing entry, which is worse than no rule at all.
-            _updateSeparator = new System.Windows.Forms.ToolStripSeparator { Visible = false };
-
-            menu.Items.Add(_updateSeparator);
-            menu.Items.Add(_updateItem);
-            menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-            menu.Items.Add("Exit", null, (_, _) => TrayExit());
+            // A WPF menu rather than the WinForms ContextMenuStrip it replaced, so it wears the theme — see
+            // TrayMenu. No ContextMenuStrip is attached to the icon, so a right click does nothing until the
+            // handler below opens ours.
+            _trayMenu = new TrayMenu(TrayOpen, TrayEditWidgets, TrayInstallUpdate, TrayExit);
 
             var tray = new System.Windows.Forms.NotifyIcon
             {
                 Icon    = icon,
                 Text    = "Aquila",
                 Visible = true,
-                ContextMenuStrip = menu,
             };
 
-            tray.MouseClick  += (_, e) => { if (e.Button == System.Windows.Forms.MouseButtons.Left) TrayClick(); };
+            // Left click opens the flyout and right click the menu — the Windows 11 arrangement, where the
+            // left button gives an app's own panel and the right one the plain list every icon has.
+            tray.MouseClick  += (_, e) => { if (e.Button == System.Windows.Forms.MouseButtons.Left) Flyout().Toggle(); };
+
+            // On the button's RELEASE, which is when Windows opens every other context menu.
+            tray.MouseUp     += (_, e) => { if (e.Button == System.Windows.Forms.MouseButtons.Right) _trayMenu.Open(); };
             tray.DoubleClick += (_, _) => TrayOpen();
             // Clicking a notification brings Aquila up — the least surprising outcome, and the only way
             // back for someone running it hidden in the tray.
@@ -247,19 +231,23 @@ namespace Aquila.Views.Windows
         }
 
         /// <summary>
-        /// Left click on the tray icon. Hides only when the window is already the one in front:
-        /// a visible-but-buried window is what sends someone to the tray in the first place, so
-        /// answering that click by dismissing it is the opposite of what was asked for.
+        /// The tray flyout, built on first use and kept.
         ///
-        /// No longer restricted to dashboard mode. It previously did nothing at all in normal mode,
-        /// which left a single click on a tray icon as dead space.
+        /// A left click used to show or hide this window directly. It opens the flyout now, which carries
+        /// "Open Aquila" among the rest — the window is one press further away, and in exchange the click
+        /// answers the question someone running Aquila in the tray actually has, which is how the machine is
+        /// doing, without a whole window to open and put away again. Double click still opens the window.
         /// </summary>
-        private void TrayClick()
+        private TrayFlyout Flyout()
         {
-            if (!IsVisible || WindowState == WindowState.Minimized) { TrayOpen(); return; }
+            if (_trayFlyout is null)
+            {
+                _trayFlyout = new TrayFlyout(ViewModel.TitleBar, ViewModel.Notices,
+                    TrayOpen, TrayEditWidgets, TrayInstallUpdate, TrayExit);
+                _trayFlyout.ShowUpdate(_updateService.IsUpdateAvailable);
+            }
 
-            if (IsActive) { SaveWindowBounds(); Hide(); }
-            else { Activate(); WindowState = WindowState.Normal; }
+            return _trayFlyout;
         }
 
         /// <summary>
@@ -291,8 +279,8 @@ namespace Aquila.Views.Windows
                 _trayIcon.Text = available ? "Aquila — update available" : "Aquila";
                 _trayIcon.Icon = available ? (_badgedIcon ??= BuildBadgedIcon(_baseIcon)) : _baseIcon;
 
-                if (_updateItem is not null) _updateItem.Visible = available;
-                if (_updateSeparator is not null) _updateSeparator.Visible = available;
+                _trayMenu?.ShowUpdate(available);
+                _trayFlyout?.ShowUpdate(available);
             });
         }
 

@@ -1,0 +1,39 @@
+<UserControl x:Class="Aquila.Controls.VitalPill"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:helpers="clr-namespace:Aquila.Helpers">
+
+    <!-- One vital: a label, its number, and a thin bar under them. Bound to a VitalItem.
+
+         Lifted out of MainWindow, where it was written inline, the moment a second surface needed it — the
+         tray flyout. Copied, it would have been the "Pieces" gallery again: two hand-kept versions of one
+         thing, one of which stops being updated. Length from the raw reading so the bar and the number
+         agree, colour from the normalised one so it means the same on a load as on a temperature. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <helpers:IntensityBrushConverter x:Key="Intensity"/>
+    </UserControl.Resources>
+
+    <Border MinWidth="104" Padding="10,5" CornerRadius="6"
+            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            Visibility="{Binding HasValue, Converter={StaticResource BoolToVisibility}}">
+        <StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Label}"
+                           FontSize="9" FontWeight="Bold" Opacity="0.45"
+                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="1" Text="{Binding Text}"
+                           Style="{StaticResource MonoValue}" FontSize="11.5"/>
+            </Grid>
+            <ProgressBar Style="{StaticResource ThinBar}" Height="2" Margin="0,4,0,0"
+                         Value="{Binding Percent}"
+                         Foreground="{Binding Level, Converter={StaticResource Intensity}, ConverterParameter=Pressure}"/>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -48,6 +48,33 @@ public partial class NoticeCenterViewModel : ObservableObject
     /// pressed.</summary>
     public bool HasAnything => Items.Count > 0;
 
+    /// <summary>
+    /// The panel in one line, for a surface with no room for the panel — the tray flyout.
+    ///
+    /// The worst thing currently TRUE if there is one, because that is what someone glancing at the tray
+    /// most needs; otherwise how many events are waiting; otherwise that there is nothing. The same order
+    /// the panel reads in, cut to its first line.
+    /// </summary>
+    public string Headline
+    {
+        get
+        {
+            var worst = Items
+                .Where(n => n.Shape is NoticeShape.Condition)
+                .OrderByDescending(n => n.Kind)
+                .FirstOrDefault();
+
+            if (worst is not null) return worst.Title;
+
+            return Unseen switch
+            {
+                0 => "Nothing to report",
+                1 => "1 new notice",
+                var n => $"{n} new notices",
+            };
+        }
+    }
+
     public string Tooltip => Items.Count switch
     {
         0 => "Nothing to report",
@@ -96,6 +123,7 @@ public partial class NoticeCenterViewModel : ObservableObject
             OnPropertyChanged(nameof(UnseenLabel));
             OnPropertyChanged(nameof(Indicator));
             OnPropertyChanged(nameof(HasAnything));
+            OnPropertyChanged(nameof(Headline));
             OnPropertyChanged(nameof(Tooltip));
             OnPropertyChanged(nameof(CanClear));
         });
