@@ -341,7 +341,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         base.OnPropertyChanged(e);
 
         if (e.PropertyName == nameof(RampPreviews))
+        {
             base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(PreviewAccent)));
+
+            // What each reading is drawn in follows the ramps too — a preset switched under it, a ramp
+            // renamed out from under its name — while nothing about the reading itself changed. After the
+            // list's own announcement, so the picker already holds the new list when it is asked to select.
+            foreach (var row in Chosen) row.RefreshShown();
+        }
     }
 
     /// <summary>
@@ -544,7 +551,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     {
         if (Chosen.Count < 2) return;
 
-        var ramp = Chosen[0].Ramp;
+        // What the first reading is SHOWN in, not what it stored: the button is pressed by someone looking
+        // at the picker, and "the ramp of the first one" means the one they can see.
+        var ramp = Chosen[0].Shown;
         foreach (var row in Chosen) row.SetRampQuietly(ramp);
 
         Apply();
@@ -1045,7 +1054,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         // spends a frame with nothing to draw.
         if (ReplacesSeries) Chosen.Clear();
 
-        Chosen.Add(new SeriesRow(SelectedSensor, DefaultRamp(Chosen.Count), OnSeriesEdited));
+        Chosen.Add(new SeriesRow(SelectedSensor, DefaultRamp(Chosen.Count), OnSeriesEdited, ShownItem));
 
         // Offered, not imposed: an untitled widget takes the sensor's name the first time it is given one,
         // and keeps whatever it has after that — including nothing, if that is what the user chose.
@@ -1074,6 +1083,31 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// </summary>
     private string DefaultRamp(int index) =>
         index < RampNames.Count ? RampNames[index] : Ramp.Primary;
+
+    /// <summary>
+    /// The ramp a row is actually drawn in under the chosen preset — the renderer's own rule, repeated here
+    /// so the picker shows what the desktop shows. DesktopWidgetService resolves a series as
+    /// RampFor(empty ? DefaultRamp(index) : name), and RampFor answers primary for a name the preset does
+    /// not have. If that rule changes, this has to change with it.
+    ///
+    /// Returned in the preset's own spelling: ramp names match case-insensitively, but the picker selects
+    /// by plain equality, and "Primary" would select nothing in a list holding "primary".
+    /// </summary>
+    private string ShownRamp(SeriesRow row)
+    {
+        if (string.IsNullOrEmpty(row.Ramp)) return DefaultRamp(Math.Max(0, Chosen.IndexOf(row)));
+
+        return RampNames.FirstOrDefault(n => string.Equals(n, row.Ramp, StringComparison.OrdinalIgnoreCase))
+               ?? Ramp.Primary;
+    }
+
+    /// <summary>The entry in the picker's own list for what a row is drawn in. Looked up by name in a list
+    /// built afresh, which is fine: the picker matches records by value, and this one is equal to its own.</summary>
+    private RampPreview? ShownItem(SeriesRow row)
+    {
+        var name = ShownRamp(row);
+        return RampPreviews.FirstOrDefault(p => p.Name == name);
+    }
 
     /// <summary>The ramps the chosen preset declares, in order.</summary>
     public IReadOnlyList<string> RampNames =>
@@ -1325,9 +1359,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             var sensor = _allSensors.FirstOrDefault(s => s.Identifier == series.SensorIdentifier);
             if (sensor is null) continue;   // the machine no longer reports it
 
-            Chosen.Add(new SeriesRow(sensor,
-                RampNames.Contains(series.Ramp) ? series.Ramp : DefaultRamp(Chosen.Count),
-                OnSeriesEdited));
+            // The stored name as it is, even when this preset lacks it. Replacing it with a default here
+            // was a second door to the same loss: opening the widget in the editor quietly rewrote its
+            // choice, and the next save kept the rewrite. What the picker SHOWS is ShownRamp's business.
+            Chosen.Add(new SeriesRow(sensor, series.Ramp, OnSeriesEdited, ShownItem));
         }
 
         // Pinned from the Explorer: the sensor is already decided, so add it rather than making the user
@@ -1336,7 +1371,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         {
             var pinned = _allSensors.FirstOrDefault(s => s.Identifier == presetSensorIdentifier);
             if (pinned is not null)
-                Chosen.Add(new SeriesRow(pinned, DefaultRamp(0), OnSeriesEdited));
+                Chosen.Add(new SeriesRow(pinned, DefaultRamp(0), OnSeriesEdited, ShownItem));
         }
 
         // Cleared, or the list keeps the row highlighted from the widget before — and since this is what
@@ -1409,11 +1444,14 @@ public partial class SeriesRow : ObservableObject
         _bulk = false;
     }
 
-    public SeriesRow(SensorOption sensor, string ramp, Action changed)
+    private readonly Func<SeriesRow, RampPreview?> _shown;
+
+    public SeriesRow(SensorOption sensor, string ramp, Action changed, Func<SeriesRow, RampPreview?> shown)
     {
         Sensor = sensor;
         _ramp = ramp;
         _changed = changed;
+        _shown = shown;
     }
 
     public SensorOption Sensor { get; }
@@ -1422,10 +1460,79 @@ public partial class SeriesRow : ObservableObject
     // ramp left every existing row still offering the names that existed when it was built. The row's
     // picker reads the view model's list directly instead.
 
-    [ObservableProperty] private string _ramp;
+    private string _ramp;
 
-    partial void OnRampChanged(string value)
+    /// <summary>
+    /// The ramp this reading CHOSE, by name — what is stored on the widget.
+    ///
+    /// Kept even under a preset that has no ramp of that name, because a preset must be safe to try on:
+    /// switching to it and back must not cost the reading its choice. What the picker shows is
+    /// <see cref="ShownItem"/>, which is a different question.
+    /// </summary>
+    public string Ramp
     {
-        if (!_bulk) _changed();
+        get => _ramp;
+        set
+        {
+            if (value is null) return;
+
+            if (SetProperty(ref _ramp, value))
+            {
+                RefreshShown();
+                if (!_bulk) _changed();
+            }
+        }
+    }
+
+    /// <summary>
+    /// The ramp this reading is ACTUALLY drawn in under the preset now chosen — what the picker shows.
+    ///
+    /// Separate from <see cref="Ramp"/> because "what was chosen" and "what is on the screen" differ exactly
+    /// when the chosen name is missing from this preset. Bound to the stored name, the picker came up EMPTY
+    /// there while the widget beside it was plainly drawing in the primary. It shows the truth now, and the
+    /// choice underneath is still there for the next preset that has it. Setting it is the user picking a
+    /// ramp, which is a real choice and is stored.
+    ///
+    /// AN ITEM, NOT A NAME — and that is what finally made the picker follow a preset switch, after two
+    /// fixes that did not. Bound by name, the picker's value was "primary" before the switch and "primary"
+    /// after it. Swapping its list drops the selection, but its SelectedValue is still "primary", so when
+    /// the binding said "primary" again WPF saw no change and never looked the item up in the new list: a
+    /// value with nothing selected, an empty box. Found by logging every read and write (the binding WAS
+    /// told "primary", three times) and then reproduced in isolation — with SelectedValue="primary" and
+    /// SelectedItem=null side by side. Bound to the record, the value does change: Ember's primary and Sky's
+    /// are different records, because their colours differ, so the picker looks it up again.
+    ///
+    /// REFUSES NULL. The list swap makes the picker push null down this two-way binding; nothing in the
+    /// code assigns null, so a null can only be that lost selection. It is ignored, and the item announced
+    /// again once the new list has settled. Without this the null reached the widget and the reading's
+    /// choice was wiped on every preset switch.
+    /// </summary>
+    public RampPreview? ShownItem
+    {
+        get => _shown(this);
+        set
+        {
+            if (value is null)
+            {
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                    () => OnPropertyChanged(nameof(ShownItem)),
+                    System.Windows.Threading.DispatcherPriority.Background);
+                return;
+            }
+
+            Ramp = value.Name;
+        }
+    }
+
+    /// <summary>The shown ramp's name — what "Same ramp for all" copies, since it is pressed by someone
+    /// looking at the picker.</summary>
+    public string Shown => ShownItem?.Name ?? _ramp;
+
+    /// <summary>Called when the preset or its ramps change, which changes what this row is drawn in
+    /// without anything about the row itself having changed.</summary>
+    public void RefreshShown()
+    {
+        OnPropertyChanged(nameof(ShownItem));
+        OnPropertyChanged(nameof(Shown));
     }
 }

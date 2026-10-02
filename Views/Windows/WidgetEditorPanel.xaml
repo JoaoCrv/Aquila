@@ -279,84 +279,23 @@
                                        IsEnabled="{Binding ViewModel.CanAdd}"
                                        Command="{Binding ViewModel.AddSeriesCommand}"/>
 
-                            <!-- What the widget draws, in the order it was added. Each row names a RAMP from
-                                 the preset, not a colour: which colour it shows depends on how the reading is
-                                 doing. Two readings on one ramp are one reading, which is why they start on
-                                 different ones.
-
-                                 "Drawn in" rather than "Colour", and that is not fussiness: the format calls
-                                 these ramps precisely so the word colour stays free for the fixed kind — a
-                                 theme's, a caption's, value.color. A phrase names the RELATIONSHIP and
-                                 borrows no noun that already has an owner. Scheme and Palette were out for
-                                 the same reason: Aquila.Scheme.* and the theme palette are both taken. -->
-                            <Grid Margin="0,0,0,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="4"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Reading"/>
-                                <TextBlock Grid.Column="2" Style="{StaticResource FieldLabel}" Text="Drawn in"/>
-
-                                <!-- Reserves the width of the rows' remove button so the labels line up with
-                                     what they label. The token goes on an element's Width, a Double, and NOT
-                                     on the ColumnDefinition's, which is a GridLength: a DynamicResource is not
-                                     type-checked at build, so that version compiled cleanly and threw the
-                                     first time the panel was opened. -->
-                                <Border Grid.Column="4" Width="{DynamicResource Aquila.Size.Control}"/>
-                            </Grid>
-
+                            <!-- What the widget draws, in the order it was added — and the way to take one out.
+                                 Nothing here about how a reading LOOKS: which ramp draws each one moved to the
+                                 Preset card, beside the preset whose ramps it chooses from. This card says what
+                                 is on the screen; that one says how it is drawn. -->
                             <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="8"/>
-                                                <ColumnDefinition Width="120"/>
                                                 <ColumnDefinition Width="4"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
                                                        Text="{Binding Sensor.Display}"/>
-                                            <!-- The ramp is SHOWN, not named. A combo reading "primary" beside a
-                                                 sensor is a word where the thing should be: four swatches say
-                                                 "this changes with the reading" without anybody having to be
-                                                 told, and they teach the word instead of replacing it.
-
-                                                 The strip is deliberately the one the preset card already
-                                                 draws — the same four stops in the same order, so a ramp looks
-                                                 like itself wherever you meet it.
-
-                                                 Bound by VALUE and not by item: the list is rebuilt whenever a
-                                                 ramp is added, renamed or recoloured, and SelectedItem holding
-                                                 an object from the previous list would come back null and
-                                                 write that over the series. -->
-                                            <ComboBox Grid.Column="2"
-                                                      ItemsSource="{Binding DataContext.ViewModel.RampPreviews,
-                                                                   RelativeSource={RelativeSource AncestorType=Window}}"
-                                                      SelectedValuePath="Name"
-                                                      SelectedValue="{Binding Ramp}">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <UniformGrid Rows="1" Width="34" Height="10"
-                                                                         VerticalAlignment="Center" Margin="0,0,8,0">
-                                                                <Border Background="{Binding Normal}"/>
-                                                                <Border Background="{Binding Elevated}"/>
-                                                                <Border Background="{Binding Alert}"/>
-                                                                <Border Background="{Binding Critical}"/>
-                                                            </UniformGrid>
-                                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                                                                       TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                            <ui:Button Style="{StaticResource IconButton}" Grid.Column="4"
+                                            <ui:Button Style="{StaticResource IconButton}" Grid.Column="2"
                                                        Icon="{ui:SymbolIcon Dismiss24}"
                                                        ToolTip="Remove this reading"
                                                        Command="{Binding DataContext.ViewModel.RemoveSeriesCommand,
@@ -366,14 +305,6 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-
-                            <ui:Button Margin="0,6,0,0" HorizontalAlignment="Left"
-                                       Appearance="Secondary"
-                                       Icon="{ui:SymbolIcon Drop24}"
-                                       Content="Same ramp for all"
-                                       ToolTip="Gives every reading the colour of the first one."
-                                       Visibility="{Binding ViewModel.CanMatchRamps, Converter={StaticResource BoolToVisibility}}"
-                                       Command="{Binding ViewModel.MatchRampsCommand}"/>
 
                             <!-- What is shown of the reading, beside the readings themselves. Not in the
                                  preset: a preset has to be safe to try on, and these two change what is on
@@ -558,6 +489,109 @@
                                     </DockPanel>
                                 </StackPanel>
                             </Border>
+
+                            <!-- Which ramp draws each reading of THIS widget — here, beside the preset its options
+                                 come from, rather than in Data, two cards away from the ramps it names. Choosing a
+                                 ramp is a question about how a reading LOOKS, and with the cards working as an
+                                 accordion the two halves of that question could never be open at once.
+
+                                 In the first view and NEVER in the edit view, because of where it is stored: on
+                                 the widget's own reading (WidgetSeries.Ramp), not in the preset. The edit view
+                                 changes the preset every widget wearing it shares; this changes one widget. And it
+                                 is why trying another preset keeps these choices — they travel by name, and a
+                                 name the new preset does not have falls back to its primary.
+
+                                 Each row names a RAMP, not a colour: which colour it shows depends on how the
+                                 reading is doing. Two readings on one ramp are one reading, which is why they start
+                                 on different ones.
+
+                                 "Drawn in" rather than "Colour", and that is not fussiness: the format calls these
+                                 ramps precisely so the word colour stays free for the fixed kind — a theme's, a
+                                 caption's, value.color. A phrase names the RELATIONSHIP and borrows no noun that
+                                 already has an owner. Scheme and Palette were out for the same reason:
+                                 Aquila.Scheme.* and the theme palette are both taken.
+
+                                 Hidden for a widget with no readings — a clock or a backdrop has nothing to draw
+                                 in anything. -->
+                            <StackPanel Margin="0,16,0,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ViewModel.Chosen.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="140"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Reading"/>
+                                    <TextBlock Grid.Column="2" Style="{StaticResource FieldLabel}" Text="Drawn in"/>
+                                </Grid>
+
+                                <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="140"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding Sensor.Display}"/>
+                                                <!-- The ramp is SHOWN, not named: four swatches say "this
+                                                     changes with the reading" without anybody being told, and
+                                                     teach the word instead of replacing it. The same strip the
+                                                     summary above draws, so a ramp looks like itself wherever
+                                                     you meet it.
+
+                                                     Bound to ShownItem — the ramp the reading is actually drawn in
+                                                     under this preset, as an ITEM of the list. Two wrong bindings
+                                                     came before it, and SeriesRow.ShownItem tells both stories:
+                                                     by the stored name it came up empty when the preset lacked the
+                                                     name, and by any name at all it came up empty after every switch,
+                                                     because "primary" before and "primary" after looked like no
+                                                     change to WPF and it never re-selected in the new list. -->
+                                                <ComboBox Grid.Column="2"
+                                                          ItemsSource="{Binding DataContext.ViewModel.RampPreviews,
+                                                                       RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          SelectedItem="{Binding ShownItem}">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <UniformGrid Rows="1" Width="34" Height="10"
+                                                                             VerticalAlignment="Center" Margin="0,0,8,0">
+                                                                    <Border Background="{Binding Normal}"/>
+                                                                    <Border Background="{Binding Elevated}"/>
+                                                                    <Border Background="{Binding Alert}"/>
+                                                                    <Border Background="{Binding Critical}"/>
+                                                                </UniformGrid>
+                                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                                           TextTrimming="CharacterEllipsis"/>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <ui:Button Margin="0,6,0,0" HorizontalAlignment="Left"
+                                           Appearance="Secondary"
+                                           Icon="{ui:SymbolIcon Drop24}"
+                                           Content="Same ramp for all"
+                                           ToolTip="Gives every reading the ramp of the first one."
+                                           Visibility="{Binding ViewModel.CanMatchRamps, Converter={StaticResource BoolToVisibility}}"
+                                           Command="{Binding ViewModel.MatchRampsCommand}"/>
+                            </StackPanel>
 
                         </StackPanel>
                     </ui:CardExpander>
