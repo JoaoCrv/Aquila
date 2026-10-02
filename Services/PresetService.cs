@@ -84,6 +84,7 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
     {
         _presets.Clear();
         _unreadable.Clear();
+        _newer.Clear();
 
         foreach (var preset in ReadEmbedded()) Register(preset);
         foreach (var preset in ReadUserFolder()) Register(preset);
@@ -96,6 +97,37 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
 
         Sort();
         ReportUnreadable();
+    }
+
+    /// <summary>Files in the presets folder written by a newer Aquila than this one.</summary>
+    private readonly List<string> _newer = [];
+
+    /// <summary>
+    /// Says which presets in the folder were made by a newer Aquila.
+    ///
+    /// They load — whatever this version understands of them is still a usable preset — but not whole,
+    /// and the part missing is invisible: a field this version has never heard of is simply not there.
+    /// Plain rather than a caution, because nothing is wrong with this machine; it is a fact about some
+    /// files, worth knowing before saving over one of them.
+    /// </summary>
+    private void ReportNewer()
+    {
+        const string key = "presets.newer";
+
+        if (_newer.Count == 0)
+        {
+            notices.Clear(key);
+            return;
+        }
+
+        notices.Set(
+            key,
+            _newer.Count == 1
+                ? "A preset was made by a newer Aquila"
+                : $"{_newer.Count} presets were made by a newer Aquila",
+            $"{string.Join(", ", _newer)} — shown as far as this version understands them. Saving one here "
+            + "would leave out whatever this version does not.",
+            Models.StatusKind.Plain);
     }
 
     /// <summary>Files in the presets folder that would not parse on the last Load. Collected rather than
@@ -116,6 +148,8 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
     /// </summary>
     private void ReportUnreadable()
     {
+        ReportNewer();
+
         const string key = "presets.unreadable";
 
         if (_unreadable.Count == 0)
@@ -472,8 +506,16 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
     /// Registered the way a duplicate is, so it belongs to the session: Save writes the file and Discard
     /// leaves nothing behind.
     /// </summary>
-    public Preset? Import(string path)
+    public Preset? Import(string path) => Import(path, out _);
+
+    /// <summary>
+    /// As <see cref="Import(string)"/>, and says whether the file came from a newer Aquila — something only
+    /// the importer can tell the user at the moment it matters, because once read the preset holds only
+    /// what this version understood and no longer carries the difference.
+    /// </summary>
+    public Preset? Import(string path, out bool newer)
     {
+        newer = false;
         Preset? read;
 
         try
@@ -499,6 +541,14 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
             read.Name = NextName(read.Name);
             read.Id = FreeId(Slug(read.Name, read.Id));
         }
+
+        // Read BEFORE Accept, which brings the number down to what this version holds.
+        newer = read.Format > Preset.CurrentFormat;
+
+        // The same repair every preset read from disk gets. Import skipped it at first, so an imported
+        // preset kept the case-sensitive dictionary the reader builds, and one naming "Primary" missed the
+        // ramp it was asking for; one with no ramps at all arrived with nothing to draw in.
+        if (!Accept(read, path)) return null;
 
         Register(read);
         _created.Add(read.Id);
@@ -609,6 +659,9 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
 
             if (preset is null) continue;
 
+            // Before Accept, which brings the number down to what this version holds.
+            if (preset.Format > Preset.CurrentFormat) _newer.Add(Path.GetFileName(file));
+
             // The file name stands in for a missing id, so dropping a preset into the folder and naming it
             // sensibly is enough to make it appear.
             if (string.IsNullOrWhiteSpace(preset.Id))
@@ -646,6 +699,31 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
             preset.Ramps[Ramp.Primary] = Ramp.Neutral;
         }
 
+        // An older file is carried up to the current format; a NEWER one is kept as far as it is
+        // understood — the fields this version does not know were already dropped by the reader, and there
+        // is nothing to do about them here except say so, which the callers do.
+        if (preset.Format > Preset.CurrentFormat)
+            logger.LogWarning("Preset {Source} is format {Format}, newer than this version reads ({Current})",
+                source, preset.Format, Preset.CurrentFormat);
+        else if (preset.Format < Preset.CurrentFormat)
+            Upgrade(preset, preset.Format);
+
+        // From here the object holds what THIS code understands, so it says so — which is also what makes
+        // every save and export stamp the format they actually wrote, with no stamping step to forget.
+        preset.Format = Preset.CurrentFormat;
+
         return true;
+    }
+
+    /// <summary>
+    /// Carries a preset written in an older format up to the current one, a step at a time.
+    ///
+    /// Empty while there is only format 1: this is the hook, not a migration. A future step reads
+    /// <c>if (from &lt; 2) { …rename or reshape… }</c>, and the steps run in order, so a format-1 file reaching
+    /// a format-3 Aquila passes through both. The same shape as SettingsService.Migrate, and for the same
+    /// reason — keyed on the number the file carries, never on guessing from what the fields look like.
+    /// </summary>
+    private static void Upgrade(Preset preset, int from)
+    {
     }
 }

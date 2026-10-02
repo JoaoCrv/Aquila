@@ -163,9 +163,19 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
 
         if (dialog.ShowDialog(this) != true) return;
 
-        if (!ViewModel.Import(dialog.FileName))
+        if (!ViewModel.Import(dialog.FileName, out var newer))
             await Aquila.Services.Dialogs.Tell(
                 "Import preset", "That file could not be read as an Aquila preset.", this);
+
+        // Said now or never: once read, the preset holds only what this version understood, and nothing
+        // about it records that more was there.
+        else if (newer)
+            await Aquila.Services.Dialogs.Tell(
+                "Import preset",
+                "This preset was made by a newer version of Aquila. It has been imported as far as this "
+                + "version understands it; anything newer was left out, and would be left out of the file "
+                + "too if it is saved from here.",
+                this);
     }
 
     /// <summary>

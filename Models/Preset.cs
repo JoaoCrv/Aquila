@@ -19,6 +19,28 @@ namespace Aquila.Models;
 /// </summary>
 public sealed class Preset : INotifyPropertyChanged
 {
+    /// <summary>
+    /// The format this code writes. Raise it when a field is renamed, moved or given a new meaning — not
+    /// when one is merely added, because an older file simply lacks it and takes the default — and add the
+    /// step that carries a preset from the previous number to this one in PresetService.Upgrade.
+    /// </summary>
+    public const int CurrentFormat = 1;
+
+    /// <summary>
+    /// Which version of the format this file is written in. First in the class so it is the first line of
+    /// the file.
+    ///
+    /// ABSENT MEANS 1, and must go on meaning 1 for ever: every preset written before this field existed is
+    /// the first format, built-ins included. That is why the default is the literal and not CurrentFormat —
+    /// the day CurrentFormat becomes 2, an old file must not start claiming to be new.
+    ///
+    /// It exists because presets now leave the machine. A file exported today will be imported by a later
+    /// Aquila and a later file by this one; without a number, neither can tell, and the difference arrives
+    /// as fields silently ignored or misread. The reader that recognises "newer than me" has to ship BEFORE
+    /// the newer format exists, or the version that most needs it will not have it.
+    /// </summary>
+    public int Format { get; set; } = 1;
+
     /// <summary>File name stem by convention, and the id a widget stores. A user preset with the same id as
     /// a built-in replaces it — that is how one of ours gets customised.</summary>
     public string Id { get; set; } = string.Empty;

@@ -427,9 +427,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// unselected in the list would make the gesture look as though it had failed. The list is announced
     /// first — it gained a member and the picker is bound to a plain list, which cannot say so itself.
     /// </summary>
-    public bool Import(string path)
+    public bool Import(string path, out bool newer)
     {
-        if (presets.Import(path) is not { } imported) return false;
+        if (presets.Import(path, out newer) is not { } imported) return false;
 
         OnPropertyChanged(nameof(Presets));
         SelectedPreset = imported;
