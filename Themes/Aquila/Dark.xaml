@@ -137,8 +137,6 @@
          Who lives at which level. Nothing below states a colour of its own. -->
 
     <SolidColorBrush x:Key="Aquila.Chrome.Accent"                   Color="{StaticResource Aquila.Accent}"/>
-    <SolidColorBrush x:Key="Aquila.Control.ChosenFill"              Color="{StaticResource Aquila.Accent.Wash}"/>
-    <SolidColorBrush x:Key="Aquila.Control.ChosenText"              Color="{StaticResource Aquila.Accent.Quiet}"/>
     <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="{StaticResource Aquila.Surface.Scrim}"/>
 
     <!-- Surfaces -->

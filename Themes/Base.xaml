@@ -69,13 +69,16 @@
          The rules in Controls.xaml resolve the kit's keys instead. Under Fluent that is the kit's own
          value, light or dark, as it should be; under Aquila the theme overrides it. -->
 
-    <!-- A control that is CHOSEN. The FALLBACK only: an Aquila theme replaces both from its own palette,
-         beside the accent they are shades of. What is left here is what Fluent gets, and what any theme
-         gets that forgets to say — a key that vanished from under a DynamicResource would leave the chosen
-         state with no fill at all. -->
-    <SolidColorBrush x:Key="Aquila.Control.ChosenFill" Color="#1FFF6B35"/>
-    <SolidColorBrush x:Key="Aquila.Control.ChosenText" Color="#FFB597"/>
+    <!-- No Aquila.Control.ChosenFill / ChosenText any more. They dressed a checked toggle button through
+         setters in Controls.xaml that never reached it — the template reads ToggleButtonBackgroundChecked
+         and its family by name — and when those setters went, nothing was left reading these. A checked
+         toggle is dressed in the theme now, from the kit's own keys. -->
 
+    <!-- The chrome accent's fallback, and ONLY the first frame's. Under Aquila the theme replaces it; under
+         Fluent AppearanceService replaces it with the kit's own accent fill once the theme is applied, so
+         Fluent shows the user's Windows accent here as everywhere else. It cannot be done from this file:
+         the kit uses a different shade of the system accent in light and in dark, and no single colour key
+         names both. -->
     <SolidColorBrush x:Key="Aquila.Chrome.Accent"   Color="#FF6B35"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Danger"   Color="#E74856"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Caution"  Color="#FFB900"/>

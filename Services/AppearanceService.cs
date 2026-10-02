@@ -106,7 +106,41 @@ public sealed class AppearanceService(
         //    updateAccent: false, or this pass would overwrite what it is here to publish.
         ApplicationThemeManager.Apply(theme, WindowBackdropType.Mica, updateAccent: false);
 
-        ApplyProfile();                         // 5. the surface preset's colours, for the data
+        ApplyChromeAccent();                    // 5. the app's own accent follows whichever was just applied
+        ApplyProfile();                         // 6. the surface preset's colours, for the data
+    }
+
+    private const string ChromeAccent = "Aquila.Chrome.Accent";
+
+    /// <summary>
+    /// Points Aquila.Chrome.Accent at the accent actually in force.
+    ///
+    /// Under Fluent it was falling through to Base.xaml's fallback — our orange written out by hand — so
+    /// the unseen-notices badge, the drive letter badges and every dashed "add" outline came out orange on
+    /// a window wearing the user's Windows accent everywhere else. The one rule Fluent has is that it gets
+    /// no colours of ours, and three things were breaking it.
+    ///
+    /// Copied from the kit's own AccentFillColorDefaultBrush, after step 4 has re-applied the theme, rather
+    /// than named as a colour key in XAML: the kit fills accents with a DIFFERENT shade of the system
+    /// accent in light and in dark — measured, SystemAccentColorSecondary in dark and SystemAccentColorPrimary
+    /// in light — so no single key would be right in both.
+    ///
+    /// Set on the application's root dictionary, which outranks every merged one, and REMOVED under an
+    /// Aquila theme so the overlay's own definition shows through again. Under Aquila the two agree anyway
+    /// — step 3 hands the kit our accent — but the theme file stays the place that says it.
+    /// </summary>
+    private void ApplyChromeAccent()
+    {
+        var resources = Application.Current.Resources;
+
+        if (_overlay is not null)
+        {
+            resources.Remove(ChromeAccent);
+            return;
+        }
+
+        if (resources["AccentFillColorDefaultBrush"] is SolidColorBrush kit)
+            resources[ChromeAccent] = new SolidColorBrush(kit.Color);
     }
 
     /// <summary>Puts our theme file over WPF-UI's, or takes it off. Fluent gets nothing of ours.</summary>
