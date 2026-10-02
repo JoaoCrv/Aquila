@@ -5,7 +5,8 @@
         xmlns:controls="clr-namespace:Aquila.Controls"
         xmlns:helpers="clr-namespace:Aquila.Helpers"
         Title="Widget"
-        Width="380"
+        Width="460"
+        MinWidth="0"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
@@ -26,6 +27,12 @@
 
         There is no OK or Cancel. Dragging a widget already saved without asking, so a colour change asking
         for confirmation would have been the odd one out.
+
+        460 wide, and MinWidth zero. The file said 380 for months and the panel was never 380: the kit's
+        FluentWindow sets MinWidth=460, and the floor won without a word — measured at 460 by forcing the
+        panel open and reading it back. Everything in it was laid out and judged at 460, so 460 is now what
+        the file says; MinWidth=0 removes the hidden floor, so that changing this number from now on actually
+        changes the panel.
     -->
 
     <Window.Resources>
@@ -110,6 +117,27 @@
                                ToolTip="Back to the widget"
                                Visibility="{Binding ViewModel.EditingPreset, Converter={StaticResource BoolToVisibility}}"
                                Command="{Binding ViewModel.ClosePresetCommand}"/>
+
+                    <!-- The widget's own actions sit beside its name, the way the preset's sit beside its
+                         picker. They lived in a footer at the bottom of a scrolling panel, as far as they
+                         could be from the thing they act on.
+
+                         Icons, not labelled buttons: two full buttons would turn the header into a toolbar,
+                         and the header is also the handle the panel is dragged by. Shown only while a widget
+                         is open — with nothing selected, adding is THE action and gets the centre of the
+                         panel instead; while a preset is being edited, neither is about what is on screen. -->
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                                Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
+                        <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                   Icon="{ui:SymbolIcon Add24}"
+                                   ToolTip="Add a widget"
+                                   Click="Add_Click"/>
+                        <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                   Icon="{ui:SymbolIcon Delete24}"
+                                   ToolTip="Remove this widget — Discard brings it back"
+                                   Click="Remove_Click"/>
+                    </StackPanel>
+
                     <TextBlock Text="{Binding ViewModel.PanelTitle}" FontSize="18" FontWeight="SemiBold"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 </DockPanel>
@@ -1184,24 +1212,30 @@
             <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
                         Margin="24"
                         Visibility="{Binding ViewModel.ShowsNothing, Converter={StaticResource BoolToVisibility}}">
-                <ui:SymbolIcon Symbol="SquareHint24" FontSize="32" HorizontalAlignment="Center" Opacity="0.35"/>
-                <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontWeight="SemiBold"
+                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold"
                            Text="No widget selected"/>
                 <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" TextAlignment="Center"
                            TextWrapping="Wrap" Opacity="0.6" MaxWidth="240"
-                           Text="Click a widget on the desktop to edit it, or add one below."/>
-            </StackPanel>
+                           Text="Click a widget on the desktop to edit it, or start a new one."/>
 
-            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
-                        Margin="0,12,0,0"
-                        Visibility="{Binding ViewModel.ShowsWidgetActions, Converter={StaticResource BoolToVisibility}}">
-                <ui:Button Content="Add widget" Appearance="Primary"
-                           Icon="{ui:SymbolIcon Add24}"
-                           Click="Add_Click"/>
-                <ui:Button Margin="8,0,0,0" Content="Remove"
-                           Icon="{ui:SymbolIcon Delete24}"
-                           IsEnabled="{Binding ViewModel.HasTarget}"
-                           Click="Remove_Click"/>
+                <!-- The action, where the eye already is. This text used to end "or add one below",
+                     pointing at a button in a footer — sending the reader away from the one place on the
+                     panel they were looking at, at the one moment adding was the only thing to do.
+
+                     A dashed square with a plus: the empty slot a new thing goes into, the convention of
+                     every canvas tool. And the same GhostButton as "Add ramp" further down this panel, so
+                     making something new looks the same wherever it is offered. It replaced a hint icon
+                     that sat above the text saying nothing — the slot itself is the picture now. -->
+                <Button Style="{StaticResource GhostButton}" Margin="0,20,0,0"
+                        Width="148" Height="148" HorizontalAlignment="Center"
+                        ToolTip="Add a widget"
+                        Click="Add_Click">
+                    <StackPanel>
+                        <ui:SymbolIcon Symbol="Add24" FontSize="40" HorizontalAlignment="Center"/>
+                        <TextBlock Margin="0,8,0,0" FontSize="13" HorizontalAlignment="Center"
+                                   Text="Add widget"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
             <!-- Right-aligned and plain, as the design has it. Accent on Done said "this is the thing to

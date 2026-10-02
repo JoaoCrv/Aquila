@@ -225,19 +225,16 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     public bool ShowsPresetView => HasTarget && EditingPreset;
 
-    /// <summary>Pointed at nothing, and not part-way through a preset. The panel says so here, which is
-    /// what the note above always claimed it did.</summary>
-    public bool ShowsNothing => !HasTarget && !EditingPreset;
-
     /// <summary>
-    /// The widget buttons — and deliberately NOT <see cref="ShowsWidgetView"/>.
+    /// Pointed at nothing, and not part-way through a preset. The panel says so, and offers the one thing
+    /// that means something here: a large Add in the middle.
     ///
-    /// Add is the one control that means something when nothing is selected, and it was hidden along with
-    /// the form: the panel could edit a widget and remove one, but could not make one, and the only way to
-    /// get a first widget was the Widgets page. Remove already carried its own IsEnabled, which says the
-    /// row was meant to survive an empty selection and only the condition on it was wrong.
+    /// That Add is load-bearing. Adding was once hidden along with the form, and the panel could then edit
+    /// a widget and remove one but never make one — the only way to a first widget was the Widgets page.
+    /// The header's add and remove show only while a widget is open, so this is the Add for every other
+    /// moment, and it must never be made to depend on a selection.
     /// </summary>
-    public bool ShowsWidgetActions => !EditingPreset;
+    public bool ShowsNothing => !HasTarget && !EditingPreset;
 
     partial void OnEditingPresetChanged(bool value) => NotifyView();
 
@@ -246,7 +243,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         OnPropertyChanged(nameof(ShowsWidgetView));
         OnPropertyChanged(nameof(ShowsPresetView));
         OnPropertyChanged(nameof(ShowsNothing));
-        OnPropertyChanged(nameof(ShowsWidgetActions));
         OnPropertyChanged(nameof(PanelTitle));
         OnPropertyChanged(nameof(PanelSubtitle));
     }
