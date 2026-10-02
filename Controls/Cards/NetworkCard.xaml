@@ -5,16 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:controls="clr-namespace:Aquila.Controls"
-             xmlns:helpers="clr-namespace:Aquila.Helpers"
              mc:Ignorable="d"
              d:DesignHeight="260" d:DesignWidth="340">
     <!-- Self-contained network card: bind Network and it renders the whole card. Every value binds
          straight to the SensorNodes, so there is no computed state. Content uses itself as DataContext. -->
-    <UserControl.Resources>
-        <helpers:ThroughputConverter x:Key="Throughput"/>
-        <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
-    </UserControl.Resources>
-
     <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>

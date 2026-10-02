@@ -115,6 +115,38 @@ public sealed class Preset : INotifyPropertyChanged
         : Ramps.TryGetValue(Ramp.Primary, out var primary) ? primary
         : Ramp.Neutral;
 
+    /// <summary>The ramp a reading in position <paramref name="index"/> is drawn in — see
+    /// <see cref="RampNameFor"/>.</summary>
+    public Ramp RampFor(string? chosen, int index) => RampFor(RampNameFor(chosen, index));
+
+    /// <summary>
+    /// Which ramp a reading is drawn in: the one it chose; having chosen none, the ramp in its position,
+    /// because two lines in the same colour are one line; and primary past the ramps the preset declares,
+    /// or for a name it does not have — a chart that draws is better than one that refuses because its
+    /// preset was written for two lines. Null when there is no primary either, which
+    /// <see cref="RampFor(string?)"/> answers with a neutral ramp.
+    ///
+    /// In the PRESET'S spelling. Names match case-insensitively, but the editor's picker selects by plain
+    /// equality, and "Primary" would select nothing in a list holding "primary".
+    ///
+    /// The one statement of the rule. It was written out four times — twice in the renderer, once in the
+    /// editor so its picker would show what the desktop draws, once in the dashboard's publish — and the
+    /// editor's copy had drifted, answering a literal "primary" whether or not the preset spelled it so.
+    /// </summary>
+    public string? RampNameFor(string? chosen, int index)
+    {
+        var names = Ramps.Keys.ToList();
+
+        if (string.IsNullOrEmpty(chosen))
+        {
+            if (index >= 0 && index < names.Count) return names[index];
+            chosen = Ramp.Primary;
+        }
+
+        return names.FirstOrDefault(n => string.Equals(n, chosen, StringComparison.OrdinalIgnoreCase))
+               ?? names.FirstOrDefault(n => string.Equals(n, Ramp.Primary, StringComparison.OrdinalIgnoreCase));
+    }
+
     /// <summary>
     /// Renames a ramp IN PLACE, keeping its position.
     ///

@@ -72,7 +72,7 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                         <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                                 CornerRadius="3" Padding="5,2" Margin="0,0,4,0"
-                                                Visibility="{Binding DriveTypeTag, Converter={StaticResource NullToCollapsedConverter}}">
+                                                Visibility="{Binding DriveTypeTag, Converter={StaticResource NullToCollapsed}}">
                                             <TextBlock Text="{Binding DriveTypeTag}" FontSize="10" Opacity="0.70"/>
                                         </Border>
                                         <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
@@ -87,7 +87,7 @@
 
                                 <!-- Current read / write rates -->
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center"
-                                            Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}">
+                                            Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsed}}">
                                     <TextBlock FontSize="11" HorizontalAlignment="Right" Margin="0,0,0,3">
                                         <Run Text="↓ " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                         <Run Text="{Binding ReadRate.Value, Converter={StaticResource ThroughputConverter}, FallbackValue='--'}"/>
@@ -105,7 +105,7 @@
                         <StackPanel Margin="50,4,0,4">
 
                             <!-- Capacity bar -->
-                            <ProgressBar Style="{StaticResource RamBar}"
+                            <ProgressBar Style="{StaticResource AccentBar}"
                                          Value="{Binding UsedPercent}"
                                          Margin="0,0,0,6"/>
 
@@ -128,7 +128,7 @@
 
                             <!-- LHM sensor chips — Temp · Data Read · Data Written -->
                             <UniformGrid Columns="3"
-                                         Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}">
+                                         Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsed}}">
 
                                 <!-- Temperature -->
                                 <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
@@ -190,7 +190,7 @@
 
                             <!-- Health stats: Life · Power On Hours · Available Spare -->
                             <UniformGrid Columns="3" Margin="0,4,0,0"
-                                         Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}">
+                                         Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsed}}">
 
                                 <Border Style="{StaticResource StatBox}" Margin="0,0,3,0">
                                     <StackPanel>
@@ -214,7 +214,7 @@
                                 </Border>
 
                                 <Border Style="{StaticResource StatBox}" Margin="3,0,0,0"
-                                        Visibility="{Binding AvailableSpare.Value, Converter={StaticResource NullToCollapsedConverter}}">
+                                        Visibility="{Binding AvailableSpare.Value, Converter={StaticResource NullToCollapsed}}">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource StatBoxValue}"
                                                    Foreground="{DynamicResource Aquila.Scheme.Accent}">
@@ -235,7 +235,7 @@
                                 SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
                                 SecondValues="{Binding WriteHistory}"
                                 SecondColor="{DynamicResource Aquila.Scheme.Series1}"
-                                Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsedConverter}}"/>
+                                Visibility="{Binding HardwareName, Converter={StaticResource NullToCollapsed}}"/>
 
                         </StackPanel>
 

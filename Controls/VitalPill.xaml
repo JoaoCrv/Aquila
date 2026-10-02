@@ -9,11 +9,6 @@
          tray flyout. Copied, it would have been the "Pieces" gallery again: two hand-kept versions of one
          thing, one of which stops being updated. Length from the raw reading so the bar and the number
          agree, colour from the normalised one so it means the same on a load as on a temperature. -->
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
-        <helpers:IntensityBrushConverter x:Key="Intensity"/>
-    </UserControl.Resources>
-
     <Border MinWidth="104" Padding="10,5" CornerRadius="6"
             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"

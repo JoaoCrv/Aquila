@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Media;
+using Aquila.Helpers;
 using Aquila.Models;
 using Aquila.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -320,10 +321,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>The previews wear the chosen preset's primary colour at rest, so the picker looks like the
     /// widget will rather than like a catalogue in someone else's colours.</summary>
     public Brush? PreviewAccent =>
-        RampPreviews.FirstOrDefault() is { } first
-        && ColorConverter.ConvertFromString(first.Normal) is Color colour
-            ? new SolidColorBrush(colour)
-            : null;
+        RampPreviews.FirstOrDefault() is { } first ? HexBrush.From(first.Normal) : null;
 
     /// <summary>
     /// PreviewAccent is derived from RampPreviews and follows it here, in one place.
@@ -608,9 +606,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// clearing the collection underneath it would take the caret with it — so the row keeps itself and
     /// only the things that read a name from elsewhere are refreshed.
     ///
-    /// The series pickers in THIS widget are repointed quietly, and before RampNames is announced: the
-    /// combo holds its selection by string, so a list that changed first would find the old name missing
-    /// and write a null back over the series.
+    /// The series pickers in THIS widget are repointed quietly, and before RampPreviews is announced: a
+    /// list that changed first would look for the old name, find it missing, and show nothing.
     /// </summary>
     private bool RenameRamp(string from, string to)
     {
@@ -625,7 +622,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             if (string.Equals(row.Ramp, from, StringComparison.OrdinalIgnoreCase))
                 row.SetRampQuietly(renamed);
 
-        OnPropertyChanged(nameof(RampNames));
         OnPropertyChanged(nameof(RampPreviews));
         Changed?.Invoke(WidgetChange.Dress);
         return true;
@@ -659,7 +655,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         };
 
         ReadRamps(preset);
-        OnPropertyChanged(nameof(RampNames));
         OnPropertyChanged(nameof(RampPreviews));
         Changed?.Invoke(WidgetChange.Dress);
     }
@@ -676,7 +671,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Ramps.Remove(name);
 
         ReadRamps(preset);
-        OnPropertyChanged(nameof(RampNames));
         OnPropertyChanged(nameof(RampPreviews));
         Changed?.Invoke(WidgetChange.Dress);
     }
@@ -1078,24 +1072,15 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// which is the reason this method spread them across roles in the first place.
     /// </summary>
     private string DefaultRamp(int index) =>
-        index < RampNames.Count ? RampNames[index] : Ramp.Primary;
+        SelectedPreset?.RampNameFor(null, index) ?? Ramp.Primary;
 
-    /// <summary>
-    /// The ramp a row is actually drawn in under the chosen preset — the renderer's own rule, repeated here
-    /// so the picker shows what the desktop shows. DesktopWidgetService resolves a series as
-    /// RampFor(empty ? DefaultRamp(index) : name), and RampFor answers primary for a name the preset does
-    /// not have. If that rule changes, this has to change with it.
-    ///
-    /// Returned in the preset's own spelling: ramp names match case-insensitively, but the picker selects
-    /// by plain equality, and "Primary" would select nothing in a list holding "primary".
-    /// </summary>
-    private string ShownRamp(SeriesRow row)
-    {
-        if (string.IsNullOrEmpty(row.Ramp)) return DefaultRamp(Math.Max(0, Chosen.IndexOf(row)));
-
-        return RampNames.FirstOrDefault(n => string.Equals(n, row.Ramp, StringComparison.OrdinalIgnoreCase))
-               ?? Ramp.Primary;
-    }
+    /// <summary>The ramp a row is actually drawn in under the chosen preset. Asked of the same rule the
+    /// renderer asks, <see cref="Preset.RampNameFor"/>, so the picker shows what the desktop shows — it
+    /// used to be a copy of that rule, kept in step by a comment.</summary>
+    private string? ShownRamp(SeriesRow row) =>
+        SelectedPreset is { } preset
+            ? preset.RampNameFor(row.Ramp, Math.Max(0, Chosen.IndexOf(row)))
+            : Ramp.Primary;
 
     /// <summary>The entry in the picker's own list for what a row is drawn in. Looked up by name in a list
     /// built afresh, which is fine: the picker matches records by value, and this one is equal to its own.</summary>
@@ -1104,10 +1089,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         var name = ShownRamp(row);
         return RampPreviews.FirstOrDefault(p => p.Name == name);
     }
-
-    /// <summary>The ramps the chosen preset declares, in order.</summary>
-    public IReadOnlyList<string> RampNames =>
-        SelectedPreset is { } preset ? [.. preset.Ramps.Keys] : [Ramp.Primary];
 
     /// <summary>The colours a given reading may be drawn in. "By reading" is withheld from anything with no
     /// scale to follow — offering a choice that silently does nothing is worse than not offering it.</summary>

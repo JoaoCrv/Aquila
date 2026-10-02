@@ -91,29 +91,27 @@ namespace Aquila.Services
         /// <summary>
         /// Walks the user through an update, asking twice: before downloading and before restarting.
         ///
-        /// The callbacks are ASYNC because the app's dialogs are. WPF-UI's message box has one way to be
-        /// shown and it returns a Task, so a synchronous predicate here would force every caller to block
-        /// on it — on the UI thread, which is the thread the dialog needs in order to answer. The contract
-        /// follows the dialog rather than the dialog fighting the contract.
+        /// The dialogs are part of the flow rather than handed in. They were callbacks, and both callers
+        /// passed the same two — except that the tray passed only the question, so an update that failed
+        /// to download from the tray failed in silence while the Settings page said so. One flow, so one
+        /// set of dialogs, and no caller can leave half of it out.
         /// </summary>
-        public async Task RunUserInitiatedUpdateAsync(
-            Func<UpdatePromptRequest, Task<bool>> confirmAction,
-            Func<UpdatePromptRequest, Task>? notifyAction = null)
+        public async Task RunUserInitiatedUpdateAsync()
         {
             SetStatus("Checking for updates...");
 
             var checkResult = await CheckForUpdatesAsync();
             if (!checkResult.IsSuccess)
             {
-                await Notify(notifyAction, UpdatePromptRequest.Warning(checkResult.Message));
+                await Tell(checkResult.Message);
                 return;
             }
 
             if (!checkResult.IsUpdateAvailable || checkResult.UpdateInfo is null)
                 return;
 
-            var installNow = await confirmAction(
-                UpdatePromptRequest.Confirmation("A new Aquila update is available. Download and restart now?"));
+            var installNow = await Ask(
+                "A new Aquila update is available. Download and restart now?");
 
             if (!installNow)
             {
@@ -126,12 +124,12 @@ namespace Aquila.Services
             var downloadResult = await DownloadUpdateAsync(checkResult.UpdateInfo);
             if (!downloadResult.IsSuccess || downloadResult.UpdateInfo is null)
             {
-                await Notify(notifyAction, UpdatePromptRequest.Error(downloadResult.Message));
+                await Tell(downloadResult.Message);
                 return;
             }
 
-            var restartNow = await confirmAction(
-                UpdatePromptRequest.Confirmation("The update has been downloaded successfully. Restart Aquila now to apply it?"));
+            var restartNow = await Ask(
+                "The update has been downloaded successfully. Restart Aquila now to apply it?");
 
             if (!restartNow)
             {
@@ -143,11 +141,17 @@ namespace Aquila.Services
             ApplyUpdatesAndRestart(downloadResult.UpdateInfo);
         }
 
-        /// <summary>Awaits an optional notification. Written out rather than `notifyAction?.Invoke(...)`
-        /// because that returns a Task nobody awaits: the update would carry on underneath a dialog the
-        /// user is still reading, and the next one would open on top of it.</summary>
-        private static Task Notify(Func<UpdatePromptRequest, Task>? notify, UpdatePromptRequest request) =>
-            notify?.Invoke(request) ?? Task.CompletedTask;
+        private const string DialogTitle = "Aquila Update";
+
+        private static Task<bool> Ask(string message) =>
+            Dialogs.Ask(DialogTitle, message, "Continue", "Not now");
+
+        /// <summary>A warning and a failure are told alike. The kit's message box takes no icon, and the
+        /// loss is small: somebody being told that a download failed reads the same sentence either way,
+        /// and it already says which it is. That is also why there is no prompt kind any more — an
+        /// UpdatePromptRequest carried one to the callers, and none of them ever read it.</summary>
+        private static Task Tell(string message) =>
+            Dialogs.Tell(DialogTitle, message);
 
         public async Task<UpdateCheckResult> CheckForUpdatesAsync(bool silent = false)
         {
@@ -223,20 +227,6 @@ namespace Aquila.Services
             StatusKind = kind;
             StatusChanged?.Invoke();
         }
-    }
-
-    public sealed record UpdatePromptRequest(string Title, string Message, UpdatePromptKind Kind)
-    {
-        public static UpdatePromptRequest Confirmation(string message) => new("Aquila Update", message, UpdatePromptKind.Confirmation);
-        public static UpdatePromptRequest Warning(string message) => new("Aquila Update", message, UpdatePromptKind.Warning);
-        public static UpdatePromptRequest Error(string message) => new("Aquila Update", message, UpdatePromptKind.Error);
-    }
-
-    public enum UpdatePromptKind
-    {
-        Confirmation,
-        Warning,
-        Error
     }
 
     public sealed record UpdateCheckResult(bool IsSuccess, bool IsUpdateAvailable, string Message, UpdateInfo? UpdateInfo = null)

@@ -34,11 +34,6 @@ public partial class SparklineChart : UserControl, IChartStyle
     private Axis? _yAxis;
     private Axis? _xAxis;
 
-    // Alpha at the TOP of the area gradient, where it meets the line. Higher than the old flat fill
-    // used, because the gradient gives it all back to transparency before reaching the axis.
-    private const byte PrimaryFillAlpha = 80;
-    private const byte SecondaryFillAlpha = 55;
-
     // ── Dependency properties ──────────────────────────────────────
 
     public static readonly DependencyProperty ValuesProperty =

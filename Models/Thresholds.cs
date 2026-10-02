@@ -5,9 +5,9 @@ namespace Aquila.Models;
 /// <summary>
 /// When a reading stops being ordinary. Three steps, in the value's own units.
 ///
-/// This is the policy half of the colour model: the colour profile says what "alert" looks like, this
-/// says when a value is alerting. They are kept apart so restyling cannot silently change meaning, and
-/// so a shared profile cannot impose someone else's limits.
+/// This is the policy half of the colour model: the preset says what "alert" looks like, this says when
+/// a value is alerting. They are kept apart so restyling cannot silently change meaning, and so a shared
+/// preset cannot impose someone else's limits.
 ///
 /// Until now these numbers lived as strings at each call site ('50,70,85' here, '60,80,92' there). They
 /// are gathered here because a second consumer arrived — the system pressure reading — and two consumers

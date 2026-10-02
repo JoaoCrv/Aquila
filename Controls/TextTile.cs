@@ -87,7 +87,6 @@ public sealed class TextTile : TextBlock, ISensorPiece, ICaptionStyle
     private void OnSensorChanged(object? _, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(SensorNode.Value)) return;
-        if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(Compose); return; }
         Compose();
     }
 

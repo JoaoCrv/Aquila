@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Aquila.Models;
 using Microsoft.Extensions.Logging;
 
@@ -23,10 +22,12 @@ namespace Aquila.Services;
 /// </summary>
 public sealed class NoticeService(ILogger<NoticeService> logger)
 {
-    private readonly ObservableCollection<Notice> _notices = [];
-
-    /// <summary>Conditions first, then events newest-first — see <see cref="Ordered"/>.</summary>
-    public ObservableCollection<Notice> Notices => _notices;
+    /// <summary>
+    /// A plain list. It was an ObservableCollection exposed as Notices, and nothing read the property or
+    /// listened to the collection — the panel reads <see cref="Ordered"/> and is told by
+    /// <see cref="Changed"/> — so every notice raised a collection notification into nothing.
+    /// </summary>
+    private readonly List<Notice> _notices = [];
 
     /// <summary>Raised whenever the list or the unseen count changes, so a title-bar indicator can follow
     /// without binding to the collection twice.</summary>

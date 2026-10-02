@@ -16,16 +16,14 @@ namespace Aquila.ViewModels.Pages;
 /// </summary>
 public partial class WidgetsViewModel : ObservableObject
 {
-    private readonly AquilaService _aquila;
     private readonly SettingsService _settings;
     private readonly DesktopSurface.DesktopSurfaceService _surface;
     private readonly DesktopWidgetService _widgets;
     private bool _initialized;
 
-    public WidgetsViewModel(AquilaService aquila, SettingsService settings,
+    public WidgetsViewModel(SettingsService settings,
         DesktopSurface.DesktopSurfaceService surface, DesktopWidgetService widgets)
     {
-        _aquila = aquila;
         _settings = settings;
         _surface = surface;
         _widgets = widgets;

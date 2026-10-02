@@ -54,7 +54,6 @@ public partial class RamCard : UserControl
 
     private void OnTick(object? sender, PropertyChangedEventArgs e)
     {
-        if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(Refresh); return; }
         Refresh();
     }
 

@@ -304,8 +304,7 @@ namespace Aquila.Views.Windows
         {
             try
             {
-                await _updateService.RunUserInitiatedUpdateAsync(request =>
-                    Aquila.Services.Dialogs.Ask(request.Title, request.Message, "Continue", "Not now"));
+                await _updateService.RunUserInitiatedUpdateAsync();
             }
             catch (Exception ex)
             {

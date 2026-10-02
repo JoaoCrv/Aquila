@@ -199,7 +199,6 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
 
     private void OnSensorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(Render); return; }
         Render();
     }
 

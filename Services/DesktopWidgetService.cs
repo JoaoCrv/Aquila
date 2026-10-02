@@ -4,6 +4,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using Aquila.Controls;
 using Aquila.DesktopSurface;
+using Aquila.Helpers;
 using Aquila.Models;
 
 namespace Aquila.Services;
@@ -332,11 +333,12 @@ public sealed class DesktopWidgetService
         _panel.ViewModel.PresetRemoved += DropPreset;
         _panel.ViewModel.PreviewRequested += PreviewRole;
 
-        // The panel cannot count them itself: the layout is the service's. A widget naming no preset is
-        // wearing the base, so it counts towards it.
+        // The panel cannot count them itself: the layout is the service's. Compared as RESOLVED presets,
+        // the way RestyleWearing compares them, so a widget naming no preset — or one that has since gone —
+        // counts towards the preset it is actually drawn in. Spelled out by hand, the rule missed the
+        // second case and compared the default's id case-sensitively.
         _panel.ViewModel.CountWearers = id => _widgets?.Count(w =>
-            string.Equals(w.Preset, id, StringComparison.OrdinalIgnoreCase) ||
-            (string.IsNullOrWhiteSpace(w.Preset) && id == _presets.DefaultId)) ?? 0;
+            ReferenceEquals(_presets.For(w.Preset), _presets.For(id))) ?? 0;
         _panel.AddRequested += OnAddRequested;
         _panel.RemoveRequested += RemoveFromPanel;
 
@@ -484,8 +486,7 @@ public sealed class DesktopWidgetService
         var variant = _presets.Duplicate(locked);
 
         foreach (var widget in _dressed)
-            if (string.Equals(widget.Preset, locked.Id, StringComparison.OrdinalIgnoreCase) ||
-                (string.IsNullOrWhiteSpace(widget.Preset) && locked.Id == _presets.DefaultId))
+            if (ReferenceEquals(_presets.For(widget.Preset), locked))
                 widget.Preset = variant.Id;
     }
 
@@ -924,8 +925,8 @@ public sealed class DesktopWidgetService
     /// </summary>
     private static void Frame(Border border, DesktopWidgetDefinition definition, Preset preset)
     {
-        border.Background = Tint(preset.Background.Color, preset.Background.Opacity);
-        border.BorderBrush = Tint(preset.Border.Color, preset.Border.Opacity);
+        border.Background = HexBrush.From(preset.Background.Color, preset.Background.Opacity);
+        border.BorderBrush = HexBrush.From(preset.Border.Color, preset.Border.Opacity);
         border.BorderThickness = new Thickness(preset.Border.Thickness);
         border.CornerRadius = new CornerRadius(preset.Border.CornerRadius);
         border.Padding = new Thickness(preset.Border.Padding);
@@ -939,12 +940,12 @@ public sealed class DesktopWidgetService
         if (border.Child is not LabeledTile tile) return;
 
         tile.Title = definition.Title;
-        tile.TitleBrush = Tint(preset.Title.Color, 1);
+        tile.TitleBrush = HexBrush.From(preset.Title.Color, 1);
 
         // Set on the tile so it inherits down to whatever inside does not paint itself — the clock, the
         // words of a caption. Where a reading IS judged, Paint writes the ramp over this, so the colour
         // here only ever shows where nothing has an opinion about the number.
-        tile.Foreground = Tint(preset.Value.Color, 1);
+        tile.Foreground = HexBrush.From(preset.Value.Color, 1);
 
         tile.TitleFont = preset.Title.FontFamily;
         tile.TitleWeight = preset.Title.Weight;
@@ -977,11 +978,11 @@ public sealed class DesktopWidgetService
 
         if (piece is IGaugeStyle dial)
         {
-            dial.ValueBrush = Tint(preset.Value.Color, 1);
+            dial.ValueBrush = HexBrush.From(preset.Value.Color, 1);
             dial.ArcThickness = preset.Gauge.Thickness;
             dial.ArcCorner = preset.Gauge.Corner;
             dial.Sweep = preset.Gauge.Sweep;
-            dial.TrackBrush = Tint(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
+            dial.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
 
         if (piece is IMeterStyle bar)
@@ -989,6 +990,7 @@ public sealed class DesktopWidgetService
             bar.BarThickness = preset.Bar.Thickness;
             bar.BarCorner = preset.Bar.Corner;
             bar.Layout = preset.Bar.Layout;
+            bar.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
 
         if (piece is IStatStyle stat)
@@ -1092,11 +1094,9 @@ public sealed class DesktopWidgetService
 
             chosen.Add(series);
 
-            // The ramp a reading is drawn in. Empty falls to the preset's primary — and one named ramp
-            // short of the number of lines does too, so a three-line chart on a two-ramp preset draws.
-            ramps.Add(preset.RampFor(string.IsNullOrEmpty(series.Ramp)
-                ? DefaultRamp(preset, ramps.Count)
-                : series.Ramp));
+            // The ramp a reading is drawn in, by the rule the editor's picker asks too — so the picker
+            // shows what is drawn here.
+            ramps.Add(preset.RampFor(series.Ramp, ramps.Count));
         }
 
         // A kind that does not need a reading draws anyway — a backdrop has none to lose, and a text is a
@@ -1134,8 +1134,7 @@ public sealed class DesktopWidgetService
             var reading = chosen[i];
             var index = i;
 
-            repaints.Add(dressed => repaint(
-                dressed.RampFor(string.IsNullOrEmpty(reading.Ramp) ? DefaultRamp(dressed, index) : reading.Ramp)));
+            repaints.Add(dressed => repaint(dressed.RampFor(reading.Ramp, index)));
         }
 
         Dress(piece, preset);
@@ -1154,15 +1153,6 @@ public sealed class DesktopWidgetService
         // and this is the one both of them go through.
         Panel.SetZIndex(widget, definition.ZIndex);
         return widget;
-    }
-
-    /// <summary>Spread across ramps rather than all taking the primary: two lines in the same colour are
-    /// one line. Past the ramps a preset declares, they share the primary — a chart that draws is better
-    /// than one that refuses because its preset was written for two lines.</summary>
-    private static string DefaultRamp(Preset preset, int index)
-    {
-        var names = preset.Ramps.Keys.ToList();
-        return index < names.Count ? names[index] : Ramp.Primary;
     }
 
     /// <summary>
@@ -1224,7 +1214,7 @@ public sealed class DesktopWidgetService
                     ? monitor?.RoleFor(value, key) ?? "Normal"
                     : "Normal");
 
-            apply(Tint(current[role], 1));
+            apply(HexBrush.From(current[role], 1));
         }
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1256,20 +1246,4 @@ public sealed class DesktopWidgetService
     /// </summary>
     private static readonly DependencyProperty RepaintsProperty =
         DependencyProperty.RegisterAttached("Repaints", typeof(List<Action<Preset>>), typeof(DesktopWidgetService));
-
-    /// <summary>Combines a stored "#RRGGBB" with a separate 0..1 opacity. Falls back to transparent rather
-    /// than throwing: a hand-edited widgets.json shouldn't be able to break the desktop.</summary>
-    private static Brush Tint(string hex, double opacity)
-    {
-        try
-        {
-            var color = (Color)ColorConverter.ConvertFromString(hex);
-            color.A = (byte)Math.Clamp(opacity * 255, 0, 255);
-            return new SolidColorBrush(color);
-        }
-        catch
-        {
-            return Brushes.Transparent;
-        }
-    }
 }

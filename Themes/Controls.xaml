@@ -299,19 +299,6 @@
          Typography — section headers, row labels and values
          ════════════════════════════════════════════════════════════════ -->
 
-    <!-- Page-level section heading (e.g. "Behaviour", "Dashboard cards") -->
-    <Style x:Key="PageSectionHeader" TargetType="TextBlock">
-        <Setter Property="FontSize"   Value="20"/>
-        <Setter Property="FontWeight" Value="Medium"/>
-    </Style>
-
-    <!-- Sub-section heading inside a card -->
-    <Style x:Key="CardSectionHeader" TargetType="TextBlock">
-        <Setter Property="FontSize"   Value="13"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Margin"     Value="0,0,0,6"/>
-    </Style>
-
     <Style x:Key="SectionLabel" TargetType="TextBlock">
         <Setter Property="FontSize" Value="10"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -367,7 +354,7 @@
          Card header icon
 
          Colour identifies nothing here — the icon does. The chip is tinted
-         with the profile's track so it reads as part of the card rather
+         with the preset's track so it reads as part of the card rather
          than as a status light.
          ════════════════════════════════════════════════════════════════ -->
 
@@ -462,19 +449,10 @@
         </Setter>
     </Style>
 
-    <!-- ════════════════════════════════════════════════════════════════
-         Named sensor bars — BasedOn ThinBar, colour from Aquila.* tokens
-         ════════════════════════════════════════════════════════════════ -->
-
-    <Style x:Key="GpuBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
-    </Style>
-
-    <Style x:Key="RamBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
-    </Style>
-
-    <Style x:Key="FanBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
+    <!-- A ThinBar in the dashboard's accent. There were three — GpuBar, RamBar and FanBar — identical to
+         the letter and named after the hardware they happened to stand beside, which is how the storage
+         page came to draw its drives with RamBar. The same mistake as the hardware-named colour tokens. -->
+    <Style x:Key="AccentBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
         <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
     </Style>
 </ResourceDictionary>

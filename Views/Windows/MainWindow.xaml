@@ -24,9 +24,7 @@
     mc:Ignorable="d">
     <ui:FluentWindow.Resources>
         <ResourceDictionary>
-            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <helpers:ResponsivePaddingConverter x:Key="ResponsivePaddingConverter" />
-            <helpers:IntensityBrushConverter x:Key="Intensity" />
 
             <!-- Nav rail. Size only — no colours here on purpose.
                  The rail is chrome, so it follows the THEME's accent, which WPF-UI already manages and
@@ -142,7 +140,7 @@
                     </StackPanel>
 
                     <!-- Ember ribbon: how hard the machine is being pushed, under the wordmark.
-                         Reuses ThinBar so the track comes from the colour profile like every other bar.
+                         Reuses ThinBar so the track comes from the dashboard's preset like every other bar.
                          The value is already normalised, which is why it is coloured with the Pressure
                          scale rather than judged a second time — the sensor's own thresholds decided
                          what counts as alert before it got here. The tooltip names the sensor
@@ -206,7 +204,7 @@
                         <Border Margin="14,0,0,14" Width="13" Height="13" CornerRadius="7"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Background="{DynamicResource Aquila.Chrome.Accent}"
-                                Visibility="{Binding ViewModel.Notices.HasUnseen, Converter={StaticResource BoolToVisibilityConverter}}">
+                                Visibility="{Binding ViewModel.Notices.HasUnseen, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="{Binding ViewModel.Notices.UnseenLabel}" FontSize="8"
                                        FontWeight="SemiBold" Foreground="#FFFFFF"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -233,7 +231,7 @@
                                 <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="8,2"
                                            FontSize="11" Content="Clear" MinHeight="0"
                                            ToolTip="Removes what happened, and leaves what is still true"
-                                           Visibility="{Binding ViewModel.Notices.CanClear, Converter={StaticResource BoolToVisibilityConverter}}"
+                                           Visibility="{Binding ViewModel.Notices.CanClear, Converter={StaticResource BoolToVisibility}}"
                                            Command="{Binding ViewModel.Notices.ClearCommand}"/>
                                 <TextBlock Text="Notices" FontWeight="SemiBold" FontSize="13"
                                            VerticalAlignment="Center"/>
@@ -242,7 +240,7 @@
                             <!-- The empty state says the application is fine, not that the panel is. -->
                             <TextBlock Grid.Row="1" Text="Nothing to report." FontSize="12" Opacity="0.5"
                                        Margin="0,8,0,10"
-                                       Visibility="{Binding ViewModel.Notices.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                       Visibility="{Binding ViewModel.Notices.IsEmpty, Converter={StaticResource BoolToVisibility}}"/>
 
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding ViewModel.Notices.Items}">
@@ -257,7 +255,7 @@
                                                     <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
                                                                Margin="6,0,0,0" Icon="{ui:SymbolIcon Dismiss24}"
                                                                ToolTip="Dismiss"
-                                                               Visibility="{Binding CanDismiss, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                               Visibility="{Binding CanDismiss, Converter={StaticResource BoolToVisibility}}"
                                                                Command="{Binding DataContext.ViewModel.Notices.DismissCommand,
                                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                                CommandParameter="{Binding}"/>
@@ -300,7 +298,7 @@
                                                              something already past. -->
                                                         <TextBlock Text="{Binding At, StringFormat=HH:mm}"
                                                                    FontSize="10" Opacity="0.4" Margin="0,3,0,0"
-                                                                   Visibility="{Binding CanDismiss, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                                   Visibility="{Binding CanDismiss, Converter={StaticResource BoolToVisibility}}"/>
                                                     </StackPanel>
                                                 </DockPanel>
                                             </Border>
@@ -320,7 +318,7 @@
                     Appearance="Transparent" BorderThickness="0"
                     Cursor="Hand"
                     Command="{Binding ViewModel.ToggleThemeCommand, Mode=OneWay}"
-                    Visibility="{Binding ViewModel.CanToggleTheme, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}"
+                    Visibility="{Binding ViewModel.CanToggleTheme, Converter={StaticResource BoolToVisibility}, Mode=OneWay}"
                     ToolTip="{Binding ViewModel.ThemeToggleTooltip, Mode=OneWay}">
                     <!-- Sized against the caption glyphs beside it, not on its own: a toggle noticeably
                          larger than the close button reads as a different class of control. -->
@@ -359,7 +357,7 @@
                     </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Grid Grid.Row="0" Grid.RowSpan="2" Background="#80000000" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+        <Grid Grid.Row="0" Grid.RowSpan="2" Background="#80000000" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibility}}">
             <ui:ProgressRing IsIndeterminate="True" VerticalAlignment="Center" HorizontalAlignment="Center"/>
         </Grid>
         <ContentPresenter

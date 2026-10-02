@@ -18,7 +18,7 @@ namespace Aquila.Services;
 /// - It does not aggregate. Taking the worst of several readings and naming it is
 ///   <see cref="SystemPressure"/>'s job, and "the maximum, never an average" is a decision that deserves
 ///   its own home rather than being buried in a class about limits.
-/// - It does not decide what anything looks like. The colour profile says what "Alert" looks like; this
+/// - It does not decide what anything looks like. The preset says what "Alert" looks like; this
 ///   says when a reading is alerting. Keeping them apart is why restyling cannot silently change meaning.
 ///
 /// Later, this is where alerts hang: reacting to a high temperature needs a TRANSITION (normal → alert),
@@ -33,7 +33,7 @@ public sealed class VitalMonitor(SettingsService settings)
     ///
     /// IntensityBrushConverter is created by XAML and never sees the container, so it cannot be given this
     /// the ordinary way — and without it the cards would keep colouring by the built-in limits while
-    /// everything else followed the user's. Same shape as the colour profile, which publishes itself into
+    /// everything else followed the user's. Same shape as the dashboard's preset, which is published into
     /// Application.Resources for the same reason: XAML needs a global to reach.
     /// </summary>
     public static VitalMonitor? Current { get; set; }
@@ -188,9 +188,9 @@ public sealed class VitalMonitor(SettingsService settings)
     /// This is the whole point of the arrangement: a caller says WHAT it is reading and HOW MUCH, and never
     /// has to know which colour that deserves. Nothing outside this class compares a reading against a limit.
     ///
-    /// Both halves meet here and nowhere else: this class says WHEN a value is alerting, the colour profile
-    /// says what alerting LOOKS like. Neither knows the other's business, which is why restyling cannot
-    /// change meaning and a shared profile cannot impose someone else's limits.
+    /// Both halves meet here and nowhere else: this class says WHEN a value is alerting, the preset says
+    /// what alerting LOOKS like. Neither knows the other's business, which is why restyling cannot change
+    /// meaning and a shared preset cannot impose someone else's limits.
     ///
     /// Grey when the profile has not been published yet — a colour that is obviously wrong beats throwing
     /// during a first frame.

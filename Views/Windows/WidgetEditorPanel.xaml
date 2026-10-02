@@ -42,7 +42,6 @@
             </CollectionViewSource.GroupDescriptions>
         </CollectionViewSource>
 
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <helpers:MatchConverter x:Key="Match"/>
 
         <Style TargetType="ui:CardExpander" BasedOn="{StaticResource {x:Type ui:CardExpander}}">

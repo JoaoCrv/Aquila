@@ -282,9 +282,10 @@ namespace Aquila.ViewModels.Pages
             Presets.Clear();
             foreach (var preset in _presets.Presets) Presets.Add(preset);
 
-            SelectedSurfacePreset =
-                Presets.FirstOrDefault(p => p.Id == _settings.Current.DashboardPresetId)
-                ?? Presets.FirstOrDefault();
+            // Resolved the way the dashboard resolves it. Matched by hand, a preset that had gone fell to
+            // the FIRST in the list while the dashboard fell to the default — the picker said Classic over
+            // a dashboard drawn in Ember.
+            SelectedSurfacePreset = _presets.For(_settings.Current.DashboardPresetId);
         }
 
         partial void OnSelectedThemeStyleChanged(ThemeOption? value)
@@ -501,21 +502,12 @@ namespace Aquila.ViewModels.Pages
 
             try
             {
-                await _updateService.RunUserInitiatedUpdateAsync(ConfirmUpdateAction, ShowUpdateNotification);
+                await _updateService.RunUserInitiatedUpdateAsync();
             }
             finally
             {
                 IsCheckingForUpdates = false;
             }
         }
-
-        private static Task<bool> ConfirmUpdateAction(UpdatePromptRequest request) =>
-            Dialogs.Ask(request.Title, request.Message, "Continue", "Not now");
-
-        /// <summary>The kind is no longer drawn as an icon. The kit's message box does not take one, and
-        /// the loss is small: a warning and an error read the same to somebody who is being told that a
-        /// download failed, and the sentence already says which it is.</summary>
-        private static Task ShowUpdateNotification(UpdatePromptRequest request) =>
-            Dialogs.Tell(request.Title, request.Message);
     }
 }

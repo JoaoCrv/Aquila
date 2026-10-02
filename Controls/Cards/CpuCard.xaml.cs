@@ -66,7 +66,6 @@ public partial class CpuCard : UserControl
 
     private void OnTick(object? sender, PropertyChangedEventArgs e)
     {
-        if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(Refresh); return; }
         Refresh();
     }
 

@@ -53,8 +53,11 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
             {
                 Child = fill,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Background = TryFindResource("Aquila.Scheme.Track") as Brush ?? Brushes.Transparent,
             };
+
+            // By reference rather than read once: read at construction, it found the dashboard's track as
+            // it was then and kept it through every preset change after.
+            track.SetResourceReference(Border.BackgroundProperty, TrackKey);
 
             var reading = new TextBlock
             {
@@ -89,12 +92,6 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     {
         if (e.PropertyName != nameof(SensorNode.Value)) return;
         if (sender is not SensorNode node) return;
-
-        if (!Dispatcher.CheckAccess())
-        {
-            Dispatcher.Invoke(() => OnSensorChanged(sender, e));
-            return;
-        }
 
         foreach (var bar in _bars)
             if (ReferenceEquals(bar.Sensor, node))
@@ -309,4 +306,18 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     /// Left on the interface rather than split out for one piece — a setting that visibly does nothing is
     /// cheaper than an interface nobody can remember the shape of.</summary>
     public MeterLayout Layout { get; set; } = MeterLayout.Beside;
+
+    private const string TrackKey = "Aquila.Scheme.Track";
+
+    /// <summary>Overrides Aquila.Scheme.Track for this piece alone. Its bars draw their track from that key
+    /// by reference, so a resource set here reaches them without each having to be told.</summary>
+    public Brush? TrackBrush
+    {
+        get => Resources[TrackKey] as Brush;
+        set
+        {
+            if (value is null) Resources.Remove(TrackKey);
+            else Resources[TrackKey] = value;
+        }
+    }
 }

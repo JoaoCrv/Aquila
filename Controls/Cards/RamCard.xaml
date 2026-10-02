@@ -12,10 +12,7 @@
          pool composition (StackedBar segments) is computed in code-behind; everything else binds
          straight to the SensorNodes. The card's content uses itself as DataContext. -->
     <UserControl.Resources>
-        <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
         <helpers:ZeroToCollapsedConverter x:Key="ZeroToCollapsed"/>
-        <helpers:IntensityBrushConverter x:Key="Intensity"/>
-        <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
     </UserControl.Resources>
 
     <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"

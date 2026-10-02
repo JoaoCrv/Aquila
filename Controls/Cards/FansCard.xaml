@@ -5,19 +5,12 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:controls="clr-namespace:Aquila.Controls"
-             xmlns:helpers="clr-namespace:Aquila.Helpers"
              xmlns:models="clr-namespace:Aquila.Models"
              mc:Ignorable="d"
              d:DesignHeight="240" d:DesignWidth="340">
     <!-- Self-contained fans card: a row per fan (name, duty-cycle bar, RPM) plus a CPU-fan trend
          sparkline. Bind FanRows (the FanRowItems to list) and CpuFan (the sensor to chart). Pure
          bindings, no computed state. Content uses itself as DataContext. -->
-    <UserControl.Resources>
-        <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
-        <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
-        <helpers:IntensityBrushConverter x:Key="Intensity"/>
-    </UserControl.Resources>
-
     <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
@@ -81,7 +74,7 @@
                                              Value="{Binding BarValue, Mode=OneWay}"
                                              Maximum="{Binding BarMaximum, Mode=OneWay}">
                                     <ProgressBar.Style>
-                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource FanBar}">
+                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource AccentBar}">
                                             <Setter Property="Foreground"
                                                     Value="{Binding BarPercent, Converter={StaticResource Intensity}, ConverterParameter=Motherboard.Duty}"/>
                                             <Style.Triggers>

@@ -7,7 +7,6 @@
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:controls="clr-namespace:Aquila.Controls"
     xmlns:cards="clr-namespace:Aquila.Controls.Cards"
-    xmlns:helpers="clr-namespace:Aquila.Helpers"
     Style="{StaticResource BasePageStyle}"
     Title="DashboardPage"
     mc:Ignorable="d">
@@ -17,8 +16,6 @@
             <Setter Property="VerticalAlignment"        Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
         </Style>
-
-        <helpers:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
 
         <!-- Header chip. Bordered, unlike the old plain fill: with a page title now beside them these
              have to read as belonging to the header rather than floating over the cards. -->
@@ -83,9 +80,9 @@
 
             <!-- ── GPU cards ─────────────────────────────────────────── -->
             <cards:GpuCard Gpu="{Binding ViewModel.Gpu1}"
-                           Visibility="{Binding ViewModel.Gpu1, Converter={StaticResource NullToCollapsedConverter}}"/>
+                           Visibility="{Binding ViewModel.Gpu1, Converter={StaticResource NullToCollapsed}}"/>
             <cards:GpuCard Gpu="{Binding ViewModel.Gpu2}"
-                           Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsedConverter}}"/>
+                           Visibility="{Binding ViewModel.Gpu2, Converter={StaticResource NullToCollapsed}}"/>
 
             <!-- ── RAM card ──────────────────────────────────────────── -->
             <cards:RamCard Memory="{Binding ViewModel.Hardware.Memory}"
@@ -97,13 +94,13 @@
 
             <!-- ── Storage cards (one slot per drive) ───────────────── -->
             <cards:StorageCard Storage="{Binding ViewModel.Storage1}"
-                               Visibility="{Binding ViewModel.Storage1, Converter={StaticResource NullToCollapsedConverter}}"/>
+                               Visibility="{Binding ViewModel.Storage1, Converter={StaticResource NullToCollapsed}}"/>
             <cards:StorageCard Storage="{Binding ViewModel.Storage2}"
-                               Visibility="{Binding ViewModel.Storage2, Converter={StaticResource NullToCollapsedConverter}}"/>
+                               Visibility="{Binding ViewModel.Storage2, Converter={StaticResource NullToCollapsed}}"/>
             <cards:StorageCard Storage="{Binding ViewModel.Storage3}"
-                               Visibility="{Binding ViewModel.Storage3, Converter={StaticResource NullToCollapsedConverter}}"/>
+                               Visibility="{Binding ViewModel.Storage3, Converter={StaticResource NullToCollapsed}}"/>
             <cards:StorageCard Storage="{Binding ViewModel.Storage4}"
-                               Visibility="{Binding ViewModel.Storage4, Converter={StaticResource NullToCollapsedConverter}}"/>
+                               Visibility="{Binding ViewModel.Storage4, Converter={StaticResource NullToCollapsed}}"/>
 
             <!-- ── Temperatures card ─────────────────────────────────── -->
             <cards:TemperaturesCard

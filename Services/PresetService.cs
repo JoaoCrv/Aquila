@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aquila.Helpers;
 using Aquila.Models;
 using Microsoft.Extensions.Logging;
 
@@ -220,9 +221,9 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
     /// and share one. Publishing is simply how a static XAML subtree gets dressed without every element
     /// resolving a preset in code.
     ///
-    /// The three series slots map onto the preset's ramps in order, which is what a widget's own lines
-    /// already do through DefaultRamp: a card asking for Series2 is asking for the second ramp. Below the
-    /// count of ramps they fall back to primary, by the same rule as RampFor.
+    /// The three series slots map onto the preset's ramps in order, by the rule a widget's own lines
+    /// follow (<see cref="Preset.RampNameFor"/>): a card asking for Series2 is asking for the second ramp,
+    /// and past the ramps the preset declares it gets primary.
     ///
     /// WPF's resources are hierarchical, so a second surface with a preset of its own would publish the
     /// same keys into its own scope and override these for everything inside it. Nothing here has to
@@ -234,40 +235,20 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         var resources = Application.Current?.Resources;
         if (resources is null) return;
 
-        var ramps = preset.Ramps.Values.ToList();
-        Ramp Nth(int i) => i < ramps.Count ? ramps[i] : preset.RampFor(Ramp.Primary);
-
         var primary = preset.RampFor(Ramp.Primary);
 
-        resources["Aquila.Scheme.Normal"] = Brush(primary.Normal);
-        resources["Aquila.Scheme.Elevated"] = Brush(primary.Elevated);
-        resources["Aquila.Scheme.Alert"] = Brush(primary.Alert);
-        resources["Aquila.Scheme.Critical"] = Brush(primary.Critical);
+        resources["Aquila.Scheme.Normal"] = HexBrush.From(primary.Normal);
+        resources["Aquila.Scheme.Elevated"] = HexBrush.From(primary.Elevated);
+        resources["Aquila.Scheme.Alert"] = HexBrush.From(primary.Alert);
+        resources["Aquila.Scheme.Critical"] = HexBrush.From(primary.Critical);
 
-        resources["Aquila.Scheme.Series1"] = Brush(Nth(0).Normal);
-        resources["Aquila.Scheme.Series2"] = Brush(Nth(1).Normal);
-        resources["Aquila.Scheme.Series3"] = Brush(Nth(2).Normal);
+        resources["Aquila.Scheme.Series1"] = HexBrush.From(preset.RampFor(null, 0).Normal);
+        resources["Aquila.Scheme.Series2"] = HexBrush.From(preset.RampFor(null, 1).Normal);
+        resources["Aquila.Scheme.Series3"] = HexBrush.From(preset.RampFor(null, 2).Normal);
 
         // A reading at rest, which is what an unjudged value shows.
-        resources["Aquila.Scheme.Accent"] = Brush(primary.Normal);
-        resources["Aquila.Scheme.Track"] = Brush(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
-    }
-
-    private static SolidColorBrush Brush(string hex, double opacity = 1)
-    {
-        try
-        {
-            var colour = (Color)ColorConverter.ConvertFromString(hex);
-            colour.A = (byte)Math.Clamp(opacity * 255, 0, 255);
-
-            var brush = new SolidColorBrush(colour);
-            brush.Freeze();
-            return brush;
-        }
-        catch
-        {
-            return new SolidColorBrush(Colors.Transparent);
-        }
+        resources["Aquila.Scheme.Accent"] = HexBrush.From(primary.Normal);
+        resources["Aquila.Scheme.Track"] = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
     }
 
     /// <summary>The locked presets edited in this session — the ones whose changes have nowhere to go
@@ -689,8 +670,7 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         if (string.IsNullOrWhiteSpace(preset.Name)) preset.Name = preset.Id;
 
         // System.Text.Json builds its own dictionary and discards the comparer, so a preset asking for
-        // "Primary" would miss a ramp stored as "primary". Rebuilt here, once, for the same reason the
-        // colour profile has to do it.
+        // "Primary" would miss a ramp stored as "primary". Rebuilt here, once.
         preset.Ramps = new Dictionary<string, Ramp>(preset.Ramps, StringComparer.OrdinalIgnoreCase);
 
         if (preset.Ramps.Count == 0)

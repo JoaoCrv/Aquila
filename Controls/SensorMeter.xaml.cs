@@ -246,6 +246,20 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
         set => LabelPlacement = value == MeterLayout.Above ? MeterLabelPlacement.Top : MeterLabelPlacement.Inline;
     }
 
+    private const string TrackKey = "Aquila.Scheme.Track";
+
+    /// <summary>Overrides Aquila.Scheme.Track for this piece alone. Its bars draw their track from that key
+    /// by reference, so a resource set here reaches them without each having to be told.</summary>
+    public Brush? TrackBrush
+    {
+        get => Resources[TrackKey] as Brush;
+        set
+        {
+            if (value is null) Resources.Remove(TrackKey);
+            else Resources[TrackKey] = value;
+        }
+    }
+
     private void Apply()
     {
         bool inline = LabelPlacement == MeterLabelPlacement.Inline;

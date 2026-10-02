@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:helpers="clr-namespace:Aquila.Helpers"
     DispatcherUnhandledException="OnDispatcherUnhandledException"
     Exit="OnExit"
     Startup="OnStartup">
@@ -19,6 +20,16 @@
                 <ResourceDictionary Source="Themes/Base.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Converters used by more than one file, declared once. Each card carried its own
+                 WidthThreshold and Intensity, thirty declarations in all, and two keys were spelled two
+                 ways (BoolToVisibility / BoolToVisibilityConverter), so markup could not move between
+                 files without its converters being renamed. A converter one file uses stays in that file. -->
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+            <helpers:IntensityBrushConverter x:Key="Intensity"/>
+            <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
+            <helpers:ThroughputConverter x:Key="Throughput"/>
+            <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

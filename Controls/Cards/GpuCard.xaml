@@ -5,18 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:controls="clr-namespace:Aquila.Controls"
-             xmlns:helpers="clr-namespace:Aquila.Helpers"
              mc:Ignorable="d"
              d:DesignHeight="360" d:DesignWidth="340">
     <!-- Self-contained GPU card: bind Gpu and it renders usage/temp/clock/power stat boxes (reusing
          StatBox), a usage sparkline, VRAM usage and fan speeds. Pure bindings, no computed state.
          Content uses itself as DataContext. -->
-    <UserControl.Resources>
-        <helpers:IntensityBrushConverter x:Key="Intensity"/>
-        <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
-        <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
-    </UserControl.Resources>
-
     <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
@@ -93,7 +86,7 @@
                             </TextBlock.Text>
                         </TextBlock>
                     </StackPanel>
-                    <ProgressBar Style="{StaticResource GpuBar}" Height="8"
+                    <ProgressBar Style="{StaticResource AccentBar}" Height="8"
                                  Value="{Binding Gpu.Data.Used.Value, FallbackValue=0}"
                                  Maximum="{Binding Gpu.Data.Total.Value, FallbackValue=1}"/>
                     <Grid Margin="0,5,0,0">

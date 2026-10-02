@@ -83,7 +83,6 @@ public partial class SensorBar : UserControl
 
     private void OnSensorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(Render); return; }
         Render();
     }
 

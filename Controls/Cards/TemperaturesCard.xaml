@@ -5,17 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:controls="clr-namespace:Aquila.Controls"
-             xmlns:helpers="clr-namespace:Aquila.Helpers"
              mc:Ignorable="d"
              d:DesignHeight="240" d:DesignWidth="340">
     <!-- Self-contained temperatures card: a grid of temperature stat boxes plus a trend sparkline.
          Bind Temperatures (the sensors to list) and DieTemperature (the sensor to chart). Every
          value binds straight to the SensorNodes, so no computed state. Content uses itself as DataContext. -->
-    <UserControl.Resources>
-        <helpers:IntensityBrushConverter x:Key="Intensity"/>
-        <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>
-    </UserControl.Resources>
-
     <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>

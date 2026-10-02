@@ -3,44 +3,6 @@
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         SCHEME — the keys the app's own surfaces bind to for DATA.
-
-         Everything on an app surface that paints data resolves one of these,
-         always through {DynamicResource}. PresetService overwrites them in
-         Application.Resources from the dashboard's preset. Desktop widgets do
-         not use them: each one resolves its own preset, because each may wear
-         a different one.
-
-         They live HERE, in the dictionary that is always merged, rather than
-         in a profile — profiles are files on disk that users add and delete,
-         and a key that binds to nothing is a control that renders blank.
-         This file is the guarantee that every role always exists.
-
-         The values below are only the pre-load fallback, so the first frame
-         has something to draw before the preset is published. They are Ember's
-         colours written out by hand, because XAML cannot read the JSON — the
-         one duplication here that cannot be removed, so change both or neither.
-
-         The hardware-named tokens that used to live here — Aquila.Cpu,
-         Aquila.Chart.Gpu and the rest — are gone. Their colours were not
-         lost: they are Presets/classic.json, selectable like any other.
-         ═══════════════════════════════════════════════════════════════════ -->
-
-    <!-- Window scrim, over the backdrop. Transparent here on purpose: this is what the FLUENT style
-         gets, and Fluent means plain Windows material with nothing of ours on top — the same rule that
-         already gives it no overlay and no accent of ours. The Aquila themes replace it with a tint.
-
-         It must exist here regardless: a theme overlay can be swapped out, and a key that vanishes from
-         under a DynamicResource would leave the window with no background at all. -->
-    <!-- ═══════════════════════════════════════════════════════════════════
-         SPACING — a named scale, never free margins.
-
-         A theme that can put any margin anywhere stops painting badly and starts breaking layouts. Four
-         steps and a corner radius are enough to make a theme feel denser or airier without letting it
-         move anything.
-         ═══════════════════════════════════════════════════════════════════ -->
-
-    <!-- ═══════════════════════════════════════════════════════════════════
          CHROME — what the APPLICATION says about itself.
 
          Separate from Aquila.Scheme.* on purpose, and the separation is the point. Scheme is what a
@@ -74,22 +36,25 @@
          and its family by name — and when those setters went, nothing was left reading these. A checked
          toggle is dressed in the theme now, from the kit's own keys. -->
 
-    <!-- The chrome accent's fallback, and ONLY the first frame's. Under Aquila the theme replaces it; under
-         Fluent AppearanceService replaces it with the kit's own accent fill once the theme is applied, so
-         Fluent shows the user's Windows accent here as everywhere else. It cannot be done from this file:
-         the kit uses a different shade of the system accent in light and in dark, and no single colour key
-         names both. -->
+    <!-- The chrome accent's fallback, and in practice never drawn: under Aquila the theme replaces it, and
+         under Fluent AppearanceService replaces it with the kit's own accent fill — both before the first
+         window exists. It cannot be done from this file: the kit uses a different shade of the system
+         accent in light and in dark, and no single colour key names both. -->
     <SolidColorBrush x:Key="Aquila.Chrome.Accent"   Color="#FF6B35"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Danger"   Color="#E74856"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Caution"  Color="#FFB900"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Success"  Color="#6CCB5F"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         SHAPE — how round the app is, in one place.
-         ═══════════════════════════════════════════════════════════════════ -->
+         SHAPE AND SPACING — a named step, never a free margin.
 
-    <CornerRadius x:Key="Aquila.Radius.Card">8</CornerRadius>
-    <CornerRadius x:Key="Aquila.Radius.Control">4</CornerRadius>
+         A theme that can put any margin anywhere stops painting badly and starts breaking layouts. Named
+         steps let a theme make the app denser or airier without letting it move anything.
+
+         Only the steps something reads. Aquila.Radius.Card and .Control and Aquila.Space.Tight and .Roomy
+         were offered as well, and nothing read any of the four — a theme changing them changed nothing,
+         which is a promise nobody could check. A step comes back the day a control asks for it.
+         ═══════════════════════════════════════════════════════════════════ -->
 
     <!-- How tall a control is. EVERY control: a button, a combo, a text box, a number box — and it is
          also the width of a square icon button, which is why one number answers both.
@@ -108,11 +73,41 @@
          were reading as one mass rather than as separate things. -->
     <Thickness x:Key="Aquila.Space.BetweenCards">0,0,0,12</Thickness>
 
-    <Thickness x:Key="Aquila.Space.Tight">6</Thickness>
     <Thickness x:Key="Aquila.Space.Snug">10</Thickness>
-    <Thickness x:Key="Aquila.Space.Roomy">14</Thickness>
 
+    <!-- Window scrim, over the backdrop. Transparent here on purpose: this is what the FLUENT style
+         gets, and Fluent means plain Windows material with nothing of ours on top — the same rule that
+         already gives it no overlay and no accent of ours. The Aquila themes replace it with a tint.
+
+         It must exist here regardless: a theme overlay can be swapped out, and a key that vanishes from
+         under a DynamicResource would leave the window with no background at all. -->
     <SolidColorBrush x:Key="Aquila.Window.Scrim"     Color="Transparent"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SCHEME — the keys the app's own surfaces bind to for DATA.
+
+         Everything on an app surface that paints data resolves one of these,
+         always through {DynamicResource}. PresetService overwrites them in
+         Application.Resources from the dashboard's preset. Desktop widgets do
+         not use them: each one resolves its own preset, because each may wear
+         a different one.
+
+         They live HERE, in the dictionary that is always merged, rather than
+         in a preset — presets are files on disk that users add and delete,
+         and a key that binds to nothing is a control that renders blank.
+         This file is the guarantee that every role always exists.
+
+         The keys must exist; their values are never drawn. AppearanceService
+         publishes the dashboard's preset before the first window is shown, so
+         nothing ever binds these before the preset's colours are on them. They
+         were once kept equal to Ember's by hand, under a rule to change both
+         or neither — and four of the nine had drifted with nobody seeing,
+         which is the proof that nobody could.
+
+         The hardware-named tokens that used to live here — Aquila.Cpu,
+         Aquila.Chart.Gpu and the rest — are gone. Their colours were not
+         lost: they are Presets/classic.json, selectable like any other.
+         ═══════════════════════════════════════════════════════════════════ -->
 
     <SolidColorBrush x:Key="Aquila.Scheme.Accent"    Color="#F5A623"/>
     <SolidColorBrush x:Key="Aquila.Scheme.Normal"    Color="#FFB765"/>

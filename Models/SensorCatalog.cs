@@ -20,11 +20,6 @@ public sealed record SensorEntry(string Label, SensorNode Sensor, MetricKind Met
     /// is warm.
     /// </summary>
     public MetricKey Key { get; init; }
-
-    /// <summary>Whether this reading can be judged at all. Watts, clocks, volts and bytes per second have no
-    /// universal "in trouble" number, so they are honestly unjudgeable rather than quietly measured against
-    /// the percentage steps.</summary>
-    public bool IsJudgeable => Thresholds.Preset(Key) is not null;
 }
 
 /// <summary>A hardware component and its live sensors.</summary>

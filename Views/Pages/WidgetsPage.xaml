@@ -5,17 +5,12 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:controls="clr-namespace:Aquila.Controls"
-      xmlns:helpers="clr-namespace:Aquila.Helpers"
       mc:Ignorable="d"
       d:DesignHeight="600" d:DesignWidth="1000"
       Title="Widgets"
       Style="{StaticResource BasePageStyle}"
       ScrollViewer.VerticalScrollBarVisibility="Auto"
       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-
-    <Page.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
-    </Page.Resources>
 
     <StackPanel Margin="20,0,20,20">
 

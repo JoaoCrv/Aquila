@@ -14,6 +14,10 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     private readonly AquilaState _state = state;
     private readonly NoticeService _notices = notices;
     private readonly ILogger<AquilaService> _logger = logger;
+    /// <summary>A DispatcherTimer, so every reading is written — and every SensorNode change raised — on
+    /// the UI thread. That is why no control marshals its own: seven did, each guarding against a thread
+    /// that never called. A source that pushes from another thread (#12) marshals where it WRITES, not
+    /// in every piece that draws.</summary>
     private readonly DispatcherTimer _timer = new();
     private bool _disposed;
 

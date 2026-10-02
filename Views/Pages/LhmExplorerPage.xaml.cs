@@ -1,5 +1,4 @@
-﻿using Aquila.Extensions;
-using Aquila.ViewModels.Pages;
+﻿using Aquila.ViewModels.Pages;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Abstractions.Controls;

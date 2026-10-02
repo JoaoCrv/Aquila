@@ -85,7 +85,6 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
     private void OnSensorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // The line redraws itself from the History collection; we only refresh the number here.
-        if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(UpdateValue); return; }
         UpdateValue();
     }
 

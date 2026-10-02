@@ -225,7 +225,6 @@ namespace Aquila
                     Services.GetService<ITrayNotifier>(),
                     TimeSpan.FromSeconds(2),
                     notices);
-            _host.Services.GetRequiredService<AquilaService>();
         }
 
         /// <summary>
