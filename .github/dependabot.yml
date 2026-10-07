@@ -1,0 +1,22 @@
+version: 2
+
+# Proposals, never merges. Minor and patch updates of the NuGet packages arrive as one weekly pull request
+# rather than one each; a major version (WPF-UI 5, LiveCharts 3) arrives on its own, because those are the
+# ones that need reading. The GitHub Actions pins in .github/workflows are kept current the same way.
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      nuget-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

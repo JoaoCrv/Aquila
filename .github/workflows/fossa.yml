@@ -1,0 +1,47 @@
+name: FOSSA
+
+# Licence report for every dependency, direct and transitive — the evidence that nothing in Aquila is
+# incompatible with MPL-2.0 or proprietary. Needs a FOSSA account and its API key in the FOSSA_API_KEY secret;
+# until that exists the job runs and skips the scan, so the workflow never fails for want of an account.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: windows-latest
+    steps:
+      - name: Check the API key
+        id: optional
+        shell: pwsh
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: '"FOSSA=$([bool]$env:FOSSA_API_KEY)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append'
+
+      - name: Checkout
+        if: steps.optional.outputs.FOSSA == 'True'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 9
+        if: steps.optional.outputs.FOSSA == 'True'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '9.0.x'
+
+      # Restored first, so FOSSA reads the full dependency graph from project.assets.json rather than only the
+      # packages named in the csproj.
+      - name: Restore
+        if: steps.optional.outputs.FOSSA == 'True'
+        run: dotnet restore
+
+      - name: Analyze
+        if: steps.optional.outputs.FOSSA == 'True'
+        uses: fossas/fossa-action@29693cc50323968e039056be419b32989fc5880c # v2.0.0
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}

@@ -5,84 +5,132 @@ on:
     tags:
       - 'v[0-9]*.[0-9]*.[0-9]*'
 
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: windows-latest
     permissions:
-      contents: write
+      contents: write        # create the release
+      id-token: write        # sign the build attestation with GitHub's OIDC identity
+      attestations: write    # store the attestation on the repository
 
     steps:
+      # Actions are pinned to a commit, not a tag: a tag can be moved to other code after the fact, a commit
+      # cannot. Dependabot keeps the pins current.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '9.0.x'
 
-      - name: Install Velopack CLI
-        run: dotnet tool install -g vpk
-
-      - name: Extract version from tag
+      - name: Versions
         id: vars
         shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
-          "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          # The packer has to match the Velopack library the app is built against. Installing whatever vpk
+          # is newest pairs a new packer with an old runtime the day Velopack moves on; read from the csproj,
+          # a Dependabot bump of the package moves the packer with it.
+          $xml = [xml](Get-Content Aquila.csproj)
+          $velopack = ($xml.Project.ItemGroup.PackageReference | Where-Object Include -eq 'Velopack').Version
+          "VERSION=$($env:TAG.TrimStart('v'))" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "VELOPACK=$velopack"                  | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Install Velopack CLI
+        env:
+          VELOPACK: ${{ steps.vars.outputs.VELOPACK }}
+        run: dotnet tool install -g vpk --version $env:VELOPACK
 
       - name: Publish
         run: dotnet publish -c Release -r win-x64
 
-      - name: Decode certificate
-        id: cert
-        shell: pwsh
-        run: |
-          $b64 = "${{ secrets.AQUILA_CERT_BASE64 }}"
-          if ($b64) {
-            [IO.File]::WriteAllBytes("aquila-cert.pfx", [Convert]::FromBase64String($b64))
-            "AVAILABLE=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          }
-
+      # Not code-signed. The certificate used up to 2.2.1 was self-signed: Windows trusted it no more than
+      # no signature at all, and it expired in August 2026. What someone downloading Aquila can check instead
+      # is where the installer was built (the attestation below) and what the antivirus engines make of it.
       - name: Package
         shell: pwsh
+        env:
+          VERSION: ${{ steps.vars.outputs.VERSION }}
         run: |
-          $publishDir = ".\bin\Release\net9.0-windows10.0.19041\win-x64\publish"
-          $vpkArgs = @(
-            "pack",
-            "--packId",      "Aquila",
-            "--packVersion", "${{ steps.vars.outputs.VERSION }}",
-            "--packDir",     $publishDir,
-            "--mainExe",     "Aquila.exe"
-          )
-          if ("${{ steps.cert.outputs.AVAILABLE }}" -eq "true") {
-            $signParams = "/td sha256 /fd sha256 /f `"aquila-cert.pfx`" /p `"${{ secrets.AQUILA_CERT_PASS }}`" /tr http://timestamp.comodoca.com"
-            $vpkArgs += "--signParams", $signParams
-          }
-          vpk @vpkArgs
+          vpk pack --packId Aquila --packVersion $env:VERSION `
+            --packDir .\bin\Release\net9.0-windows10.0.19041\win-x64\publish --mainExe Aquila.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Extract release notes from CHANGELOG
-        id: notes
+      # A signed statement, recorded on the repository, that these exact files were built by this workflow from
+      # this commit. Anyone can check a download against it: gh attestation verify <file> --repo JoaoCrv/Aquila
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: 'releases/*'
+
+      # Optional: the release still ships without a VirusTotal key, it simply has no scan links.
+      - name: Check optional secrets
+        id: optional
         shell: pwsh
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: '"VIRUSTOTAL=$([bool]$env:VT_API_KEY)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append'
+
+      - name: Scan on VirusTotal
+        id: virustotal
+        if: steps.optional.outputs.VIRUSTOTAL == 'True'
+        uses: crazy-max/ghaction-virustotal@936d8c5c00afe97d3d9a1af26d017cfdf26800a2 # v5.0.0
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: |
+            ./releases/*-Setup.exe
+            ./releases/*-Portable.zip
+          request_rate: 4
+
+      - name: Release notes
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.vars.outputs.VERSION }}
+          ANALYSIS: ${{ steps.virustotal.outputs.analysis }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
         run: |
-          $version = "${{ steps.vars.outputs.VERSION }}"
           $lines = Get-Content CHANGELOG.md
           $out = New-Object System.Collections.Generic.List[string]
           $capture = $false
           foreach ($line in $lines) {
-            if ($line -match "^## \[$([regex]::Escape($version))\]") { $capture = $true; continue }
+            if ($line -match "^## \[$([regex]::Escape($env:VERSION))\]") { $capture = $true; continue }
             elseif ($capture -and $line -match "^## \[") { break }
             if ($capture) { $out.Add($line) }
           }
           $body = ($out -join "`n").Trim()
-          if (-not $body) { $body = "Release $version" }
-          Set-Content -Path release-notes.md -Value $body -Encoding utf8
+          if (-not $body) { $body = "Release $env:VERSION" }
+
+          # How to trust a download that carries no code signature: where it was built, and what antivirus
+          # engines make of it. The VirusTotal output is "file=url" pairs separated by commas, and a scan URL
+          # can itself contain "=", so each pair is split on its first one only.
+          $verify = @(
+            '', '---', '', '### Verifying this download', '',
+            "Built by GitHub Actions from commit [``$($env:SHA.Substring(0, 7))``](https://github.com/$env:REPO/commit/$env:SHA), with a signed build attestation. To check a file you downloaded:",
+            '', '```', "gh attestation verify Aquila-win-Setup.exe --repo $env:REPO", '```', ''
+          )
+          if ($env:ANALYSIS) {
+            foreach ($pair in $env:ANALYSIS -split ',') {
+              $name, $url = $pair -split '=', 2
+              $verify += "- VirusTotal scan of ``$(Split-Path $name -Leaf)``: [results]($url)"
+            }
+            $verify += ''
+          }
+          $verify += 'The installer is not code-signed, so Windows SmartScreen may warn the first time it runs: choose **More info**, then **Run anyway**.'
+
+          Set-Content -Path release-notes.md -Value ($body + "`n" + ($verify -join "`n")) -Encoding utf8
 
       - name: Create GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
-          gh release create "${{ github.ref_name }}" ./releases/* `
-            --title "Aquila ${{ github.ref_name }}" `
-            --notes-file release-notes.md
+          gh release create $env:TAG ./releases/* --title "Aquila $env:TAG" --notes-file release-notes.md

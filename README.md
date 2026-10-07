@@ -10,6 +10,8 @@ Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive WPF 
 
 [![Download](https://img.shields.io/github/v/release/JoaoCrv/Aquila?label=Download&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/releases/latest)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge)](LICENSE)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/JoaoCrv/Aquila/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/JoaoCrv/Aquila?label=OpenSSF%20Scorecard&style=for-the-badge)](https://scorecard.dev/viewer/?uri=github.com/JoaoCrv/Aquila)
 
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4%20Sponsor-GitHub-ea4aaa?style=for-the-badge)](https://github.com/sponsors/JoaoCrv)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-0070ba?style=for-the-badge)](https://paypal.me/joaocrv)
@@ -29,6 +31,11 @@ Grab the latest release from the [**Releases page**](https://github.com/JoaoCrv/
 - **`Aquila-win-Portable.zip`** — portable build, no installation required
 
 Once installed, Aquila checks for updates silently on startup and notifies you before downloading anything.
+
+Releases are not code-signed, so Windows SmartScreen may warn the first time the installer runs — choose
+**More info**, then **Run anyway**. Instead, every release is built by GitHub Actions from a public commit
+and carries a signed build attestation, and its notes link a VirusTotal scan. How to check a download is
+in [SECURITY.md](SECURITY.md#verifying-a-download).
 
 ## Features
 
