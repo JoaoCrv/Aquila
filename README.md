@@ -96,15 +96,18 @@ Aquila is not sold as a commercial product by the maintainer. Optional donations
 
 Aquila is built with and made possible by several open-source projects:
 
-| Project                                                                              | Purpose                                   | License |
-| ------------------------------------------------------------------------------------ | ----------------------------------------- | ------- |
-| [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | hardware sensors and monitoring data      | MPL-2.0 |
-| [WPF-UI](https://github.com/lepoco/wpfui)                                            | Fluent-style WPF controls and navigation  | MIT     |
-| [WPF-UI.DependencyInjection](https://github.com/lepoco/wpfui)                        | DI integration for WPF-UI                 | MIT     |
-| [Velopack](https://github.com/velopack/velopack)                                     | packaging and in-app updates              | MIT     |
-| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)                  | MVVM helpers, source generators, commands | MIT     |
-| [LiveCharts2](https://github.com/beto-rodriguez/LiveCharts2)                         | charts and sparklines                     | MIT     |
-| [Microsoft.Extensions.Hosting](https://github.com/dotnet/runtime)                    | dependency injection and app hosting      | MIT     |
+| Project                                                                              | Purpose                                       | License    |
+| ------------------------------------------------------------------------------------ | --------------------------------------------- | ---------- |
+| [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | hardware sensors and monitoring data          | MPL-2.0    |
+| [WPF-UI](https://github.com/lepoco/wpfui)                                            | Fluent-style WPF controls and navigation      | MIT        |
+| [WPF-UI.DependencyInjection](https://github.com/lepoco/wpfui)                        | DI integration for WPF-UI                     | MIT        |
+| [Velopack](https://github.com/velopack/velopack)                                     | packaging and in-app updates                  | MIT        |
+| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)                  | MVVM helpers, source generators, commands     | MIT        |
+| [LiveCharts2](https://github.com/beto-rodriguez/LiveCharts2)                         | charts and sparklines                         | MIT        |
+| [Microsoft.Extensions.Hosting](https://github.com/dotnet/runtime)                    | dependency injection and app hosting          | MIT        |
+| [Serilog.Extensions.Hosting](https://github.com/serilog/serilog-extensions-hosting)  | logging, wired into the app host              | Apache-2.0 |
+| [Serilog.Sinks.File](https://github.com/serilog/serilog-sinks-file)                  | the log files in Documents\Aquila\logs        | Apache-2.0 |
+| [TaskScheduler](https://github.com/dahall/TaskScheduler)                             | the task that starts Aquila elevated at logon | MIT        |
 
 ## Maintainer
 

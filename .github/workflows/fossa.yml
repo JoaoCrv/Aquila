@@ -7,13 +7,16 @@ name: FOSSA
 on:
   push:
     branches: [master]
+  workflow_dispatch:   # so the first scan can be run as soon as the key exists, without waiting for a push
 
 permissions:
   contents: read
 
 jobs:
   scan:
-    runs-on: windows-latest
+    # Linux: the FOSSA action does not run on Windows runners. The restore below is told to accept a
+    # Windows-only project, which is all the scan needs — nothing is built.
+    runs-on: ubuntu-latest
     steps:
       - name: Check the API key
         id: optional
@@ -34,11 +37,11 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      # Restored first, so FOSSA reads the full dependency graph from project.assets.json rather than only the
-      # packages named in the csproj.
+      # Restored first, so FOSSA reads the full dependency graph from project.assets.json — 91 packages —
+      # rather than only the 10 named in the csproj, which is all the GitHub integration could see.
       - name: Restore
         if: steps.optional.outputs.FOSSA == 'True'
-        run: dotnet restore
+        run: dotnet restore -p:EnableWindowsTargeting=true
 
       - name: Analyze
         if: steps.optional.outputs.FOSSA == 'True'
