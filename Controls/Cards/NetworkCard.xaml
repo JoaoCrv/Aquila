@@ -9,7 +9,7 @@
              d:DesignHeight="260" d:DesignWidth="340">
     <!-- Self-contained network card: bind Network and it renders the whole card. Every value binds
          straight to the SensorNodes, so there is no computed state. Content uses itself as DataContext. -->
-    <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
+    <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
             <Grid.RowDefinitions>

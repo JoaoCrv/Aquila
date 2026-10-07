@@ -30,8 +30,8 @@
          states nothing of its own. To restyle, move a level; to move one part between levels, change one
          line here.
 
-         The vocabulary is the app's own: App, Card and Well are what Surface.Kind already calls them, so
-         there is one language for depth rather than two.
+         The level names are the app's own and the same in every theme, so there is one language for depth
+         rather than one per file.
          ═══════════════════════════════════════════════════════════════════ -->
 
     <!-- ── THE PALETTE ─────────────────────────────────────────────────
@@ -150,8 +150,7 @@
 
     <!-- There is no WELL. A level for the inside of an open CardExpander was declared here and painted
          nothing: the kit binds the expanded content's Border to CardBackground, the same key as the
-         header, so there is no second colour to give it without retemplating the control. The
-         Surface.Kind enum still has a Well member and no XAML anywhere declares it.
+         header, so there is no second colour to give it without retemplating the control.
 
          Recorded rather than quietly dropped, because the idea is sound and may come back — it just needs
          a template before it needs a colour. -->

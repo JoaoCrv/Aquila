@@ -10,7 +10,7 @@
     <!-- Self-contained storage card: temp/used stat boxes (reusing StatBox), read/write throughput
          rows with bars, and a read+write I/O sparkline. Bind Storage. Pure bindings, no computed
          state. Content uses itself as DataContext. -->
-    <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
+    <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
             <Grid.RowDefinitions>

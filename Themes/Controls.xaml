@@ -33,10 +33,7 @@
          was too wide: `BasedOn="{StaticResource {x:Type ui:X}}"` resolves the kit's style at parse time and
          extends it, and the CardExpander rule below plus the three field rules above have run that way
          without incident. Re-measured 2026-09-24 by starting the app, which is the only test that catches
-         this failure.
-
-         Prefer Surface.Kind where it fits regardless: it INHERITS, so a container declares it once for
-         everything inside, and a per-window margin is a window's business rather than a rule. -->
+         this failure. -->
 
     <!-- The same face and outline the icon buttons wear, on the controls you type or choose in. The
          design gives a combo the identical treatment as a button, and without it a combo over Mica is a

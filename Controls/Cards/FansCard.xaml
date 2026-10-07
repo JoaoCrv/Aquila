@@ -11,7 +11,7 @@
     <!-- Self-contained fans card: a row per fan (name, duty-cycle bar, RPM) plus a CPU-fan trend
          sparkline. Bind FanRows (the FanRowItems to list) and CpuFan (the sensor to chart). Pure
          bindings, no computed state. Content uses itself as DataContext. -->
-    <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
+    <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
             <Grid.RowDefinitions>

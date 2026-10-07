@@ -10,7 +10,7 @@
     <!-- Self-contained temperatures card: a grid of temperature stat boxes plus a trend sparkline.
          Bind Temperatures (the sensors to list) and DieTemperature (the sensor to chart). Every
          value binds straight to the SensorNodes, so no computed state. Content uses itself as DataContext. -->
-    <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
+    <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
             <Grid.RowDefinitions>

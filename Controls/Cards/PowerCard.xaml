@@ -10,7 +10,7 @@
     <!-- Self-contained power card: total system power, per-source rows (CPU / GPU / GPU 2) and a
          total-power trend sparkline. Bind TotalPower/CpuPower/Gpu1Power/Gpu2Power. Pure bindings, no
          computed state. Content uses itself as DataContext. -->
-    <ui:Card controls:Surface.Kind="Card" Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
+    <ui:Card Padding="12,10" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch"
              DataContext="{Binding RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid>
             <Grid.RowDefinitions>

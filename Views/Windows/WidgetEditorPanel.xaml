@@ -149,7 +149,7 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Expander.Expanded="OnCardExpanded" controls:Surface.Kind="Card">
+                <StackPanel Expander.Expanded="OnCardExpanded">
 
                     <ui:CardExpander Icon="{ui:SymbolIcon Grid24}" IsExpanded="True">
                         <ui:CardExpander.Header>
@@ -772,7 +772,7 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Expander.Expanded="OnCardExpanded" controls:Surface.Kind="Card">
+                <StackPanel Expander.Expanded="OnCardExpanded">
 
                     <StackPanel Margin="0,0,0,8">
                         <TextBlock Text="Preview on desktop" FontWeight="SemiBold" FontSize="12"
