@@ -36,10 +36,10 @@
          and its family by name — and when those setters went, nothing was left reading these. A checked
          toggle is dressed in the theme now, from the kit's own keys. -->
 
-    <!-- The chrome accent's fallback, and in practice never drawn: under Aquila the theme replaces it, and
-         under Fluent AppearanceService replaces it with the kit's own accent fill — both before the first
-         window exists. It cannot be done from this file: the kit uses a different shade of the system
-         accent in light and in dark, and no single colour key names both. -->
+    <!-- The chrome accent's fallback, and in practice never drawn: a theme that declares the key replaces
+         it, and for one that does not, AppearanceService sets the kit's own accent fill — both before the
+         first window exists. The default cannot be stated here: the kit uses a different shade of the
+         system accent in light and in dark, and no single colour key names both. -->
     <SolidColorBrush x:Key="Aquila.Chrome.Accent"   Color="#FF6B35"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Danger"   Color="#E74856"/>
     <SolidColorBrush x:Key="Aquila.Chrome.Caution"  Color="#FFB900"/>

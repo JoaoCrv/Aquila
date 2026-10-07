@@ -136,6 +136,9 @@
     <!-- ── THE ASSIGNMENTS ─────────────────────────────────────────────
          Who lives at which level. Nothing below states a colour of its own. -->
 
+    <!-- Optional: leave it out and the badges and dashed "add" outlines take the accent the kit is using,
+         which here is Aquila.Accent anyway. Declared so this is visibly the place to give them a colour of
+         their own. -->
     <SolidColorBrush x:Key="Aquila.Chrome.Accent"                   Color="{StaticResource Aquila.Accent}"/>
     <SolidColorBrush x:Key="Aquila.Window.Scrim"                    Color="{StaticResource Aquila.Surface.Scrim}"/>
 

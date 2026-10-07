@@ -113,27 +113,31 @@ public sealed class AppearanceService(
     private const string ChromeAccent = "Aquila.Chrome.Accent";
 
     /// <summary>
-    /// Points Aquila.Chrome.Accent at the accent actually in force.
+    /// Aquila.Chrome.Accent — the badges and the dashed "add" outlines: the theme's colour when the theme
+    /// declares one, and otherwise the accent the kit is using.
     ///
-    /// Under Fluent it was falling through to Base.xaml's fallback — our orange written out by hand — so
-    /// the unseen-notices badge, the drive letter badges and every dashed "add" outline came out orange on
-    /// a window wearing the user's Windows accent everywhere else. The one rule Fluent has is that it gets
-    /// no colours of ours, and three things were breaking it.
+    /// The same rule the other chrome colours follow on their own, because their defaults are fixed values in
+    /// Base.xaml that a theme simply overrides. This one's default is not fixed — it is whichever accent is in
+    /// force — so it takes code. It used to ask "is this an Aquila theme", which made the key compulsory for
+    /// that family and impossible for any other; the question that matters is whether THIS theme chose a
+    /// colour for it. A theme that leaves it out gets badges in its own accent, which is what nearly every
+    /// theme wants, and one that wants them different declares the key.
     ///
-    /// Copied from the kit's own AccentFillColorDefaultBrush, after step 4 has re-applied the theme, rather
-    /// than named as a colour key in XAML: the kit fills accents with a DIFFERENT shade of the system
-    /// accent in light and in dark — measured, SystemAccentColorSecondary in dark and SystemAccentColorPrimary
-    /// in light — so no single key would be right in both.
+    /// The default is copied from the kit's AccentFillColorDefaultBrush, after step 4 has re-applied the
+    /// theme, rather than named as a colour key in XAML: the kit fills accents with a DIFFERENT shade of the
+    /// system accent in light and in dark — measured, SystemAccentColorSecondary in dark and
+    /// SystemAccentColorPrimary in light — so no single key would be right in both. Under Fluent that is the
+    /// Windows accent, which Base.xaml's hand-written orange once stood in for on three things; under Aquila
+    /// it is Aquila.Accent, which step 3 handed to the kit.
     ///
-    /// Set on the application's root dictionary, which outranks every merged one, and REMOVED under an
-    /// Aquila theme so the overlay's own definition shows through again. Under Aquila the two agree anyway
-    /// — step 3 hands the kit our accent — but the theme file stays the place that says it.
+    /// Set on the application's root dictionary, which outranks every merged one, and REMOVED when the theme
+    /// declares the key, so the theme's own definition shows through.
     /// </summary>
     private void ApplyChromeAccent()
     {
         var resources = Application.Current.Resources;
 
-        if (_overlay is not null)
+        if (_overlay?.Contains(ChromeAccent) == true)
         {
             resources.Remove(ChromeAccent);
             return;
