@@ -36,25 +36,43 @@ public static class SensorCatalog
     {
         var components = new List<SensorComponent>();
 
-        for (int i = 0; i < hw.Cpus.Count; i++)
-            Add(components, hw.Cpus[i].Name ?? $"CPU {i + 1}", HardwareKind.Cpu, CpuSensors(hw.Cpus[i]));
-
-        Add(components, "Memory", HardwareKind.Memory, MemorySensors(hw.Memory));
-
-        for (int i = 0; i < hw.Gpus.Count; i++)
-            Add(components, hw.Gpus[i].Name ?? $"GPU {i + 1}", HardwareKind.Gpu, GpuSensors(hw.Gpus[i]));
-
-        Add(components, hw.Motherboard.Name ?? "Motherboard", HardwareKind.Motherboard, MotherboardSensors(hw.Motherboard));
-
-        for (int i = 0; i < hw.Networks.Count; i++)
-            Add(components, hw.Networks[i].Name ?? $"Network {i + 1}", HardwareKind.Network, NetworkSensors(hw.Networks[i]));
-
-        for (int i = 0; i < hw.Storages.Count; i++)
-            Add(components, hw.Storages[i].Name ?? $"Storage {i + 1}", HardwareKind.Storage, StorageSensors(hw.Storages[i]));
-
-        Add(components, "System", HardwareKind.System, [new("Total Power", hw.TotalPower, MetricKind.Power)]);
+        foreach (var (name, hardware, entries) in Walk(hw))
+            Add(components, name, hardware, entries);
 
         return components;
+    }
+
+    /// <summary>
+    /// Every sensor the catalogue knows, with the kind of reading it is — whether or not it reads anything
+    /// yet, unlike <see cref="GetComponents"/>, which lists only what is live.
+    ///
+    /// A SensorNode does not know what it measures, only where it sits: the translator reads
+    /// LibreHardwareMonitor's sensor type to decide WHERE a reading goes and keeps nothing of it. This walk
+    /// is the one place that turns where into what, so anything that needs the kind asks here rather than
+    /// keeping a second answer that could disagree.
+    /// </summary>
+    public static IEnumerable<(SensorNode Sensor, MetricKey Key)> Keys(HardwareNode hw) =>
+        Walk(hw).SelectMany(h => h.Entries.Select(e => (e.Sensor, new MetricKey(h.Hardware, e.Metric))));
+
+    private static IEnumerable<(string Name, HardwareKind Hardware, IEnumerable<SensorEntry> Entries)> Walk(HardwareNode hw)
+    {
+        for (int i = 0; i < hw.Cpus.Count; i++)
+            yield return (hw.Cpus[i].Name ?? $"CPU {i + 1}", HardwareKind.Cpu, CpuSensors(hw.Cpus[i]));
+
+        yield return ("Memory", HardwareKind.Memory, MemorySensors(hw.Memory));
+
+        for (int i = 0; i < hw.Gpus.Count; i++)
+            yield return (hw.Gpus[i].Name ?? $"GPU {i + 1}", HardwareKind.Gpu, GpuSensors(hw.Gpus[i]));
+
+        yield return (hw.Motherboard.Name ?? "Motherboard", HardwareKind.Motherboard, MotherboardSensors(hw.Motherboard));
+
+        for (int i = 0; i < hw.Networks.Count; i++)
+            yield return (hw.Networks[i].Name ?? $"Network {i + 1}", HardwareKind.Network, NetworkSensors(hw.Networks[i]));
+
+        for (int i = 0; i < hw.Storages.Count; i++)
+            yield return (hw.Storages[i].Name ?? $"Storage {i + 1}", HardwareKind.Storage, StorageSensors(hw.Storages[i]));
+
+        yield return ("System", HardwareKind.System, new SensorEntry[] { new("Total Power", hw.TotalPower, MetricKind.Power) });
     }
 
     /// <summary>Resolves a live sensor by its Identifier, or null. Used to bind widgets to a sensor.</summary>
@@ -72,8 +90,8 @@ public static class SensorCatalog
     // Only adds entries whose sensor has a value (skips unpopulated nodes), and drops empty components.
     //
     // The hardware half of the key is stamped here and the metric half comes from each builder, because
-    // this is the one place that has both: the loop above knows it is walking CPUs, and the builder knows
-    // that c.Temperature.Primary is a temperature. Neither knows alone, and the leaf knows neither.
+    // this is the one place that has both: the walk above knows it is on CPUs, and the builder knows that
+    // c.Temperature.Primary is a temperature. Neither knows alone, and the leaf knows neither.
     private static void Add(List<SensorComponent> components, string name, HardwareKind hardware,
         IEnumerable<SensorEntry> entries)
     {

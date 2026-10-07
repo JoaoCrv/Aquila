@@ -1,4 +1,5 @@
 using Aquila.Models;
+using Aquila.Services;
 
 namespace Aquila.Controls;
 
@@ -23,8 +24,8 @@ namespace Aquila.Controls;
 public static class SensorScale
 {
     /// <summary>
-    /// The top of the scale. An explicit maximum wins; a percentage and a temperature are 0..100; anything
-    /// else is measured against its own recent peak.
+    /// The top of the scale. An explicit maximum wins; a percentage and a temperature have a fixed top
+    /// (<see cref="Fixed"/>); anything else is measured against its own recent peak.
     ///
     /// The recent peak is the right answer for the reading it was invented for — throughput, unbounded and
     /// spiky — and the wrong one for any reading that holds steady, because a steady reading IS its recent
@@ -33,10 +34,33 @@ public static class SensorScale
     /// before 100 °C and nothing in a PC is meant to pass it — so it gets the same fixed range, and 62 °C
     /// draws as a little over half, which is what it is.
     /// </summary>
+    /// <summary>
+    /// The fixed top of the scale for a reading that has one, or null for one measured against its own
+    /// recent peak.
+    ///
+    /// A percentage is 100, by definition. A temperature is 100 as well — hardware throttles near there —
+    /// unless the critical limit for that kind of reading, plus a tenth, is higher: a GPU hot spot or a
+    /// memory junction can pass 100 °C, and drawn against 100 it would sit full while it went on climbing.
+    /// So the scale follows the limits the user sets: 95 °C critical gives 104.5, a drive's 75 stays at 100.
+    /// The percentage cannot take the same rule — 92 plus a tenth is 101, and a load of 100% would no
+    /// longer fill the dial.
+    ///
+    /// The one rule for every piece that draws a fixed scale — dials, bars and lines — which used to be four
+    /// rules: the dial and the bars knew about temperature, the lines only about percentages, and the
+    /// dashboard's temperature chart had 100 written into its markup. The same reading could meet two
+    /// different ceilings side by side.
+    /// </summary>
+    public static double? Fixed(SensorNode sensor) => sensor.Unit switch
+    {
+        "%" => 100,
+        "°C" => Math.Max(100, (VitalMonitor.Current?.CriticalFor(sensor) ?? 0) * 1.1),
+        _ => null,
+    };
+
     public static double Ceiling(SensorNode sensor, double declared)
     {
         if (!double.IsNaN(declared)) return declared;
-        if (sensor.Unit is "%" or "°C") return 100;
+        if (Fixed(sensor) is { } top) return top;
 
         var peak = 0d;
         foreach (var point in sensor.History)

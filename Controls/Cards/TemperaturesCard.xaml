@@ -68,10 +68,9 @@
                            Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
             </StackPanel>
 
-            <controls:SparklineChart Grid.Row="1" MinHeight="40"
+            <controls:SparklineChart x:Name="Trend" Grid.Row="1" MinHeight="40"
                 Values="{Binding DieTemperature.History}"
                 SeriesColor="{DynamicResource Aquila.Scheme.Series1}"
-                MaxY="100"
                 Visibility="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type ui:Card}}, Converter={StaticResource WidthThreshold}, ConverterParameter=280}"/>
         </Grid>
     </ui:Card>

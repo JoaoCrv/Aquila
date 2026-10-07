@@ -783,8 +783,9 @@ public sealed class DesktopWidgetService
 
         var definition = NewDefinition(sensorIdentifier);
 
-        // A dial needs a bounded scale to mean anything, so only a percentage gets one; everything else
-        // gets the trend, which reads honestly whatever the units are.
+        // A percentage is a share of a whole, which is what a dial draws; every other reading — temperature
+        // included, although it has a fixed scale too — pins as its trend, the same for all of them, which
+        // reads honestly whatever the units are. A different shape is one click away in the editor.
         definition.Kind = sensor.Unit == "%" ? DesktopWidgetKind.RadialGauge : DesktopWidgetKind.MiniSparkline;
         definition.Title = sensor.Name ?? string.Empty;
 

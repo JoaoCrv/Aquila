@@ -69,7 +69,8 @@ public enum GaugeSweep
 /// </summary>
 public enum ChartScale
 {
-    /// <summary>Floor at zero, ceiling at 100 for a percentage and at whatever the data reaches otherwise.</summary>
+    /// <summary>Floor at zero; the ceiling fixed for a percentage or a temperature (SensorScale.Fixed) and at
+    /// whatever the data reaches otherwise.</summary>
     FromZero,
 
     /// <summary>Both ends follow the readings on screen. The line uses the full height — at the cost of a

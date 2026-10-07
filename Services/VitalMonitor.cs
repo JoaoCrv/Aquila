@@ -26,7 +26,7 @@ namespace Aquila.Services;
 /// need hysteresis when it arrives — a reading oscillating either side of a limit would otherwise fire
 /// continuously, which is how a monitor teaches its user to ignore it.
 /// </summary>
-public sealed class VitalMonitor(SettingsService settings)
+public sealed class VitalMonitor(SettingsService settings, AquilaState state)
 {
     /// <summary>
     /// The instance the XAML converter reads, set once by the composition root.
@@ -181,6 +181,31 @@ public sealed class VitalMonitor(SettingsService settings)
     /// what a number means.
     /// </summary>
     public string RoleFor(double value, MetricKey key) => For(key)?.Role(value) ?? "Normal";
+
+    /// <summary>
+    /// The kind of reading a sensor is, or null for a node the catalogue does not list — for a caller that
+    /// holds only the sensor, as every piece that draws a scale does.
+    ///
+    /// Asked of <see cref="SensorCatalog.Keys"/>, never kept on the node. Cached, because a dial asks on
+    /// every reading; walked again when a node is not found, which is what a drive plugged in mid-session
+    /// looks like. A node still not found is remembered as having no kind, so it is not walked for twice.
+    /// </summary>
+    public MetricKey? KeyFor(SensorNode sensor)
+    {
+        if (_keys.TryGetValue(sensor, out var key)) return key;
+
+        foreach (var (node, found) in SensorCatalog.Keys(state.Hardware))
+            _keys.TryAdd(node, found);
+
+        if (!_keys.TryGetValue(sensor, out key)) _keys[sensor] = key = null;
+        return key;
+    }
+
+    private readonly Dictionary<SensorNode, MetricKey?> _keys = [];
+
+    /// <summary>The critical limit in force for a sensor's kind of reading — the user's, the drive's own,
+    /// or the built-in one, in that order — or null when the reading cannot be judged.</summary>
+    public double? CriticalFor(SensorNode sensor) => KeyFor(sensor) is { } key ? For(key)?.Critical : null;
 
     /// <summary>
     /// The colour a reading has earned.

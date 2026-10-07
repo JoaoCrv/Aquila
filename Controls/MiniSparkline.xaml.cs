@@ -84,7 +84,8 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
 
     private void OnSensorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // The line redraws itself from the History collection; we only refresh the number here.
+        // The line redraws itself from the History collection; we only refresh the number here — and the
+        // top of the scale, which follows the critical limit, and a reading is announced again when that moves.
         UpdateValue();
     }
 
@@ -94,7 +95,6 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
             return;
 
         Spark.SeriesColor = Accent;
-        Spark.MaxY = Sensor.Unit == "%" ? 100 : double.NaN; // % sensors share one 0..100 scale
         Spark.Values = Sensor.History;
         UpdateValue();
     }
@@ -119,5 +119,9 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
         set { _showUnit = value; UpdateValue(); }
     }
 
-    private void UpdateValue() => ValueText.Text = Sensor.Reading(_showUnit, string.Empty);
+    private void UpdateValue()
+    {
+        ValueText.Text = Sensor.Reading(_showUnit, string.Empty);
+        Spark.MaxY = Sensor is null ? double.NaN : SensorScale.Fixed(Sensor) ?? double.NaN;
+    }
 }

@@ -21,7 +21,11 @@ public partial class TemperaturesCard : UserControl
 
     public static readonly DependencyProperty DieTemperatureProperty =
         DependencyProperty.Register(nameof(DieTemperature), typeof(SensorNode), typeof(TemperaturesCard),
-            new PropertyMetadata(null));
+            new PropertyMetadata(null, (d, e) =>
+                // The top of the trend is the same rule every piece asks, not a 100 written in the markup.
+                ((TemperaturesCard)d).Trend.MaxY = e.NewValue is SensorNode sensor
+                    ? SensorScale.Fixed(sensor) ?? double.NaN
+                    : double.NaN));
 
     /// <summary>The temperature sensors to list (e.g. the motherboard temperatures).</summary>
     public IEnumerable? Temperatures

@@ -248,14 +248,14 @@ public static class WidgetCatalog
     /// maintains, so nothing here has to poll or copy. It holds no SensorNode, which is why it is not an
     /// ISensorPiece: its subscription is to a collection, and it tears that down on Unloaded by itself.
     ///
-    /// A percentage gets a fixed 0–100 ceiling. Anything else auto-scales, because there is no honest
-    /// upper bound to assume for watts or bytes per second.
+    /// A percentage or a temperature gets a fixed top (<see cref="SensorScale.Fixed"/>). Anything else
+    /// auto-scales, because there is no honest upper bound to assume for watts or bytes per second.
     /// </summary>
     private static SparklineChart BuildChart(IReadOnlyList<SensorNode> series) => new()
     {
         Values = series[0].History,
         SecondValues = series.Count > 1 ? series[1].History : null,
-        MaxY = series[0].Unit == "%" ? 100 : double.NaN,
+        MaxY = SensorScale.Fixed(series[0]) ?? double.NaN,
     };
 
 }
