@@ -12,6 +12,7 @@ Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive WPF 
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge)](LICENSE)
 [![CodeQL](https://img.shields.io/github/actions/workflow/status/JoaoCrv/Aquila/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/JoaoCrv/Aquila?label=OpenSSF%20Scorecard&style=for-the-badge)](https://scorecard.dev/viewer/?uri=github.com/JoaoCrv/Aquila)
+[![FOSSA licence scan](https://app.fossa.com/api/projects/custom%2B64600%2Fgithub.com%2FJoaoCrv%2FAquila.svg?type=shield)](https://app.fossa.com/projects/custom%2B64600%2Fgithub.com%2FJoaoCrv%2FAquila?ref=badge_shield)
 
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4%20Sponsor-GitHub-ea4aaa?style=for-the-badge)](https://github.com/sponsors/JoaoCrv)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-0070ba?style=for-the-badge)](https://paypal.me/joaocrv)
