@@ -339,6 +339,7 @@ public sealed class DesktopWidgetService
         // second case and compared the default's id case-sensitively.
         _panel.ViewModel.CountWearers = id => _widgets?.Count(w =>
             ReferenceEquals(_presets.For(w.Preset), _presets.For(id))) ?? 0;
+        _panel.ViewModel.PollInterval = () => _aquila.Interval;
         _panel.AddRequested += OnAddRequested;
         _panel.RemoveRequested += RemoveFromPanel;
 

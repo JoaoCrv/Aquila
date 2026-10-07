@@ -259,6 +259,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// hesitate before changing one.</summary>
     public Func<string, int>? CountWearers { get; set; }
 
+    /// <summary>How often a reading arrives. Supplied by the host, like <see cref="CountWearers"/>, and asked
+    /// each time rather than copied, so the label follows the setting.</summary>
+    public Func<TimeSpan>? PollInterval { get; set; }
+
     public string WornBy => SelectedPreset is not { } preset
         ? string.Empty
         : (CountWearers?.Invoke(preset.Id) ?? 0) switch
@@ -988,16 +992,28 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         Apply();
     }
 
-    /// <summary>How much time the chart covers. A double because that is what a Slider binds to; one
-    /// reading arrives per poll tick, so the number is also the trend's length in seconds.</summary>
+    /// <summary>How many readings the chart keeps. A double because that is what a Slider binds to. The time
+    /// they cover is this times the poll interval — see <see cref="WindowLabel"/>.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowLabel))]
     private double _pointCount = 60;
 
-    /// <summary>Seconds up to two minutes, minutes past that — nobody reads "600 s" as ten minutes.</summary>
-    public string WindowLabel => PointCount < 120
-        ? $"{PointCount:F0} s"
-        : $"{PointCount / 60:0.#} min";
+    /// <summary>
+    /// The time the chart covers: its readings times the poll interval.
+    ///
+    /// It used to print the readings as seconds, true only while the poll was a second — at 2 s a chart
+    /// labelled one minute covered two. The chart keeps READINGS, as HWiNFO's do, so changing the poll
+    /// changes the time and this says so. Seconds up to two minutes, minutes past that — nobody reads
+    /// "600 s" as ten minutes.
+    /// </summary>
+    public string WindowLabel
+    {
+        get
+        {
+            var seconds = PointCount * (PollInterval?.Invoke() ?? TimeSpan.FromSeconds(1)).TotalSeconds;
+            return seconds < 120 ? $"{seconds:0.#} s" : $"{seconds / 60:0.#} min";
+        }
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ScaleIsManual))]

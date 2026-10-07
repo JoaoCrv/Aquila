@@ -220,8 +220,9 @@ public class DesktopWidgetDefinition
     /// <summary>What a Clock widget shows. Which of time or date is content; how big it is drawn is not.</summary>
     public ClockFormat ClockFormat { get; set; } = ClockFormat.Time;
 
-    /// <summary>How many readings a chart shows — one per poll tick, so the trend's length in seconds.
-    /// How much data to show is a question about the data, not about how it looks.</summary>
+    /// <summary>How many readings a chart shows. Readings, not seconds: the time they cover is this times
+    /// the poll interval, which the user can change. How much data to show is a question about the data,
+    /// not about how it looks.</summary>
     public int PointCount { get; set; } = 60;
 
     /// <summary>How a chart's vertical scale is decided, and its ends when the user decides them. Also

@@ -61,7 +61,7 @@ public class SensorNode : INotifyPropertyChanged
     public ObservableCollection<double> History { get; } = [];
 
     /// <summary>
-    /// How many readings to keep — one per poll tick, so this is the length of the trend in seconds.
+    /// How many readings to keep, one per poll tick — so the time they cover depends on the poll interval.
     ///
     /// Sixty by default and raised only on request, because EVERY sensor keeps a history whether anything
     /// draws it or not: a machine reporting three hundred sensors would pay for a ten-minute window on all
@@ -90,6 +90,10 @@ public class SensorNode : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>Says the reading again without it having changed, for whatever JUDGES it: a new preset or new
+    /// limits change the colour a value has earned, and a binding only converts when it hears the value.</summary>
+    public void Announce() => OnPropertyChanged(nameof(Value));
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

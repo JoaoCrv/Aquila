@@ -92,6 +92,28 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     public void SetInterval(int milliseconds)
         => _timer.Interval = TimeSpan.FromMilliseconds(milliseconds);
 
+    /// <summary>
+    /// Announces every reading again, unchanged.
+    ///
+    /// A judged colour is worked out when a reading CHANGES — that is when a binding converts — so a new
+    /// preset or new limits, which change the answer without changing the reading, reached only the readings
+    /// that happened to move. A drive holding 38 °C kept the old preset's colour, or the old limit's verdict,
+    /// until it read 39. The title bar re-raised for itself; every card binding waited.
+    ///
+    /// Not done by repainting the brushes in place instead: the charts turn a brush into a Skia colour when
+    /// their brush PROPERTY changes, and a brush changed in place never changes the property.
+    /// </summary>
+    public void Reannounce()
+    {
+        foreach (var component in SensorCatalog.GetComponents(_state.Hardware))
+            foreach (var entry in component.Sensors)
+                entry.Sensor.Announce();
+    }
+
+    /// <summary>How often a reading arrives. A chart keeps a number of READINGS, so this is what turns one
+    /// into a length of time — Settings lets the user change it, and nothing may assume it is a second.</summary>
+    public TimeSpan Interval => _timer.Interval;
+
     private void OnTick(object? sender, EventArgs e)
     {
         try

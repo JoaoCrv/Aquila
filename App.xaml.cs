@@ -201,7 +201,14 @@ namespace Aquila
 
             await _host.StartAsync();
 
-            _host.Services.GetRequiredService<AquilaService>().SetInterval(settings.Current.PollingIntervalMs);
+            var aquila = _host.Services.GetRequiredService<AquilaService>();
+            aquila.SetInterval(settings.Current.PollingIntervalMs);
+
+            // A new preset or new limits change the colour a reading has earned without changing the reading,
+            // so every reading is said again for whatever judges it. Wired here, in the composition root,
+            // because neither the appearance nor the limits are the hardware service's business.
+            _host.Services.GetRequiredService<AppearanceService>().Changed += aquila.Reannounce;
+            vitals.Changed += aquila.Reannounce;
 
             // The first condition, and the one that made a notice panel worth building: without
             // administrator rights LibreHardwareMonitor cannot open its driver, so temperatures, fan

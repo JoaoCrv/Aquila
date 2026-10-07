@@ -16,8 +16,8 @@ namespace Aquila.Controls;
 /// container.
 ///
 /// There is deliberately no changed event. Every piece that animates is redrawn on the poll tick anyway, so
-/// a new speed is in force within one second of being chosen — and an event here would mean a subscription
-/// in each piece, which is a leak per widget in exchange for a second.
+/// a new speed is in force by the next tick — and an event here would mean a subscription in each piece,
+/// which is a leak per widget in exchange for a moment.
 ///
 /// The library's own "off" is a duration and not a flag, so this follows it: a speed of zero IS no
 /// animation. One number, with nothing beside it to disagree.
@@ -26,8 +26,9 @@ namespace Aquila.Controls;
 /// offered and none could be told apart. The mechanism was confirmed working — the dial's series reported
 /// back the speed and the easing it had accepted, and the bar's travel was 5 to 70 pixels — so the curve
 /// was reaching the drawing and simply could not be seen: below roughly 400 ms a viewer perceives THAT a
-/// thing moved, not HOW, and 400 ms is this app's ceiling because the poll is one second. A control that
-/// cannot work inside the constraint the application imposes is better deleted than explained.
+/// thing moved, not HOW, and the speed in force never exceeds two fifths of the poll — 400 ms at the default
+/// one second. A control that cannot work inside the constraint the application imposes is better deleted
+/// than explained.
 /// </summary>
 public static class Motion
 {
@@ -47,8 +48,17 @@ public static class Motion
 
     public static IEasingFunction WpfEasing { get; } = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-    public static void Apply(AppSettings settings) => Apply(settings.AnimationSpeedMs);
+    public static void Apply(AppSettings settings) =>
+        Apply(settings.AnimationSpeedMs, settings.PollingIntervalMs);
 
-    public static void Apply(int milliseconds) =>
-        Speed = TimeSpan.FromMilliseconds(Math.Max(0, milliseconds));
+    /// <summary>
+    /// The chosen speed, held to two fifths of the poll interval.
+    ///
+    /// A sweep has to end well inside one tick, or the piece is in transit more often than it is right. The
+    /// menu stops at 400 ms because that is two fifths of the default second — but the poll is a setting of
+    /// its own, and at 500 ms the same "Relaxed" kept the dial moving four fifths of the time. Held here,
+    /// where both numbers meet, rather than by narrowing the menu, because the two change independently.
+    /// </summary>
+    public static void Apply(int speedMs, int pollMs) =>
+        Speed = TimeSpan.FromMilliseconds(Math.Clamp(speedMs, 0, Math.Max(0, pollMs) * 2 / 5));
 }
