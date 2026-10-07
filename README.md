@@ -10,6 +10,7 @@ Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive WPF 
 
 [![Download](https://img.shields.io/github/v/release/JoaoCrv/Aquila?label=Download&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/releases/latest)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge)](LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FJoaoCrv%2FAquila.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FJoaoCrv%2FAquila?ref=badge_shield)
 
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4%20Sponsor-GitHub-ea4aaa?style=for-the-badge)](https://github.com/sponsors/JoaoCrv)
 [![PayPal](https://img.shields.io/badge/PayPal-Donate-0070ba?style=for-the-badge)](https://paypal.me/joaocrv)
@@ -112,3 +113,6 @@ Aquila is built and maintained by [@JoaoCrv](https://github.com/JoaoCrv), with p
 This project is licensed under the terms of the **Mozilla Public License 2.0 (MPL-2.0)**.
 
 You can find the full text in the `LICENSE` file at the root of this repository, or read it online at https://www.mozilla.org/MPL/2.0/.
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FJoaoCrv%2FAquila.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FJoaoCrv%2FAquila?ref=badge_large)
