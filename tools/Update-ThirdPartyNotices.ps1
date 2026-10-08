@@ -123,6 +123,55 @@ try {
         Line $body.Trim()
     }
 
+    # The notices the packages themselves carry. A native library holds other people's code — SkiaSharp's DLL
+    # contains libpng, zlib, libjpeg-turbo, libwebp, HarfBuzz and more — and its package describes them in a
+    # notices file that NuGet never copies into an application. Each distinct file once, with the packages that
+    # carry it: the .NET one alone travels in 28 packages, identically.
+    # Read whole, then picked: piping dotnet into Select-Object -First stops it mid-output and leaves a non-zero
+    # exit code behind, which GitHub Actions' pwsh step reports as a failure after the script has succeeded.
+    $locals = dotnet nuget locals global-packages --list
+    if ($LASTEXITCODE -ne 0) { throw "dotnet nuget locals failed." }
+    $cacheLine = @($locals | Where-Object { $_ -match '^global-packages:' })[0]
+    $cache = ($cacheLine -replace '^global-packages:\s*', '').Trim()
+    if (-not (Test-Path $cache)) { throw "NuGet package folder not found ($cacheLine)." }
+
+    $carried = @{}   # notice text -> packages that carry it
+    $order = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($p in $list) {
+        $folder = Join-Path $cache ("{0}\{1}" -f $p.PackageId.ToLowerInvariant(), $p.PackageVersion.ToLowerInvariant())
+        if (-not (Test-Path $folder)) { continue }
+        $file = Get-ChildItem $folder -File |
+            Where-Object { $_.Name -match '^third[-_]?party[-_]?notices?(\.txt|\.md)?$' } |
+            Select-Object -First 1
+        if (-not $file) { continue }
+
+        $notice = ((Get-Content $file.FullName -Raw -Encoding UTF8) -replace "`r`n", "`n").TrimStart([char]0xFEFF).Trim()
+        if (-not $carried.ContainsKey($notice)) {
+            $carried[$notice] = New-Object 'System.Collections.Generic.List[string]'
+            $order.Add($notice)   # first carrier in ordinal package order, so the sections come out stably
+        }
+        $carried[$notice].Add("$($p.PackageId) $($p.PackageVersion)")
+    }
+
+    if ($order.Count -gt 0) {
+        Line
+        Line ("=" * 79)
+        Line "NOTICES SHIPPED INSIDE THE PACKAGES"
+        Line ("=" * 79)
+        Line
+        Line "Some packages contain other people's code, which their own notices files describe. NuGet does not copy"
+        Line "those files into an application, so each distinct one is reproduced here once, under the packages that"
+        Line "carry it."
+        foreach ($notice in $order) {
+            Line
+            Line $rule
+            Line "Carried by: $($carried[$notice] -join ', ')"
+            Line $rule
+            Line
+            Line $notice
+        }
+    }
+
     $generated = $text.ToString()
 
     if ($Check) {
