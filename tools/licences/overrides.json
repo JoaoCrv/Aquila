@@ -1,0 +1,12 @@
+[
+  { "Id": "OpenTK.Compute",                            "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.Core",                               "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.Graphics",                           "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.Input",                              "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.Mathematics",                        "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.OpenAL",                             "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.Windowing.Common",                   "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.Windowing.Desktop",                  "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "OpenTK.Windowing.GraphicsLibraryFramework", "Version": "4.3.0", "License": "MIT", "Copyright": "Copyright (c) 2006-2019 Stefanos Apostolopoulos for the Open Toolkit project", "ProjectUrl": "https://github.com/opentk/opentk" },
+  { "Id": "HidSharp",                                  "Version": "2.6.4", "License": "Apache-2.0", "Copyright": "Copyright 2010-2025 James F. Bellinger" }
+]

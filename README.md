@@ -110,6 +110,10 @@ Aquila is built with and made possible by several open-source projects:
 | [Serilog.Sinks.File](https://github.com/serilog/serilog-sinks-file)                  | the log files in Documents\Aquila\logs        | Apache-2.0 |
 | [TaskScheduler](https://github.com/dahall/TaskScheduler)                             | the task that starts Aquila elevated at logon | MIT        |
 
+Those are the packages Aquila asks for directly. Every package it ships — they bring others with them —
+is listed with its licence and copyright in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which is
+also installed with the app (**About → Third-party licences**).
+
 ## Maintainer
 
 - [@JoaoCrv](https://github.com/JoaoCrv)

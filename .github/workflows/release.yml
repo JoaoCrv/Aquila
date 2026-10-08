@@ -29,6 +29,12 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
+      # Before anything is built: a package with a licence that is not allowed, or notices that no longer match
+      # the packages, stops the release here rather than shipping.
+      - name: Check licences and notices
+        shell: pwsh
+        run: ./tools/Update-ThirdPartyNotices.ps1 -Check
+
       - name: Versions
         id: vars
         shell: pwsh

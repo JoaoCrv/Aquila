@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using CommunityToolkit.Mvvm.Input;
 
@@ -28,6 +29,21 @@ namespace Aquila.ViewModels.Pages
         [RelayCommand]
         private static void OpenRepository() => OpenUrl(RepoUrl);
 
+        [RelayCommand]
+        private static void OpenLicence() => OpenShipped("LICENSE.txt", $"{RepoUrl}/blob/master/LICENSE");
+
+        [RelayCommand]
+        private static void OpenThirdPartyNotices() =>
+            OpenShipped("THIRD-PARTY-NOTICES.txt", $"{RepoUrl}/blob/master/THIRD-PARTY-NOTICES.txt");
+
+        /// <summary>Opens a file that ships beside the executable — the licences travel with the binaries, as MIT
+        /// and Apache-2.0 ask — or, should it be missing, the same file in the repository.</summary>
+        private static void OpenShipped(string fileName, string fallbackUrl)
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, fileName);
+            OpenUrl(File.Exists(path) ? path : fallbackUrl);
+        }
+
         private static void OpenUrl(string url)
         {
             try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
@@ -50,7 +66,7 @@ namespace Aquila.ViewModels.Pages
             "Aquila does not show ads, does not include telemetry, and does not collect personal data. The only intended internet communication is the optional update flow through Velopack.";
 
         public string DependenciesSummary =>
-            "Built with open-source projects including LibreHardwareMonitor, WPF-UI, and Velopack. See the README for the full dependency list and links.";
+            "Built on open-source packages, among them LibreHardwareMonitor, WPF-UI and Velopack. Every one of them is listed, with its licence and copyright, under Third-party licences below.";
 
         public AboutViewModel()
         {
