@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Security.AccessControl;
 using System.Security.Principal;
 using Microsoft.Win32.TaskScheduler;
 using Velopack.Locators;
@@ -75,7 +76,58 @@ public static class ElevationService
         td.Settings.StopIfGoingOnBatteries     = false;
         td.Settings.ExecutionTimeLimit         = TimeSpan.Zero;
 
-        ts.RootFolder.RegisterTaskDefinition(TaskName, td);
+        Register(ts, td);
+    }
+
+    /// <summary>
+    /// Every registration of the task goes through here, so none can leave out the right to delete it.
+    /// </summary>
+    private static void Register(TaskService ts, TaskDefinition def)
+    {
+        ts.RootFolder.RegisterTaskDefinition(TaskName, def);
+        LetUserDeleteTask();
+    }
+
+    /// <summary>
+    /// Lets the user the task belongs to DELETE it unelevated — delete only, not change it. Registered by an
+    /// elevated process, the task lets its user read (and so run) it and nothing more, and Velopack's
+    /// uninstall hook runs unelevated: measured, its delete was refused ("Access denied"), and an uninstall
+    /// left behind a task that runs elevated at every logon whatever file sits at a path in LocalAppData —
+    /// a path any program of the user's can write to. The cost of the right is that another unelevated
+    /// program could delete the task as well, which brings back one UAC prompt and nothing else.
+    ///
+    /// MUST run elevated. Also called at every elevated start, for tasks registered by a version that did
+    /// not grant it — not a one-time migration, because the instance that would run one is often the
+    /// unelevated one, which cannot. Adding a right the task already gives changes nothing.
+    /// </summary>
+    public static void LetUserDeleteTask()
+    {
+        try
+        {
+            using var ts = new TaskService();
+            var task = ts.GetTask(TaskName);
+            if (task is null) return;
+
+            using var me = WindowsIdentity.GetCurrent();
+            var security = task.GetAccessControl();
+            security.AddAccessRule(new TaskAccessRule(me.User!, TaskRights.Delete, AccessControlType.Allow));
+            task.SetAccessControl(security);
+        }
+        catch { /* elevation still works without it; only the uninstall's clean-up does not */ }
+    }
+
+    /// <summary>
+    /// Deletes the task, and with it "start with Windows", which is a trigger on it. Velopack's uninstall
+    /// hook: it runs unelevated, which is why <see cref="LetUserDeleteTask"/> exists.
+    /// </summary>
+    public static void DeleteTask()
+    {
+        try
+        {
+            using var ts = new TaskService();
+            ts.RootFolder.DeleteTask(TaskName, exceptionOnNotExists: false);
+        }
+        catch { /* an uninstall must never fail on Aquila's account */ }
     }
 
     /// <summary>Whether the elevation task is set to also run at logon ("start with Windows").</summary>
@@ -109,7 +161,7 @@ public static class ElevationService
             if (enable)
                 def.Triggers.Add(new LogonTrigger { UserId = WindowsIdentity.GetCurrent().Name });
 
-            ts.RootFolder.RegisterTaskDefinition(TaskName, def);
+            Register(ts, def);
             return true;
         }
         catch { return false; }

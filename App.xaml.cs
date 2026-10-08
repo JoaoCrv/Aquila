@@ -117,8 +117,11 @@ namespace Aquila
             try
             {
                 // It's important to Run() the VelopackApp as early as possible in app startup.
-                VelopackApp.Build().Run();
-
+                // Uninstalling removes the folder, the shortcuts and the uninstall entry, and knows nothing of
+                // the elevation task — which runs elevated at every logon, so it must not outlive the app.
+                VelopackApp.Build()
+                    .OnBeforeUninstallFastCallback(_ => ElevationService.DeleteTask())
+                    .Run();
             }
             catch (Exception ex)
             {
@@ -170,6 +173,11 @@ namespace Aquila
                 Shutdown(0);
                 return;
             }
+
+            // A task registered by an earlier version cannot be deleted by the uninstaller, which runs
+            // unelevated; this instance can put that right, and only an elevated one can.
+            if (ElevationService.IsElevated())
+                ElevationService.LetUserDeleteTask();
 
             var settings = _host.Services.GetRequiredService<SettingsService>();
             settings.Load();
