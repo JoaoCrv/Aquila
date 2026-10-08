@@ -54,8 +54,9 @@ jobs:
           VELOPACK: ${{ steps.vars.outputs.VELOPACK }}
         run: dotnet tool install -g vpk --version $env:VELOPACK
 
+      # Locked: the packages are exactly those packages.lock.json names, hash for hash, or the release stops here.
       - name: Publish
-        run: dotnet publish -c Release -r win-x64
+        run: dotnet publish -c Release -r win-x64 -p:RestoreLockedMode=true
 
       # Not code-signed. The certificate used up to 2.2.1 was self-signed: Windows trusted it no more than
       # no signature at all, and it expired in August 2026. What someone downloading Aquila can check instead

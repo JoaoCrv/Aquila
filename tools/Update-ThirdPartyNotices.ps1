@@ -35,8 +35,12 @@ try {
     dotnet tool restore | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "dotnet tool restore failed." }
 
-    dotnet restore Aquila.csproj -p:EnableWindowsTargeting=true | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed." }
+    # Checking (CI, the release), the restore is locked: the packages must be exactly those packages.lock.json
+    # names, hash for hash. Regenerating, it is a developer after a package change, and the lock may move with it.
+    $restore = @("restore", "Aquila.csproj", "-p:EnableWindowsTargeting=true")
+    if ($Check) { $restore += "--locked-mode" }
+    dotnet @restore | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed$(if ($Check) { ' (locked: is packages.lock.json committed and current?)' })." }
 
     if (Test-Path $report) { Remove-Item $report }
 

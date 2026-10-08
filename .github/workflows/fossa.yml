@@ -41,7 +41,7 @@ jobs:
       # rather than only the 10 named in the csproj, which is all the GitHub integration could see.
       - name: Restore
         if: steps.optional.outputs.FOSSA == 'True'
-        run: dotnet restore -p:EnableWindowsTargeting=true
+        run: dotnet restore -p:EnableWindowsTargeting=true --locked-mode
 
       - name: Analyze
         if: steps.optional.outputs.FOSSA == 'True'

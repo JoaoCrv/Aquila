@@ -13,6 +13,12 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- packages.lock.json: every package, direct and transitive, at its exact version and with the hash of its
+         content. Restore writes it when a package changes; CI and the release restore in locked mode, so a package
+         whose content does not match its hash fails the build instead of shipping. win-x64 is listed so the lock
+         also covers the graph the release is published for. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
