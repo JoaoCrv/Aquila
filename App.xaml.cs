@@ -112,6 +112,9 @@ namespace Aquila
                     retainedFileCountLimit: 7))
             .Build();
 
+        /// <summary>What Velopack's startup threw, kept for <see cref="OnStartup"/> to report.</summary>
+        private Exception? _velopackFailure;
+
         public App()
         {
             try
@@ -125,12 +128,14 @@ namespace Aquila
             }
             catch (Exception ex)
             {
-                // THE ONE PLACE that still uses the system's message box, and deliberately. Everything
-                // else goes through Aquila.Services.Dialogs, which puts up a FluentWindow — and a
-                // FluentWindow needs the kit's resources, a dispatcher and a theme, none of which exist
-                // yet inside the App constructor. This is the failure that happens before the application
-                // does, so it wants the box that works when nothing else does.
-                MessageBox.Show("Velopack Startup Error: " + ex.ToString());
+                // Reported by OnStartup, as a notice — this used to be a system message box with a stack
+                // trace. Read in Velopack 0.0.1298's source: Run() catches the errors of the hooks, of reading
+                // the manifest and of clearing old packages itself, so what reaches here is in practice one
+                // thing: an update downloaded and never applied, and Update.exe failing to start to apply it
+                // (quarantined by an antivirus, say). The application is fine and starts on the version it
+                // has; the package stays, so the same thing fails at every start, logon included. A
+                // condition, then, not an emergency — and the box put it in front of every logon.
+                _velopackFailure = ex;
             }
         }
 
@@ -233,6 +238,21 @@ namespace Aquila
                     "Temperatures, fan speeds and voltages need them. Settings can set Aquila to start "
                     + "elevated at logon.",
                     Models.StatusKind.Caution);
+
+            // Raised once, like elevation, and cleared between runs the same way: a start where Velopack
+            // runs cleanly never raises it. Installing again replaces Update.exe and the stuck package, which
+            // is the whole repair. Logged here rather than where it was caught, because the logger is only
+            // certain to exist once the host has started.
+            if (_velopackFailure is not null)
+            {
+                Log.Error(_velopackFailure, "Velopack could not finish starting up");
+                notices.Set(
+                    "updates.stuck",
+                    "An update could not be installed",
+                    "Aquila downloaded an update but could not install it, so it carries on with this version. "
+                    + "Installing Aquila again from github.com/JoaoCrv/Aquila/releases fixes it.",
+                    Models.StatusKind.Caution);
+            }
 
             _ = Services.GetRequiredService<UpdateService>()
                 .CheckForUpdatesSilentlyAndNotifyAsync(
