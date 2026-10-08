@@ -384,3 +384,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Update rehearsal (test-update.ps1): the script, local like build.ps1/release.ps1, and its build output.
+test-update.ps1
+releases-test/
