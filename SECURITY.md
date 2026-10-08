@@ -26,4 +26,11 @@ build attestation, which you can check against the file you downloaded:
 gh attestation verify Aquila-win-Setup.exe --repo JoaoCrv/Aquila
 ```
 
+The same attestation is attached to each release as `Aquila-<version>.intoto.jsonl`. With it, the check does
+not depend on GitHub's attestation service:
+
+```
+gh attestation verify Aquila-win-Setup.exe --repo JoaoCrv/Aquila --bundle Aquila-<version>.intoto.jsonl
+```
+
 The release notes also link a VirusTotal scan of the installer and of the portable build.

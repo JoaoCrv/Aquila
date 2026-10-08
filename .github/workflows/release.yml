@@ -73,9 +73,23 @@ jobs:
       # A signed statement, recorded on the repository, that these exact files were built by this workflow from
       # this commit. Anyone can check a download against it: gh attestation verify <file> --repo JoaoCrv/Aquila
       - name: Attest build provenance
+        id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: 'releases/*'
+
+      # The same attestation, attached to the release as one of its files: checkable with the file in hand rather
+      # than through GitHub's attestation API (gh attestation verify ... --bundle), and the form OpenSSF Scorecard
+      # looks for. One JSON line per bundle, hence .intoto.jsonl: in-toto provenance inside a Sigstore bundle.
+      # Written after the attestation, so it is a release file but not one of the files it attests.
+      - name: Attach the attestation
+        shell: pwsh
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          VERSION: ${{ steps.vars.outputs.VERSION }}
+        run: |
+          python -c "import json, sys; open(sys.argv[2], 'w', encoding='utf-8', newline='\n').write(json.dumps(json.load(open(sys.argv[1], encoding='utf-8')), separators=(',', ':')) + '\n')" $env:BUNDLE "releases/Aquila-$env:VERSION.intoto.jsonl"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # Optional: the release still ships without a VirusTotal key, it simply has no scan links.
       - name: Check optional secrets
@@ -121,7 +135,9 @@ jobs:
           $verify = @(
             '', '---', '', '### Verifying this download', '',
             "Built by GitHub Actions from commit [``$($env:SHA.Substring(0, 7))``](https://github.com/$env:REPO/commit/$env:SHA), with a signed build attestation. To check a file you downloaded:",
-            '', '```', "gh attestation verify Aquila-win-Setup.exe --repo $env:REPO", '```', ''
+            '', '```', "gh attestation verify Aquila-win-Setup.exe --repo $env:REPO", '```', '',
+            "The attestation is also attached to this release as ``Aquila-$env:VERSION.intoto.jsonl``; with it, the check does not need GitHub's attestation service:",
+            '', '```', "gh attestation verify Aquila-win-Setup.exe --repo $env:REPO --bundle Aquila-$env:VERSION.intoto.jsonl", '```', ''
           )
           if ($env:ANALYSIS) {
             foreach ($pair in $env:ANALYSIS -split ',') {
