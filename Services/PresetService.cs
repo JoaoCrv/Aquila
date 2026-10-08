@@ -670,8 +670,27 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         if (string.IsNullOrWhiteSpace(preset.Name)) preset.Name = preset.Id;
 
         // System.Text.Json builds its own dictionary and discards the comparer, so a preset asking for
-        // "Primary" would miss a ramp stored as "primary". Rebuilt here, once.
-        preset.Ramps = new Dictionary<string, Ramp>(preset.Ramps, StringComparer.OrdinalIgnoreCase);
+        // "Primary" would miss a ramp stored as "primary". Rebuilt here, once — entry by entry, because that
+        // case-sensitive dictionary can hold "primary" AND "Primary", and the copying constructor throws on the
+        // second. The first one written wins. A ramp written as null is dropped, as if it had never been written,
+        // and "ramps": null is no ramps at all.
+        var ramps = new Dictionary<string, Ramp>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, ramp) in preset.Ramps ?? new Dictionary<string, Ramp>())
+            if (ramp is not null) ramps.TryAdd(name, ramp);
+        preset.Ramps = ramps;
+
+        // A section written as null says as much as one left out, and gets the same defaults. Found by the
+        // property test in Aquila.Tests: a file holding "background": null was ACCEPTED, and the first widget
+        // dressed in it would have thrown — a preset someone shared, taking the desktop down.
+        preset.Background ??= new();
+        preset.Border ??= new();
+        preset.Gauge ??= new();
+        preset.Gauge.Track ??= new PresetGauge().Track;
+        preset.Line ??= new();
+        preset.Bar ??= new();
+        preset.Number ??= new();
+        preset.Title ??= new();
+        preset.Value ??= new();
 
         if (preset.Ramps.Count == 0)
         {

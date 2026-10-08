@@ -1,0 +1,36 @@
+name: Tests
+
+# The property-based tests in Aquila.Tests: each rule is tried against hundreds of generated inputs, and preset
+# import against hundreds of random files — the one door through which Aquila reads something it did not write.
+# OpenSSF Scorecard reads FsCheck as fuzzing.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '9.0.x'
+
+      # Locked, like every restore here: the app's packages and the test packages, hash for hash.
+      - name: Restore
+        run: dotnet restore Aquila.Tests/Aquila.Tests.csproj --locked-mode
+
+      - name: Test
+        run: dotnet test Aquila.Tests/Aquila.Tests.csproj --no-restore

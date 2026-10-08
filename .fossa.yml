@@ -1,0 +1,6 @@
+# FOSSA's licence report covers what Aquila SHIPS. The test project's packages (xUnit, FsCheck) never reach
+# the installer, so they stay out of the inventory.
+version: 3
+paths:
+  exclude:
+    - ./Aquila.Tests

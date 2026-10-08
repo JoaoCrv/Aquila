@@ -32,6 +32,12 @@
     <Resource Remove="Drafts\**" />
     <EmbeddedResource Remove="Drafts\**" />
     <None Remove="Drafts\**" />
+    <!-- The test project lives beside this one, so the default globs would compile its files into the app. -->
+    <Compile Remove="Aquila.Tests\**" />
+    <Page Remove="Aquila.Tests\**" />
+    <Resource Remove="Aquila.Tests\**" />
+    <EmbeddedResource Remove="Aquila.Tests\**" />
+    <None Remove="Aquila.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
