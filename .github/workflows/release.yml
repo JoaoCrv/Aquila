@@ -70,9 +70,13 @@ jobs:
         shell: pwsh
         env:
           VERSION: ${{ steps.vars.outputs.VERSION }}
+        # --framework: Aquila is framework-dependent - it runs on the machine's .NET 9 Desktop Runtime and carries
+        # none of its own - so on a PC without it, it installed fine and then would not open. Setup now installs the
+        # runtime first when it is missing. Keep it in step with <TargetFramework> when that moves.
         run: |
           vpk pack --packId Aquila --packVersion $env:VERSION `
-            --packDir .\bin\Release\net9.0-windows10.0.19041\win-x64\publish --mainExe Aquila.exe
+            --packDir .\bin\Release\net9.0-windows10.0.19041\win-x64\publish --mainExe Aquila.exe `
+            --framework net9-x64-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # A signed statement, recorded on the repository, that these exact files were built by this workflow from
