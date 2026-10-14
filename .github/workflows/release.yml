@@ -104,9 +104,14 @@ jobs:
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
         run: '"VIRUSTOTAL=$([bool]$env:VT_API_KEY)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append'
 
+      # A third-party service, so a failure here costs the scan links and never the release: 2.3.0's rerun was
+      # refused by VirusTotal with 409 Conflict for an installer it had been sent minutes earlier, and with that
+      # step required the whole release stopped one step short of publishing. The notes already leave the links
+      # out when there is no analysis.
       - name: Scan on VirusTotal
         id: virustotal
         if: steps.optional.outputs.VIRUSTOTAL == 'True'
+        continue-on-error: true
         uses: crazy-max/ghaction-virustotal@936d8c5c00afe97d3d9a1af26d017cfdf26800a2 # v5.0.0
         with:
           vt_api_key: ${{ secrets.VT_API_KEY }}
