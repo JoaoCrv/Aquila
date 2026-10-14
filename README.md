@@ -6,7 +6,8 @@
 
 **A free, open-source Windows hardware monitor.**
 
-Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive WPF dashboard.
+Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive dashboard — and on your desktop,
+as widgets you design.
 
 [![Download](https://img.shields.io/github/v/release/JoaoCrv/Aquila?label=Download&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/releases/latest)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge)](LICENSE)
@@ -22,7 +23,9 @@ Real-time CPU, GPU, RAM, network and storage metrics in a clean, responsive WPF 
 
 <br />
 
-![Aquila dashboard — dark theme](Assets/DarkTheme.png)
+<p align="center">
+  <img src="Assets/Screenshots/home-aquila.png" width="720" alt="Aquila's dashboard in the Aquila theme" />
+</p>
 
 ## Download
 
@@ -40,47 +43,86 @@ in [SECURITY.md](SECURITY.md#verifying-a-download).
 
 ## Features
 
-- **Borderless dashboard mode** — a frameless window you can pin to a secondary monitor or TV; opens and closes from anywhere, no restart
-- **Responsive card grid** — cards reflow automatically as the window resizes; all cards in a row match the height of the tallest card
-- **Real-time sparklines** — 60-second rolling history for CPU load, CPU die temperature, GPU load, RAM usage, network throughput, total system power and CPU fan speed
-- **Light & dark themes** — follows a clean Fluent design across both
-- **Full sensor coverage** — CPU, GPU (multi-GPU), RAM, network, storage, fans, power and motherboard temperatures, plus a sensor explorer for raw access to everything
-- **System tray** — minimize to tray, start with Windows, start minimized
+- **Desktop widgets** — put any reading on your desktop: dials, sparklines, bars, numbers, an equaliser, text,
+  a clock, and backdrops to group them on. They sit above the wallpaper and behind your windows, and clicks
+  pass straight through them.
+- **Create and edit them in place** — add a widget from the Widgets page, or pin any sensor straight from the
+  Explorer. Edit mode keeps the widgets on your real desktop while a docked editor sets each one's kind,
+  readings, preset, text and layout; drag them where you want them. Nothing is saved until you press Save,
+  and Discard puts everything back.
+- **Make it yours** — themes dress the app, presets dress the data: colour ramps, typefaces, dials and bars,
+  chosen per widget. Edit the built-in presets, make your own, and share them as files.
+- **Tray flyout and menu** — click the tray icon for the machine at a glance: CPU, GPU, RAM and package
+  temperature, the latest notice, and shortcuts to open Aquila, edit widgets or exit. Right-click for a menu
+  in the app's own theme. Minimize to tray, start with Windows, start minimized.
+- **Notices** — a bell in the title bar says what is true now (no administrator rights, a widget that cannot
+  draw, an update that could not be installed) and keeps what happened while you were away.
+- **Limits you set** — one place decides when a reading turns high or critical. Drives and memory that report
+  their own limits are judged by them.
+- **Borderless dashboard mode** — a frameless window you can pin to a secondary monitor or TV; opens and closes
+  from anywhere, no restart
+- **Responsive card grid** — cards reflow as the window resizes; all cards in a row match the tallest
+- **Full sensor coverage** — CPU, GPU (multi-GPU), RAM, network, storage, fans, power and motherboard
+  temperatures, plus a sensor explorer for raw access to everything
 
 ## Screenshots
 
-### Dashboard mode
+### Desktop widgets
 
-A borderless window designed to live on a second screen.
+Edit mode: the widgets stay on the real desktop while the editor docks beside them, and nothing is saved until
+you press Save.
 
-<img src="Assets/Dashboard.png" alt="Borderless dashboard mode" />
+<img src="Assets/Screenshots/desktop-widgets-editor.png" alt="Desktop widgets in edit mode, with the editor panel docked on the right" />
 
-### Light & dark themes
+### Themes
 
-<img src="Assets/Theme.png" alt="Themes" />
+More than one look for the app itself: **Aquila**, its own dark theme, and **Fluent**, which takes your Windows
+accent colour and comes in light and dark — or follows Windows as it switches between them.
 
-### Storage & Explorer
+<img src="Assets/Screenshots/themes.png" alt="Three windows overlapping: the dashboard in Fluent light, Fluent dark and the Aquila theme" />
+
+### Presets
+
+A preset decides how readings are drawn — the colours a value moves through as it climbs, the typefaces, the
+dials and bars. Four come built in: **Ember**, **Classic**, **Signal** and **Sky**. Every one is editable, and the
+widgets wearing it change as you edit; a built-in is never overwritten, your changes are kept as a copy of your
+own. Start a new preset from any other, and export or import them as files. The dashboard wears
+one, and every desktop widget can wear its own.
+
+<img src="Assets/Screenshots/presets.png" alt="Four windows side by side: the same dashboard in the Ember, Classic, Signal and Sky presets" />
+
+### Sensors and storage
 
 <table>
   <tr>
-    <td width="50%"><img src="Assets/StoragePage.png" alt="Storage page" /></td>
-    <td width="50%"><img src="Assets/ExplorerPage.png" alt="Sensor explorer" /></td>
+    <td width="50%" valign="top">
+      <strong>Explore your computer's sensors</strong> — every reading the hardware reports, grouped by component,
+      live and searchable. Any of them can go straight to the desktop as a widget.
+    </td>
+    <td width="50%" valign="top">
+      <strong>Analyze your storage</strong> — each drive's capacity, temperature, life left, data read and written
+      and hours powered on, with its read and write rates live.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="Assets/Screenshots/explorer.png" alt="The Explorer: sensors grouped by component, with a motherboard's temperatures and fans expanded" /></td>
+    <td width="50%"><img src="Assets/Screenshots/storage.png" alt="The Storage page: two drives with capacity, temperature, life, data read and written and power-on hours" /></td>
   </tr>
 </table>
 
 ## Demos
 
-**Open & close the dashboard**
+**Create and edit widgets**
 
-https://github.com/user-attachments/assets/30127f9f-57dd-417c-b11c-1c95b7347ae5
+https://github.com/user-attachments/assets/bfed3dca-ae4f-467d-86fb-4fe7dca73c78
+
+**Dashboard mode**
+
+https://github.com/user-attachments/assets/179b1550-948f-4858-b8a7-1bb120f3f6f6
 
 **Responsive layout**
 
-https://github.com/user-attachments/assets/5e441247-ed95-4708-b9a6-e6ab05ecd68b
-
-**Toggle cards from settings**
-
-https://github.com/user-attachments/assets/fb986d27-9a97-4d8e-a4c5-4616ed307a43
+https://github.com/user-attachments/assets/7bf0c2fa-bf74-4ff3-a063-b06adae9a40c
 
 ## Project principles & privacy
 
