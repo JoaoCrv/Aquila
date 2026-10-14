@@ -31,6 +31,7 @@ namespace Aquila.ViewModels.Pages
         private readonly AppearanceService _theme;
         private readonly PresetService _presets;
         private readonly ThemeCatalog _themes;
+        private readonly PawnIoService _pawnIo;
 
         /// <summary>
         /// When each family of readings stops being ordinary, edited in one place.
@@ -72,8 +73,9 @@ namespace Aquila.ViewModels.Pages
 
         public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
             INavigationService navigation, AppearanceService theme, PresetService presets,
-            ThemeCatalog themes, VitalMonitor vitals)
+            ThemeCatalog themes, VitalMonitor vitals, PawnIoService pawnIo)
         {
+            _pawnIo = pawnIo;
             Thresholds = [.. Models.Thresholds.Configurable.Select(key => new ThresholdRow(vitals, key))];
 
             _updateService = updateService;
@@ -168,6 +170,17 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private bool _isCheckingForUpdates;
 
+        /// <summary>Whether PawnIO's driver answers, its sentence, and whether the Install button applies. Asked
+        /// again every time the page is shown, since another program can install or remove PawnIO meanwhile.</summary>
+        [ObservableProperty]
+        private string _pawnIoStatus = string.Empty;
+
+        [ObservableProperty]
+        private bool _canInstallPawnIo;
+
+        [ObservableProperty]
+        private bool _isInstallingPawnIo;
+
         [ObservableProperty]
         private bool _minimizeToTray;
 
@@ -198,7 +211,41 @@ namespace Aquila.ViewModels.Pages
             if (!_isInitialized)
                 InitializeViewModel();
 
+            RefreshPawnIo();
             return Task.CompletedTask;
+        }
+
+        private void RefreshPawnIo()
+        {
+            bool elevated = ElevationService.IsElevated();
+            bool answers = elevated && PawnIoService.DriverAnswers();
+
+            PawnIoStatus = !elevated
+                ? "Aquila needs administrator rights to read through PawnIO, or to tell whether it is installed."
+                : answers
+                    ? $"Installed. Aquila reads {PawnIoService.WhatItReads} through it."
+                    : $"Not installed, so {PawnIoService.WhatItReads} are missing. Aquila downloads it from its "
+                      + "official release and checks its signature before running it.";
+            CanInstallPawnIo = elevated && !answers && !IsInstallingPawnIo;
+        }
+
+        [RelayCommand]
+        private async Task InstallPawnIoAsync()
+        {
+            if (IsInstallingPawnIo) return;
+
+            IsInstallingPawnIo = true;
+            CanInstallPawnIo = false;
+            try
+            {
+                // Restarts Aquila when it succeeds, so what follows only runs when it did not.
+                await _pawnIo.InstallAndRestartAsync();
+            }
+            finally
+            {
+                IsInstallingPawnIo = false;
+                RefreshPawnIo();
+            }
         }
 
         public Task OnNavigatedFromAsync() => Task.CompletedTask;

@@ -62,6 +62,7 @@ namespace Aquila
                 services.AddSingleton<AppearanceService>();
                 services.AddSingleton<NoticeService>();
                 services.AddSingleton<UpdateService>();
+                services.AddSingleton<PawnIoService>();
                 services.AddSingleton<VitalMonitor>();
                 services.AddSingleton<AquilaService>();
 
@@ -145,6 +146,27 @@ namespace Aquila
         public static IServiceProvider Services
         {
             get { return _host.Services; }
+        }
+
+        /// <summary>
+        /// Starts a fresh Aquila and closes this one, for a change only a new process sees — PawnIO installed
+        /// under a running Aquila, which LibreHardwareMonitor would only open on its next start.
+        ///
+        /// The single-instance mutex is let go first, or the new instance would find this one still holding it
+        /// and leave. Elevated through the task when Aquila is installed, as at every start; a development build
+        /// is already elevated, and a child it starts inherits that.
+        /// </summary>
+        public static void Restart()
+        {
+            _instanceMutex?.ReleaseMutex();
+            _instanceMutex?.Dispose();
+            _instanceMutex = null;
+
+            if (!(ElevationService.IsVelopackInstalled() && ElevationService.TaskExists() && ElevationService.RunTask()))
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true });
+
+            Current.Shutdown();
         }
 
         /// <summary>
@@ -238,6 +260,11 @@ namespace Aquila
                     "Temperatures, fan speeds and voltages need them. Settings can set Aquila to start "
                     + "elevated at logon.",
                     Models.StatusKind.Caution);
+            // The other half of the same failure: elevated, but without PawnIO, the driver those readings
+            // come through. Only asked elevated — unelevated nothing can be read through it either way, and
+            // the notice above already says why. After the window exists, since it may ask a question.
+            else
+                _ = _host.Services.GetRequiredService<PawnIoService>().OfferAtStartupAsync();
 
             // Raised once, like elevation, and cleared between runs the same way: a start where Velopack
             // runs cleanly never raises it. Installing again replaces Update.exe and the stuck package, which

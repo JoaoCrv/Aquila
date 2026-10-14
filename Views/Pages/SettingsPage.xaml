@@ -262,6 +262,24 @@
                        Icon="{ui:SymbolIcon DataHistogram24}" />
         </ui:CardControl>
 
+        <ui:CardControl Icon="{ui:SymbolIcon DeveloperBoard24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="PawnIO" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="{Binding ViewModel.PawnIoStatus, Mode=OneWay}" />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ui:ProgressRing Width="18" Height="18" Margin="0,0,10,0"
+                                 VerticalAlignment="Center" IsIndeterminate="True"
+                                 Visibility="{Binding ViewModel.IsInstallingPawnIo, Converter={StaticResource BoolToVisibility}, Mode=OneWay}" />
+                <ui:Button Command="{Binding ViewModel.InstallPawnIoCommand}"
+                           Content="Install"
+                           Icon="{ui:SymbolIcon ArrowDownload24}"
+                           Visibility="{Binding ViewModel.CanInstallPawnIo, Converter={StaticResource BoolToVisibility}, Mode=OneWay}" />
+            </StackPanel>
+        </ui:CardControl>
+
         <!-- ── Updates ─────────────────────────────────────────────────────────────────────────── -->
         <TextBlock Style="{StaticResource SectionHeading}" Text="Updates" />
 

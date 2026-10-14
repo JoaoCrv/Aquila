@@ -47,6 +47,10 @@ public class AppSettings
     public bool   DashboardMode         { get; set; } = false;
     public bool   EnableVerboseLogging  { get; set; } = false;
 
+    /// <summary>Whether Aquila has offered to install PawnIO. Offered once: "Not now" is an answer, and Settings
+    /// keeps the button. See PawnIoService.</summary>
+    public bool   PawnIoOffered         { get; set; } = false;
+
     /// <summary>
     /// Limits the user has changed, by family name — "Temperature" to "75,85,95".
     ///
