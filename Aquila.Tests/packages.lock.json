@@ -438,11 +438,6 @@
         "resolved": "1.0.0",
         "contentHash": "vSN/L1uaVwKsiLa95bYu2SGkF0iY3xMblTfxc8alSziPuVfJpj3geVqHGAA75J7cZkMuKpFVikz82Lo6y6LLdA=="
       },
-      "NuGet.Versioning": {
-        "type": "Transitive",
-        "resolved": "6.14.0",
-        "contentHash": "4v4blkhCv8mpKtfx+z0G/X0daVCzdIaHSC51GkUspugi5JIMn2Bo8xm5PdZYF0U68gOBfz/+aPWMnpRd85Jbow=="
-      },
       "OpenTK": {
         "type": "Transitive",
         "resolved": "4.3.0",
@@ -779,11 +774,8 @@
       },
       "Velopack": {
         "type": "Transitive",
-        "resolved": "0.0.1298",
-        "contentHash": "PJ6Nm28qJ4ChsHYzgHUJ8g+DGyyHes2+bwxY709+znMhgi8fMp8M1FTF8x6pZMjnsPCWVwoMlxVEyq0NLeRZtA==",
-        "dependencies": {
-          "NuGet.Versioning": "6.14.0"
-        }
+        "resolved": "1.2.161",
+        "contentHash": "OpHNacIumnkhaaX3ZlQ/TCR4YPOJvud2/PAOoWb6o+mIrLwIVA275I5wAgt4q/1O2VrJeDwR1qFQyqzG4lUArg=="
       },
       "WPF-UI": {
         "type": "Transitive",
@@ -857,7 +849,7 @@
           "Serilog.Extensions.Hosting": "[8.0.0, )",
           "Serilog.Sinks.File": "[6.0.0, )",
           "TaskScheduler": "[2.12.1, )",
-          "Velopack": "[0.0.1298, )",
+          "Velopack": "[1.2.161, )",
           "WPF-UI": "[4.3.0, )",
           "WPF-UI.DependencyInjection": "[4.3.0, )"
         }

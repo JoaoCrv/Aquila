@@ -129,12 +129,12 @@ namespace Aquila
             catch (Exception ex)
             {
                 // Reported by OnStartup, as a notice — this used to be a system message box with a stack
-                // trace. Read in Velopack 0.0.1298's source: Run() catches the errors of the hooks, of reading
-                // the manifest and of clearing old packages itself, so what reaches here is in practice one
-                // thing: an update downloaded and never applied, and Update.exe failing to start to apply it
-                // (quarantined by an antivirus, say). The application is fine and starts on the version it
-                // has; the package stays, so the same thing fails at every start, logon included. A
-                // condition, then, not an emergency — and the box put it in front of every logon.
+                // trace. Read in Velopack's source (0.0.1298, and again for 1.2.161): Run() catches the errors
+                // of the hooks, of reading the manifest and of clearing old packages itself, so what reaches
+                // here is in practice one thing: an update downloaded and never applied, and Update.exe failing
+                // to start to apply it (quarantined by an antivirus, say). The application is fine and starts
+                // on the version it has; the package stays, so the same thing fails at every start, logon
+                // included. A condition, then, not an emergency — and the box put it in front of every logon.
                 _velopackFailure = ex;
             }
         }

@@ -9,14 +9,11 @@ including the MPL-2.0 ones, is available from its project page.
 Generated from the packages themselves by tools/Update-ThirdPartyNotices.ps1 - do not edit by hand.
 
 -------------------------------------------------------------------------------
-Apache-2.0 (6 packages)
+Apache-2.0 (5 packages)
 -------------------------------------------------------------------------------
 HidSharp 2.6.4
   Copyright 2010-2025 James F. Bellinger
   https://software.seekye.com/hidsharp
-NuGet.Versioning 6.14.0
-  © Microsoft Corporation. All rights reserved.
-  https://aka.ms/nugetprj
 Serilog 4.0.0
   Copyright © 2013-24 Serilog Contributors
   https://serilog.net/
@@ -207,7 +204,7 @@ System.Threading.AccessControl 10.0.3
 TaskScheduler 2.12.1
   Copyright © 2002-2025
   https://github.com/dahall/taskscheduler
-Velopack 0.0.1298
+Velopack 1.2.161
   Copyright © Velopack Ltd. All rights reserved.
   https://github.com/velopack/velopack
 WPF-UI 4.3.0
