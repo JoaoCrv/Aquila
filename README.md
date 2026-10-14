@@ -11,8 +11,10 @@ as widgets you design.
 
 [![Download](https://img.shields.io/github/v/release/JoaoCrv/Aquila?label=Download&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/releases/latest)
 [![License](https://img.shields.io/badge/license-MPL--2.0-blue?style=for-the-badge)](LICENSE)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/JoaoCrv/Aquila/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/JoaoCrv/Aquila/actions/workflows/codeql.yml)
-[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/JoaoCrv/Aquila?label=OpenSSF%20Scorecard&style=for-the-badge)](https://scorecard.dev/viewer/?uri=github.com/JoaoCrv/Aquila)
+
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/JoaoCrv/Aquila/codeql.yml?label=CodeQL)](https://github.com/JoaoCrv/Aquila/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/JoaoCrv/Aquila?label=OpenSSF%20Scorecard)](https://scorecard.dev/viewer/?uri=github.com/JoaoCrv/Aquila)
+[![VirusTotal](https://img.shields.io/badge/VirusTotal-scanned%20every%20release-394EFF?logo=virustotal&logoColor=white)](https://github.com/JoaoCrv/Aquila/releases/latest#verifying-this-download)
 [![FOSSA licence scan](https://app.fossa.com/api/projects/custom%2B64600%2Fgithub.com%2FJoaoCrv%2FAquila.svg?type=shield)](https://app.fossa.com/projects/custom%2B64600%2Fgithub.com%2FJoaoCrv%2FAquila?ref=badge_shield)
 
 [![Sponsor](https://img.shields.io/badge/%E2%9D%A4%20Sponsor-GitHub-ea4aaa?style=for-the-badge)](https://github.com/sponsors/JoaoCrv)
