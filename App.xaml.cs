@@ -107,10 +107,14 @@ namespace Aquila
             })
             .UseSerilog((_, _, cfg) => cfg
                 .MinimumLevel.ControlledBy(App.LogLevel)
+                // Shared: two Aquilas can write at once — the first run's unelevated instance waits while its
+                // elevated helper creates the task and installs PawnIO, and the helper's lines are the ones
+                // worth having if that install fails.
                 .WriteTo.File(
                     Path.Combine(AquilaPaths.Logs, "aquila-.log"),
                     rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 7))
+                    retainedFileCountLimit: 7,
+                    shared: true))
             .Build();
 
         /// <summary>What Velopack's startup threw, kept for <see cref="OnStartup"/> to report.</summary>
@@ -174,10 +178,18 @@ namespace Aquila
         /// </summary>
         private async void OnStartup(object sender, StartupEventArgs e)
         {
-            // Elevated helper mode: launched only to create the elevation task, then exit.
+            // Elevated helper mode: launched only to create the elevation task — and to install PawnIO when the
+            // first-run question offered it and was answered yes — then exit. A PawnIO that failed does not fail
+            // the task: the elevated Aquila that follows offers it again.
             if (e.Args.Contains(ElevationService.CreateTaskArg))
             {
-                try { ElevationService.CreateTask(); Shutdown(0); }
+                try
+                {
+                    ElevationService.CreateTask();
+                    if (e.Args.Contains(ElevationService.InstallPawnIoArg))
+                        await _host.Services.GetRequiredService<PawnIoService>().InstallQuietlyAsync();
+                    Shutdown(0);
+                }
                 catch { Shutdown(1); }
                 return;
             }
@@ -185,8 +197,15 @@ namespace Aquila
             // Elevate only if the active hardware driver needs it (LHM does; future API-based
             // drivers may not). In a Velopack install this may relaunch us elevated via the
             // scheduled task and ask this instance to exit.
+            //
+            // Kept alive by hand while that runs: the first run asks a question before any window exists,
+            // so the dialog is the only window, and under the default shutdown mode closing it would end
+            // the application — "Not now" would quit instead of carrying on unelevated.
             var driver = _host.Services.GetRequiredService<IHardwareDriver>();
-            if (driver.RequiresElevation && !ElevationService.EnsureElevated())
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            bool carryOn = !driver.RequiresElevation || await ElevationService.EnsureElevatedAsync();
+            ShutdownMode = ShutdownMode.OnLastWindowClose;
+            if (!carryOn)
             {
                 Shutdown(0);
                 return;

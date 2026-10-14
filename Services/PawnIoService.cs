@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using Aquila.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 
 namespace Aquila.Services;
@@ -56,6 +57,43 @@ public sealed class PawnIoService(NoticeService notices, SettingsService setting
         using var device = CreateFile(@"\\?\GLOBALROOT\Device\PawnIO", 3 /* read and write data */,
             3 /* share read and write */, IntPtr.Zero, 3 /* open existing */, 0x80 /* normal */, IntPtr.Zero);
         return !device.IsInvalid;
+    }
+
+    /// <summary>
+    /// Whether PawnIO's uninstall entry is there: a hint, readable without administrator rights, for the question
+    /// the first run asks before elevating. Never the answer — that is <see cref="DriverAnswers"/>, which the entry
+    /// has been seen to contradict.
+    /// </summary>
+    public static bool LooksInstalled()
+    {
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+        {
+            using var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
+            using var entry = machine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO");
+            if (entry?.GetValue("DisplayVersion") is string)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// For the elevated helper of the first run: installs PawnIO when its driver does not answer, with no dialog —
+    /// the helper has no window to show one in. A failure is logged and left to the elevated Aquila that follows,
+    /// which finds the driver still missing and offers it again, saying why if it fails a second time.
+    /// </summary>
+    public async Task InstallQuietlyAsync()
+    {
+        if (DriverAnswers()) return;
+
+        try
+        {
+            await InstallAsync();
+            logger.LogInformation("PawnIO installed during first-run setup");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "PawnIO was not installed during first-run setup");
+        }
     }
 
     /// <summary>Raises the condition when the driver does not answer, withdraws it when it does, and says which.</summary>

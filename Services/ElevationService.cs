@@ -26,6 +26,9 @@ public static class ElevationService
     /// <summary>Arg passed to the elevated helper instance that only creates the task and exits.</summary>
     public const string CreateTaskArg = "--create-elevation-task";
 
+    /// <summary>Added to <see cref="CreateTaskArg"/> when the first-run question offered PawnIO and was answered yes.</summary>
+    public const string InstallPawnIoArg = "--install-pawnio";
+
     public static bool IsElevated()
     {
         using var identity = WindowsIdentity.GetCurrent();
@@ -185,23 +188,26 @@ public static class ElevationService
     }
 
     /// <summary>
-    /// Relaunches this exe elevated to create the task (the single UAC prompt).
-    /// Returns false if the user declined or it otherwise failed.
+    /// Relaunches this exe elevated to create the task (the single UAC prompt) — and to install PawnIO in the same
+    /// elevated run when <paramref name="installPawnIo"/>, so one prompt covers both and the driver is in place before
+    /// LibreHardwareMonitor first opens. Returns false if the user declined or the task could not be made; a PawnIO
+    /// that failed does not fail it (see <see cref="PawnIoService.InstallQuietlyAsync"/>).
     /// </summary>
-    public static bool CreateTaskElevated()
+    public static async Task<bool> CreateTaskElevatedAsync(bool installPawnIo)
     {
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName        = AppExePath(),
-                Arguments       = CreateTaskArg,
+                Arguments       = installPawnIo ? $"{CreateTaskArg} {InstallPawnIoArg}" : CreateTaskArg,
                 UseShellExecute = true,
                 Verb            = "runas",
             };
             using var p = Process.Start(psi);
-            p?.WaitForExit();
-            return p?.ExitCode == 0;
+            if (p is null) return false;
+            await p.WaitForExitAsync();
+            return p.ExitCode == 0;
         }
         catch (Win32Exception)
         {
@@ -216,13 +222,42 @@ public static class ElevationService
     /// Logic: in dev or already-elevated, just continue. In a Velopack install running unelevated,
     /// create the task if needed (one UAC prompt) then run it to relaunch elevated and exit. If the
     /// user declines the prompt, continue in degraded mode (no motherboard sensors).
+    ///
+    /// Before that prompt, one question covering everything the first run needs administrator rights for: the
+    /// task, and PawnIO when it looks missing. Asked first so Windows' prompt is expected rather than sprung, and
+    /// so a kernel driver is never installed unasked — a UAC prompt says only that Aquila wants to make changes.
+    /// It replaces what were a prompt, then a question, then a restart: with PawnIO installed in the same elevated
+    /// run, LibreHardwareMonitor finds it on its first open. "Not now" runs degraded, as a declined prompt always
+    /// did, and the question comes back at the next start while the task is missing — as the prompt did.
+    ///
+    /// The caller must keep the application alive while it is asked: before the main window exists, the dialog
+    /// is the only window, and WPF's default shutdown mode ends the application when it closes.
     /// </summary>
-    public static bool EnsureElevated()
+    public static async Task<bool> EnsureElevatedAsync()
     {
         if (!IsVelopackInstalled() || IsElevated())
             return true;
 
-        bool taskReady = TaskExists() || CreateTaskElevated();
+        bool taskReady = TaskExists();
+        if (!taskReady)
+        {
+            // Unelevated, the driver cannot be asked, only its uninstall entry: a hint. The elevated helper asks the
+            // driver itself before installing anything, and the elevated Aquila after it offers PawnIO again if the
+            // hint was wrong.
+            bool pawnIo = !PawnIoService.LooksInstalled();
+            string message =
+                "Aquila reads most of your hardware with administrator rights. It sets itself up once to start with "
+                + "them, so Windows asks for permission now and not again.";
+            if (pawnIo)
+                message += $"\n\nIt also installs PawnIO, the signed driver that {PawnIoService.WhatItReads} are read "
+                    + "through. It is downloaded from its official release and its signature is checked first.";
+
+            if (!await Dialogs.Ask("Set up Aquila", message, yes: "Set up", no: "Not now"))
+                return true; // degraded, as when the prompt was declined
+
+            taskReady = await CreateTaskElevatedAsync(installPawnIo: pawnIo);
+        }
+
         if (taskReady && RunTask())
             return false; // elevated instance launched — this one exits
 
