@@ -131,7 +131,8 @@ https://github.com/user-attachments/assets/7bf0c2fa-bf74-4ff3-a063-b06adae9a40c
 - free to use, open source under `MPL-2.0`
 - no ads
 - no telemetry, analytics, accounts, or personal data collection
-- the only network communication is the optional update check and download through `Velopack`
+- the only network communication is the optional update check and download through `Velopack`, and — only if
+  you agree — downloading PawnIO from its official release
 
 ## Support
 
@@ -153,10 +154,16 @@ Aquila is built with and made possible by several open-source projects:
 | [Serilog.Extensions.Hosting](https://github.com/serilog/serilog-extensions-hosting)  | logging, wired into the app host              | Apache-2.0 |
 | [Serilog.Sinks.File](https://github.com/serilog/serilog-sinks-file)                  | the log files in Documents\Aquila\logs        | Apache-2.0 |
 | [TaskScheduler](https://github.com/dahall/TaskScheduler)                             | the task that starts Aquila elevated at logon | MIT        |
+| [PawnIO](https://github.com/namazso/PawnIO)                                          | driver for motherboard and memory sensors     | GPL-2.0    |
 
-Those are the packages Aquila asks for directly. Every package it ships — they bring others with them —
-is listed with its licence and copyright in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which is
-also installed with the app (**About → Third-party licences**).
+Those are the packages Aquila asks for directly — except PawnIO, which it does not ship. PawnIO is a signed
+kernel driver that LibreHardwareMonitor reads fans, the motherboard and the memory through. Aquila installs it
+only if you agree: on first run, downloaded from its official release, after checking its signature.
+Uninstalling Aquila leaves it in place, since other hardware tools use it too.
+
+Every package Aquila ships — they bring others with them — is listed with its licence and copyright in
+[THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which is also installed with the app
+(**About → Third-party licences**).
 
 ## Maintainer
 
