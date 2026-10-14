@@ -89,7 +89,12 @@ namespace Aquila.Services
         }
 
         /// <summary>
-        /// Walks the user through an update, asking twice: before downloading and before restarting.
+        /// Walks the user through an update: one question, then the download and the restart.
+        ///
+        /// It used to ask again once the download was done, and the second question was the first one
+        /// repeated — "download and restart now?" had already been answered. A "not now" to it bought
+        /// nothing either: the package stays, and Velopack applies it by itself at the next start (verified
+        /// 2026-10-14, 2.2.2 → 2.2.3 through exactly that path).
         ///
         /// The dialogs are part of the flow rather than handed in. They were callbacks, and both callers
         /// passed the same two — except that the tray passed only the question, so an update that failed
@@ -110,8 +115,12 @@ namespace Aquila.Services
             if (!checkResult.IsUpdateAvailable || checkResult.UpdateInfo is null)
                 return;
 
-            var installNow = await Ask(
-                "A new Aquila update is available. Download and restart now?");
+            var installNow = await Dialogs.Ask(
+                DialogTitle,
+                $"Aquila {checkResult.UpdateInfo.TargetFullRelease.Version} is available. It will be downloaded, "
+                + "and Aquila will restart to install it.",
+                yes: "Update now",
+                no: "Not now");
 
             if (!installNow)
             {
@@ -128,23 +137,11 @@ namespace Aquila.Services
                 return;
             }
 
-            var restartNow = await Ask(
-                "The update has been downloaded successfully. Restart Aquila now to apply it?");
-
-            if (!restartNow)
-            {
-                SetStatus("Update downloaded. Restart the app later to apply it.", StatusKind.Good);
-                return;
-            }
-
             SetStatus("Restarting to apply the update...");
             ApplyUpdatesAndRestart(downloadResult.UpdateInfo);
         }
 
         private const string DialogTitle = "Aquila Update";
-
-        private static Task<bool> Ask(string message) =>
-            Dialogs.Ask(DialogTitle, message, "Continue", "Not now");
 
         /// <summary>A warning and a failure are told alike. The kit's message box takes no icon, and the
         /// loss is small: somebody being told that a download failed reads the same sentence either way,
