@@ -16,6 +16,16 @@ public interface IHardwareDriver
     bool RequiresElevation { get; }
 
     void Initialize();
-    void Populate(AquilaState state);
+
+    /// <summary>
+    /// Reads the hardware into the driver's own objects. May run on any thread — it is the slow half of a
+    /// poll (LibreHardwareMonitor's walk measured 36–43 ms), so AquilaService runs it off the UI thread — and
+    /// must therefore never touch <see cref="AquilaState"/>, whose nodes raise their changes on the UI thread.
+    /// </summary>
+    void Read();
+
+    /// <summary>Writes the last <see cref="Read"/> into the state. Always on the UI thread, never during a read.</summary>
+    void Apply(AquilaState state);
+
     void Shutdown();
 }

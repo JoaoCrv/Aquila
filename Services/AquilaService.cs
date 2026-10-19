@@ -21,6 +21,9 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     private readonly DispatcherTimer _timer = new();
     private bool _disposed;
 
+    /// <summary>The hardware read in flight on the thread pool, if any — see <see cref="OnTick"/>.</summary>
+    private Task? _reading;
+
     private readonly SystemPressure _pressure = new(vitals);
 
     public AquilaState State => _state;
@@ -58,7 +61,7 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     /// deciding what that means for the application is not its business. This is where that decision
     /// belongs, and it is the only place that has to change when there is more than one source to lose.
     ///
-    /// The timer runs either way. LHMDriver.Populate already returns immediately when it has nothing open,
+    /// The timer runs either way. LHMDriver's Read and Apply already return immediately when nothing is open,
     /// so a tick costs nothing — and when a second source exists, a tick that stopped would take the
     /// working sources down with the broken one.
     /// </summary>
@@ -85,7 +88,19 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
 
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += OnTick;
-        OnTick(null, EventArgs.Empty);
+
+        // The first poll on this thread, whole, before anything else looks: the sensor explorer reads
+        // LibreHardwareMonitor's tree right after Start returns, and must find it read, not half-way.
+        try
+        {
+            _driver.Read();
+            Publish();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during hardware poll");
+        }
+
         _timer.Start();
     }
 
@@ -114,25 +129,53 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     /// into a length of time — Settings lets the user change it, and nothing may assume it is a second.</summary>
     public TimeSpan Interval => _timer.Interval;
 
-    private void OnTick(object? sender, EventArgs e)
+    /// <summary>
+    /// A poll in two halves. Reading the hardware is the slow one — LibreHardwareMonitor's walk measured 36–43
+    /// ms of a ~45 ms tick — and it touches nothing of ours, so it runs on the thread pool; done on the UI
+    /// thread, as it was, it froze drawing, dragging and animation for two or three frames every tick. Writing
+    /// the readings into the state stays here, on the UI thread, so every SensorNode change is still raised
+    /// where it always was and no control has to marshal anything. Measured 2026-10-19 over 100 polls: the read
+    /// 39–46 ms on average (up to 78) off the UI thread, and 4.1–4.8 ms left on it.
+    ///
+    /// A read still going when the next tick comes — a slow drive, a short interval — skips that tick rather
+    /// than queueing behind it: two walks of the same hardware at once is not something LibreHardwareMonitor
+    /// was ever asked to do.
+    /// </summary>
+    private async void OnTick(object? sender, EventArgs e)
     {
+        if (_reading is not null) return;
+
         try
         {
-            _driver.Populate(_state);
+            _reading = Task.Run(_driver.Read);
+            await _reading;
+            if (_disposed) return;
 
-            // Before the pressure is worked out, so the first judged tick already uses whatever limits the
-            // drives and DIMMs report about themselves rather than our generic ones. Does its work once.
-            vitals.AdoptReportedLimits(_state.Hardware);
-
-            // Before the event: subscribers read Pressure in the same handler that reads the sensors,
-            // and must not see last tick's value beside this tick's numbers.
-            Pressure = _pressure.Evaluate(_state.Hardware);
-            DataUpdated?.Invoke();
+            Publish();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during hardware poll");
         }
+        finally
+        {
+            _reading = null;
+        }
+    }
+
+    /// <summary>The UI-thread half of a poll: the last read into the state, then everything that judges it.</summary>
+    private void Publish()
+    {
+        _driver.Apply(_state);
+
+        // Before the pressure is worked out, so the first judged tick already uses whatever limits the
+        // drives and DIMMs report about themselves rather than our generic ones. Does its work once.
+        vitals.AdoptReportedLimits(_state.Hardware);
+
+        // Before the event: subscribers read Pressure in the same handler that reads the sensors,
+        // and must not see last tick's value beside this tick's numbers.
+        Pressure = _pressure.Evaluate(_state.Hardware);
+        DataUpdated?.Invoke();
     }
 
     public void Dispose()
@@ -141,6 +184,12 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
         _disposed = true;
         _timer.Stop();
         _timer.Tick -= OnTick;
+
+        // A read may be in flight on the thread pool, and closing LibreHardwareMonitor under it would pull its
+        // objects away mid-walk. A read takes tens of milliseconds, so waiting for it costs nothing.
+        try { _reading?.Wait(TimeSpan.FromSeconds(2)); }
+        catch { /* its failure was the poll's to report */ }
+
         _driver.Shutdown();
     }
 }

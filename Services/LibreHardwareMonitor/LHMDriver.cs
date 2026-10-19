@@ -51,11 +51,11 @@ namespace Aquila.Services.LibreHardwareMonitor
             }
         }
 
-        public void Populate(AquilaState state)
+        public void Read() => _computer?.Accept(new UpdateVisitor());
+
+        public void Apply(AquilaState state)
         {
             if (_computer is null || _translater is null) return;
-
-            _computer.Accept(new UpdateVisitor());
 
             if (!_hardwareLogged)
             {

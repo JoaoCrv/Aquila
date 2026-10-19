@@ -16,7 +16,10 @@ public class MockDriver : IHardwareDriver
     public void Initialize() { }
     public void Shutdown() { }
 
-    public void Populate(AquilaState state)
+    /// <summary>Nothing to read: the values are made up as they are applied.</summary>
+    public void Read() { }
+
+    public void Apply(AquilaState state)
     {
         // CPU
         var cpu = GetOrAdd(state.Hardware.Cpus);
