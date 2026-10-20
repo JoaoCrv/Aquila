@@ -21,17 +21,6 @@ public sealed class ClockProperties
          select DateTime.MinValue.AddDays(days).AddMilliseconds(milliseconds))
         .ToArbitrary();
 
-    /// <summary>Instants crowded round the moments a ring wraps — the last second of a minute, of an hour, of
-    /// twelve hours — which an even spread would almost never land on.</summary>
-    private static Arbitrary<DateTime> NearTheTop() =>
-        (from days in Gen.Choose(0, 3_652_000)
-         from hour in Gen.OneOf(Gen.Choose(0, 23), Gen.Elements(0, 11, 12, 23))
-         from minute in Gen.OneOf(Gen.Choose(0, 59), Gen.Elements(0, 59))
-         from second in Gen.OneOf(Gen.Choose(0, 59), Gen.Elements(0, 58, 59))
-         from milliseconds in Gen.Choose(0, 999)
-         select DateTime.MinValue.AddDays(days).Add(new TimeSpan(0, hour, minute, second, milliseconds)))
-        .ToArbitrary();
-
     /// <summary>Every hand is somewhere on its turn: from twelve o'clock, and never a whole turn — a full turn is
     /// the next one's start, and a ring drawn full and then empty would be the backward sweep under another name.
     /// </summary>
@@ -54,38 +43,6 @@ public sealed class ClockProperties
                 ClockFace.Fractions(minute.AddSeconds(second + 1)).Seconds
                 > ClockFace.Fractions(minute.AddSeconds(second)).Seconds);
         });
-
-    /// <summary>
-    /// From one second to the next, a ring is reported as wrapping exactly when its turn ends — the seconds at the
-    /// minute, the minutes at the hour, the hours at twelve and at midnight — and never otherwise. A wrap missed is a
-    /// ring unwinding a whole circle backwards; one reported wrongly is a ring that jumps when it should sweep.
-    /// </summary>
-    [Property(MaxTest = 2000)]
-    public Property A_ring_wraps_exactly_when_its_turn_ends() =>
-        Prop.ForAll(NearTheTop(), before =>
-        {
-            var after = before.AddSeconds(1);
-            var minute = after.Second == 0;
-            var hour = minute && after.Minute == 0;
-            var twelve = hour && after.Hour % 12 == 0;
-
-            var (seconds, minutes, hours) = ClockFace.Wrapped(before, after);
-            return seconds == minute && minutes == hour && hours == twelve;
-        });
-
-    /// <summary>The tops of the turns, as examples — the property above may not draw each of them.</summary>
-    [Theory]
-    [InlineData("10:30:15", false, false, false)]
-    [InlineData("10:30:59", true, false, false)]
-    [InlineData("10:59:59", true, true, false)]
-    [InlineData("11:59:59", true, true, true)]
-    [InlineData("12:59:59", true, true, false)]
-    [InlineData("23:59:59", true, true, true)]
-    public void The_tops_of_the_turns(string time, bool seconds, bool minutes, bool hours)
-    {
-        var before = DateTime.Parse("2026-10-20T" + time, CultureInfo.InvariantCulture);
-        Assert.Equal((seconds, minutes, hours), ClockFace.Wrapped(before, before.AddSeconds(1)));
-    }
 
     /// <summary>
     /// A clock without rings writes exactly what the clock wrote before rings existed, format by format — the
@@ -137,8 +94,8 @@ public sealed class ClockProperties
     }
 
     /// <summary>
-    /// The rounded ends of an arc — the clock's rings and the dial alike — for any length, corner and radius: never
-    /// below nothing, never rounder than asked, and never more than the arc can hold. "Hold" is LiveCharts' own
+    /// The rounded ends of the dial's arc, for any length, corner and radius: never below nothing, never rounder than
+    /// asked, and never more than the arc can hold. "Hold" is LiveCharts' own
     /// geometry: the two ends take 2·atan(r / (inner + r)) from the arc's inner edge, and more than the arc has draws
     /// that edge backwards. A length of nothing has no ends at all.
     /// </summary>

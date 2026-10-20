@@ -18,6 +18,10 @@ namespace Aquila.ViewModels.Pages
     /// "clearly", and a slider from 0 to 400 offers four hundred answers to a question with three.</summary>
     public record MotionOption(string Label, int Ms);
 
+    /// <summary>A frame rate, named by its number: here the number IS the meaning, and anyone who has met a
+    /// game's settings knows what it costs.</summary>
+    public record FrameRateOption(string Label, int Fps);
+
     /// <summary>One entry in the theme list. <c>Id</c> is what goes into settings ("Light", "Dark",
     /// "System"); <c>Label</c> is what the user reads.</summary>
     public record ThemeOption(string Id, string Label);
@@ -70,6 +74,19 @@ namespace Aquila.ViewModels.Pages
 
         [ObservableProperty]
         private MotionOption _selectedMotion = null!;
+
+        /// <summary>Each a whole share of a 60 Hz screen's refreshes, so every frame is held for the same number
+        /// of them: 45 would hold one for two refreshes and the next for one, and the motion would limp.</summary>
+        public List<FrameRateOption> FrameRateOptions { get; } =
+        [
+            new("15 fps", 15),
+            new("20 fps", 20),
+            new("30 fps", 30),
+            new("60 fps", 60),
+        ];
+
+        [ObservableProperty]
+        private FrameRateOption _selectedFrameRate = null!;
 
         public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
             INavigationService navigation, AppearanceService theme, PresetService presets,
@@ -271,6 +288,10 @@ namespace Aquila.ViewModels.Pages
                 MotionOptions.FirstOrDefault(o => o.Ms == _settings.Current.AnimationSpeedMs)
                 ?? MotionOptions[2];
 
+            SelectedFrameRate =
+                FrameRateOptions.FirstOrDefault(o => o.Fps == _settings.Current.MaxFrameRate)
+                ?? FrameRateOptions[2];
+
             MinimizeToTray   = _settings.Current.MinimizeToTray;
             StartMinimized   = _settings.Current.StartMinimized;
             StartWithWindows    = ElevationService.HasLogonTrigger();
@@ -459,6 +480,19 @@ namespace Aquila.ViewModels.Pages
             if (!_isInitialized) return;
 
             _settings.Current.AnimationSpeedMs = value.Ms;
+            _settings.Save();
+
+            Controls.Motion.Apply(_settings.Current);
+        }
+
+        /// <summary>Applied like the speed: every animation made after this carries the new rate. The charts are
+        /// the exception — LiveCharts takes its rate once, at start (see App.OnStartup) — and the hint says so.
+        /// </summary>
+        partial void OnSelectedFrameRateChanged(FrameRateOption value)
+        {
+            if (!_isInitialized) return;
+
+            _settings.Current.MaxFrameRate = value.Fps;
             _settings.Save();
 
             Controls.Motion.Apply(_settings.Current);

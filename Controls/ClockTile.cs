@@ -3,18 +3,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using Aquila.Controls.Primitives;
 using Aquila.Helpers;
 using Aquila.Models;
 using Aquila.Models.Nodes;
 using Aquila.Services;
-using LiveChartsCore;
-using LiveChartsCore.Defaults;
-using LiveChartsCore.Drawing;
-using LiveChartsCore.Measure;
-using LiveChartsCore.SkiaSharpView;
-using LiveChartsCore.SkiaSharpView.Painting;
-using LiveChartsCore.SkiaSharpView.WPF;
-using SkiaSharp;
 
 namespace Aquila.Controls;
 
@@ -32,9 +25,10 @@ namespace Aquila.Controls;
 /// clock that is removed must stop being told the time.
 ///
 /// Without rings it is the clock it always was — the same text, alignment, face and size — so a layout written
-/// before rings existed looks exactly as it did. The rings are built only when asked for, and only once the piece
-/// is on screen: a clock is told whether it has any straight after it is made, and a chart built in between and
-/// thrown away is a chart's worth of work for nothing.
+/// before rings existed looks exactly as it did. The rings are <see cref="RingArc"/>s, three small elements that
+/// draw themselves, so they are put up and taken down with the setting and leave the tree entirely at none. (They
+/// were a LiveCharts chart until the pilot for our own primitives: a chart's render loop, axes and series, for three
+/// arcs.)
 ///
 /// Its own default is all three rings, so the type picker — which builds the piece and never dresses it — shows
 /// what a clock made today looks like.
@@ -52,55 +46,20 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     {
     }
 
-    /// <summary>One ring: its value, and the colour and ends it is drawn with — all changed in place, so the arc goes
-    /// on from where it is.</summary>
-    private sealed class Hand(PieSeries<ObservableValue> series, ObservableValue point)
-    {
-        public ObservableValue Point { get; } = point;
-
-        /// <summary>The radius of the ring's inner edge, from Shape — what its rounded ends are measured against.
-        /// </summary>
-        public double Inner { get; set; }
-
-        /// <summary>The shortest the arc is on its current move: the shorter of where it was and where it is going.
-        /// Its ends are sized for that, so they fit all the way there.</summary>
-        public double Shortest { get; set; }
-
-        private SKColor? _colour;
-
-        public void Wear(SKColor colour)
-        {
-            if (_colour == colour) return;
-            _colour = colour;
-            series.Fill = new SolidColorPaint(colour);
-        }
-
-        /// <summary>Rounds the ends by as much as the arc can hold — see AquilaCharts.CornerFor. Changes with the
-        /// arc's length, so every few seconds near the top of a turn, and redraws nothing else.</summary>
-        public void Round(double corner) => series.CornerRadius = AquilaCharts.CornerFor(Shortest, corner, 360, Inner);
-    }
-
-    /// <summary>
-    /// How the rings travel from one second to the next while animation is on: steadily, for nine tenths of the
-    /// second, so they rest a moment on each second and move through the rest of it.
-    ///
-    /// The one piece allowed past <see cref="Motion"/>'s two fifths of the poll, and both reasons are about what a
-    /// clock is. It is not on the poll, so the cap protects nothing here. And time does not arrive in steps the way
-    /// a reading does — between two seconds there IS a time, so a ring moving through it is nearer the truth than
-    /// one standing still and then jumping. Linear for the same reason: an eased ring would say a second goes
-    /// faster at its start than at its end. A speed of zero still means no movement at all.
-    /// </summary>
-    private static readonly Animation Sweeping = new(EasingFunctions.Lineal, TimeSpan.FromMilliseconds(900));
-
     /// <summary>The date and the seconds, as a share of the time's size: small enough that the time is plainly the
     /// reading, large enough to be read from the chair.</summary>
     private const double Small = 0.5;
 
-    /// <summary>The gap between two rings, as a share of their thickness — enough to read as three rings rather
-    /// than one thick band, and no more, because every pixel of it is taken from the middle where the time is.
-    /// Never under two pixels, or thin rings would touch.</summary>
-    private const double GapToThickness = 0.3;
+    /// <summary>The gap between two rings, as a share of their thickness — eight pixels at the presets' fourteen:
+    /// enough to read as three rings rather than one banded one, and no more, because every pixel of it is taken from
+    /// the middle where the time is. Never under two pixels, or thin rings would touch.</summary>
+    private const double GapToThickness = 4d / 7;
     private const double MinGap = 2;
+
+    /// <summary>The track where a preset names none: a faint white, the dial's own default.</summary>
+    private static readonly Brush DefaultTrack = Frozen(Color.FromArgb(20, 255, 255, 255));
+
+    private static readonly TimeSpan OneSecond = TimeSpan.FromSeconds(1);
 
     private readonly Line _face = new() { VerticalAlignment = VerticalAlignment.Center };
 
@@ -114,22 +73,17 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
         VerticalAlignment = VerticalAlignment.Center,
     };
 
-    private PieChart? _chart;
-    private PieSeries<ObservableValue>[] _series = [];
-    private PieSeries<ObservableValue>? _track;
-    private SKColor? _trackPainted;
-
     /// <summary>The rings, OUTERMOST first — seconds, minutes, hours — which is the order everything about them is
-    /// decided in. LiveCharts holds them the other way round.</summary>
-    private Hand[] _hands = [];
+    /// decided in.</summary>
+    private RingArc[] _hands = [];
 
     private bool _hooked;
     private ClockNode? _clock;
 
-    /// <summary>The instant the rings were last moved to. Null makes the next move a jump: the first after the
-    /// rings are built, and the first after the piece comes back on screen, both start from wherever the arcs
-    /// happen to be, and sweeping from there would be animating something that never happened.</summary>
-    private DateTime? _shown;
+    /// <summary>Whether the next move puts the rings in place rather than taking them there: the first after the
+    /// piece comes on screen, and the first after rings are put up. Both start from wherever the arcs happen to be,
+    /// and travelling from there would be animating something that never happened.</summary>
+    private bool _fresh = true;
 
     public ClockTile()
     {
@@ -167,11 +121,13 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
         _clock = ClockService.Current;
         if (_clock is not null) _clock.PropertyChanged += OnTick;
 
-        _shown = null;
+        _fresh = true;
         Sizes();
         Refresh();
     }
 
+    /// <summary>Lets go of the clock, and stops the rings where they are: a ring still travelling off screen is
+    /// frames drawn for nobody.</summary>
     private void Unhook()
     {
         if (!_hooked) return;
@@ -179,6 +135,8 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
 
         if (_clock is not null) _clock.PropertyChanged -= OnTick;
         _clock = null;
+
+        foreach (var hand in _hands) hand.Stop();
     }
 
     private void OnTick(object? sender, PropertyChangedEventArgs e) => Show(Now);
@@ -189,16 +147,16 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     {
         ShowRings();
         Paint();
-        Show(Now);
         Shape();
+        Show(Now);
     }
 
     /// <summary>
     /// Puts up as many rings as the setting asks for, or takes them down.
     ///
     /// In place: going from none to some, or from one to three, is a change of the widget's look and not of what it
-    /// is, so the editor treats it as Style, and nothing outside the piece is rebuilt. A different number of rings
-    /// does need different series, and those are built here; the arcs leaving go at once rather than unwinding.
+    /// is, so the editor treats it as Style, and nothing outside the piece is rebuilt. Rings leaving go at once
+    /// rather than unwinding, and at none they leave the tree, so the piece is the text clock and nothing else.
     /// </summary>
     private void ShowRings()
     {
@@ -207,60 +165,19 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
         _face.Visibility = count == 0 ? Visibility.Visible : Visibility.Collapsed;
         _middle.Visibility = count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
-        if (count == 0)
+        if (_hands.Length == count) return;
+
+        foreach (var hand in _hands)
         {
-            DropChart();
-            return;
+            hand.Stop();
+            Children.Remove(hand);
         }
 
-        if (!_hooked || _hands.Length == count) return;
+        // Under the text, so the time is never drawn over by a ring on a widget too small for both.
+        _hands = [.. Enumerable.Range(0, count).Select(_ => new RingArc())];
+        foreach (var hand in _hands) Children.Insert(Children.IndexOf(_middle), hand);
 
-        if (_chart is null)
-        {
-            _chart = new PieChart
-            {
-                Background = Brushes.Transparent,
-                InitialRotation = -90,
-                // A clock is always a full turn. The preset's sweep is a dial's, and a clock that stopped at 270°
-                // would no longer be a clock.
-                MaxAngle = 360,
-                MinValue = 0,
-                // The hands are shares of a turn — see ClockFace.Fractions.
-                MaxValue = 1,
-                IsClockwise = true,
-                TooltipPosition = TooltipPosition.Hidden,
-            };
-
-            // The room left in the middle is worked out from the chart's size — see Shape.
-            _chart.SizeChanged += (_, _) => Shape();
-            Children.Insert(Children.IndexOf(_middle), _chart);
-        }
-        else
-        {
-            foreach (var hand in _hands) AquilaCharts.Travel(hand.Point, null);
-        }
-
-        var points = Enumerable.Range(0, count).Select(_ => new ObservableValue(0d)).ToArray();
-        var (rings, track, all) = AquilaCharts.SolidRings(points);
-
-        _hands = [.. Enumerable.Range(0, count).Select(k => new Hand(rings[count - 1 - k], points[count - 1 - k]))];
-        _series = all;
-        _track = track;
-        _trackPainted = null;
-        _shown = null;
-
-        _chart.Series = all;
-    }
-
-    private void DropChart()
-    {
-        if (_chart is null) return;
-
-        Children.Remove(_chart);
-        _chart = null;
-        _series = [];
-        _track = null;
-        _hands = [];
+        _fresh = true;
     }
 
     /// <summary>
@@ -273,72 +190,52 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     private void Paint()
     {
         string[] stops = [_ramp.Normal, _ramp.Alert, _ramp.Critical];
-        for (var k = 0; k < _hands.Length; k++) _hands[k].Wear(Sk(HexBrush.From(stops[k])));
-
-        var seconds = HexBrush.From(_ramp.Normal);
-        if ((_seconds.Foreground as SolidColorBrush)?.Color != seconds.Color) _seconds.Foreground = seconds;
-
-        if (_track is null) return;
-
-        var track = TrackBrush is SolidColorBrush t ? Sk(t) : new SKColor(255, 255, 255, 20);
-        if (_trackPainted == track) return;
-
-        _track.Fill = new SolidColorPaint(track);
-        _trackPainted = track;
-    }
-
-    private static SKColor Sk(SolidColorBrush brush) =>
-        new(brush.Color.R, brush.Color.G, brush.Color.B, (byte)(brush.Color.A * brush.Opacity));
-
-    /// <summary>
-    /// How thick the rings are, how round their ends, and where they sit.
-    ///
-    /// LiveCharts gives each ring an equal share of the radius from the middle outwards, so with the middle left
-    /// empty three rings would each be a third of the dial, however thin the preset asks for. The room in the
-    /// middle is therefore sized from the chart: whatever is left once the rings and their gaps have been laid in
-    /// from the edge. That is what keeps them together at the rim with the time inside, at any widget size.
-    ///
-    /// The track is never rounded. It is a whole circle, so it has no ends; rounding them only nicks it at twelve.
-    /// </summary>
-    private void Shape()
-    {
-        if (_chart is null) return;
-
-        var thickness = Thickness;
-        var gap = Math.Max(MinGap, thickness * GapToThickness);
-        var size = Math.Min(_chart.ActualWidth, _chart.ActualHeight);
-        var middle = Math.Max(0, size / 2 - _hands.Length * (thickness + gap));
-
-        // Assigned every time, equal or not. LiveCharts ignores an equal value, but it also lets its theme set any
-        // property nobody has assigned — and its theme rounds a gauge's ends by 8. A corner of 0 skipped as
-        // "already 0" came out round. (The rings' corners are assigned below, by Round.)
-        foreach (var series in _series)
-        {
-            series.MaxRadialColumnWidth = thickness;
-            series.InnerRadius = middle;
-            if (series.IsFillSeries) series.CornerRadius = 0;
-        }
-
-        // Where each ring's inner edge falls, which is what its rounded ends are measured against. Each ring has an
-        // equal slot from the middle out and sits at the outside of it — narrower than the preset asks only when the
-        // widget is too small to give it the room.
-        if (_hands.Length == 0) return;
-        var slot = (size / 2 - middle) / _hands.Length;
+        var track = _trackBrush ?? DefaultTrack;
 
         for (var k = 0; k < _hands.Length; k++)
         {
-            _hands[k].Inner = size / 2 - k * slot - Math.Min(thickness, slot);
-            _hands[k].Round(Caps);
+            var hand = _hands[k];
+
+            // Compared by colour, because a preset hands over a new brush of the same colour on every restyle,
+            // and a new brush is a new pen and a redraw for nothing.
+            var colour = HexBrush.From(stops[k]);
+            if ((hand.Stroke as SolidColorBrush)?.Color != colour.Color) hand.Stroke = colour;
+
+            hand.TrackBrush = track;
+        }
+
+        var seconds = HexBrush.From(_ramp.Normal);
+        if ((_seconds.Foreground as SolidColorBrush)?.Color != seconds.Color) _seconds.Foreground = seconds;
+    }
+
+    /// <summary>
+    /// How thick the rings are, how their ends are drawn, and where they sit.
+    ///
+    /// Each ring is inset from the one outside it by a thickness and a gap, so all three keep together at the rim
+    /// whatever the widget's size, and the time has the middle. On a widget too small for them, the inner rings run
+    /// out of room and are not drawn rather than drawn over each other.
+    ///
+    /// The ends are round or square, never in between. The preset's corner is a radius for the dial, whose arc it
+    /// has to fit inside; a ring's round end is a cap past the arc's end, so there is nothing for a radius to fit,
+    /// and any corner at all asks for round.
+    /// </summary>
+    private void Shape()
+    {
+        var thickness = RingThickness;
+        var gap = Math.Max(MinGap, thickness * GapToThickness);
+        var caps = _arcCorner > 0 ? PenLineCap.Round : PenLineCap.Flat;
+
+        for (var k = 0; k < _hands.Length; k++)
+        {
+            var hand = _hands[k];
+            hand.Thickness = thickness;
+            hand.Caps = caps;
+            hand.Margin = new Thickness(k * (thickness + gap));
         }
     }
 
-    /// <summary>At least a pixel: the thickness comes from a preset, which a hand can edit to nothing, and a clamp
-    /// whose ceiling fell below its floor would throw.</summary>
-    private double Thickness => Math.Max(1, _arcThickness);
-
-    /// <summary>The corner the preset asks for, no rounder than half the ring is thick — past that the ends would
-    /// eat into the ring itself. How much of it a ring can hold at its length is CornerFor's question.</summary>
-    private double Caps => Math.Clamp(_arcCorner, 0, Thickness / 2);
+    /// <summary>At least a pixel: the thickness comes from a preset, which a hand can edit to nothing.</summary>
+    private double RingThickness => Math.Max(1, _arcThickness);
 
     /// <summary>The ring lines' sizes, from the time's. The line without rings takes the reading's size directly, as
     /// the piece always did.</summary>
@@ -372,41 +269,68 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     }
 
     /// <summary>
-    /// Moves each ring to where it stands now — sweeping there when animation is on, jumping when it is off, and
-    /// jumping whatever the setting when the ring would otherwise travel backwards (see ClockFace.Wrapped).
+    /// Moves each ring for the second just shown.
+    ///
+    /// With animation off, each stands on the second, as the text does. With it on, each is aimed at where it will
+    /// be at the NEXT whole second and given exactly the time left until it, so the rings move all the way through
+    /// every second and are on time at each one — never a tick behind, which is what sweeping to the second just
+    /// shown would be. Forward only: at the top of a turn a ring goes on to full and starts again from nothing,
+    /// never back round. Steady, because time is: an eased ring would say a second goes faster at its start.
+    ///
+    /// The time left is measured on the machine's clock rather than from the second shown, because that is the
+    /// clock the movement is drawn on; a second shown late only shortens the move.
     /// </summary>
     private void Sweep(DateTime now)
     {
         if (_hands.Length == 0) return;
 
         var at = ClockFace.Fractions(now);
-        (bool Seconds, bool Minutes, bool Hours) wrapped =
-            _shown is { } before ? ClockFace.Wrapped(before, now) : (true, true, true);
-        _shown = now;
+
+        // Off screen — being built, being dressed, or taken away — the rings are set and never sent travelling:
+        // a move nobody sees is frames drawn for nobody, and the first move once on screen is set anyway.
+        if (!Motion.Enabled || !_hooked)
+        {
+            for (var k = 0; k < _hands.Length; k++) _hands[k].MoveTo(Hand(at, k), TimeSpan.Zero);
+            _fresh = false;
+            return;
+        }
+
+        var next = ClockFace.NextSecond(now);
+        var to = ClockFace.Fractions(next);
+        var left = Clamp(next - DateTime.Now);
 
         for (var k = 0; k < _hands.Length; k++)
         {
-            var (fraction, jumps) = k switch
-            {
-                0 => (at.Seconds, wrapped.Seconds),
-                1 => (at.Minutes, wrapped.Minutes),
-                _ => (at.Hours, wrapped.Hours),
-            };
-
             var hand = _hands[k];
-            if (hand.Point.Value == fraction) continue;
 
-            var sweeps = Motion.Enabled && !jumps;
+            // Put where it would be by now had it been moving all along, and moved on from there.
+            if (_fresh)
+                hand.MoveTo(RingMotion.At(Hand(at, k), Hand(to, k), 1 - left / OneSecond, forwardOnly: true),
+                    TimeSpan.Zero);
 
-            // The ends first, sized for the shortest the arc will be on the way: a sweep from :02 to :03 starts at
-            // :02's length, and ends rounded for :03 would not fit it for the first part of the second.
-            hand.Shortest = sweeps && hand.Point.Value is { } was ? Math.Min(was, fraction) : fraction;
-            hand.Round(Caps);
-
-            // Then the way there, then the value: the arc takes its transition when its new angle is set.
-            AquilaCharts.Travel(hand.Point, sweeps ? Sweeping : null);
-            hand.Point.Value = fraction;
+            hand.MoveTo(Hand(to, k), left, forwardOnly: true, frameRate: Motion.FrameRate);
         }
+
+        _fresh = false;
+    }
+
+    private static double Hand(ClockFace.Hands hands, int ring) => ring switch
+    {
+        0 => hands.Seconds,
+        1 => hands.Minutes,
+        _ => hands.Hours,
+    };
+
+    /// <summary>The time left, between none and a second: a clock shown late has no time left, and one woken from
+    /// a stall is never given longer than a second to catch up.</summary>
+    private static TimeSpan Clamp(TimeSpan left) =>
+        left < TimeSpan.Zero ? TimeSpan.Zero : left > OneSecond ? OneSecond : left;
+
+    private static Brush Frozen(Color colour)
+    {
+        var brush = new SolidColorBrush(colour);
+        brush.Freeze();
+        return brush;
     }
 
     // ── Content: what the widget says it shows ───────────────────────────

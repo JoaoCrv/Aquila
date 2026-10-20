@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using Aquila.Models;
 
 namespace Aquila.Controls;
@@ -136,8 +135,7 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
             return;
         }
 
-        bar.Fill.BeginAnimation(grows,
-            new DoubleAnimation(target, Motion.Speed) { EasingFunction = Motion.WpfEasing });
+        bar.Fill.BeginAnimation(grows, Motion.Sweep(target));
     }
 
     /// <summary>

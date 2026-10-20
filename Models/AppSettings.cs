@@ -37,6 +37,14 @@ public class AppSettings
     /// the second, so this is the ceiling of what can be spent before the display is more often in transit
     /// than correct.</summary>
     public int    AnimationSpeedMs  { get; set; } = 300;
+
+    /// <summary>The most frames a second anything moving may draw — dials, bars, the clock's rings. 15 to 60.
+    ///
+    /// Thirty and not sixty. This is a monitor: it draws for hours in the corner of a screen, and every frame
+    /// it spends is taken from the machine it is measuring. Half the frames are not visible in a 300 ms sweep
+    /// and are plainly visible in a task manager. Beside the speed, and a setting rather than a constant,
+    /// because what a frame is worth depends on the machine paying for it.</summary>
+    public int    MaxFrameRate      { get; set; } = 30;
     public bool   MinimizeToTray   { get; set; } = false;
     public bool   StartMinimized   { get; set; } = false;
     public double WindowLeft       { get; set; } = double.NaN;

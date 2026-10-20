@@ -91,68 +91,9 @@ public static class AquilaCharts
     }
 
     /// <summary>
-    /// Builds concentric solid rings, one per value, for a PieChart set to a full turn — the clock's. Returns the
-    /// rings INNERMOST FIRST, which is how LiveCharts lays a solid gauge out: its values become rings by position,
-    /// the first in the middle. The track is one series behind all of them, a ring under each.
-    ///
-    /// Nothing here is styled beyond what every ring shares. Thickness, rounding, the room left in the middle and
-    /// the colours are set by the caller on the series it gets back, because every one of them changes while the
-    /// rings run — and a series rebuilt for a new thickness would draw its arcs again from nothing.
-    ///
-    /// The series are taken out of what BuildSolidGauge returns rather than captured inside its builders, for the
-    /// reason <see cref="SolidGauge"/> gives about when those run.
-    /// </summary>
-    public static (PieSeries<ObservableValue>[] Rings, PieSeries<ObservableValue> Track, PieSeries<ObservableValue>[] All)
-        SolidRings(IReadOnlyList<ObservableValue> points)
-    {
-        var all = GaugeGenerator.BuildSolidGauge([.. points.Select(point => new GaugeItem(point, _ => { }))]);
-
-        foreach (var series in all)
-        {
-            // No numbers in the arcs, and nothing to hover: the time is written in the middle by the clock.
-            series.DataLabelsPaint = null;
-            series.IsHoverable = false;
-
-            // The track's too. LiveCharts reserves the largest hover push-out of any series all round the chart,
-            // and BuildSolidGauge leaves the track's at its default of 20 — so every ring was laid out in a circle
-            // 40 pixels narrower than the chart, and sized from a radius the clock could not know. Measured from a
-            // render, ring by ring.
-            series.HoverPushout = 0;
-
-            // How an arc APPEARS — in place, rather than swept up from nothing. How it moves after that is set on
-            // each arc as it moves; see Travel.
-            series.AnimationsSpeed = LiveCharts.DisableAnimations;
-        }
-
-        var rings = points
-            .Select(point => all.First(s => !s.IsFillSeries && s.Values?.Contains(point) == true))
-            .ToArray();
-
-        return (rings, all.First(s => s.IsFillSeries), all);
-    }
-
-    /// <summary>
-    /// How the next change of a gauge's value is drawn: over <paramref name="animation"/>, or at once for null.
-    ///
-    /// Set on the arc already drawn, not on its series. A series hands its speed to each arc when it CREATES it,
-    /// so a speed set on the series afterwards reaches only arcs not drawn yet — and the clock needs a different
-    /// answer from one second to the next, sweeping through a minute and jumping at the top of it. Read in
-    /// LiveCharts 2.0.2: the transition is taken when the new angle is set, so this has to come before the value.
-    /// </summary>
-    public static void Travel(ObservableValue point, LiveChartsCore.Drawing.Animation? animation)
-    {
-        if (point.MetaData is not { } drawn) return;
-
-        foreach (var chartPoint in drawn.ChartPoints.Values)
-            if (chartPoint.Context.Visual is LiveChartsCore.Drawing.Animatable arc)
-                arc.SetTransition(animation,
-                    LiveChartsCore.Drawing.BaseDoughnutGeometry.StartAngleProperty,
-                    LiveChartsCore.Drawing.BaseDoughnutGeometry.SweepAngleProperty);
-    }
-
-    /// <summary>
     /// How round an arc's ends can be at this length: the corner asked for, or less when the arc is too short to
-    /// hold it. Asked by the dial and by the clock's rings.
+    /// hold it. Asked by the dial (the clock's rings are drawn by Primitives.RingArc now, whose round ends sit outside
+    /// the arc and need no limit).
     ///
     /// Read in LiveCharts 2.0.2 (DoughnutGeometry.RoundedDraw): each rounded end takes an angle of
     /// atan(r / (inner + r)) out of the arc's INNER edge, and when the two ends together take more than the arc

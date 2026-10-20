@@ -103,6 +103,21 @@
                       DisplayMemberPath="Label" />
         </ui:CardControl>
 
+        <!-- Beside Motion because it is the other half of the same cost: how long things move, and how many
+             frames a second they are drawn at while they do. A machine setting, never a widget's. -->
+        <ui:CardControl Icon="{ui:SymbolIcon TopSpeed24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Frame rate" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="The most frames a second anything moving is drawn at. Fewer cost less. Dials and charts take a change when Aquila next starts." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ComboBox MinWidth="120"
+                      ItemsSource="{Binding ViewModel.FrameRateOptions}"
+                      SelectedItem="{Binding ViewModel.SelectedFrameRate}"
+                      DisplayMemberPath="Label" />
+        </ui:CardControl>
+
         <!-- ── Behaviour ───────────────────────────────────────────────────────────────────────── -->
         <!-- ── Limits ──────────────────────────────────────────────────────────────────────────── -->
         <TextBlock Style="{StaticResource SectionHeading}" Text="Limits" />

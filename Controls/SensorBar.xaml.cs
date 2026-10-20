@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using Aquila.Models;
 
 namespace Aquila.Controls;
@@ -124,7 +123,6 @@ public partial class SensorBar : UserControl
         // No From, deliberately: the animation starts wherever the bar is currently DRAWN, so a reading
         // that lands mid-sweep redirects smoothly instead of jumping back to begin again. It is also why
         // a poll faster than the sweep degrades into a slower sweep rather than into a stutter.
-        Bar.BeginAnimation(RangeBase.ValueProperty,
-            new DoubleAnimation(target, Motion.Speed) { EasingFunction = Motion.WpfEasing });
+        Bar.BeginAnimation(RangeBase.ValueProperty, Motion.Sweep(target));
     }
 }

@@ -236,15 +236,16 @@ namespace Aquila
             if (settings.Current.EnableVerboseLogging)
                 LogLevel.MinimumLevel = LogEventLevel.Debug;
 
-            // Thirty rather than the library's sixty. This is a monitor: it draws for hours in the corner
-            // of a screen, and every frame it spends is taken from the machine it is measuring. Half the
-            // frames are not visible in a 300 ms sweep and are plainly visible in a task manager.
-            LiveChartsCore.LiveCharts.RenderingSettings.LiveChartsRenderLoopFPS = 30;
-
             // A static for the same reason as VitalMonitor.Current below: the pieces that animate are
             // controls built by WidgetCatalog and by XAML, and neither can be handed anything by the
             // container.
             Controls.Motion.Apply(settings.Current);
+
+            // The charts' frame rate is the machine's, as every WPF animation's is — but LiveCharts reads it
+            // ONCE, into a static of its canvas when the first chart is made (CoreMotionCanvas's static
+            // constructor, 2.0.2), and never again. So it is set here, before any chart exists, and a change
+            // in Settings reaches the charts at the next start; the rings and bars follow it at once.
+            LiveChartsCore.LiveCharts.RenderingSettings.LiveChartsRenderLoopFPS = Controls.Motion.FrameRate;
 
             // Before StartAsync, which is what shows the main window: loads the themes and the presets,
             // applies both, and starts watching Windows' light/dark switch. Doing it after would render

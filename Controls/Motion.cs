@@ -5,7 +5,7 @@ using LiveChartsCore;
 namespace Aquila.Controls;
 
 /// <summary>
-/// Whether readings travel to their new value, and how fast.
+/// Whether readings travel to their new value, how fast, and at how many frames a second.
 ///
 /// A setting of this machine, not of a preset. A preset is made to be shared, and colours and typefaces
 /// arrive on someone else's computer as the same thing — while a duration arrives as a cost in frames,
@@ -30,15 +30,29 @@ namespace Aquila.Controls;
 /// one second. A control that cannot work inside the constraint the application imposes is better deleted
 /// than explained.
 ///
-/// One piece reads only whether this is on, not how fast: the clock's rings, which sweep through nine tenths of
-/// every second when it is. They are not on the poll, so the cap below has nothing to protect there, and time
-/// moves between two seconds in a way a reading does not move between two polls — see ClockTile.Sweeping.
+/// One piece reads only whether this is on, not how fast: the clock's rings, which move through the whole of
+/// every second when it is, arriving on each one. They are not on the poll, so the cap below has nothing to
+/// protect there, and time moves between two seconds in a way a reading does not move between two polls — see
+/// ClockTile.Sweep. The frame rate they follow like everything else.
 /// </summary>
 public static class Motion
 {
     public static TimeSpan Speed { get; private set; } = TimeSpan.Zero;
 
     public static bool Enabled => Speed > TimeSpan.Zero;
+
+    /// <summary>
+    /// The most frames a second anything Aquila animates may ask to be drawn at.
+    ///
+    /// Beside the speed and for the same reason: a frame is a cost paid on this machine, by the machine being
+    /// measured, and only its owner can say what it is worth. Every WPF animation Aquila makes carries it; the
+    /// charts take it once, at start — see App.OnStartup.
+    /// </summary>
+    public static int FrameRate { get; private set; } = DefaultFrameRate;
+
+    public const int DefaultFrameRate = 30;
+    public const int LeastFrameRate = 15;
+    public const int MostFrameRate = 60;
 
     /// <summary>What to hand a LiveCharts chart. Off is <c>LiveCharts.DisableAnimations</c> — one
     /// millisecond rather than zero, which is the library's own constant for it.</summary>
@@ -52,8 +66,14 @@ public static class Motion
 
     public static IEasingFunction WpfEasing { get; } = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-    public static void Apply(AppSettings settings) =>
+    public static void Apply(AppSettings settings)
+    {
         Apply(settings.AnimationSpeedMs, settings.PollingIntervalMs);
+
+        // Held here and not trusted from the file: the menu offers only rates inside these, but the file is
+        // the user's to edit, and a rate of nothing would be refused by every animation that carried it.
+        FrameRate = Math.Clamp(settings.MaxFrameRate, LeastFrameRate, MostFrameRate);
+    }
 
     /// <summary>
     /// The chosen speed, held to two fifths of the poll interval.
@@ -65,4 +85,17 @@ public static class Motion
     /// </summary>
     public static void Apply(int speedMs, int pollMs) =>
         Speed = TimeSpan.FromMilliseconds(Math.Clamp(speedMs, 0, Math.Max(0, pollMs) * 2 / 5));
+
+    /// <summary>A reading's sweep to <paramref name="to"/>, as WPF draws it: at the speed and on the curve in
+    /// force, and no oftener than the frame rate. One home, so the bars cannot come to move differently from each
+    /// other.</summary>
+    public static DoubleAnimation Sweep(double to) => Paced(new DoubleAnimation(to, Speed) { EasingFunction = WpfEasing });
+
+    /// <summary>Puts the frame rate on an animation Aquila makes. Asked of the root of what is begun — WPF reads it
+    /// there and nowhere else.</summary>
+    public static T Paced<T>(T timeline) where T : Timeline
+    {
+        Timeline.SetDesiredFrameRate(timeline, FrameRate);
+        return timeline;
+    }
 }

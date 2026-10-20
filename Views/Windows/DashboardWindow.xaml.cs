@@ -26,11 +26,14 @@ namespace Aquila.Views.Windows
             {
                 if ((bool)e.NewValue)
                 {
+                    // At the machine's frame rate like every animation Aquila makes. It is not a reading, but a
+                    // fade costs frames all the same.
                     Opacity = 0;
-                    BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
-                    {
-                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                    });
+                    BeginAnimation(OpacityProperty, Aquila.Controls.Motion.Paced(
+                        new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
+                        {
+                            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                        }));
                 }
                 else
                 {

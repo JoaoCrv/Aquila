@@ -34,21 +34,6 @@ public static partial class ClockFace
         (time.Minute + time.Second / 60d) / 60,
         (time.Hour % 12 + time.Minute / 60d) / 12);
 
-    /// <summary>
-    /// Which rings went BACK between two instants — so which must jump there rather than sweep.
-    ///
-    /// Going back is what a ring does at the top of its turn: the seconds at :59 → :00, the minutes on the hour,
-    /// the hours at twelve. Swept, each would unwind the whole circle backwards to get there. Asked of the hands
-    /// rather than of the boundaries, so the same answer covers a clock put back an hour, or the machine waking
-    /// up mid-afternoon: whenever a ring would travel backwards, the jump is the truth.
-    /// </summary>
-    public static (bool Seconds, bool Minutes, bool Hours) Wrapped(DateTime before, DateTime after)
-    {
-        var then = Fractions(before);
-        var now = Fractions(after);
-        return (now.Seconds < then.Seconds, now.Minutes < then.Minutes, now.Hours < then.Hours);
-    }
-
     /// <summary>How many rings a setting draws.</summary>
     public static int RingCount(ClockRings rings) => rings switch
     {
@@ -118,9 +103,13 @@ public static partial class ClockFace
     /// </summary>
     public static readonly TimeSpan Lateness = TimeSpan.FromMilliseconds(25);
 
+    /// <summary>The whole second after <paramref name="now"/> — when the clock is next woken, and where a ring moving
+    /// smoothly is aimed, so that it is exactly there when the second arrives.</summary>
+    public static DateTime NextSecond(DateTime now) =>
+        new(now.Ticks - now.Ticks % TimeSpan.TicksPerSecond + TimeSpan.TicksPerSecond, now.Kind);
+
     /// <summary>How long to wait from <paramref name="now"/> to land just after the next whole second.</summary>
-    public static TimeSpan UntilNextSecond(DateTime now) =>
-        TimeSpan.FromTicks(TimeSpan.TicksPerSecond - now.Ticks % TimeSpan.TicksPerSecond) + Lateness;
+    public static TimeSpan UntilNextSecond(DateTime now) => NextSecond(now) - now + Lateness;
 
     /// <summary>Whether two instants fall in the same whole second — so whether the second has been shown.</summary>
     public static bool SameSecond(DateTime a, DateTime b) =>
