@@ -10,12 +10,35 @@ namespace Aquila.Controls;
 /// Reusable across dashboard cards (CPU, GPU, ...). Set <see cref="Accent"/> to colour the value;
 /// leave it unset to inherit the theme foreground.
 /// </summary>
-public partial class StatBox : UserControl, IStatStyle
+public partial class StatBox : UserControl, IStatStyle, IScaledFigure
 {
     public StatBox()
     {
         InitializeComponent();
         Apply();
+    }
+
+    private double _figureScale = 1;
+
+    /// <summary>
+    /// For the panel's padding and corners, which are the StatBox style's — and stay there: they are read back
+    /// from it and multiplied, so the numbers keep one home. At 1 the style is left to supply them, which is what
+    /// every dashboard card has always drawn.
+    /// </summary>
+    public double FigureScale
+    {
+        get => _figureScale;
+        set
+        {
+            _figureScale = value;
+
+            StatPanel.ClearValue(Border.PaddingProperty);
+            StatPanel.ClearValue(Border.CornerRadiusProperty);
+            if (value == 1) return;
+
+            StatPanel.Padding = StatPanel.Padding.Scaled(value);
+            StatPanel.CornerRadius = StatPanel.CornerRadius.Scaled(value);
+        }
     }
 
     public static readonly DependencyProperty LabelProperty =

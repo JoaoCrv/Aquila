@@ -944,6 +944,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private double _widgetX;
     [ObservableProperty] private double _widgetY;
 
+    // Style, all four: a new size is a new scale, which re-dresses the widget where it stands. They went missing
+    // with the appearance fields in the move to presets, after which the boxes changed nothing until some other
+    // edit happened to write them.
+    partial void OnWidgetWidthChanged(double value) => Apply();
+    partial void OnWidgetHeightChanged(double value) => Apply();
+    partial void OnWidgetXChanged(double value) => Apply();
+    partial void OnWidgetYChanged(double value) => Apply();
+
     [ObservableProperty]
     private WidgetKindInfo? _selectedKind;
 

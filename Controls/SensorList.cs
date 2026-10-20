@@ -24,7 +24,7 @@ namespace Aquila.Controls;
 /// here aligns the reading either — the number column is the alignment — so "Reading align" does nothing on a
 /// list, as on a dial.
 /// </summary>
-public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyle
+public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyle, IScaledFigure
 {
     private sealed record Row(TextBlock Name, TextBlock Reading);
 
@@ -149,10 +149,17 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
             reading.FontSize = ValueSize;
             name.Wear(ValueFont, ValueWeight);
             reading.Wear(ValueFont, ValueWeight);
+
+            // At the widget's scale, like the text either side of it: a gap that stayed eight pixels between
+            // names and numbers twice the size would run them together.
+            reading.Margin = new Thickness(NameGap * _figureScale, 0, 0, 0);
         }
 
         Redraw();
     }
+
+    /// <summary>Between the end of a name and the start of its number, at the kind's default size.</summary>
+    private const double NameGap = 8;
 
     private void AddRow()
     {
@@ -163,11 +170,11 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         // judging is drawn in. The number is the reading, so the number alone wears the ramp.
         var name = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis, Opacity = 0.7 };
 
+        // Its margin is the scale's, set with the face in Apply.
         var reading = new TextBlock
         {
             HorizontalAlignment = HorizontalAlignment.Right,
             TextAlignment = TextAlignment.Right,
-            Margin = new Thickness(8, 0, 0, 0),
         };
 
         Grid.SetRow(name, index);
@@ -192,6 +199,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
     // ── Style ────────────────────────────────────────────────────────
 
     private int _itemCount = 5;
+    private double _figureScale = 1;
     private bool _showUnit = true;
     private double _valueSize = 13;
     private string? _valueFont;
@@ -210,6 +218,13 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
     {
         get => _showUnit;
         set { _showUnit = value; Apply(); }
+    }
+
+    /// <summary>For the gap between each name and its number.</summary>
+    public double FigureScale
+    {
+        get => _figureScale;
+        set { _figureScale = value; Apply(); }
     }
 
     public double ValueSize

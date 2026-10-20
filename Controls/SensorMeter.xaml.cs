@@ -15,12 +15,34 @@ public enum MeterLabelPlacement { Inline, Top }
 /// below (Top, e.g. StorageCard). <see cref="Label"/>/<see cref="ValueText"/> are plain strings the
 /// caller formats, the same convention as <see cref="StatBox"/>.
 /// </summary>
-public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
+public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScaledFigure
 {
+    /// <summary>The spacing of the Above layout, as the XAML gives it — which stays its one home; the scale
+    /// multiplies it.</summary>
+    private readonly Thickness _topRowMargin;
+    private readonly Thickness _topBarMargin;
+
     public SensorMeter()
     {
         InitializeComponent();
+        _topRowMargin = TopRow.Margin;
+        _topBarMargin = TopBar.Margin;
         Apply();
+    }
+
+    private double _figureScale = 1;
+
+    /// <summary>
+    /// For the columns and the spacing, which are the meter's own. The value column most of all: the number grows
+    /// with the widget, and in a column that stayed 64 pixels wide a reading twice the size is cut off.
+    ///
+    /// The columns as given are kept, and multiplied where they are applied, so a card that sets its own widths
+    /// and never a scale draws exactly what it always did.
+    /// </summary>
+    public double FigureScale
+    {
+        get => _figureScale;
+        set { _figureScale = value; Apply(); }
     }
 
     public static readonly DependencyProperty SensorProperty =
@@ -266,11 +288,11 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
         InlineLayout.Visibility = inline ? Visibility.Visible : Visibility.Collapsed;
         TopLayout.Visibility = inline ? Visibility.Collapsed : Visibility.Visible;
 
-        InlineLabelColumn.Width = LabelWidth;
+        InlineLabelColumn.Width = LabelWidth.Scaled(_figureScale);
 
         // The value column collapses with the value, so hiding the number gives the bar the width back
         // rather than leaving a 44px gap where it used to be.
-        InlineValueColumn.Width = ShowValue ? ValueWidth : new GridLength(0);
+        InlineValueColumn.Width = ShowValue ? ValueWidth.Scaled(_figureScale) : new GridLength(0);
         InlineValueText.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
         InlineValueText.FontSize = ValueSize;
         InlineValueText.Wear(ValueFont, ValueWeight);
@@ -278,6 +300,8 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle
         // In the Top layout the number shares a row with the label. A widget leaves that label empty, so
         // with the number gone the whole row is blank margin — collapse it too.
         TopRow.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
+        TopRow.Margin = _topRowMargin.Scaled(_figureScale);
+        TopBar.Margin = _topBarMargin.Scaled(_figureScale);
         TopValueText.FontSize = ValueSize;
         TopValueText.Wear(ValueFont, ValueWeight);
 

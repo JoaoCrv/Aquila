@@ -12,19 +12,36 @@ namespace Aquila.Controls;
 /// AIDA64-style radial gauge for a single sensor, built on the LiveCharts gauge (AquilaCharts).
 /// Bind <see cref="Sensor"/> to a live SensorNode; the gauge animates as the value changes.
 /// </summary>
-public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
+public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle, IScaledFigure
 {
     private ObservableValue? _point;
     private SKColor _lastColor;
 
-    /// <summary>The look the current series was built with. Thickness, text size and whether the number is
-    /// drawn are all baked into the series when it is generated, so changing any of them means building it
+    /// <summary>The look the current series was built with. Whether the number is drawn, its face, colours and
+    /// format are all baked into the series when it is generated, so changing any of them means building it
     /// again — but only then, or the gauge would animate from zero on every tick.</summary>
-    private (double Thickness, double Corner, double ValueSize, bool ShowValue, SKColor Track,
-        string? Font, TextWeight Weight, SKColor Label, string? Unit, string Decimals) _lastStyle;
+    private (bool ShowValue, SKColor Track, string? Font, TextWeight Weight, SKColor Label, string? Unit,
+        string Decimals) _lastStyle;
+
+    /// <summary>The sizes the series was last given. Not among the look above, because they change whenever the
+    /// widget's size does, and a resize must not rebuild the dial: they are set on the series as it stands.</summary>
+    private (double Thickness, double Corner, double ValueSize, double Scale) _lastSize;
 
     /// <summary>Rounds the value arc's ends without rebuilding it.</summary>
     private Action<double>? _setCorner;
+
+    /// <summary>Sets the thickness, the corner, the number's size and the scale without rebuilding it.</summary>
+    private Action<double, double, double, double>? _resize;
+
+    private double _figureScale = 1;
+
+    /// <summary>For the room LiveCharts keeps round the dial (<see cref="AquilaCharts.SolidGauge"/>), the one size
+    /// in this figure that is neither the preset's nor drawn from the box.</summary>
+    public double FigureScale
+    {
+        get => _figureScale;
+        set { _figureScale = value; Render(); }
+    }
 
     /// <summary>The share of the dial the arc was last sent to — so the ends can be sized for the shorter of where
     /// it is and where it is going, which is the shortest it will be on the way.</summary>
@@ -236,8 +253,8 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         // preset that turns the unit off would not be noticed until something else forced a rebuild.
         var unit = ShowUnit ? Sensor.Unit : null;
         var decimals = Sensor.Decimals();
-        var style = (ArcThickness, ArcCorner, ValueSize, ShowValue, track, ValueFont, ValueWeight, label,
-            unit, decimals);
+        var style = (ShowValue, track, ValueFont, ValueWeight, label, unit, decimals);
+        var size = (ArcThickness, ArcCorner, ValueSize, _figureScale);
 
         // The start angle and the sweep have to be set together — 270 degrees starting at the top puts the
         // gap on the right, which reads as a broken ring rather than a dial.
@@ -253,15 +270,22 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         // style are the only things that can force it to be built again.
         if (_point is null || color != _lastColor || style != _lastStyle)
         {
-            var (series, point, setCorner) =
+            var (series, point, setCorner, resize) =
                 AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner, track,
-                    ValueFont, ValueWeight, label, unit, decimals);
+                    ValueFont, ValueWeight, label, unit, decimals, _figureScale);
             _point = point;
             _setCorner = setCorner;
+            _resize = resize;
             _lastFraction = null;
             _lastColor = color;
             _lastStyle = style;
+            _lastSize = size;
             Chart.Series = series;
+        }
+        else if (size != _lastSize)
+        {
+            _resize?.Invoke(ArcThickness, ArcCorner, ValueSize, _figureScale);
+            _lastSize = size;
         }
 
         // Also on the series, not only on the chart above. A series that names no speed is documented to

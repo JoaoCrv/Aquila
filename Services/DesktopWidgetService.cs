@@ -630,7 +630,11 @@ public sealed class DesktopWidgetService
 
         var preset = _presets.For(definition.Preset);
 
-        Frame(border, definition, preset);
+        // Asked again on every re-dress, because a resize arrives here as one: the size is the widget's, and the
+        // scale follows from it.
+        var scale = WidgetScale.Of(definition);
+
+        Frame(border, definition, preset, scale);
         Canvas.SetLeft(border, definition.X);
         Canvas.SetTop(border, definition.Y);
         Panel.SetZIndex(border, definition.ZIndex);
@@ -643,7 +647,7 @@ public sealed class DesktopWidgetService
 
         if (border.Child is LabeledTile tile)
         {
-            Dress(tile.Tile, preset);
+            Dress(tile.Tile, preset, scale);
             Content(tile.Tile, definition);
             KeepEnoughHistory(definition, ResolveSensors(definition));
         }
@@ -867,11 +871,6 @@ public sealed class DesktopWidgetService
     }
 
     /// <summary>
-    /// Dresses a piece from the preset. Each section is matched structurally — a piece that is not a dial
-    /// does not implement <see cref="IGaugeStyle"/> and is skipped — so nothing here keeps a list of which
-    /// kinds get which settings, and a kind added later cannot be forgotten silently.
-    /// </summary>
-    /// <summary>
     /// Asks the sensors behind a chart to keep enough readings to fill its window.
     ///
     /// Sensors keep sixty by default whether anything draws them or not, so a longer trend is requested only
@@ -948,14 +947,17 @@ public sealed class DesktopWidgetService
     /// One method rather than the same assignments in Build and RestyleWidget. Those are the two places a
     /// widget's frame is decided, and a setting added to one and forgotten in the other shows up as a
     /// widget that looks right until the moment someone edits it.
+    ///
+    /// The frame's sizes are the preset's, so they grow with the widget like the piece's do: a panel twice the
+    /// size with the same ten pixels of padding and the same corners is a different shape, not a bigger one.
     /// </summary>
-    private static void Frame(Border border, DesktopWidgetDefinition definition, Preset preset)
+    private static void Frame(Border border, DesktopWidgetDefinition definition, Preset preset, double scale)
     {
         border.Background = HexBrush.From(preset.Background.Color, preset.Background.Opacity);
         border.BorderBrush = HexBrush.From(preset.Border.Color, preset.Border.Opacity);
-        border.BorderThickness = new Thickness(preset.Border.Thickness);
-        border.CornerRadius = new CornerRadius(preset.Border.CornerRadius);
-        border.Padding = new Thickness(preset.Border.Padding);
+        border.BorderThickness = new Thickness(preset.Border.Thickness * scale);
+        border.CornerRadius = new CornerRadius(preset.Border.CornerRadius * scale);
+        border.Padding = new Thickness(preset.Border.Padding * scale);
         border.Width = definition.Width;
         border.Height = definition.Height;
 
@@ -975,39 +977,49 @@ public sealed class DesktopWidgetService
 
         tile.TitleFont = preset.Title.FontFamily;
         tile.TitleWeight = preset.Title.Weight;
-        tile.TitleSize = preset.Title.Size;
+        tile.TitleSize = preset.Title.Size * scale;
         tile.TitleOpacity = preset.Title.Opacity;
         tile.TitleAlign = preset.Title.Align;
         tile.TitlePlacement = preset.Title.Placement;
+        tile.FigureScale = scale;
     }
 
-    private static void Dress(object? piece, Preset preset)
+    /// <summary>
+    /// Dresses a piece from the preset. Each section is matched structurally — a piece that is not a dial
+    /// does not implement <see cref="IGaugeStyle"/> and is skipped — so nothing here keeps a list of which
+    /// kinds get which settings, and a kind added later cannot be forgotten silently.
+    ///
+    /// At the widget's scale (<see cref="WidgetScale"/>): every size the preset gives is multiplied here, on its
+    /// way in, and nowhere else, which is what makes the preset's numbers mean "at the kind's default size" for
+    /// every kind alike. Opacities, smoothness, colours and choices are not sizes and arrive as they are.
+    /// </summary>
+    private static void Dress(object? piece, Preset preset, double scale)
     {
         // First, and for anything that draws a reading. Kept out of the per-kind blocks below because it
         // is the one setting they all share, and repeating it in each is how the sparkline came to be the
         // only kind it did not reach.
         if (piece is IValueStyle value)
         {
-            value.ValueSize = preset.Value.Size;
+            value.ValueSize = preset.Value.Size * scale;
             value.ValueFont = preset.Value.FontFamily;
             value.ValueWeight = preset.Value.Weight;
         }
 
         if (piece is IChartStyle line)
         {
-            line.LineThickness = preset.Line.Thickness;
+            line.LineThickness = preset.Line.Thickness * scale;
             line.Fill = preset.Line.Fill;
             line.FillOpacity = preset.Line.FillOpacity;
             line.Smoothness = preset.Line.Smoothness;
-            line.PointSize = preset.Line.PointSize;
+            line.PointSize = preset.Line.PointSize * scale;
         }
 
         // The dial's arcs and the clock's rings read the same section, so one preset gives both the same
         // thickness, ends and track.
         if (piece is IArcStyle arc)
         {
-            arc.ArcThickness = preset.Gauge.Thickness;
-            arc.ArcCorner = preset.Gauge.Corner;
+            arc.ArcThickness = preset.Gauge.Thickness * scale;
+            arc.ArcCorner = preset.Gauge.Corner * scale;
             arc.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
 
@@ -1025,19 +1037,22 @@ public sealed class DesktopWidgetService
 
         if (piece is IMeterStyle bar)
         {
-            bar.BarThickness = preset.Bar.Thickness;
-            bar.BarCorner = preset.Bar.Corner;
+            bar.BarThickness = preset.Bar.Thickness * scale;
+            bar.BarCorner = preset.Bar.Corner * scale;
             bar.Layout = preset.Bar.Layout;
             bar.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
 
         if (piece is IStatStyle stat)
         {
-            stat.UnitSize = preset.Number.UnitSize;
+            stat.UnitSize = preset.Number.UnitSize * scale;
             stat.ShowPanel = preset.Number.Panel;
         }
 
         if (piece is ITextStyle text) text.Align = preset.Value.Align;
+
+        // And the sizes the piece fixes in its own drawing, which only the piece knows.
+        if (piece is IScaledFigure figure) figure.FigureScale = scale;
     }
 
     /// <summary>
@@ -1073,6 +1088,10 @@ public sealed class DesktopWidgetService
 
         definition.Width = width;
         definition.Height = height;
+
+        // A new size is a new scale, so the widget is re-dressed at it — a Style change, which leaves the piece
+        // and its history where they are. The wheel has already sized the box; this sizes what is drawn in it.
+        RestyleWidget(definition);
         SaveUnlessEditing();
 
         // The wheel and the boxes set the same two numbers, so whichever was used last has to be what both
@@ -1215,14 +1234,16 @@ public sealed class DesktopWidgetService
     private static Border Wrap(FrameworkElement piece, DesktopWidgetDefinition definition, Preset preset,
         List<Action<Preset>> repaints)
     {
-        Dress(piece, preset);
+        var scale = WidgetScale.Of(definition);
+
+        Dress(piece, preset, scale);
         Content(piece, definition);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.
         var widget = new Border { Child = new LabeledTile { Tile = piece } };
 
-        Frame(widget, definition, preset);
+        Frame(widget, definition, preset, scale);
 
         widget.SetValue(RepaintsProperty, repaints);
 

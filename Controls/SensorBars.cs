@@ -29,7 +29,7 @@ namespace Aquila.Controls;
 /// nothing persistent to animate; a sweep would restart from zero every second. Here each bar is built
 /// once and only its height moves, which is the same discipline the gauge already needs.
 /// </summary>
-public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOrientedBars
+public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOrientedBars, IScaledFigure
 {
     private sealed record Bar(
         SensorNode Sensor, Border Track, Border Fill, TextBlock Reading, DockPanel Column)
@@ -208,10 +208,12 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
             bar.Fill.CornerRadius = new CornerRadius(BarCorner);
             bar.Track.CornerRadius = new CornerRadius(BarCorner);
 
-            // Under the bar when standing, after it when lying down — always at the end of the reading.
+            // Under the bar when standing, after it when lying down — always at the end of the reading. The gaps
+            // grow with the widget, as the bars and the numbers do, or sixteen bars made twice as big would
+            // close up into one block.
             DockPanel.SetDock(bar.Reading, upright ? Dock.Bottom : Dock.Right);
-            bar.Column.Margin = upright ? new Thickness(2, 0, 2, 0) : new Thickness(0, 2, 0, 2);
-            bar.Reading.Margin = upright ? new Thickness(0, 2, 0, 0) : new Thickness(6, 0, 0, 0);
+            bar.Column.Margin = (upright ? new Thickness(2, 0, 2, 0) : new Thickness(0, 2, 0, 2)).Scaled(_figureScale);
+            bar.Reading.Margin = (upright ? new Thickness(0, 2, 0, 0) : new Thickness(6, 0, 0, 0)).Scaled(_figureScale);
             bar.Reading.VerticalAlignment = upright ? VerticalAlignment.Top : VerticalAlignment.Center;
 
             bar.Reading.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
@@ -287,6 +289,15 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     {
         get => _valueWeight;
         set { _valueWeight = value; Apply(); }
+    }
+
+    private double _figureScale = 1;
+
+    /// <summary>For the gaps between the bars and between each bar and its number.</summary>
+    public double FigureScale
+    {
+        get => _figureScale;
+        set { _figureScale = value; Apply(); }
     }
 
     private BarDirection _direction = BarDirection.Vertical;

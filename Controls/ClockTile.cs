@@ -52,7 +52,10 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
 
     /// <summary>The gap between two rings, as a share of their thickness — eight pixels at the presets' fourteen:
     /// enough to read as three rings rather than one banded one, and no more, because every pixel of it is taken from
-    /// the middle where the time is. Never under two pixels, or thin rings would touch.</summary>
+    /// the middle where the time is. Never under two pixels, or thin rings would touch.
+    ///
+    /// A share, so it grows with the widget as the thickness does — the thickness arrives scaled. The floor does not:
+    /// what it guards against, two rings touching, is a matter of pixels whatever the scale.</summary>
     private const double GapToThickness = 4d / 7;
     private const double MinGap = 2;
 

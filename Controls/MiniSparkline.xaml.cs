@@ -12,12 +12,31 @@ namespace Aquila.Controls;
 /// the dashboard and desktop widgets share one piece (sibling of <see cref="RadialGauge"/>).
 /// </summary>
 public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IValueStyle, IUnitStyle,
-    IHideableValue
+    IHideableValue, IScaledFigure
 {
+    /// <summary>The number's distance from the corner, as the XAML gives it — which stays its one home; the scale
+    /// multiplies it.</summary>
+    private readonly Thickness _valueMargin;
+
     public MiniSparkline()
     {
         InitializeComponent();
+        _valueMargin = ValueText.Margin;
         Loaded += (_, _) => Render();
+    }
+
+    private double _figureScale = 1;
+
+    /// <summary>For the number's distance from the corner, which would otherwise stay two pixels from the top
+    /// while the number grew.</summary>
+    public double FigureScale
+    {
+        get => _figureScale;
+        set
+        {
+            _figureScale = value;
+            ValueText.Margin = _valueMargin.Scaled(value);
+        }
     }
 
     public static readonly DependencyProperty SensorProperty =

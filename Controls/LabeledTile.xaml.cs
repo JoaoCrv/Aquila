@@ -10,12 +10,22 @@ namespace Aquila.Controls;
 /// label inside the gauge by moving it outside. How the title is drawn comes from the preset, so every
 /// widget wearing one agrees about what a label looks like.
 /// </summary>
-public partial class LabeledTile : UserControl
+public partial class LabeledTile : UserControl, IScaledFigure
 {
     public LabeledTile()
     {
         InitializeComponent();
         Apply();
+    }
+
+    private double _figureScale = 1;
+
+    /// <summary>The widget's scale, for the gap between the title and what it labels — the title's size arrives
+    /// already scaled, and a heading twice the size sitting four pixels from its dial reads as touching it.</summary>
+    public double FigureScale
+    {
+        get => _figureScale;
+        set { _figureScale = value; Apply(); }
     }
 
     public static readonly DependencyProperty TitleProperty =
@@ -152,12 +162,12 @@ public partial class LabeledTile : UserControl
         });
 
         // A little breathing room between title and content, on the docked side.
-        TitleText.Margin = TitlePlacement switch
+        TitleText.Margin = (TitlePlacement switch
         {
             TitlePlacement.Bottom => new Thickness(0, 4, 0, 0),
             TitlePlacement.Left   => new Thickness(0, 0, 6, 0),
             TitlePlacement.Right  => new Thickness(6, 0, 0, 0),
             _                     => new Thickness(0, 0, 0, 4),
-        };
+        }).Scaled(_figureScale);
     }
 }

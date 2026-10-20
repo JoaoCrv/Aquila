@@ -22,28 +22,38 @@ public static class AquilaCharts
     /// <c>MaxAngle = 270</c>. Returns the series plus the <see cref="ObservableValue"/> backing the
     /// value arc — update <c>point.Value</c> to animate smoothly from the current value (don't rebuild
     /// the series each tick, or it animates from zero). SetCorner rounds the arc's ends by as much as its length
-    /// allows — see <see cref="CornerFor"/> — without rebuilding anything.
+    /// allows — see <see cref="CornerFor"/> — without rebuilding anything. Resize sets the arc's thickness, its
+    /// corner, the number's size and the scale, also without rebuilding: those are what a widget changing size
+    /// changes, and a dial rebuilt on every notch of the wheel would sweep up from zero on every notch.
     /// </summary>
-    public static (IEnumerable<ISeries> Series, ObservableValue Point, Action<double> SetCorner) SolidGauge(
+    /// <param name="scale">The widget's (<see cref="IScaledFigure"/>), for the room the library keeps round the dial.
+    /// The sizes above arrive already multiplied by it.</param>
+    public static (IEnumerable<ISeries> Series, ObservableValue Point, Action<double> SetCorner,
+        Action<double, double, double, double> Resize) SolidGauge(
         SKColor color, double columnWidth = 14, double labelSize = 24, bool showLabel = true,
         double cornerRadius = 0, SKColor? track = null,
         string? font = null, Aquila.Models.TextWeight weight = Aquila.Models.TextWeight.Regular,
-        SKColor? label = null, string? unit = null, string decimals = "F0")
+        SKColor? label = null, string? unit = null, string decimals = "F0", double scale = 1)
     {
         // A cap cannot be rounder than the arc is thick. Past half the width the geometry starts eating
         // into the arc, and LiveCharts' rounding is already unreliable enough at the edges without being
         // handed values it cannot honour — the editor's slider stops here too, so this is a backstop for
         // layouts written by hand rather than something the user can walk into.
-        var caps = (float)Math.Clamp(cornerRadius, 0, columnWidth / 2);
+        static float CapsFor(double corner, double width) => (float)Math.Clamp(corner, 0, width / 2);
+
+        var caps = CapsFor(cornerRadius, columnWidth);
 
         // Rounds the value arc's ends without rebuilding the series — rebuilding restarts the animation from
         // zero, so anything that has to change with the reading has to be reachable like this. The closure also
-        // spares us naming PieSeries' three generic arguments. Never past the caps above, whatever it is asked.
+        // spares us naming PieSeries' three generic arguments. Never past the caps above, whatever it is asked —
+        // read when it is asked, so a resize that moves them is honoured from the next reading.
         //
         // Indirect through a variable rather than returning this directly: BuildSolidGauge hands back an
         // IEnumerable and gives no promise about WHEN it runs the item builders, and a returned tuple
-        // captures the value a local held at that moment.
+        // captures the value a local held at that moment. The two sizers are indirect for the same reason.
         Action<double>? round = null;
+        Action<double, double, double>? sizeArc = null;
+        Action<double, double>? sizeTrack = null;
 
         var point = new ObservableValue(0);
 
@@ -53,6 +63,16 @@ public static class AquilaCharts
                 series.MaxRadialColumnWidth = columnWidth;
                 series.CornerRadius = caps;
                 round = corner => series.CornerRadius = Math.Clamp(corner, 0, caps);
+
+                var pushout = series.HoverPushout;
+                series.HoverPushout = pushout * scale;
+
+                sizeArc = (width, text, s) =>
+                {
+                    series.MaxRadialColumnWidth = width;
+                    series.DataLabelsSize = text;
+                    series.HoverPushout = pushout * s;
+                };
 
                 series.Fill = new SolidColorPaint(color);
                 // Native centre label: integer only (default shows the raw double — the "550003..."
@@ -85,9 +105,34 @@ public static class AquilaCharts
                 series.CornerRadius = caps;
                 series.Fill = new SolidColorPaint(track ?? new SKColor(255, 255, 255, 20));
                 series.DataLabelsPaint = null;
+
+                // The room LiveCharts keeps round a pie for a slice to push out into on hover — the largest any
+                // series asks for, and here the track's: its default of twenty pixels, which the generator leaves on
+                // the track and takes off the value arc. It is why a dial never reaches the edges of its box, and,
+                // fixed, it stayed twenty pixels while everything inside it doubled, so a dial made twice the size
+                // came out a fifth bigger than twice. Each arc's is multiplied, whichever one carries it, and read
+                // from the series rather than written here, so the number stays the library's.
+                var pushout = series.HoverPushout;
+                series.HoverPushout = pushout * scale;
+
+                sizeTrack = (width, s) =>
+                {
+                    series.MaxRadialColumnWidth = width;
+                    series.CornerRadius = caps;
+                    series.HoverPushout = pushout * s;
+                };
             }));
 
-        return (series, point, corner => round?.Invoke(corner));
+        // The value arc's corner is left to the next SetCorner, which sizes it for the arc's length against the
+        // new caps; the track is always a full sweep, so it takes the caps as they are.
+        void Resize(double width, double corner, double text, double s)
+        {
+            caps = CapsFor(corner, width);
+            sizeArc?.Invoke(width, text, s);
+            sizeTrack?.Invoke(width, s);
+        }
+
+        return (series, point, corner => round?.Invoke(corner), Resize);
     }
 
     /// <summary>

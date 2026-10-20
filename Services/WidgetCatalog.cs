@@ -88,6 +88,16 @@ public sealed record WidgetKindInfo(
     /// rows worth asking about. Derived rather than declared, so the two cannot disagree — the argument
     /// <see cref="SeriesPaint"/> makes about its count and its painter.</summary>
     public bool HasList => CreateList is not null;
+
+    /// <summary>
+    /// The size a widget's preset sizes are meant at — see <see cref="WidgetScale"/>. The kind's default, unless the
+    /// kind draws a different figure depending on what it shows. Null for every kind that does not.
+    ///
+    /// The clock is the one that does: a line of text is not a ring, and a clock without rings was 200×70 before
+    /// rings existed. Measured against the ringed clock's 200×200, every clock written by 2.3.0 would have been
+    /// drawn at a third of its size.
+    /// </summary>
+    public Func<DesktopWidgetDefinition, (double Width, double Height)>? Reference { get; init; }
 }
 
 public static class WidgetCatalog
@@ -159,7 +169,11 @@ public static class WidgetCatalog
             "The time in rings of seconds, minutes and hours — or the time or the date alone, in this machine's own format.",
             200, 200,
             _ => new ClockTile(),
-            SeriesPaint.None) { NeedsReading = false, HasClock = true, HasUnit = false },
+            SeriesPaint.None)
+            {
+                NeedsReading = false, HasClock = true, HasUnit = false,
+                Reference = clock => clock.Rings == ClockRings.None ? (200, 70) : (200, 200),
+            },
 
         // The first kind whose count the hardware decides. Sixteen is a ceiling, not a shape: this machine
         // has sixteen CPU cores and the editor stops offering more there, but four readings make four bars.
