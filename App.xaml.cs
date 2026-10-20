@@ -1,6 +1,7 @@
 using Aquila.Models;
 using Aquila.Services;
 using Aquila.Services.LibreHardwareMonitor;
+using Aquila.Services.Processes;
 using Aquila.ViewModels.Pages;
 using Aquila.ViewModels.Windows;
 using Aquila.Views.Pages;
@@ -48,8 +49,10 @@ namespace Aquila
                 // Models
                 services.AddSingleton<AquilaState>();
 
-                // Driver —
+                // Sources — every IHardwareDriver registered here is polled (#26): the hardware, and the
+                // applications using it. A mock would be one more line, beside them rather than instead.
                 services.AddSingleton<IHardwareDriver, LHMDriver>();
+                services.AddSingleton<IHardwareDriver, ProcessDriver>();
                 //services.AddSingleton<IHardwareDriver, MockDriver>();
 
                 //Services
@@ -194,16 +197,16 @@ namespace Aquila
                 return;
             }
 
-            // Elevate only if the active hardware driver needs it (LHM does; future API-based
-            // drivers may not). In a Velopack install this may relaunch us elevated via the
+            // Elevate only if some source needs it (LHM does; the process list and future API-based
+            // sources do not). In a Velopack install this may relaunch us elevated via the
             // scheduled task and ask this instance to exit.
             //
             // Kept alive by hand while that runs: the first run asks a question before any window exists,
             // so the dialog is the only window, and under the default shutdown mode closing it would end
             // the application — "Not now" would quit instead of carrying on unelevated.
-            var driver = _host.Services.GetRequiredService<IHardwareDriver>();
+            bool needsElevation = _host.Services.GetServices<IHardwareDriver>().Any(d => d.RequiresElevation);
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            bool carryOn = !driver.RequiresElevation || await ElevationService.EnsureElevatedAsync();
+            bool carryOn = !needsElevation || await ElevationService.EnsureElevatedAsync();
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             if (!carryOn)
             {

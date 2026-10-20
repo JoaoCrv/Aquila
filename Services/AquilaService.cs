@@ -7,10 +7,18 @@ using System.Windows.Threading;
 
 namespace Aquila.Services;
 
-public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonitor vitals,
+/// <summary>
+/// Polls every source and publishes what they read.
+///
+/// SourceS, plural, since #26: LibreHardwareMonitor reads the hardware and <c>ProcessDriver</c> the applications.
+/// Each is an <see cref="IHardwareDriver"/> registered on its own, and nothing here knows which is which — they are
+/// read one after another in the same pass off the UI thread, applied one after another on it, and one that fails,
+/// at the start or on any tick, costs only its own readings.
+/// </summary>
+public class AquilaService(IEnumerable<IHardwareDriver> drivers, AquilaState state, VitalMonitor vitals,
     NoticeService notices, ILogger<AquilaService> logger) : IDisposable
 {
-    private readonly IHardwareDriver _driver = driver;
+    private readonly IReadOnlyList<IHardwareDriver> _drivers = drivers.ToList();
     private readonly AquilaState _state = state;
     private readonly NoticeService _notices = notices;
     private readonly ILogger<AquilaService> _logger = logger;
@@ -41,7 +49,7 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     public event Action? DataUpdated;
 
     // TODO: replace with IHardwareDriver.RawTree when multi-driver support is added
-    public IComputer? Computer => (_driver as LHMDriver)?.Computer;
+    public IComputer? Computer => _drivers.OfType<LHMDriver>().FirstOrDefault()?.Computer;
 
     /// <summary>
     /// Starts polling, WHETHER OR NOT the driver came up.
@@ -59,31 +67,37 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
     ///
     /// The driver still THROWS. It is right that it does — it is reporting that it could not start, and
     /// deciding what that means for the application is not its business. This is where that decision
-    /// belongs, and it is the only place that has to change when there is more than one source to lose.
+    /// belongs: each source is started on its own and a failure is a condition of its own, keyed by the
+    /// source, so the notice names what is missing and the other sources carry on.
     ///
     /// The timer runs either way. LHMDriver's Read and Apply already return immediately when nothing is open,
-    /// so a tick costs nothing — and when a second source exists, a tick that stopped would take the
-    /// working sources down with the broken one.
+    /// so a tick costs nothing — and a tick that stopped would take the working sources down with the broken
+    /// one.
     /// </summary>
     public void Start()
     {
         _logger.LogInformation("Hardware monitor starting");
 
-        try
+        foreach (var driver in _drivers)
         {
-            _driver.Initialize();
-            _notices.Clear("driver");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Hardware source did not start; continuing without it");
+            var key = $"driver.{driver.Name}";
+            try
+            {
+                driver.Initialize();
+                _notices.Clear(key);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "{Source} did not start; continuing without it", driver.Name);
 
-            _notices.Set(
-                "driver",
-                "No hardware readings",
-                "The monitoring driver did not start, so nothing can be read from this machine. "
-                + $"Restarting Aquila as administrator is the usual fix. ({ex.Message})",
-                Models.StatusKind.Bad);
+                _notices.Set(
+                    key,
+                    $"No readings from {driver.Name}",
+                    $"{driver.Name} did not start, so what it reads is blank. "
+                    + (driver.RequiresElevation ? "Restarting Aquila as administrator is the usual fix. " : "")
+                    + $"({ex.Message})",
+                    Models.StatusKind.Bad);
+            }
         }
 
         _timer.Interval = TimeSpan.FromSeconds(1);
@@ -93,7 +107,7 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
         // LibreHardwareMonitor's tree right after Start returns, and must find it read, not half-way.
         try
         {
-            _driver.Read();
+            ReadAll();
             Publish();
         }
         catch (Exception ex)
@@ -147,7 +161,7 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
 
         try
         {
-            _reading = Task.Run(_driver.Read);
+            _reading = Task.Run(ReadAll);
             await _reading;
             if (_disposed) return;
 
@@ -163,10 +177,26 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
         }
     }
 
+    /// <summary>The slow half of a poll, every source in turn. One after another rather than side by side: the
+    /// second source costs ~4 ms beside LibreHardwareMonitor's ~40, so running them in parallel would buy little
+    /// and would put two sources' failures on two threads.</summary>
+    private void ReadAll()
+    {
+        foreach (var driver in _drivers)
+        {
+            try { driver.Read(); }
+            catch (Exception ex) { _logger.LogError(ex, "Error reading {Source}", driver.Name); }
+        }
+    }
+
     /// <summary>The UI-thread half of a poll: the last read into the state, then everything that judges it.</summary>
     private void Publish()
     {
-        _driver.Apply(_state);
+        foreach (var driver in _drivers)
+        {
+            try { driver.Apply(_state); }
+            catch (Exception ex) { _logger.LogError(ex, "Error applying {Source}", driver.Name); }
+        }
 
         // Before the pressure is worked out, so the first judged tick already uses whatever limits the
         // drives and DIMMs report about themselves rather than our generic ones. Does its work once.
@@ -190,6 +220,10 @@ public class AquilaService(IHardwareDriver driver, AquilaState state, VitalMonit
         try { _reading?.Wait(TimeSpan.FromSeconds(2)); }
         catch { /* its failure was the poll's to report */ }
 
-        _driver.Shutdown();
+        foreach (var driver in _drivers)
+        {
+            try { driver.Shutdown(); }
+            catch (Exception ex) { _logger.LogWarning(ex, "{Source} did not shut down cleanly", driver.Name); }
+        }
     }
 }
