@@ -912,7 +912,16 @@ public sealed class DesktopWidgetService
     private static void Content(object? piece, DesktopWidgetDefinition definition)
     {
         if (piece is ICaptionStyle caption) caption.Caption = definition.Text;
-        if (piece is IClockStyle clock) clock.Format = definition.ClockFormat;
+
+        // The rings too: which ones a clock draws is what is on screen, and trying on a preset must not take one
+        // away. A clock that has none is the clock it always was.
+        if (piece is IClockStyle clock)
+        {
+            clock.Format = definition.ClockFormat;
+            clock.Rings = definition.Rings;
+            clock.ShowSeconds = definition.ShowSeconds;
+            clock.ShowDate = definition.ShowDate;
+        }
 
         // What is on screen, so it belongs here beside the caption and the clock's format rather than in
         // Dress with the colours. Both used to come from the preset, which meant trying on a preset could
@@ -993,14 +1002,26 @@ public sealed class DesktopWidgetService
             line.PointSize = preset.Line.PointSize;
         }
 
+        // The dial's arcs and the clock's rings read the same section, so one preset gives both the same
+        // thickness, ends and track.
+        if (piece is IArcStyle arc)
+        {
+            arc.ArcThickness = preset.Gauge.Thickness;
+            arc.ArcCorner = preset.Gauge.Corner;
+            arc.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
+        }
+
         if (piece is IGaugeStyle dial)
         {
             dial.ValueBrush = HexBrush.From(preset.Value.Color, 1);
-            dial.ArcThickness = preset.Gauge.Thickness;
-            dial.ArcCorner = preset.Gauge.Corner;
             dial.Sweep = preset.Gauge.Sweep;
-            dial.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
+
+        // A clock's rings in the preset's primary ramp. Here and not among the repaints: those carry a READING's
+        // colour, judged per tick, and a clock has no reading to judge — its colours change only when the preset
+        // does, which is exactly when this runs. Switching preset and editing one both arrive here, through
+        // RestyleWidget.
+        if (piece is IClockStyle clock) clock.Ramp = preset.RampFor(Ramp.Primary);
 
         if (piece is IMeterStyle bar)
         {

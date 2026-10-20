@@ -512,6 +512,12 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     // show before it has built anything — and a kind that is not a dial simply cannot be given dial
     // settings, which no switch over kinds could promise.
     public bool ShowsDial => SelectedKind?.HasDial == true;
+
+    /// <summary>Whether the dial's arc settings apply — to a dial, and to a clock drawing rings, which takes its
+    /// thickness, ends and track from the same section. Only the dial has a sweep: a clock is always a full turn.
+    /// </summary>
+    public bool ShowsArc => ShowsDial || ShowsRingOptions;
+
     public bool ShowsLine => SelectedKind?.HasLine == true;
     public bool ShowsBar => SelectedKind?.HasBar == true;
     public bool ShowsNumber => SelectedKind?.HasNumber == true;
@@ -964,11 +970,42 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnCaptionChanged(string value) => Apply();
     partial void OnSelectedClockFormatChanged(ClockFormat value) => Apply();
 
+    // Style, not Structure, even from none to three: the clock puts its rings up and takes them down in place,
+    // so nothing has to be built again for it.
+    partial void OnSelectedRingsChanged(ClockRings value) => Apply();
+    partial void OnSecondsShownChanged(bool value) => Apply();
+    partial void OnDateShownChanged(bool value) => Apply();
+
     /// <summary>The words a Text widget says. How they are DRAWN is the preset's.</summary>
     [ObservableProperty] private string _caption = string.Empty;
     [ObservableProperty] private ClockFormat _selectedClockFormat = ClockFormat.Time;
 
     public IReadOnlyList<ClockFormat> ClockFormats { get; } = Enum.GetValues<ClockFormat>();
+
+    /// <summary>The rings round a clock, and the lines written inside them.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsClockFormat), nameof(ShowsRingOptions), nameof(ShowsArc))]
+    private ClockRings _selectedRings = ClockRings.None;
+
+    [ObservableProperty] private bool _secondsShown = true;
+    [ObservableProperty] private bool _dateShown = true;
+
+    /// <summary>One choice in the rings picker: the setting, and what it is called there. A label of its own
+    /// because "MinutesSeconds" is the name of a value, not a phrase.</summary>
+    public sealed record RingChoice(ClockRings Value, string Label);
+
+    public IReadOnlyList<RingChoice> RingChoices { get; } =
+    [
+        new(ClockRings.None, "None"),
+        new(ClockRings.Seconds, "Seconds"),
+        new(ClockRings.MinutesSeconds, "Minutes and seconds"),
+        new(ClockRings.All, "All"),
+    ];
+
+    /// <summary>What a clock without rings writes is a choice of formats; with rings, the time is always in the
+    /// middle and the question becomes what goes with it. Each set is shown only where it does something.</summary>
+    public bool ShowsClockFormat => ShowsClockOptions && SelectedRings == ClockRings.None;
+    public bool ShowsRingOptions => ShowsClockOptions && SelectedRings != ClockRings.None;
 
     /// <summary>Whether this kind is made of words at all — a caption, a clock, or both.</summary>
     public bool ShowsTextOptions => ShowsCaptionOptions || ShowsClockOptions;
@@ -1198,6 +1235,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         while (value is not null && Chosen.Count > value.MaxSeries)
             Chosen.RemoveAt(Chosen.Count - 1);
 
+        // A clock made now has rings. Only when the USER picks the kind, like the size above: filling the form
+        // from a clock written before rings existed must read its None, not overwrite it.
+        if (_loaded && value?.HasClock == true) SelectedRings = ClockRings.All;
+
         // What the picker offers changes when the kind moves to or from a List, and only then is it refilled:
         // refilling scrolls the picker back to its top, which a switch between two sensor kinds has no reason
         // to do. Everything in it is of one sort, so its first entry says which.
@@ -1247,6 +1288,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         _target.Text = Caption;
         _target.ClockFormat = SelectedClockFormat;
+        _target.Rings = SelectedRings;
+        _target.ShowSeconds = SecondsShown;
+        _target.ShowDate = DateShown;
         _target.ShowValue = ValueShown;
         _target.ShowUnit = UnitShown;
         _target.BarDirection = BarDirection;
@@ -1431,6 +1475,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         Caption = target.Text;
         SelectedClockFormat = target.ClockFormat;
+        SelectedRings = target.Rings;
+        SecondsShown = target.ShowSeconds;
+        DateShown = target.ShowDate;
         ValueShown = target.ShowValue;
         UnitShown = target.ShowUnit;
         BarDirection = target.BarDirection;

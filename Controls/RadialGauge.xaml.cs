@@ -23,8 +23,12 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
     private (double Thickness, double Corner, double ValueSize, bool ShowValue, SKColor Track,
         string? Font, TextWeight Weight, SKColor Label, string? Unit, string Decimals) _lastStyle;
 
-    /// <summary>Shows or hides the value arc without rebuilding it.</summary>
-    private Action<bool>? _setArcVisible;
+    /// <summary>Rounds the value arc's ends without rebuilding it.</summary>
+    private Action<double>? _setCorner;
+
+    /// <summary>The share of the dial the arc was last sent to — so the ends can be sized for the shorter of where
+    /// it is and where it is going, which is the shortest it will be on the way.</summary>
+    private double? _lastFraction;
 
     public RadialGauge()
     {
@@ -249,11 +253,12 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
         // style are the only things that can force it to be built again.
         if (_point is null || color != _lastColor || style != _lastStyle)
         {
-            var (series, point, setArcVisible) =
+            var (series, point, setCorner) =
                 AquilaCharts.SolidGauge(color, ArcThickness, ValueSize, ShowValue, ArcCorner, track,
                     ValueFont, ValueWeight, label, unit, decimals);
             _point = point;
-            _setArcVisible = setArcVisible;
+            _setCorner = setCorner;
+            _lastFraction = null;
             _lastColor = color;
             _lastStyle = style;
             Chart.Series = series;
@@ -269,24 +274,17 @@ public partial class RadialGauge : UserControl, ISensorPiece, IGaugeStyle
             if (!ReferenceEquals(s.EasingFunction, Motion.ChartEasing)) s.EasingFunction = Motion.ChartEasing;
         }
 
+        // Ends as round as the arc can hold — sized for the shorter of where it is and where it is going, since
+        // a reading that falls sweeps the arc down to the new length on the way. The inner radius is the one
+        // LiveCharts drew last; before the first drawing it is unknown, and a low reading starts square for a poll.
+        var fraction = (value - min) / (max - min);
+        _setCorner?.Invoke(AquilaCharts.CornerFor(Math.Min(fraction, _lastFraction ?? fraction), ArcCorner,
+            Chart.MaxAngle, AquilaCharts.InnerRadiusOf(_point) ?? 0));
+        _lastFraction = fraction;
+
         Chart.MaxValue = max - min;
         _point.Value = value - min;
-
-        _setArcVisible?.Invoke(ArcIsDrawable((value - min) / (max - min)));
     }
-
-    /// <summary>
-    /// Whether the arc is long enough to be worth drawing.
-    ///
-    /// A rounded cap is drawn at a fixed size, so a very short arc cannot hold one: below roughly 4% of the
-    /// scale LiveCharts squares the end off, and the dial appears to glitch between a round arc and a stub.
-    /// Hiding the arc there is the cheaper answer — a sliver that small carries no information anyway, and
-    /// the number in the middle still reports the reading honestly.
-    ///
-    /// Only when the ends are actually rounded. With square ends there is nothing to go wrong, and a dial
-    /// left at the default should not quietly stop drawing at low readings.
-    /// </summary>
-    private bool ArcIsDrawable(double fraction) => ArcCorner <= 0 || fraction >= 0.04;
 
     private SKColor ResolveColor()
     {

@@ -129,6 +129,30 @@ public enum ClockFormat
     DateAndTime,
 }
 
+/// <summary>
+/// Which rings a clock draws round its time, outermost first: the seconds, then the minutes, then the hours.
+/// Persisted by name, like <see cref="ClockFormat"/>.
+///
+/// Cumulative from the outside in rather than three switches. The seconds ring is the one that moves, so it is
+/// the one worth having first; a ring of hours with no minutes round it is a combination nobody asked for, and
+/// three checkboxes would have offered seven.
+/// </summary>
+public enum ClockRings
+{
+    /// <summary>No rings: the time or the date written out, as every clock was before rings existed — and
+    /// so what a clock in an older layout reads as.</summary>
+    None,
+
+    /// <summary>The seconds alone, round the time.</summary>
+    Seconds,
+
+    /// <summary>The seconds outside, the minutes inside them.</summary>
+    MinutesSeconds,
+
+    /// <summary>Seconds, minutes and hours.</summary>
+    All,
+}
+
 /// <summary>Where the meter's reading sits relative to its bar.</summary>
 public enum MeterLayout
 {
@@ -224,6 +248,24 @@ public class DesktopWidgetDefinition
 
     /// <summary>What a Clock widget shows. Which of time or date is content; how big it is drawn is not.</summary>
     public ClockFormat ClockFormat { get; set; } = ClockFormat.Time;
+
+    /// <summary>
+    /// The rings round a clock. None by default, because that is what every layout written before them says by
+    /// saying nothing — those clocks load exactly as they were. A clock made in the editor starts with all three:
+    /// the editor sets it when the kind is chosen, not here.
+    ///
+    /// On the widget rather than in the preset, by the preset's own test: trying one on must never take away a
+    /// ring someone was reading the seconds from. The preset says what the rings look like.
+    /// </summary>
+    public ClockRings Rings { get; set; } = ClockRings.None;
+
+    /// <summary>Whether a clock with rings writes the seconds under the time. Ignored without rings, where
+    /// <see cref="ClockFormat"/> already says whether there are seconds.</summary>
+    public bool ShowSeconds { get; set; } = true;
+
+    /// <summary>Whether a clock with rings writes the date above the time. Ignored without rings, like
+    /// <see cref="ShowSeconds"/>.</summary>
+    public bool ShowDate { get; set; } = true;
 
     /// <summary>How many readings a chart shows. Readings, not seconds: the time they cover is this times
     /// the poll interval, which the user can change. How much data to show is a question about the data,

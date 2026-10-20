@@ -68,6 +68,8 @@ namespace Aquila
                 services.AddSingleton<PawnIoService>();
                 services.AddSingleton<VitalMonitor>();
                 services.AddSingleton<AquilaService>();
+                // The time, for every clock widget: a source of its own beside the poll, on a second of its own.
+                services.AddSingleton<ClockService>();
 
                 // Desktop widgets (#24) — domain-agnostic, isolated in Aquila.DesktopSurface. The anchor
                 // factory is the single swap point for a future "place inside Progman" strategy.

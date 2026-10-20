@@ -151,10 +151,13 @@ public static class WidgetCatalog
             SeriesPaint.Properties(TextBlock.ForegroundProperty))
             { NeedsReading = false, HasCaption = true },
 
+        // Square since the rings, which a clock made today starts with, and large enough for "10:09 AM" to sit
+        // inside three of them at the preset's usual size. A clock from before them keeps the size it was given —
+        // a layout stores its own.
         new(DesktopWidgetKind.Clock,
             "Clock",
-            "The time or the date, in this machine's own format.",
-            200, 70,
+            "The time in rings of seconds, minutes and hours — or the time or the date alone, in this machine's own format.",
+            200, 200,
             _ => new ClockTile(),
             SeriesPaint.None) { NeedsReading = false, HasClock = true, HasUnit = false },
 

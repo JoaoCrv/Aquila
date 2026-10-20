@@ -29,6 +29,10 @@ namespace Aquila.Controls;
 /// thing moved, not HOW, and the speed in force never exceeds two fifths of the poll — 400 ms at the default
 /// one second. A control that cannot work inside the constraint the application imposes is better deleted
 /// than explained.
+///
+/// One piece reads only whether this is on, not how fast: the clock's rings, which sweep through nine tenths of
+/// every second when it is. They are not on the poll, so the cap below has nothing to protect there, and time
+/// moves between two seconds in a way a reading does not move between two polls — see ClockTile.Sweeping.
 /// </summary>
 public static class Motion
 {

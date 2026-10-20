@@ -659,9 +659,30 @@
                             </StackPanel>
 
                             <StackPanel Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Shows" Style="{StaticResource FieldLabel}"/>
-                                <ComboBox ItemsSource="{Binding ViewModel.ClockFormats}"
-                                          SelectedItem="{Binding ViewModel.SelectedClockFormat}"/>
+                                <!-- Rings first, because they decide which of the two below applies: without
+                                     rings a clock writes one of the formats, with them the time is always in
+                                     the middle and the choice is what goes with it. -->
+                                <TextBlock Text="Rings" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.RingChoices}"
+                                          DisplayMemberPath="Label"
+                                          SelectedValuePath="Value"
+                                          SelectedValue="{Binding ViewModel.SelectedRings}"/>
+
+                                <StackPanel Visibility="{Binding ViewModel.ShowsClockFormat, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="Shows" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                    <ComboBox ItemsSource="{Binding ViewModel.ClockFormats}"
+                                              SelectedItem="{Binding ViewModel.SelectedClockFormat}"/>
+                                </StackPanel>
+
+                                <StackPanel Visibility="{Binding ViewModel.ShowsRingOptions, Converter={StaticResource BoolToVisibility}}">
+                                    <CheckBox Margin="0,10,0,0" Content="Show the date"
+                                              IsChecked="{Binding ViewModel.DateShown}"/>
+                                    <CheckBox Margin="0,10,0,0" Content="Show the seconds"
+                                              IsChecked="{Binding ViewModel.SecondsShown}"/>
+                                    <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                               Opacity="0.5" TextWrapping="Wrap"
+                                               Text="Written above and below the time, in this machine's own format. The rings take their colours from the preset's primary ramp."/>
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </ui:CardExpander>
@@ -995,8 +1016,9 @@
                     </ui:CardExpander>
 
 
+                    <!-- A clock's rings are arcs too, and take everything here but the sweep. -->
                     <ui:CardExpander Icon="{ui:SymbolIcon Gauge24}"
-                                         Visibility="{Binding ViewModel.ShowsDial, Converter={StaticResource BoolToVisibility}}">
+                                         Visibility="{Binding ViewModel.ShowsArc, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Dial" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
@@ -1016,9 +1038,11 @@
                             </DockPanel>
                             <Slider Minimum="0" Maximum="20"
                                     Value="{Binding ViewModel.ArcCorner}"/>
-                            <TextBlock Text="Sweep" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Sweeps}"
-                                      SelectedItem="{Binding ViewModel.Sweep}"/>
+                            <StackPanel Visibility="{Binding ViewModel.ShowsDial, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Sweep" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.Sweeps}"
+                                          SelectedItem="{Binding ViewModel.Sweep}"/>
+                            </StackPanel>
 
                                 <TextBlock Text="Track" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
                                 <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TrackColor, Mode=TwoWay}"

@@ -6,11 +6,15 @@ using Wpf.Ui;
 
 namespace Aquila.Services
 {
-    public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService, SettingsService settingsService, ILogger<ApplicationHostService> logger) : IHostedService
+    public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService, ClockService clockService, SettingsService settingsService, ILogger<ApplicationHostService> logger) : IHostedService
     {
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             aquilaService.Start();
+
+            // Beside the poll and before any widget is placed, so the first clock drawn already has the time to
+            // follow.
+            clockService.Start();
             await serviceProvider.GetRequiredService<ViewModels.Pages.LhmExplorerViewModel>().InitializeAsync();
 
             if (!Application.Current.Windows.OfType<MainWindow>().Any())

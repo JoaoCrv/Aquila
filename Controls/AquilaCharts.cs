@@ -21,9 +21,10 @@ public static class AquilaCharts
     /// Builds a solid radial gauge for a PieChart configured with <c>InitialRotation = -225</c> and
     /// <c>MaxAngle = 270</c>. Returns the series plus the <see cref="ObservableValue"/> backing the
     /// value arc — update <c>point.Value</c> to animate smoothly from the current value (don't rebuild
-    /// the series each tick, or it animates from zero).
+    /// the series each tick, or it animates from zero). SetCorner rounds the arc's ends by as much as its length
+    /// allows — see <see cref="CornerFor"/> — without rebuilding anything.
     /// </summary>
-    public static (IEnumerable<ISeries> Series, ObservableValue Point, Action<bool> SetArcVisible) SolidGauge(
+    public static (IEnumerable<ISeries> Series, ObservableValue Point, Action<double> SetCorner) SolidGauge(
         SKColor color, double columnWidth = 14, double labelSize = 24, bool showLabel = true,
         double cornerRadius = 0, SKColor? track = null,
         string? font = null, Aquila.Models.TextWeight weight = Aquila.Models.TextWeight.Regular,
@@ -35,14 +36,14 @@ public static class AquilaCharts
         // layouts written by hand rather than something the user can walk into.
         var caps = (float)Math.Clamp(cornerRadius, 0, columnWidth / 2);
 
-        // Shows and hides the value arc without rebuilding the series — rebuilding restarts the animation
-        // from zero, so anything that has to change with the reading has to be reachable like this. The
-        // closure also spares us naming PieSeries' three generic arguments.
+        // Rounds the value arc's ends without rebuilding the series — rebuilding restarts the animation from
+        // zero, so anything that has to change with the reading has to be reachable like this. The closure also
+        // spares us naming PieSeries' three generic arguments. Never past the caps above, whatever it is asked.
         //
         // Indirect through a variable rather than returning this directly: BuildSolidGauge hands back an
         // IEnumerable and gives no promise about WHEN it runs the item builders, and a returned tuple
         // captures the value a local held at that moment.
-        Action<bool>? apply = null;
+        Action<double>? round = null;
 
         var point = new ObservableValue(0);
 
@@ -51,12 +52,9 @@ public static class AquilaCharts
             {
                 series.MaxRadialColumnWidth = columnWidth;
                 series.CornerRadius = caps;
+                round = corner => series.CornerRadius = Math.Clamp(corner, 0, caps);
 
-                // Clearing the Fill hides the arc while leaving the number alone — the label has a paint of
-                // its own, so the reading is still there to read when the arc is too short to draw.
-                var fill = new SolidColorPaint(color);
-                series.Fill = fill;
-                apply = visible => series.Fill = visible ? fill : null;
+                series.Fill = new SolidColorPaint(color);
                 // Native centre label: integer only (default shows the raw double — the "550003..."
                 // we saw was the unformatted value mid-animation).
                 // Null hides the number entirely — an arc on its own, with the widget's own title above it.
@@ -89,6 +87,113 @@ public static class AquilaCharts
                 series.DataLabelsPaint = null;
             }));
 
-        return (series, point, visible => apply?.Invoke(visible));
+        return (series, point, corner => round?.Invoke(corner));
     }
+
+    /// <summary>
+    /// Builds concentric solid rings, one per value, for a PieChart set to a full turn — the clock's. Returns the
+    /// rings INNERMOST FIRST, which is how LiveCharts lays a solid gauge out: its values become rings by position,
+    /// the first in the middle. The track is one series behind all of them, a ring under each.
+    ///
+    /// Nothing here is styled beyond what every ring shares. Thickness, rounding, the room left in the middle and
+    /// the colours are set by the caller on the series it gets back, because every one of them changes while the
+    /// rings run — and a series rebuilt for a new thickness would draw its arcs again from nothing.
+    ///
+    /// The series are taken out of what BuildSolidGauge returns rather than captured inside its builders, for the
+    /// reason <see cref="SolidGauge"/> gives about when those run.
+    /// </summary>
+    public static (PieSeries<ObservableValue>[] Rings, PieSeries<ObservableValue> Track, PieSeries<ObservableValue>[] All)
+        SolidRings(IReadOnlyList<ObservableValue> points)
+    {
+        var all = GaugeGenerator.BuildSolidGauge([.. points.Select(point => new GaugeItem(point, _ => { }))]);
+
+        foreach (var series in all)
+        {
+            // No numbers in the arcs, and nothing to hover: the time is written in the middle by the clock.
+            series.DataLabelsPaint = null;
+            series.IsHoverable = false;
+
+            // The track's too. LiveCharts reserves the largest hover push-out of any series all round the chart,
+            // and BuildSolidGauge leaves the track's at its default of 20 — so every ring was laid out in a circle
+            // 40 pixels narrower than the chart, and sized from a radius the clock could not know. Measured from a
+            // render, ring by ring.
+            series.HoverPushout = 0;
+
+            // How an arc APPEARS — in place, rather than swept up from nothing. How it moves after that is set on
+            // each arc as it moves; see Travel.
+            series.AnimationsSpeed = LiveCharts.DisableAnimations;
+        }
+
+        var rings = points
+            .Select(point => all.First(s => !s.IsFillSeries && s.Values?.Contains(point) == true))
+            .ToArray();
+
+        return (rings, all.First(s => s.IsFillSeries), all);
+    }
+
+    /// <summary>
+    /// How the next change of a gauge's value is drawn: over <paramref name="animation"/>, or at once for null.
+    ///
+    /// Set on the arc already drawn, not on its series. A series hands its speed to each arc when it CREATES it,
+    /// so a speed set on the series afterwards reaches only arcs not drawn yet — and the clock needs a different
+    /// answer from one second to the next, sweeping through a minute and jumping at the top of it. Read in
+    /// LiveCharts 2.0.2: the transition is taken when the new angle is set, so this has to come before the value.
+    /// </summary>
+    public static void Travel(ObservableValue point, LiveChartsCore.Drawing.Animation? animation)
+    {
+        if (point.MetaData is not { } drawn) return;
+
+        foreach (var chartPoint in drawn.ChartPoints.Values)
+            if (chartPoint.Context.Visual is LiveChartsCore.Drawing.Animatable arc)
+                arc.SetTransition(animation,
+                    LiveChartsCore.Drawing.BaseDoughnutGeometry.StartAngleProperty,
+                    LiveChartsCore.Drawing.BaseDoughnutGeometry.SweepAngleProperty);
+    }
+
+    /// <summary>
+    /// How round an arc's ends can be at this length: the corner asked for, or less when the arc is too short to
+    /// hold it. Asked by the dial and by the clock's rings.
+    ///
+    /// Read in LiveCharts 2.0.2 (DoughnutGeometry.RoundedDraw): each rounded end takes an angle of
+    /// atan(r / (inner + r)) out of the arc's INNER edge, and when the two ends together take more than the arc
+    /// has, that edge is drawn backwards — the glitch between a round end and a stub that short arcs showed. The
+    /// library's own guard measures the outer edge, which is longer, so it lets those lengths through. Solved for
+    /// r, the most an arc of θ can hold is inner · tan(θ/2) / (1 − tan(θ/2)); from a quarter turn up, any corner
+    /// fits. A tenth is kept in hand, so the inner edge is never asked to be exactly nothing.
+    ///
+    /// The ends shrink with the arc instead of the arc being hidden. Hiding it below 4% of the scale was the rule
+    /// before, and a clock with round ends showed what that costs: its seconds vanished every minute, from :00 to
+    /// :03. Now any reading above nothing is drawn, square at first and round as soon as it is long enough to be.
+    /// A reading of nothing — a fraction of 0 — gets no corner and is drawn as nothing.
+    ///
+    /// Near a full turn the two ends meet at the start and overlap; rendered, that is a clean notch and needs no
+    /// limit of its own.
+    /// </summary>
+    /// <param name="fraction">How much of the sweep the arc covers, 0 to 1.</param>
+    /// <param name="corner">The corner asked for.</param>
+    /// <param name="sweepDegrees">The whole sweep the fraction is of — 360 for a ring, 270 for a dial.</param>
+    /// <param name="innerRadius">The radius of the arc's inner edge. Unknown — zero — rounds nothing, since the
+    /// limit cannot be worked out.</param>
+    public static double CornerFor(double fraction, double corner, double sweepDegrees, double innerRadius)
+    {
+        // Written as "not above zero" so a NaN from anywhere upstream lands here too, rather than in Math.Min,
+        // which would hand it on.
+        if (!(fraction > 0) || !(corner > 0) || !(sweepDegrees > 0) || !(innerRadius > 0)) return 0;
+
+        var half = Math.Min(fraction, 1) * sweepDegrees * Math.PI / 360;
+        if (half >= Math.PI / 4) return corner;
+
+        var tan = Math.Tan(half);
+        return Math.Min(corner, CornerRoom * innerRadius * tan / (1 - tan));
+    }
+
+    private const double CornerRoom = 0.9;
+
+    /// <summary>The radius LiveCharts drew a gauge point's inner edge at — or null before it has drawn it, which is
+    /// the only way to know it for a dial: the chart works it out from its own size, less room it reserves.</summary>
+    public static double? InnerRadiusOf(ObservableValue point) =>
+        point.MetaData?.ChartPoints.Values
+            .Select(drawn => drawn.Context.Visual)
+            .OfType<LiveChartsCore.Drawing.BaseDoughnutGeometry>()
+            .FirstOrDefault()?.InnerRadius;
 }
