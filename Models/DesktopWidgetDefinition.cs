@@ -27,6 +27,10 @@ public enum DesktopWidgetKind
     /// <summary>A row of vertical bars, one per reading — an equaliser. The only kind whose count the
     /// hardware decides rather than the catalogue.</summary>
     Bars,
+
+    /// <summary>A list the source orders — the applications using the most CPU, largest first — a row per
+    /// item. The first kind whose reading is not a sensor: its one series names a list.</summary>
+    List,
 }
 
 /// <summary>
@@ -226,6 +230,11 @@ public class DesktopWidgetDefinition
     /// not about how it looks.</summary>
     public int PointCount { get; set; } = 60;
 
+    /// <summary>How many rows a list shows. About the data for the same reason <see cref="PointCount"/> is:
+    /// how much of a list is on screen is not how it looks. Held between one and
+    /// <see cref="Nodes.ListNode.MaxRows"/> by the piece rather than here, since this file is edited by hand.</summary>
+    public int ItemCount { get; set; } = 5;
+
     /// <summary>How a chart's vertical scale is decided, and its ends when the user decides them. Also
     /// about the data: the same preset should dress a chart pinned to 30–90 and one fitted to its own
     /// readings without knowing the difference.</summary>
@@ -244,6 +253,8 @@ public class DesktopWidgetDefinition
 /// <summary>One reading inside a widget: which sensor, and the colour role it is drawn in.</summary>
 public class WidgetSeries
 {
+    /// <summary>The sensor this reads — or, for a List, the list (<c>/processes/cpu</c>). One field for both:
+    /// either way it names what the widget reads, and a second field would be one that is always empty.</summary>
     public string SensorIdentifier { get; set; } = string.Empty;
 
     /// <summary>

@@ -276,8 +276,10 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                                             <!-- Live value: names alone are ambiguous when a machine reports a
-                                                 dozen similar temperatures. -->
-                                            <TextBlock Grid.Column="1" Opacity="0.6" Margin="12,0,0,0">
+                                                 dozen similar temperatures. A list has no one value to show —
+                                                 its value is its rows — so for a list there is none. -->
+                                            <TextBlock Grid.Column="1" Opacity="0.6" Margin="12,0,0,0"
+                                                       Visibility="{Binding Sensor, Converter={StaticResource NullToCollapsed}}">
                                                 <TextBlock.Text>
                                                     <MultiBinding StringFormat="{}{0:F1} {1}">
                                                         <Binding Path="Sensor.Value" FallbackValue="--"/>
@@ -332,6 +334,21 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <!-- How many of a list's rows are shown, under the list it counts. With the widget
+                                 and not in the preset, like a chart's window: it decides how much of the data is
+                                 on the screen, not how the data looks. -->
+                            <StackPanel Margin="0,14,0,0"
+                                        Visibility="{Binding ViewModel.ShowsList, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.ItemCount, StringFormat={}{0:F0}}"/>
+                                    <TextBlock Text="Rows" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="1" Maximum="{Binding ViewModel.MaxItemCount}"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding ViewModel.ItemCount}"/>
+                            </StackPanel>
 
                             <!-- What is shown of the reading, beside the readings themselves. Not in the
                                  preset: a preset has to be safe to try on, and these two change what is on

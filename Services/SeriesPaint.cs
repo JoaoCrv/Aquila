@@ -23,6 +23,15 @@ namespace Aquila.Services;
 /// <param name="For">Given the built piece and a series index, the way to apply that series' colour.</param>
 public sealed record SeriesPaint(int Max, Func<FrameworkElement, int, Action<Brush>> For)
 {
+    /// <summary>
+    /// For a kind whose one reading is a list: given the built piece, the way to hand it a judge — a value's
+    /// brush — that it applies to every row by that row's own value. Null for every other kind.
+    ///
+    /// A judge and not a brush, because a list's rows are not coloured alike: each is in whatever state its own
+    /// figure has earned, under the series' one ramp, and only the piece knows which rows it is showing.
+    /// </summary>
+    public Func<FrameworkElement, Action<Func<float?, Brush>>>? Rows { get; init; }
+
     /// <summary>One dependency property per series, in order — the ordinary case.</summary>
     public static SeriesPaint Properties(params DependencyProperty[] properties) =>
         new(properties.Length, (piece, i) => brush => piece.SetValue(properties[i], brush));
@@ -34,4 +43,13 @@ public sealed record SeriesPaint(int Max, Func<FrameworkElement, int, Action<Bru
     /// <summary>A number of readings the hardware decides, coloured through the piece itself.</summary>
     public static SeriesPaint Many(int max, Action<FrameworkElement, int, Brush> paint) =>
         new(max, (piece, i) => brush => paint(piece, i, brush));
+
+    /// <summary>
+    /// One reading that is a list, each row judged on its own value — see <see cref="Rows"/>.
+    ///
+    /// <see cref="For"/> still answers, painting every row with the one brush it is handed. That is all the type
+    /// picker's preview asks of any kind, so it draws a list without having to know that lists exist.
+    /// </summary>
+    public static SeriesPaint PerRow(Action<FrameworkElement, Func<float?, Brush>> paint) =>
+        new(1, (piece, _) => brush => paint(piece, _ => brush)) { Rows = piece => judge => paint(piece, judge) };
 }

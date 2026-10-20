@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using Aquila.Controls;
 using Aquila.Models;
+using Aquila.Models.Nodes;
 
 namespace Aquila.Services;
 
@@ -72,6 +73,21 @@ public sealed record WidgetKindInfo(
     /// False for the clock — it draws a reading and there is no unit a time could carry — and for the two
     /// kinds that draw no reading at all.</summary>
     public bool HasUnit { get; init; } = true;
+
+    /// <summary>
+    /// Builds the piece from a list, for a kind whose one reading is a list rather than a sensor — and what the
+    /// desktop builds such a kind with. Null for every other kind.
+    ///
+    /// <see cref="Create"/> still answers for a list kind, drawing the sensors it is handed as fixed rows: that
+    /// is the type picker's preview, which must show what the kind looks like without watching a list, since
+    /// watching one is what starts its source reading.
+    /// </summary>
+    public Func<ListNode, FrameworkElement>? CreateList { get; init; }
+
+    /// <summary>Whether this kind draws a list, and so is offered lists rather than sensors and has a number of
+    /// rows worth asking about. Derived rather than declared, so the two cannot disagree — the argument
+    /// <see cref="SeriesPaint"/> makes about its count and its painter.</summary>
+    public bool HasList => CreateList is not null;
 }
 
 public static class WidgetCatalog
@@ -152,6 +168,17 @@ public static class WidgetCatalog
             series => new SensorBars(series),
             SeriesPaint.Many(16, (piece, i, brush) => ((SensorBars)piece).PaintBar(i, brush)))
             { HasBar = true, HasDirection = true },
+
+        // The first kind whose reading is not a sensor. Its one series names a list, which the SOURCE orders
+        // and sizes; how many of its rows are shown is the widget's. One ramp for the whole list, and each row
+        // judged on its own figure, so the application at the top can go amber while the rest stay calm.
+        new(DesktopWidgetKind.List,
+            "List",
+            "The applications using the most CPU, memory or I/O, largest first.",
+            240, 170,
+            series => new SensorList(series),
+            SeriesPaint.PerRow((piece, judge) => ((SensorList)piece).PaintRows(judge)))
+            { CreateList = list => new SensorList(list) },
     ];
 
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which

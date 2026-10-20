@@ -19,7 +19,9 @@ namespace Aquila.Views.Windows;
 /// </summary>
 public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
 {
-    private readonly HardwareNode _hardware;
+    /// <summary>The whole state rather than the hardware alone: a List is offered the lists, which are not
+    /// hardware.</summary>
+    private readonly AquilaState _state;
 
     /// <summary>Raised when the panel wants a widget created. The panel does not own the widget list —
     /// the domain service does, and it answers by selecting whatever it created.</summary>
@@ -30,9 +32,9 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
 
     public WidgetEditorViewModel ViewModel { get; }
 
-    public WidgetEditorPanel(HardwareNode hardware, Aquila.Services.PresetService presets)
+    public WidgetEditorPanel(AquilaState state, Aquila.Services.PresetService presets)
     {
-        _hardware = hardware;
+        _state = state;
         ViewModel = new WidgetEditorViewModel(presets);
 
         InitializeComponent();
@@ -54,7 +56,7 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
 
         // The subtitle is bound now: it has to say which of the two views you are in, and only the view
         // model knows that.
-        ViewModel.Load(_hardware, definition, presetSensorIdentifier: null);
+        ViewModel.Load(_state, definition, presetSensorIdentifier: null);
     }
 
     /// <summary>The definition currently shown, so the host knows what Remove refers to.</summary>

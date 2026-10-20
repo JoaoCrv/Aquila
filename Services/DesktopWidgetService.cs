@@ -112,7 +112,7 @@ public sealed class DesktopWidgetService
         {
             // Sensors can vanish between runs (hardware changed, driver renamed one). Build returns null
             // when none of them resolve; the definition is kept so the widget comes back if they do.
-            var element = Build(definition, hardware);
+            var element = Build(definition, _aquila.State);
             if (element is null)
             {
                 silent.Add(Names(definition));
@@ -328,7 +328,7 @@ public sealed class DesktopWidgetService
 
         _widgets ??= _layout.Load();
 
-        _panel = new Views.Windows.WidgetEditorPanel(_aquila.State.Hardware, _presets);
+        _panel = new Views.Windows.WidgetEditorPanel(_aquila.State, _presets);
         _panel.ViewModel.Changed += OnPanelEdited;
         _panel.ViewModel.PresetRemoved += DropPreset;
         _panel.ViewModel.PreviewRequested += PreviewRole;
@@ -720,11 +720,11 @@ public sealed class DesktopWidgetService
     {
         _widgets ??= _layout.Load();
 
-        var hardware = _aquila.State.Hardware;
-        return [.. _widgets.Select(w => Describe(w, hardware))];
+        var state = _aquila.State;
+        return [.. _widgets.Select(w => Describe(w, state))];
     }
 
-    private static WidgetSummary Describe(DesktopWidgetDefinition definition, HardwareNode hardware)
+    private static WidgetSummary Describe(DesktopWidgetDefinition definition, AquilaState state)
     {
         var kind = WidgetCatalog.For(definition.Kind);
         var title = string.IsNullOrWhiteSpace(definition.Title) ? kind.Name : definition.Title;
@@ -738,8 +738,20 @@ public sealed class DesktopWidgetService
             return new WidgetSummary(definition, kind.Name, title, where,
                 "No reading chosen — nothing to draw.");
 
+        // A list is looked for among the lists, never among the sensors — and it is there on every machine, so
+        // the one thing that can be wrong with it is a name this build does not know.
+        if (kind.HasList)
+        {
+            var named = definition.Series[0].SensorIdentifier;
+
+            return state.Processes.Find(named) is { } list
+                ? new WidgetSummary(definition, kind.Name, title,
+                    $"{where} — {state.Processes.Name} by {list.Name}", null)
+                : new WidgetSummary(definition, kind.Name, title, where, $"There is no list called {named}.");
+        }
+
         var found = definition.Series
-            .Select(x => SensorCatalog.FindEntry(hardware, x.SensorIdentifier))
+            .Select(x => SensorCatalog.FindEntry(state.Hardware, x.SensorIdentifier))
             .OfType<SensorEntry>()
             .ToList();
 
@@ -831,7 +843,7 @@ public sealed class DesktopWidgetService
 
         // An incomplete or unresolvable definition simply renders nothing — the editor can be open with no
         // sensor added yet, and that must not throw.
-        var element = Build(definition, _aquila.State.Hardware);
+        var element = Build(definition, _aquila.State);
         if (element is null) return;
 
         var surface = ResolveSurface(surfaces, definition);
@@ -916,6 +928,9 @@ public sealed class DesktopWidgetService
             chart.ScaleMin = definition.ScaleMin;
             chart.ScaleMax = definition.ScaleMax;
         }
+
+        // How much of a list is on screen — the list's version of a chart's window.
+        if (piece is IListStyle list) list.ItemCount = definition.ItemCount;
     }
 
     /// <summary>
@@ -1061,16 +1076,44 @@ public sealed class DesktopWidgetService
     /// <summary>
     /// Builds one #23 control from a definition's series, using the entry <see cref="WidgetCatalog"/>
     /// holds for that kind. Returns null when nothing can be drawn — a definition whose sensors have all
-    /// vanished, or one the editor has not finished yet.
+    /// vanished, a List naming a list there is not, or one the editor has not finished yet.
     ///
     /// Public so the editor shows exactly what will land on the desktop, rather than an approximation
     /// that can drift.
     /// </summary>
-    public UIElement? Build(DesktopWidgetDefinition definition, HardwareNode hardware)
+    public UIElement? Build(DesktopWidgetDefinition definition, AquilaState state)
     {
         var kind = WidgetCatalog.For(definition.Kind);
 
         var preset = _presets.For(definition.Preset);
+
+        // A list is its kind's one reading, and is looked for among the lists rather than the sensors. Decided
+        // by the name the widget stores and never by what the list holds: its rows arrive a poll or two after
+        // the widget appears, because the source reads only a list something is watching.
+        if (kind.CreateList is { } createList)
+        {
+            if (definition.Series.FirstOrDefault() is not { } reads
+                || state.Processes.Find(reads.SensorIdentifier) is not { } list) return null;
+
+            // What its rows are judged as, filled in and kept exactly as a sensor's is below.
+            if (string.IsNullOrEmpty(reads.Metric) && list.Metric is { } judgedAs)
+                reads.Metric = judgedAs.ToString();
+
+            var listPiece = createList(list);
+            var repaintRows = new List<Action<Preset>>();
+
+            // One ramp for the whole list — the series', read at dress time for the reason given below.
+            if (kind.Accent.Rows is { } paintRows)
+            {
+                var repaint = PaintRows(listPiece, paintRows(listPiece), preset.RampFor(reads.Ramp, 0),
+                    MetricKey.Parse(reads.Metric));
+
+                repaintRows.Add(dressed => repaint(dressed.RampFor(reads.Ramp, 0)));
+            }
+
+            // No history to ask for: nothing in a list is drawn as a trend.
+            return Wrap(listPiece, definition, preset, repaintRows);
+        }
 
         // Resolved in order, dropping any sensor the machine no longer reports — a definition survives a
         // driver rename, it just draws one line fewer until the sensor comes back.
@@ -1083,7 +1126,7 @@ public sealed class DesktopWidgetService
 
         foreach (var series in definition.Series.Take(kind.MaxSeries))
         {
-            var entry = SensorCatalog.FindEntry(hardware, series.SensorIdentifier);
+            var entry = SensorCatalog.FindEntry(state.Hardware, series.SensorIdentifier);
             if (entry is null) continue;
 
             resolved.Add(entry.Sensor);
@@ -1139,9 +1182,20 @@ public sealed class DesktopWidgetService
             repaints.Add(dressed => repaint(dressed.RampFor(reading.Ramp, index)));
         }
 
+        KeepEnoughHistory(definition, resolved);
+        return Wrap(piece, definition, preset, repaints);
+    }
+
+    /// <summary>
+    /// Everything after the piece is built, for a piece built from sensors and one built from a list alike:
+    /// dressed, given its content, framed, and handed what carries a preset change through to its colours.
+    /// One tail for both, so a setting added to it reaches every kind.
+    /// </summary>
+    private static Border Wrap(FrameworkElement piece, DesktopWidgetDefinition definition, Preset preset,
+        List<Action<Preset>> repaints)
+    {
         Dress(piece, preset);
         Content(piece, definition);
-        KeepEnoughHistory(definition, resolved);
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.
@@ -1206,18 +1260,7 @@ public sealed class DesktopWidgetService
 
         if (monitor is not null) monitor.Changed += Repaint;
 
-        void Repaint()
-        {
-            // No judgeable scale means no state to be in, so it rests on the ramp's Normal. A watt count
-            // measured against the percentage steps would sit at critical and mean nothing.
-            // The forced state wins while it is set, and nothing else knows it happened.
-            var role = _previewRole
-                ?? (sensor.Value is { } value && metric is { } key
-                    ? monitor?.RoleFor(value, key) ?? "Normal"
-                    : "Normal");
-
-            apply(HexBrush.From(current[role], 1));
-        }
+        void Repaint() => apply(HexBrush.From(current[RoleOf(sensor.Value, metric, monitor)], 1));
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -1238,6 +1281,71 @@ public sealed class DesktopWidgetService
             Repaint();
         };
     }
+
+    /// <summary>
+    /// <see cref="Paint"/> for a reading that is a list: one ramp, and every row judged against it on its own
+    /// value. Moved by the same things — a preset, a preview, the limits — less the sensor, which a list does
+    /// not have: its rows change on every read, and the piece applies the judge to them as they arrive.
+    /// </summary>
+    private static Action<Ramp> PaintRows(FrameworkElement piece, Action<Func<float?, Brush>> apply, Ramp ramp,
+        MetricKey? metric)
+    {
+        var monitor = VitalMonitor.Current;
+
+        // Held in a variable the closure reads, for the reason Paint gives: switching preset hands over a
+        // different ramp, not an edited one.
+        var current = ramp;
+
+        Repaint();
+        piece.Unloaded += OnUnloaded;
+        PreviewChanged += Repaint;
+
+        if (monitor is not null) monitor.Changed += Repaint;
+
+        void Repaint()
+        {
+            // The brushes are made here, once a repaint, and the rows only look them up. The judge runs for
+            // every row on every read, and a brush made each time would be a new one per row per second, all
+            // of them saying the same four things.
+            var stops = current;
+            var brushes = new Dictionary<string, Brush>();
+
+            apply(value =>
+            {
+                var role = RoleOf(value, metric, monitor);
+                if (!brushes.TryGetValue(role, out var brush)) brushes[role] = brush = HexBrush.From(stops[role], 1);
+                return brush;
+            });
+        }
+
+        void OnUnloaded(object? _, RoutedEventArgs __)
+        {
+            piece.Unloaded -= OnUnloaded;
+            PreviewChanged -= Repaint;
+            if (monitor is not null) monitor.Changed -= Repaint;
+        }
+
+        return next =>
+        {
+            current = next;
+            Repaint();
+        };
+    }
+
+    /// <summary>
+    /// Which state a reading is drawn in. The forced state wins while it is set, and nothing else knows it
+    /// happened. Otherwise the limits judge the value — and no judgeable scale means no state to be in, so it
+    /// rests on the ramp's Normal: a watt count measured against the percentage steps would sit at critical
+    /// and mean nothing.
+    ///
+    /// One statement for a single reading and for every row of a list, so the two can never come to disagree
+    /// about what the same number has earned.
+    /// </summary>
+    private static string RoleOf(float? value, MetricKey? metric, VitalMonitor? monitor) =>
+        _previewRole
+        ?? (value is { } reading && metric is { } key
+            ? monitor?.RoleFor(reading, key) ?? "Normal"
+            : "Normal");
 
     /// <summary>
     /// How a placed widget is re-aimed at another preset's ramps.

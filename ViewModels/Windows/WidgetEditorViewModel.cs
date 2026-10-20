@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Media;
 using Aquila.Helpers;
 using Aquila.Models;
+using Aquila.Models.Nodes;
 using Aquila.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -149,9 +150,15 @@ public partial class RampRow : ObservableObject
 
 public record RampPreview(string Name, string Normal, string Elevated, string Alert, string Critical);
 
-public record SensorOption(string Component, string Name, string Identifier, SensorNode Sensor, SensorEntry Entry)
+/// <summary>One reading as the picker offers it: a sensor, or — to a List — a list. <paramref name="Metric"/> is
+/// what it is judged as ("Cpu.Load"), empty for a reading with no scale to be judged on.</summary>
+public record SensorOption(string Component, string Name, string Identifier, SensorNode? Sensor, string Metric)
 {
     public string Display => $"{Component} — {Name}";
+
+    /// <summary>A list has no one node to show a live value from — its value is its rows — so it is the option
+    /// with no sensor.</summary>
+    public bool IsList => Sensor is null;
 }
 
 /// <summary>
@@ -1027,25 +1034,43 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>Only Manual has ends to type in — the other two work them out.</summary>
     public bool ScaleIsManual => SelectedScale == ChartScale.Manual;
 
+    /// <summary>Whether this kind draws a list — and so is offered lists rather than sensors, and has a number
+    /// of rows worth asking about.</summary>
+    public bool ShowsList => SelectedKind?.HasList == true;
+
+    partial void OnItemCountChanged(double value) => Apply();
+
+    /// <summary>How many rows a list shows. A double because that is what a Slider binds to; the definition
+    /// keeps it as the whole number it really is.</summary>
+    [ObservableProperty] private double _itemCount = 5;
+
+    /// <summary>The slider's top: as many rows as a list keeps. A double for the same reason, and a property
+    /// rather than <c>{x:Static}</c> in the markup — a whole number handed straight to Slider.Maximum is refused
+    /// when the panel opens, and nothing checks this panel's markup before then.</summary>
+    public double MaxItemCount => ListNode.MaxRows;
+
+    /// <summary>What the picker offers, as the hint and the button name it: a List is given a list.</summary>
+    private string Offered => ShowsList ? "list" : "sensor";
+
     /// <summary>How many more readings this kind will take, said plainly.</summary>
     public string SeriesHint => SelectedKind is null or { MaxSeries: 0 }
         ? string.Empty
         : ReplacesSeries
-            ? "This widget draws one reading. Pick another sensor to swap it."
+            ? $"This widget draws one reading. Pick another {Offered} to swap it."
             : Chosen.Count >= SelectedKind.MaxSeries
                 ? $"This widget draws {SelectedKind.MaxSeries} readings — that is all of them."
-                : $"Pick a sensor above. Up to {SelectedKind.MaxSeries}.";
+                : $"Pick a {Offered} above. Up to {SelectedKind.MaxSeries}.";
 
     /// <summary>
     /// The button says what pressing it will do, so the two behaviours are never a surprise.
     ///
     /// "Use this sensor", naming the thing the press acts on — the one picked in the list above — rather than
-    /// a bare "Add", which left the reader to work out what was being added and to where. The difference
-    /// between adding and replacing is carried by one word, "instead", which is only offered when there is
-    /// really something to replace (see ReplacesSeries): a one-reading widget that has none yet is simply
-    /// being given its first.
+    /// a bare "Add", which left the reader to work out what was being added and to where; "Use this list" when
+    /// that is what is offered. The difference between adding and replacing is carried by one word, "instead",
+    /// which is only offered when there is really something to replace (see ReplacesSeries): a one-reading
+    /// widget that has none yet is simply being given its first.
     /// </summary>
-    public string AddLabel => ReplacesSeries ? "Use this sensor instead" : "Use this sensor";
+    public string AddLabel => ReplacesSeries ? $"Use this {Offered} instead" : $"Use this {Offered}";
 
     public bool CanAdd => SelectedSensor is not null
                           && SelectedKind is not null
@@ -1163,8 +1188,20 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         // Switching from a chart to a dial leaves readings the new kind cannot draw. Dropped here rather
         // than quietly ignored at render time, so what is saved is what is on screen.
+        //
+        // So does switching to or from a List, whatever the count: a list is not a sensor, and a sensor is not
+        // a list.
+        if (value is not null)
+            for (var i = Chosen.Count - 1; i >= 0; i--)
+                if (Chosen[i].Sensor.IsList != value.HasList) Chosen.RemoveAt(i);
+
         while (value is not null && Chosen.Count > value.MaxSeries)
             Chosen.RemoveAt(Chosen.Count - 1);
+
+        // What the picker offers changes when the kind moves to or from a List, and only then is it refilled:
+        // refilling scrolls the picker back to its top, which a switch between two sensor kinds has no reason
+        // to do. Everything in it is of one sort, so its first entry says which.
+        if (Sensors.Count == 0 || Sensors[0].IsList != ShowsList) ApplyFilter();
 
         NotifySeriesState();
         Apply(WidgetChange.Structure);
@@ -1192,7 +1229,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         {
             SensorIdentifier = row.Sensor.Identifier,
             Ramp = row.Ramp,
-            Metric = row.Sensor.Entry.Key.ToString(),
+            Metric = row.Sensor.Metric,
         })];
         // Written as given, empty included. Clearing it used to bring the sensor's name back, so a widget
         // could never be untitled — which the Text and Clock kinds need, and which a gauge under a Backdrop
@@ -1218,6 +1255,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.Scale = SelectedScale;
         _target.ScaleMin = ScaleMin;
         _target.ScaleMax = ScaleMax;
+        _target.ItemCount = (int)ItemCount;
 
         Changed?.Invoke(change);
     }
@@ -1288,13 +1326,17 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
 
     private readonly List<SensorOption> _allSensors = [];
+
+    /// <summary>What a List is offered instead of the sensors.</summary>
+    private readonly List<SensorOption> _allLists = [];
+
     private bool _loaded;
 
     /// <summary>The live definition this form edits — the single source of truth, already in the widget
     /// list and already rendering. There is no copy to reconcile.</summary>
     private DesktopWidgetDefinition? _target;
 
-    public void Load(HardwareNode hardware, DesktopWidgetDefinition target, string? presetSensorIdentifier)
+    public void Load(AquilaState state, DesktopWidgetDefinition target, string? presetSensorIdentifier)
     {
         // Disarmed FIRST, before a single value is assigned.
         //
@@ -1304,14 +1346,21 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         // holds the old one's. Clicking a second widget turned it into a copy of the first, and saved it.
         _loaded = false;
 
+        var hardware = state.Hardware;
+
         _allSensors.Clear();
         foreach (var component in SensorCatalog.GetComponents(hardware))
             foreach (var entry in component.Sensors)
                 if (!string.IsNullOrEmpty(entry.Sensor.Identifier))
                     _allSensors.Add(new SensorOption(
-                        component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry));
+                        component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry.Key.ToString()));
 
-        ApplyFilter();
+        // Grouped under what they are lists OF, the way a sensor is under its part — so the reading a List was
+        // given reads "Processes — CPU" wherever it is shown.
+        _allLists.Clear();
+        foreach (var list in state.Processes.All)
+            _allLists.Add(new SensorOption(
+                state.Processes.Name, list.Name, list.Identifier, null, list.Metric?.ToString() ?? string.Empty));
 
         // Set once, on the first Load — every kind in the picker rebuilds its preview when this is assigned,
         // and the hardware tree does not grow cores between one widget and the next.
@@ -1344,12 +1393,20 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         // The form is filled from the definition itself, so "default" is defined in exactly one place.
         SelectedKind = Kinds.FirstOrDefault(k => k.Kind == target.Kind) ?? Kinds[0];
+
+        // After the kind, which decides whether the picker offers sensors or lists. The kind changing filters
+        // too, but a widget of the same kind as the one before it changes nothing, and the readings are new.
+        ApplyFilter();
+
         Title = target.Title;
 
         Chosen.Clear();
         foreach (var series in target.Series)
         {
-            var sensor = _allSensors.FirstOrDefault(s => s.Identifier == series.SensorIdentifier);
+            // Matched against both. A List's reading is found among the lists, and must be: a stored reading
+            // matched nowhere is dropped here, written back as nothing on the next edit, and the widget then
+            // swept away as empty when the session is saved.
+            var sensor = _allSensors.Concat(_allLists).FirstOrDefault(s => s.Identifier == series.SensorIdentifier);
             if (sensor is null) continue;   // the machine no longer reports it
 
             // The stored name as it is, even when this preset lacks it. Replacing it with a default here
@@ -1382,6 +1439,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         SelectedScale = target.Scale;
         ScaleMin = target.ScaleMin;
         ScaleMax = target.ScaleMax;
+        ItemCount = target.ItemCount;
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.
@@ -1404,15 +1462,20 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     {
         var keep = SelectedSensor;
 
+        // A List is offered the lists and every other kind the sensors: each draws only its own sort, and the
+        // other would be a choice with nowhere to go.
+        var offered = ShowsList ? _allLists : _allSensors;
+
         Sensors.Clear();
-        foreach (var sensor in _allSensors)
+        foreach (var sensor in offered)
             if (string.IsNullOrWhiteSpace(SensorFilter) ||
                 sensor.Display.Contains(SensorFilter, StringComparison.OrdinalIgnoreCase))
                 Sensors.Add(sensor);
 
         // Filtering must not silently drop the current choice — the user would save something they can't
-        // see. Keep it selected if it survived the filter.
-        if (keep is not null && Sensors.Contains(keep)) SelectedSensor = keep;
+        // see. Keep it selected if it survived the filter, and let it go if it did not: after a switch to or
+        // from a List the old choice is not even of the right sort, and must not stay armed behind the button.
+        SelectedSensor = keep is not null && Sensors.Contains(keep) ? keep : null;
     }
 }
 
