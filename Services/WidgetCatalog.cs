@@ -98,6 +98,19 @@ public sealed record WidgetKindInfo(
     /// drawn at a third of its size.
     /// </summary>
     public Func<DesktopWidgetDefinition, (double Width, double Height)>? Reference { get; init; }
+
+    /// <summary>
+    /// Whether a widget of this kind keeps the proportions of its reference size whenever it is resized — see
+    /// <see cref="WidgetScale.Proportioned"/>, the one place that holds it to them. Null for every kind that does not.
+    ///
+    /// For a figure with a fixed shape. A dial stretched one way is a dial in a box with room to spare beside it: the
+    /// arc cannot widen without growing, and it grows only as far as the tighter axis lets it. A meter made wider is
+    /// a longer meter, a chart made wider shows its trend wider; those stay free.
+    ///
+    /// A predicate on the widget rather than a flag, for the clock: with rings it is round, without them it is a
+    /// line of text, as free as a caption.
+    /// </summary>
+    public Func<DesktopWidgetDefinition, bool>? KeepsProportions { get; init; }
 }
 
 public static class WidgetCatalog
@@ -109,7 +122,7 @@ public static class WidgetCatalog
             "A dial. Best for a percentage, like load.",
             170, 190,
             series => new RadialGauge { Sensor = series[0] },
-            SeriesPaint.Properties(RadialGauge.AccentProperty)) { HasDial = true },
+            SeriesPaint.Properties(RadialGauge.AccentProperty)) { HasDial = true, KeepsProportions = _ => true },
 
         new(DesktopWidgetKind.MiniSparkline,
             "Sparkline",
@@ -173,6 +186,7 @@ public static class WidgetCatalog
             {
                 NeedsReading = false, HasClock = true, HasUnit = false,
                 Reference = clock => clock.Rings == ClockRings.None ? (200, 70) : (200, 200),
+                KeepsProportions = clock => clock.Rings != ClockRings.None,
             },
 
         // The first kind whose count the hardware decides. Sixteen is a ceiling, not a shape: this machine

@@ -93,33 +93,6 @@ public sealed class ClockProperties
         Assert.Empty(wrong);
     }
 
-    /// <summary>
-    /// The rounded ends of the dial's arc, for any length, corner and radius: never below nothing, never rounder than
-    /// asked, and never more than the arc can hold. "Hold" is LiveCharts' own
-    /// geometry: the two ends take 2·atan(r / (inner + r)) from the arc's inner edge, and more than the arc has draws
-    /// that edge backwards. A length of nothing has no ends at all.
-    /// </summary>
-    [Property(MaxTest = 1000)]
-    public Property An_arcs_ends_are_never_rounder_than_it_can_hold() =>
-        Prop.ForAll(
-            (from fraction in Gen.Choose(-100, 100_000)
-             from corner in Gen.Choose(-20, 400)
-             from sweep in Gen.Elements(180d, 270d, 360d)
-             from inner in Gen.Choose(-10, 3000)
-             select (Fraction: fraction / 100_000d, Corner: corner / 10d, Sweep: sweep, Inner: inner / 10d))
-            .ToArbitrary(),
-            drawn =>
-            {
-                var (fraction, corner, sweep, inner) = drawn;
-                var r = AquilaCharts.CornerFor(fraction, corner, sweep, inner);
-                var arc = Math.Min(fraction, 1) * sweep * Math.PI / 180;
-
-                return r >= 0
-                    && r <= Math.Max(corner, 0)
-                    && (r == 0 || 2 * Math.Atan(r / (inner + r)) <= arc)
-                    && (fraction > 0 || r == 0);
-            });
-
     /// <summary>The clock is woken just after the next whole second, by exactly the lateness it allows itself — never
     /// inside the second it has already shown, and never a whole second late.</summary>
     [Property(MaxTest = 1000)]

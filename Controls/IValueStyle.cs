@@ -16,8 +16,8 @@ public interface IValueStyle
 {
     double ValueSize { get; set; }
 
-    /// <summary>The face, or null for the app's own. A string rather than a FontFamily because the gauge
-    /// draws its number through SkiaSharp, which has never heard of WPF's type.</summary>
+    /// <summary>The face, or null for the app's own. A string rather than a FontFamily because it is what the
+    /// preset's file holds, and a null has to mean "keep the theme's" — which <c>Wear</c> knows how to say.</summary>
     string? ValueFont { get; set; }
 
     Aquila.Models.TextWeight ValueWeight { get; set; }

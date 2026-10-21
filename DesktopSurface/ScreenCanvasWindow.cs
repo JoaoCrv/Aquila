@@ -175,9 +175,10 @@ internal sealed class ScreenCanvasWindow : Window
     }
 
     /// <summary>
-    /// Wheel over a widget resizes it. Both dimensions scale together, which keeps each shape's
-    /// proportions — a dial stays round instead of turning into an ellipse — so no per-kind aspect rules
-    /// are needed. The size sliders in the editor remain the precise method; this is the quick one.
+    /// Wheel over a widget resizes it. Both dimensions scale together, which keeps most shapes as they were. A
+    /// widget whose figure has a fixed shape is held to it by whoever owns it, on hearing
+    /// <see cref="WidgetResized"/>: this window knows nothing of kinds, and its bounds below are per side. The size
+    /// boxes in the editor remain the precise method; this is the quick one.
     /// </summary>
     private void OnSurfaceMouseWheel(object sender, MouseWheelEventArgs e)
     {

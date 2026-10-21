@@ -121,6 +121,100 @@ public sealed class ScaleProperties
                 return Math.Abs(scale - Math.Clamp(factor, WidgetScale.Least, WidgetScale.Most)) < 1e-7;
             });
 
+    /// <summary>Every kind with every choice of rings — what a resize can meet — split by whether the catalog says it
+    /// keeps its shape. Asked of the catalog rather than listed, so a kind that starts keeping one is tested here
+    /// without anyone remembering to add it.</summary>
+    private static readonly DesktopWidgetDefinition[] Everything =
+    [
+        .. from kind in WidgetCatalog.All
+           from rings in Enum.GetValues<ClockRings>()
+           select new DesktopWidgetDefinition { Kind = kind.Kind, Rings = rings },
+    ];
+
+    private static readonly DesktopWidgetDefinition[] Shaped =
+        [.. Everything.Where(w => WidgetScale.ShapeOf(w) is not null)];
+
+    private static readonly DesktopWidgetDefinition[] Free =
+        [.. Everything.Where(w => WidgetScale.ShapeOf(w) is null)];
+
+    /// <summary>The dial and a clock with rings keep their shape; a clock without rings is a line of text, and every
+    /// other kind is free.</summary>
+    [Fact]
+    public void The_round_figures_keep_their_shape_and_nothing_else_does()
+    {
+        Assert.All(Shaped, w => Assert.True(
+            w.Kind == DesktopWidgetKind.RadialGauge || w is { Kind: DesktopWidgetKind.Clock, Rings: not ClockRings.None }));
+
+        Assert.Contains(Shaped, w => w.Kind == DesktopWidgetKind.RadialGauge);
+        Assert.Contains(Shaped, w => w is { Kind: DesktopWidgetKind.Clock, Rings: ClockRings.All });
+        Assert.Contains(Free, w => w is { Kind: DesktopWidgetKind.Clock, Rings: ClockRings.None });
+    }
+
+    /// <summary>
+    /// Resized any way, a widget that keeps its shape comes out in its reference's proportions — led by the side that
+    /// was set, which it keeps whenever the range allows it, and inside the range on both sides when there is one.
+    /// The editor's range is drawn often, since that is where a dial cannot be both its widest and its height taller.
+    /// </summary>
+    [Property(MaxTest = 1000)]
+    public Property A_shape_keeping_resize_keeps_the_reference_proportions() =>
+        Prop.ForAll(
+            (from widget in Gen.Elements(Shaped)
+             from width in Sizes()
+             from height in Sizes()
+             from lead in Gen.Elements(SizeLead.Width, SizeLead.Height)
+             from range in Gen.Elements((0d, double.PositiveInfinity), (40d, 4000d), (80d, 600d))
+             select (widget, width, height, lead, range))
+            .ToArbitrary(),
+            resize =>
+            {
+                var (widget, width, height, lead, (least, most)) = resize;
+                var (across, down) = WidgetScale.ReferenceOf(widget);
+                var (w, h) = WidgetScale.Proportioned(widget, width, height, lead, least, most);
+
+                var shaped = Math.Abs(w * down - h * across) <= 1e-9 * Math.Max(1, Math.Max(w * down, h * across));
+                var inside = w >= least - 1e-9 && w <= most + 1e-9 && h >= least - 1e-9 && h <= most + 1e-9;
+
+                // The lead stays as it was set wherever the range lets the shape have it.
+                var (asked, got, low, high) = lead == SizeLead.Width
+                    ? (width, w, Math.Max(least, least * across / down), Math.Min(most, most * across / down))
+                    : (height, h, Math.Max(least, least * down / across), Math.Min(most, most * down / across));
+                var led = asked < low || asked > high || got == asked;
+
+                return shaped && inside && led;
+            });
+
+    /// <summary>A free kind is given exactly the size it was asked for — any size, either lead, any range — so the
+    /// rule cannot reach a widget it is not about.</summary>
+    [Property(MaxTest = 1000)]
+    public Property A_free_kinds_resize_is_untouched() =>
+        Prop.ForAll(
+            (from widget in Gen.Elements(Free)
+             from width in AnySizes()
+             from height in AnySizes()
+             from lead in Gen.Elements(SizeLead.Width, SizeLead.Height)
+             from range in Gen.Elements((0d, double.PositiveInfinity), (40d, 4000d))
+             select (widget, width, height, lead, range))
+            .ToArbitrary(),
+            resize =>
+            {
+                var (widget, width, height, lead, (least, most)) = resize;
+                var (w, h) = WidgetScale.Proportioned(widget, width, height, lead, least, most);
+                return w.Equals(width) && h.Equals(height);
+            });
+
+    /// <summary>At its reference width a widget gets its reference height exactly, not a bit either side — the editor's
+    /// boxes show whole numbers, and a 189.99999999999997 there is a box that changed by itself.</summary>
+    [Fact]
+    public void At_its_reference_width_a_shaped_widget_gets_its_reference_height_exactly()
+    {
+        Assert.All(Shaped, widget =>
+        {
+            var (across, down) = WidgetScale.ReferenceOf(widget);
+            Assert.Equal((across, down), WidgetScale.Proportioned(widget, across, 1, SizeLead.Width));
+            Assert.Equal((across * 2, down * 2), WidgetScale.Proportioned(widget, 1, down * 2, SizeLead.Height));
+        });
+    }
+
     /// <summary>Making a widget bigger in either direction never makes what is drawn in it smaller.</summary>
     [Property(MaxTest = 1000)]
     public Property Growing_either_dimension_never_shrinks_the_scale() =>

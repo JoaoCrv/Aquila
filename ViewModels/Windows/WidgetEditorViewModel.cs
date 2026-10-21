@@ -946,9 +946,15 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     // Style, all four: a new size is a new scale, which re-dresses the widget where it stands. They went missing
     // with the appearance fields in the move to presets, after which the boxes changed nothing until some other
-    // edit happened to write them.
-    partial void OnWidgetWidthChanged(double value) => Apply();
-    partial void OnWidgetHeightChanged(double value) => Apply();
+    // edit happened to write them. The size boxes also say which side leads, for a widget that keeps its shape.
+    partial void OnWidgetWidthChanged(double value) => Apply(lead: SizeLead.Width);
+    partial void OnWidgetHeightChanged(double value) => Apply(lead: SizeLead.Height);
+
+    /// <summary>The size boxes' range — here rather than in the markup, because a widget that keeps its proportions
+    /// is held inside it on both sides, and a range written in two places would let one box be refused what the other
+    /// was given.</summary>
+    public double LeastSize => 40;
+    public double MostSize => 4000;
     partial void OnWidgetXChanged(double value) => Apply();
     partial void OnWidgetYChanged(double value) => Apply();
 
@@ -983,6 +989,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnSelectedRingsChanged(ClockRings value) => Apply();
     partial void OnSecondsShownChanged(bool value) => Apply();
     partial void OnDateShownChanged(bool value) => Apply();
+    partial void OnTextFillsRingsChanged(bool value) => Apply();
 
     /// <summary>The words a Text widget says. How they are DRAWN is the preset's.</summary>
     [ObservableProperty] private string _caption = string.Empty;
@@ -997,6 +1004,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     [ObservableProperty] private bool _secondsShown = true;
     [ObservableProperty] private bool _dateShown = true;
+    [ObservableProperty] private bool _textFillsRings = true;
 
     /// <summary>One choice in the rings picker: the setting, and what it is called there. A label of its own
     /// because "MinutesSeconds" is the name of a value, not a phrase.</summary>
@@ -1269,9 +1277,12 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>Writes the form into the live definition and tells the host to re-render it. The screen is
     /// never touched — moving a widget between monitors is the desktop context menu's job, because it is
     /// the only place that can show you which monitor you are pointing at.</summary>
-    private void Apply(WidgetChange change = WidgetChange.Style)
+    private void Apply(WidgetChange change = WidgetChange.Style, SizeLead? lead = null)
     {
         if (!_loaded || _target is null) return;
+
+        var shapeBefore = WidgetScale.ShapeOf(_target);
+        var kindBefore = _target.Kind;
 
         _target.Kind = SelectedKind?.Kind ?? _target.Kind;
         _target.Series = [.. Chosen.Select(row => new WidgetSeries
@@ -1299,6 +1310,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.Rings = SelectedRings;
         _target.ShowSeconds = SecondsShown;
         _target.ShowDate = DateShown;
+        _target.FillRings = TextFillsRings;
         _target.ShowValue = ValueShown;
         _target.ShowUnit = UnitShown;
         _target.BarDirection = BarDirection;
@@ -1308,6 +1320,33 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ScaleMin = ScaleMin;
         _target.ScaleMax = ScaleMax;
         _target.ItemCount = (int)ItemCount;
+
+        // Held to its proportions, by the rule the wheel is held to. Led by the box that was typed in — or, when the
+        // widget has just started keeping a shape (made a dial, or a clock given rings), by its width, so it takes
+        // the shape now: a 200×70 clock given rings would otherwise draw them a third of the size until someone
+        // happened to resize it. Anything else leaves the size alone, so opening a widget never reshapes it.
+        var shape = WidgetScale.ShapeOf(_target);
+        if (shape is not null && (lead is not null || shape != shapeBefore))
+        {
+            (_target.Width, _target.Height) = WidgetScale.Proportioned(_target, _target.Width, _target.Height,
+                lead ?? SizeLead.Width, LeastSize, MostSize);
+
+            // The other box has to say what the widget now is.
+            SyncGeometry();
+        }
+        else if (shape is null && shapeBefore is not null && _target.Kind == kindBefore)
+        {
+            // The other way: the same widget has stopped drawing a figure of fixed shape — a clock whose rings were
+            // turned off. It takes the shape of what it draws now, once, keeping its width: left square, a line of
+            // text sat in the middle of a box made for rings, scaled to the width and lost in the height (João,
+            // 2026-10-21). After that it is free, as a text clock always was.
+            var (across, down) = WidgetScale.ReferenceOf(_target);
+            if (across > 0 && down > 0)
+            {
+                _target.Height = Math.Clamp(_target.Width * down / across, LeastSize, MostSize);
+                SyncGeometry();
+            }
+        }
 
         Changed?.Invoke(change);
     }
@@ -1486,6 +1525,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         SelectedRings = target.Rings;
         SecondsShown = target.ShowSeconds;
         DateShown = target.ShowDate;
+        TextFillsRings = target.FillRings;
         ValueShown = target.ShowValue;
         UnitShown = target.ShowUnit;
         BarDirection = target.BarDirection;

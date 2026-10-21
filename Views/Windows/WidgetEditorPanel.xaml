@@ -679,9 +679,11 @@
                                               IsChecked="{Binding ViewModel.DateShown}"/>
                                     <CheckBox Margin="0,10,0,0" Content="Show the seconds"
                                               IsChecked="{Binding ViewModel.SecondsShown}"/>
+                                    <CheckBox Margin="0,10,0,0" Content="Text fills the rings"
+                                              IsChecked="{Binding ViewModel.TextFillsRings}"/>
                                     <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                                Opacity="0.5" TextWrapping="Wrap"
-                                               Text="Written above and below the time, in this machine's own format. The rings take their colours from the preset's primary ramp."/>
+                                               Text="Written above and below the time, in this machine's own format. Off, the text takes the preset's reading size. The rings take their colours from the preset's primary ramp."/>
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
@@ -777,11 +779,13 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
                                 <TextBlock Grid.Row="0" Grid.Column="2" Text="Height" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                                <!-- A dial or a ringed clock keeps its proportions: typing either box sets the
+                                     other. The range is the view model's, which holds both sides inside it. -->
                                 <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                              Minimum="40" Maximum="4000"
+                                              Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
                                               Value="{Binding ViewModel.WidgetWidth, Mode=TwoWay}"/>
                                 <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                              Minimum="40" Maximum="4000"
+                                              Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
                                               Value="{Binding ViewModel.WidgetHeight, Mode=TwoWay}"/>
                             </Grid>
 

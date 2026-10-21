@@ -17,6 +17,9 @@ namespace Aquila.Controls.Primitives;
 ///
 /// The value is a share of the sweep, 0 to 1. The track runs the whole sweep under it; the arc runs
 /// <c>Value × SweepAngle</c> from <see cref="StartAngle"/>, clockwise.
+///
+/// Where it sits in its box is <see cref="Fit"/>: on its circle, centred — the clock's rings — or by the arc it
+/// sweeps, which a dial needs. <see cref="Centre"/> says where that put it, for whatever is laid over the ring.
 /// </summary>
 public class RingArc : FrameworkElement
 {
@@ -29,7 +32,7 @@ public class RingArc : FrameworkElement
         set => SetValue(ValueProperty, value);
     }
 
-    public static readonly DependencyProperty ThicknessProperty = Register(nameof(Thickness), 10d);
+    public static readonly DependencyProperty ThicknessProperty = RegisterShape(nameof(Thickness), 10d);
 
     /// <summary>The stroke, in pixels. The arc and the track share it.</summary>
     public double Thickness
@@ -38,7 +41,7 @@ public class RingArc : FrameworkElement
         set => SetValue(ThicknessProperty, value);
     }
 
-    public static readonly DependencyProperty StartAngleProperty = Register(nameof(StartAngle), -90d);
+    public static readonly DependencyProperty StartAngleProperty = RegisterShape(nameof(StartAngle), -90d);
 
     /// <summary>Where the sweep begins, in degrees clockwise from three o'clock — so −90, the default, is twelve.
     /// </summary>
@@ -48,7 +51,7 @@ public class RingArc : FrameworkElement
         set => SetValue(StartAngleProperty, value);
     }
 
-    public static readonly DependencyProperty SweepAngleProperty = Register(nameof(SweepAngle), 360d);
+    public static readonly DependencyProperty SweepAngleProperty = RegisterShape(nameof(SweepAngle), 360d);
 
     /// <summary>How far round a full value reaches, in degrees: 360, the default, is a ring; a dial is 270 from −225.
     /// </summary>
@@ -76,7 +79,7 @@ public class RingArc : FrameworkElement
         set => SetValue(TrackBrushProperty, value);
     }
 
-    public static readonly DependencyProperty CapsProperty = Register(nameof(Caps), PenLineCap.Round);
+    public static readonly DependencyProperty CapsProperty = RegisterShape(nameof(Caps), PenLineCap.Round);
 
     /// <summary>
     /// The ends of the arc, and of the track when the sweep stops short of a turn (a whole turn has no ends).
@@ -92,18 +95,59 @@ public class RingArc : FrameworkElement
         set => SetValue(CapsProperty, value);
     }
 
+    public static readonly DependencyProperty FitProperty = RegisterShape(nameof(Fit), RingFit.Circle);
+
+    /// <summary>How the ring takes its box: on its circle, centred — the default, and the clock's — or by the arc it
+    /// sweeps, so a dial's open bottom is not room kept for nothing. See <see cref="RingFit"/>.</summary>
+    public RingFit Fit
+    {
+        get => (RingFit)GetValue(FitProperty);
+        set => SetValue(FitProperty, value);
+    }
+
+    public static readonly DependencyProperty CentreSizeProperty = RegisterShape(nameof(CentreSize), default(Size));
+
+    /// <summary>
+    /// The size of whatever is laid over the ring's centre, which a fitted ring keeps inside its box along with the
+    /// arc (<see cref="ArcGeometry.Fit"/>). Nothing by default, and nothing to a ring on its circle.
+    ///
+    /// Inside a dial's arc it never matters. A half dial's centre is the bottom edge of the arc, so without it the
+    /// lower half of a number there would hang out of a wide box.
+    /// </summary>
+    public Size CentreSize
+    {
+        get => (Size)GetValue(CentreSizeProperty);
+        set => SetValue(CentreSizeProperty, value);
+    }
+
+    /// <summary>The centre the ring is drawn around at its present size, in its own coordinates — where something
+    /// laid over it, a number, belongs. Asked of the same placement the drawing uses.</summary>
+    public Point Centre => Placement().Centre;
+
     private static DependencyProperty Register<T>(string name, T fallback) =>
         DependencyProperty.Register(name, typeof(T), typeof(RingArc),
             new FrameworkPropertyMetadata(fallback, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>A property the ring's place depends on: it moves <see cref="Centre"/>, so the parent is asked to lay
+    /// out again, and whatever it put at the centre follows. Never the value or a colour — those change every frame
+    /// a ring moves, and the place never does.</summary>
+    private static DependencyProperty RegisterShape<T>(string name, T fallback) =>
+        DependencyProperty.Register(name, typeof(T), typeof(RingArc),
+            new FrameworkPropertyMetadata(fallback,
+                FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.AffectsParentArrange));
 
     // ── Drawing ──────────────────────────────────────────────────────────────
 
     /// <summary>What a geometry was built for. Any of it changing is a new geometry; anything else — a colour, the
     /// ends — is a new pen over the same one.</summary>
-    private readonly record struct Figure(double Value, double Width, double Height, double Thickness, double Start,
-        double Sweep);
+    private readonly record struct Figure(double Value, Point Centre, double Radius, double Start, double Sweep);
 
     private readonly record struct Ink(Brush Brush, double Thickness, PenLineCap Caps);
+
+    /// <summary>What a placement was worked out for. The fitted one is a small sum, but the ring is drawn every frame
+    /// it moves, and its box almost never changes.</summary>
+    private readonly record struct Room(Size Size, double Thickness, double Start, double Sweep, PenLineCap Caps,
+        RingFit Fit, Size Middle);
 
     private Figure _arcFigure;
     private StreamGeometry? _arc;
@@ -115,40 +159,51 @@ public class RingArc : FrameworkElement
     private Ink _trackInk;
     private Pen? _trackPen;
 
+    private Room? _room;
+    private (Point Centre, double Radius) _placed;
+
+    private (Point Centre, double Radius) Placement()
+    {
+        var room = new Room(RenderSize, Thickness, StartAngle, SweepAngle, Caps, Fit, CentreSize);
+        if (room == _room) return _placed;
+
+        _room = room;
+        return _placed = ArcGeometry.Place(room.Size, room.Thickness, room.Start, room.Sweep, room.Caps, room.Fit,
+            room.Middle);
+    }
+
     protected override void OnRender(DrawingContext drawing)
     {
         var thickness = Thickness;
         if (!(thickness > 0)) return;
 
-        var (width, height) = (RenderSize.Width, RenderSize.Height);
-        var radius = ArcGeometry.Radius(width, height, thickness);
+        var (centre, radius) = Placement();
         if (!(radius > 0)) return;
 
-        var centre = new Point(width / 2, height / 2);
         var caps = Caps;
 
         if (TrackBrush is { } track)
             Draw(drawing, PenFor(ref _trackPen, ref _trackInk, new(track, thickness, caps)),
-                ref _track, ref _trackFigure, new(1, width, height, thickness, StartAngle, SweepAngle), centre, radius);
+                ref _track, ref _trackFigure, new(1, centre, radius, StartAngle, SweepAngle));
 
         if (Stroke is { } stroke)
             Draw(drawing, PenFor(ref _strokePen, ref _strokeInk, new(stroke, thickness, caps)),
-                ref _arc, ref _arcFigure, new(Value, width, height, thickness, StartAngle, SweepAngle), centre, radius);
+                ref _arc, ref _arcFigure, new(Value, centre, radius, StartAngle, SweepAngle));
     }
 
     private static void Draw(DrawingContext drawing, Pen pen, ref StreamGeometry? cached, ref Figure built,
-        Figure figure, Point centre, double radius)
+        Figure figure)
     {
         switch (ArcGeometry.ShapeOf(figure.Value, figure.Sweep))
         {
             case ArcShape.Circle:
-                drawing.DrawEllipse(null, pen, centre, radius, radius);
+                drawing.DrawEllipse(null, pen, figure.Centre, figure.Radius, figure.Radius);
                 return;
 
             case ArcShape.Arc:
                 if (cached is null || built != figure)
                 {
-                    cached = Arc(centre, radius, figure.Value, figure.Start, figure.Sweep);
+                    cached = Arc(figure.Centre, figure.Radius, figure.Value, figure.Start, figure.Sweep);
                     built = figure;
                 }
 

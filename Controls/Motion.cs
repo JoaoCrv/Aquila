@@ -1,6 +1,5 @@
 using System.Windows.Media.Animation;
 using Aquila.Models;
-using LiveChartsCore;
 
 namespace Aquila.Controls;
 
@@ -19,8 +18,8 @@ namespace Aquila.Controls;
 /// a new speed is in force by the next tick — and an event here would mean a subscription in each piece,
 /// which is a leak per widget in exchange for a moment.
 ///
-/// The library's own "off" is a duration and not a flag, so this follows it: a speed of zero IS no
-/// animation. One number, with nothing beside it to disagree.
+/// A speed of zero IS no animation — as LiveCharts' own "off" was a duration and not a flag, when the dial was
+/// one of its charts. One number, with nothing beside it to disagree.
 ///
 /// There is also no choice of curve, and that is a measured decision rather than an omission. Three were
 /// offered and none could be told apart. The mechanism was confirmed working — the dial's series reported
@@ -34,6 +33,10 @@ namespace Aquila.Controls;
 /// every second when it is, arriving on each one. They are not on the poll, so the cap below has nothing to
 /// protect there, and time moves between two seconds in a way a reading does not move between two polls — see
 /// ClockTile.Sweep. The frame rate they follow like everything else.
+///
+/// The dial's arc moves at this speed but steadily, as every ring does (RingArc.MoveTo), while the bars ease into
+/// place. Two paths under one setting, and the measurement above is why that is allowed: at the speeds permitted,
+/// nobody sees the curve.
 /// </summary>
 public static class Motion
 {
@@ -54,16 +57,7 @@ public static class Motion
     public const int LeastFrameRate = 15;
     public const int MostFrameRate = 60;
 
-    /// <summary>What to hand a LiveCharts chart. Off is <c>LiveCharts.DisableAnimations</c> — one
-    /// millisecond rather than zero, which is the library's own constant for it.</summary>
-    public static TimeSpan ChartSpeed => Enabled ? Speed : LiveCharts.DisableAnimations;
-
-    /// <summary>Quick away, slow into place — a reading settling rather than arriving. The two below are
-    /// the SAME curve in the two drawing worlds: sampled against each other they agree to three decimal
-    /// places at every point. Pairing them by name instead is what once had the dial and the bar moving
-    /// along visibly different paths under one setting.</summary>
-    public static Func<float, float> ChartEasing { get; } = EasingFunctions.CubicOut;
-
+    /// <summary>Quick away, slow into place — a bar settling rather than arriving.</summary>
     public static IEasingFunction WpfEasing { get; } = new CubicEase { EasingMode = EasingMode.EaseOut };
 
     public static void Apply(AppSettings settings)

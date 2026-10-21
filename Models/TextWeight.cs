@@ -7,8 +7,9 @@ namespace Aquila.Models;
 /// "quieter than normal", "normal", and three degrees of emphasis. A slider from 100 to 900 would offer
 /// two hundred choices, most of which no installed face can actually draw.
 ///
-/// Named here rather than reusing System.Windows.FontWeights so the same value can cross to SkiaSharp,
-/// which draws the gauge's centre number and knows nothing about WPF.
+/// Named here rather than reusing System.Windows.FontWeights, so a preset holds a name that is not WPF's. It
+/// crossed to SkiaSharp while the dial's number was painted by a chart; TextWeightExtensions is where a drawing
+/// world learns it.
 /// </summary>
 public enum TextWeight
 {

@@ -46,21 +46,32 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     {
     }
 
-    /// <summary>The date and the seconds, as a share of the time's size: small enough that the time is plainly the
-    /// reading, large enough to be read from the chair.</summary>
-    private const double Small = 0.5;
+    /// <summary>The date and the seconds, as a share of the time's size — the design the rings came from, measured:
+    /// both about 0.38 of the time there. Small enough that the time is plainly the reading; the date had been 0.5
+    /// and, being by far the widest line ("quarta, 21/10" against "49"), reached past the inner ring.</summary>
+    private const double Small = 0.4;
 
-    /// <summary>The gap between two rings, as a share of their thickness — eight pixels at the presets' fourteen:
+    /// <summary>
+    /// How thick a ring is against the preset's gauge thickness. The gauge section was written for a dial — ONE arc
+    /// — and three rings at a dial's thickness took two thirds of the radius between them, leaving the time a circle
+    /// 35% of the clock across. The design they came from, measured: rings 4.3% of the diameter, an inner circle of
+    /// 61%. 0.55 of Ember's 14 is that, at the default size (João, 2026-10-21). A share and not a number, so a preset
+    /// with a heavier dial still gets a heavier clock, in proportion.
+    /// </summary>
+    private const double RingShare = 0.55;
+
+    /// <summary>How much of the inner circle the text fills, when it fills it: the half-diagonal of the block of
+    /// three lines against the circle's radius. 0.86 in the design, measured.</summary>
+    private const double FillShare = 0.86;
+
+    /// <summary>The gap between two rings, as a share of their thickness — 0.8, the design's (8 px against 10):
     /// enough to read as three rings rather than one banded one, and no more, because every pixel of it is taken from
     /// the middle where the time is. Never under two pixels, or thin rings would touch.
     ///
     /// A share, so it grows with the widget as the thickness does — the thickness arrives scaled. The floor does not:
     /// what it guards against, two rings touching, is a matter of pixels whatever the scale.</summary>
-    private const double GapToThickness = 4d / 7;
+    private const double GapToThickness = 0.8;
     private const double MinGap = 2;
-
-    /// <summary>The track where a preset names none: a faint white, the dial's own default.</summary>
-    private static readonly Brush DefaultTrack = Frozen(Color.FromArgb(20, 255, 255, 255));
 
     private static readonly TimeSpan OneSecond = TimeSpan.FromSeconds(1);
 
@@ -70,7 +81,11 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     private readonly Line _date = new() { Opacity = 0.6 };
     private readonly Line _time = new();
     private readonly Line _seconds = new();
-    private readonly StackPanel _middle = new()
+    private readonly StackPanel _middle = new();
+
+    /// <summary>Holds the middle, and shrinks it when it would not fit inside the innermost ring — see
+    /// <see cref="FitMiddle"/>. Its own element so the middle can be measured as it is, without the shrink.</summary>
+    private readonly Border _fit = new()
     {
         HorizontalAlignment = HorizontalAlignment.Center,
         VerticalAlignment = VerticalAlignment.Center,
@@ -103,9 +118,11 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
             _middle.Children.Add(line);
         }
 
+        _fit.Child = _middle;
         Children.Add(_face);
-        Children.Add(_middle);
+        Children.Add(_fit);
 
+        SizeChanged += (_, _) => FitMiddle();
         Loaded += (_, _) => Hook();
         Unloaded += (_, _) => Unhook();
 
@@ -166,7 +183,7 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
         var count = ClockFace.RingCount(_rings);
 
         _face.Visibility = count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        _middle.Visibility = count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        _fit.Visibility = count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
         if (_hands.Length == count) return;
 
@@ -178,7 +195,7 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
 
         // Under the text, so the time is never drawn over by a ring on a widget too small for both.
         _hands = [.. Enumerable.Range(0, count).Select(_ => new RingArc())];
-        foreach (var hand in _hands) Children.Insert(Children.IndexOf(_middle), hand);
+        foreach (var hand in _hands) Children.Insert(Children.IndexOf(_fit), hand);
 
         _fresh = true;
     }
@@ -193,7 +210,7 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     private void Paint()
     {
         string[] stops = [_ramp.Normal, _ramp.Alert, _ramp.Critical];
-        var track = _trackBrush ?? DefaultTrack;
+        var track = _trackBrush ?? ArcStyle.DefaultTrack;
 
         for (var k = 0; k < _hands.Length; k++)
         {
@@ -218,9 +235,9 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     /// whatever the widget's size, and the time has the middle. On a widget too small for them, the inner rings run
     /// out of room and are not drawn rather than drawn over each other.
     ///
-    /// The ends are round or square, never in between. The preset's corner is a radius for the dial, whose arc it
-    /// has to fit inside; a ring's round end is a cap past the arc's end, so there is nothing for a radius to fit,
-    /// and any corner at all asks for round.
+    /// The ends are round or square, never in between, as the dial's are. The preset's corner was a radius the dial's
+    /// chart had to fit inside its arc; a ring's round end is a cap past the arc's end, so there is nothing for a
+    /// radius to fit, and any corner at all asks for round.
     /// </summary>
     private void Shape()
     {
@@ -235,10 +252,76 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
             hand.Caps = caps;
             hand.Margin = new Thickness(k * (thickness + gap));
         }
+
+        FitMiddle();
     }
 
-    /// <summary>At least a pixel: the thickness comes from a preset, which a hand can edit to nothing.</summary>
-    private double RingThickness => Math.Max(1, _arcThickness);
+    /// <summary>
+    /// Sizes the date, the time and the seconds — all three alike — to the middle of the innermost ring.
+    ///
+    /// Filling (<see cref="FillRings"/>, the default): grown or shrunk until the corners of the block they make
+    /// reach <see cref="FillShare"/> of the way to the ring's inside edge, so the time is as large as the rings leave
+    /// room for at any size, as in the design. Not filling: the preset's reading size, shrunk only when the block
+    /// would not clear the ring, and never grown.
+    ///
+    /// Measured rather than predicted, because what has to fit is text: its width depends on the face, the weight,
+    /// the day's name in the machine's language, and whether the date is shown at all. A layout transform on the
+    /// holder, not other font sizes, so the three lines keep their proportions to each other; WPF draws text under a
+    /// transform as text, so nothing is blurred.
+    /// </summary>
+    private void FitMiddle()
+    {
+        if (_hands.Length == 0 || ActualWidth <= 0 || ActualHeight <= 0)
+        {
+            Zoom(1);
+            return;
+        }
+
+        var thickness = RingThickness;
+        var gap = Math.Max(MinGap, thickness * GapToThickness);
+
+        // The inside edge of the innermost ring.
+        var inside = Math.Min(ActualWidth, ActualHeight) / 2 - (_hands.Length - 1) * (thickness + gap) - thickness;
+        if (inside <= 0)
+        {
+            Zoom(1);
+            return;
+        }
+
+        _middle.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var (width, height) = (_middle.DesiredSize.Width, _middle.DesiredSize.Height);
+        var corner = Math.Sqrt(width * width + height * height) / 2;
+        if (corner <= 0)
+        {
+            Zoom(1);
+            return;
+        }
+
+        if (_fillRings)
+        {
+            Zoom(FillShare * inside / corner);
+            return;
+        }
+
+        // Clear of the ring by a gap, so the text never touches it.
+        var room = inside - gap;
+        Zoom(room > 0 && corner > room ? room / corner : 1);
+    }
+
+    private double _zoom = 1;
+
+    /// <summary>Applied only when it changes: this is asked every second, and a new transform each time would lay
+    /// the whole piece out again every second for nothing.</summary>
+    private void Zoom(double by)
+    {
+        if (Math.Abs(by - _zoom) < 0.001) return;
+        _zoom = by;
+        _fit.LayoutTransform = Math.Abs(by - 1) < 0.001 ? Transform.Identity : new ScaleTransform(by, by);
+    }
+
+    /// <summary>A share of the preset's gauge thickness (see <see cref="RingShare"/>), and at least a pixel: the
+    /// thickness comes from a preset, which a hand can edit to nothing.</summary>
+    private double RingThickness => Math.Max(1, _arcThickness * RingShare);
 
     /// <summary>The ring lines' sizes, from the time's. The line without rings takes the reading's size directly, as
     /// the piece always did.</summary>
@@ -247,6 +330,7 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
         _time.FontSize = _face.FontSize;
         _date.FontSize = _face.FontSize * Small;
         _seconds.FontSize = _face.FontSize * Small;
+        FitMiddle();
     }
 
     /// <summary>Writes the time, and moves the rings to it. Never animates the digits — a number counting up to the
@@ -267,6 +351,9 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
         // middle of the rings whichever of them is shown.
         _date.Visibility = _showDate ? Visibility.Visible : Visibility.Hidden;
         _seconds.Visibility = _showSeconds ? Visibility.Visible : Visibility.Hidden;
+
+        // The text may have changed width — a new day's name, the time going from 9:59 to 10:00.
+        FitMiddle();
 
         Sweep(now);
     }
@@ -329,13 +416,6 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     private static TimeSpan Clamp(TimeSpan left) =>
         left < TimeSpan.Zero ? TimeSpan.Zero : left > OneSecond ? OneSecond : left;
 
-    private static Brush Frozen(Color colour)
-    {
-        var brush = new SolidColorBrush(colour);
-        brush.Freeze();
-        return brush;
-    }
-
     // ── Content: what the widget says it shows ───────────────────────────
 
     private ClockFormat _format = ClockFormat.Time;
@@ -365,6 +445,14 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     {
         get => _showDate;
         set { _showDate = value; Show(Now); }
+    }
+
+    private bool _fillRings = true;
+
+    public bool FillRings
+    {
+        get => _fillRings;
+        set { _fillRings = value; FitMiddle(); }
     }
 
     // ── Style: what the preset says it looks like ────────────────────────

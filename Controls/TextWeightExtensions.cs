@@ -5,8 +5,8 @@ using Aquila.Models;
 
 namespace Aquila.Controls;
 
-/// <summary>Turns the preset's five steps into what each drawing world understands. Two mappings in one
-/// file, so a step added later cannot be taught to one of them and forgotten in the other.</summary>
+/// <summary>Turns the preset's five steps into what WPF understands. The one drawing world left that writes text:
+/// the mapping to Skia went with the dial's painted number.</summary>
 public static class TextWeightExtensions
 {
     public static FontWeight ToFontWeight(this TextWeight weight) => weight switch
@@ -28,13 +28,4 @@ public static class TextWeightExtensions
 
         text.FontWeight = weight.ToFontWeight();
     }
-
-    public static SkiaSharp.SKFontStyleWeight ToSkiaWeight(this TextWeight weight) => weight switch
-    {
-        TextWeight.Light => SkiaSharp.SKFontStyleWeight.Light,
-        TextWeight.Medium => SkiaSharp.SKFontStyleWeight.Medium,
-        TextWeight.SemiBold => SkiaSharp.SKFontStyleWeight.SemiBold,
-        TextWeight.Bold => SkiaSharp.SKFontStyleWeight.Bold,
-        _ => SkiaSharp.SKFontStyleWeight.Normal,
-    };
 }

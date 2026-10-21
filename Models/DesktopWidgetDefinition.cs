@@ -267,6 +267,11 @@ public class DesktopWidgetDefinition
     /// <see cref="ShowSeconds"/>.</summary>
     public bool ShowDate { get; set; } = true;
 
+    /// <summary>Whether a clock with rings sizes its text to fill the middle of them — date, time and seconds
+    /// together, as the design it came from does — rather than at the preset's reading size. On by default; off
+    /// gives the size back to the preset, for whoever wants to set it there. Ignored without rings.</summary>
+    public bool FillRings { get; set; } = true;
+
     /// <summary>How many readings a chart shows. Readings, not seconds: the time they cover is this times
     /// the poll interval, which the user can change. How much data to show is a question about the data,
     /// not about how it looks.</summary>

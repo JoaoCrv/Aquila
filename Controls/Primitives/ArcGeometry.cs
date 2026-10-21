@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 
 namespace Aquila.Controls.Primitives;
 
@@ -8,6 +9,23 @@ public enum ArcShape
     None,
     Arc,
     Circle,
+}
+
+/// <summary>How a ring takes the room it is given.</summary>
+public enum RingFit
+{
+    /// <summary>The whole circle, centred, whatever the sweep: the ring keeps its place on its circle. The clock's
+    /// rings, and the default.</summary>
+    Circle,
+
+    /// <summary>
+    /// The swept arc, stroke included, as large as the room allows and centred in it.
+    ///
+    /// A 270° dial is not its circle: the open bottom is a quarter of the circle's height with nothing in it, and a
+    /// dial centred on its circle keeps that quarter empty inside its own box. Fitted by what is drawn, the arc
+    /// reaches the box's edges on the tighter axis and the circle's centre moves down to wherever that puts it.
+    /// </summary>
+    Sweep,
 }
 
 /// <summary>
@@ -83,4 +101,169 @@ public static class ArcGeometry
     /// </summary>
     public static double Radius(double width, double height, double thickness) =>
         Math.Min(width, height) / 2 - thickness / 2;
+
+    /// <summary>Where a ring sits in a room of this size: the centre it is drawn around, and the radius its stroke is
+    /// centred on. The one answer the drawing and anything placed over it both ask, so the two cannot disagree.
+    /// </summary>
+    public static (Point Centre, double Radius) Place(Size room, double thickness, double startAngle,
+        double sweepAngle, PenLineCap caps, RingFit fit, Size middle = default) =>
+        fit == RingFit.Sweep
+            ? Fit(new Rect(room), thickness, startAngle, sweepAngle, caps, middle)
+            : (new Point(room.Width / 2, room.Height / 2), Radius(room.Width, room.Height, thickness));
+
+    /// <summary>
+    /// The largest ring whose swept arc — the whole sweep, stroke and ends included — fits inside
+    /// <paramref name="room"/>, and the centre that puts that arc in the middle of it. A radius of zero means there
+    /// is no room for one.
+    ///
+    /// Fitted by the whole sweep because that is the track, and every value draws inside its track: a shorter arc
+    /// with the same ends covers less of it, never more.
+    ///
+    /// <paramref name="middle"/> is a box centred on the ring's centre that has to fit as well — whatever is laid
+    /// over the middle. Inside a dial's arc it changes nothing; a half dial's centre is the bottom edge of its arc,
+    /// and fitted by the arc alone in a wide room, a number written there would hang half out of it. Both are
+    /// placed together, and centred together.
+    ///
+    /// Solved rather than searched for. Every point that can be an edge of the drawing is a fixed direction times
+    /// the radius plus a fixed offset (<see cref="Reaches"/>), so the distance between any two of them along an axis
+    /// is a straight line in the radius, and the drawing fits when every such distance fits. Each one is a bound —
+    /// above when it grows with the radius, below when it shrinks — and the answer is the highest radius every bound
+    /// allows: exact, with no tolerance and no iteration, for any start, sweep, thickness and end.
+    /// </summary>
+    public static (Point Centre, double Radius) Fit(Rect room, double thickness, double startAngle, double sweepAngle,
+        PenLineCap caps, Size middle = default)
+    {
+        var halfway = new Point(room.X + room.Width / 2, room.Y + room.Height / 2);
+        var sweep = Sweep(sweepAngle);
+
+        // Written as "not above" so a NaN from anywhere lands here too.
+        if (!(sweep > 0) || !(thickness >= 0) || !(room.Width > 0) || !(room.Height > 0) || !double.IsFinite(startAngle))
+            return (halfway, 0);
+
+        var reaches = Reaches(thickness, startAngle, sweep, caps);
+
+        // The box in the middle goes nowhere as the ring grows: its corners are offsets from the centre, and nothing
+        // along.
+        if (!middle.IsEmpty && (middle.Width > 0 || middle.Height > 0))
+            foreach (var x in new[] { -middle.Width / 2, middle.Width / 2 })
+                foreach (var y in new[] { -middle.Height / 2, middle.Height / 2 })
+                    reaches.Add(new(new Vector(0, 0), new Vector(x, y)));
+
+        double most = double.PositiveInfinity, least = 0;
+        foreach (var (along, length) in new[] { (true, room.Width), (false, room.Height) })
+            foreach (var a in reaches)
+                foreach (var b in reaches)
+                {
+                    // How far a lies past b on this axis: slope × radius + gap.
+                    var slope = along ? a.Along.X - b.Along.X : a.Along.Y - b.Along.Y;
+                    var gap = along ? a.Offset.X - b.Offset.X : a.Offset.Y - b.Offset.Y;
+
+                    if (slope > 0) most = Math.Min(most, (length - gap) / slope);
+                    else if (slope < 0) least = Math.Max(least, (length - gap) / slope);
+                    else if (gap > length) return (halfway, 0);
+                }
+
+        if (!(most >= least) || double.IsInfinity(most)) return (halfway, 0);
+
+        var bounds = Bounds(reaches, most);
+        return (new Point(room.X + (room.Width - bounds.Width) / 2 - bounds.X,
+            room.Y + (room.Height - bounds.Height) / 2 - bounds.Y), most);
+    }
+
+    /// <summary>The box round a ring's whole sweep as drawn — stroke and ends included — for a ring centred on the
+    /// origin.</summary>
+    public static Rect Bounds(double radius, double thickness, double startAngle, double sweepAngle, PenLineCap caps) =>
+        Bounds(Reaches(thickness, startAngle, Sweep(sweepAngle), caps), radius);
+
+    private static Rect Bounds(List<Reach> reaches, double radius)
+    {
+        double left = double.PositiveInfinity, top = double.PositiveInfinity;
+        double right = double.NegativeInfinity, bottom = double.NegativeInfinity;
+
+        foreach (var reach in reaches)
+        {
+            var point = reach.At(radius);
+            left = Math.Min(left, point.X);
+            right = Math.Max(right, point.X);
+            top = Math.Min(top, point.Y);
+            bottom = Math.Max(bottom, point.Y);
+        }
+
+        return new Rect(new Point(left, top), new Point(right, bottom));
+    }
+
+    /// <summary>A point that can be an edge of the drawing: <see cref="Along"/> times the radius, plus
+    /// <see cref="Offset"/>, from the centre.</summary>
+    private readonly record struct Reach(Vector Along, Vector Offset)
+    {
+        public Point At(double radius) => new(Along.X * radius + Offset.X, Along.Y * radius + Offset.Y);
+    }
+
+    /// <summary>
+    /// Every point that can be the furthest the drawing goes in some direction of the screen's axes.
+    ///
+    /// The stroke is every point within half the thickness of the circle, across the sweep. Along an axis, such a
+    /// point is furthest out either at the stroke's outer or inner edge, and either at an end of the sweep or where
+    /// the sweep crosses one of the axes — the quarter turns. Past the ends, each kind of end adds its own: a round
+    /// end is a disc, furthest out half the stroke along each axis; a square one carries the stroke's edge half the
+    /// stroke on; a triangle reaches half the stroke on, at its point. A whole turn is drawn as a circle and has
+    /// no ends at all.
+    ///
+    /// The inner edge at a quarter turn is never the furthest while the ring has a hole in it. It is listed anyway,
+    /// so a ring whose stroke is wider than its circle — the hole closed, the inner edge folded through the centre —
+    /// is still bounded truly.
+    /// </summary>
+    private static List<Reach> Reaches(double thickness, double startAngle, double sweep, PenLineCap caps)
+    {
+        var half = thickness / 2;
+        var reaches = new List<Reach>();
+
+        var first = Math.Ceiling(startAngle / 90);
+        var last = Math.Floor((startAngle + sweep) / 90);
+        for (var quarter = first; quarter <= last; quarter++)
+        {
+            var along = Unit(quarter * 90);
+            reaches.Add(new(along, along * half));
+            reaches.Add(new(along, -along * half));
+        }
+
+        if (sweep >= 360) return reaches;
+
+        // The way out of the sweep at each end: back along the circle at the start, on along it at the end.
+        foreach (var (angle, onward) in new[] { (startAngle, -1d), (startAngle + sweep, 1d) })
+        {
+            var along = Unit(angle);
+            var past = new Vector(-along.Y, along.X) * (onward * half);
+
+            reaches.Add(new(along, along * half));
+            reaches.Add(new(along, -along * half));
+
+            switch (caps)
+            {
+                case PenLineCap.Round:
+                    reaches.Add(new(along, new Vector(half, 0)));
+                    reaches.Add(new(along, new Vector(-half, 0)));
+                    reaches.Add(new(along, new Vector(0, half)));
+                    reaches.Add(new(along, new Vector(0, -half)));
+                    break;
+
+                case PenLineCap.Square:
+                    reaches.Add(new(along, along * half + past));
+                    reaches.Add(new(along, -along * half + past));
+                    break;
+
+                case PenLineCap.Triangle:
+                    reaches.Add(new(along, past));
+                    break;
+            }
+        }
+
+        return reaches;
+    }
+
+    private static Vector Unit(double degrees)
+    {
+        var radians = degrees * Math.PI / 180;
+        return new(Math.Cos(radians), Math.Sin(radians));
+    }
 }

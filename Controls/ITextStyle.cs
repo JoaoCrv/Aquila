@@ -26,6 +26,9 @@ public interface IClockStyle : ITextStyle
     bool ShowSeconds { get; set; }
     bool ShowDate { get; set; }
 
+    /// <summary>Whether the text in the middle of the rings fills it, or keeps the preset's reading size.</summary>
+    bool FillRings { get; set; }
+
     /// <summary>
     /// The ramp whose stops the rings are drawn in — the preset's primary.
     ///

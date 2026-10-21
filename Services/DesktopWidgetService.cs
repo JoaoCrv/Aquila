@@ -920,6 +920,7 @@ public sealed class DesktopWidgetService
             clock.Rings = definition.Rings;
             clock.ShowSeconds = definition.ShowSeconds;
             clock.ShowDate = definition.ShowDate;
+            clock.FillRings = definition.FillRings;
         }
 
         // What is on screen, so it belongs here beside the caption and the clock's format rather than in
@@ -1023,11 +1024,7 @@ public sealed class DesktopWidgetService
             arc.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
 
-        if (piece is IGaugeStyle dial)
-        {
-            dial.ValueBrush = HexBrush.From(preset.Value.Color, 1);
-            dial.Sweep = preset.Gauge.Sweep;
-        }
+        if (piece is IGaugeStyle dial) dial.Sweep = preset.Gauge.Sweep;
 
         // A clock's rings in the preset's primary ramp. Here and not among the repaints: those carry a READING's
         // colour, judged per tick, and a clock has no reading to judge — its colours change only when the preset
@@ -1086,8 +1083,11 @@ public sealed class DesktopWidgetService
     {
         if (!_byElement.TryGetValue(element, out var definition)) return;
 
-        definition.Width = width;
-        definition.Height = height;
+        // The wheel grows both sides alike, which keeps a shape it started with — but not one it did not, and not at
+        // the edge of its range, where one side stops and the other goes on. Led by the width, as every change of
+        // shape is. The canvas knows nothing of kinds, so the shape is put right here; the box it sized is sized again
+        // by the re-dress below, before anything is drawn.
+        (definition.Width, definition.Height) = WidgetScale.Proportioned(definition, width, height, SizeLead.Width);
 
         // A new size is a new scale, so the widget is re-dressed at it — a Style change, which leaves the piece
         // and its history where they are. The wheel has already sized the box; this sizes what is drawn in it.
