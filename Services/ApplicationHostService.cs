@@ -2,11 +2,10 @@ using Aquila.Views.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Wpf.Ui;
 
 namespace Aquila.Services
 {
-    public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService, ClockService clockService, SettingsService settingsService, ILogger<ApplicationHostService> logger) : IHostedService
+    public class ApplicationHostService(IServiceProvider serviceProvider, AquilaService aquilaService, ClockService clockService, SettingsService settingsService, MainWindowService mainWindow, ILogger<ApplicationHostService> logger) : IHostedService
     {
         public async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -17,17 +16,26 @@ namespace Aquila.Services
             clockService.Start();
             await serviceProvider.GetRequiredService<ViewModels.Pages.LhmExplorerViewModel>().InitializeAsync();
 
-            if (!Application.Current.Windows.OfType<MainWindow>().Any())
-            {
-                var nav = (serviceProvider.GetRequiredService<INavigationWindow>());
-                nav.ShowWindow();
-                nav.Navigate(typeof(Views.Pages.DashboardPage));
+            // Before any window, and belonging to none: started in the tray, the icon is the only way in.
+            serviceProvider.GetRequiredService<TrayIcon>().Show();
 
-                // One setting, the one that says so. Dashboard mode used to force this as well, which is
-                // the same hidden coupling that made closing behave oddly — the preset now sets
-                // StartMinimized outright, where the user can see it and turn it off.
-                if (settingsService.Current.StartMinimized)
-                    ((System.Windows.Window)nav).Hide();
+            // One setting, the one that says so. Dashboard mode used to force this as well, which is
+            // the same hidden coupling that made closing behave oddly — the preset now sets
+            // StartMinimized outright, where the user can see it and turn it off.
+            //
+            // Started in the tray, the main window is not built at all: it used to be built, shown, navigated
+            // and hidden again, and that hidden window was 111 MB of 362 (#50). It is built the first time it
+            // is opened — see MainWindowService.
+            if (settingsService.Current.StartMinimized)
+            {
+                // Dashboard mode's own window, which the main window put up when it loaded (ApplyDashboardMode).
+                // With no main window there is no Loaded, so it is put up here, as the appliance expects.
+                if (settingsService.Current.DashboardMode)
+                    serviceProvider.GetRequiredService<DashboardWindow>().Show();
+            }
+            else
+            {
+                mainWindow.ShowAtStartup();
             }
 
             if (settingsService.Current.DesktopSurfaceEnabled)

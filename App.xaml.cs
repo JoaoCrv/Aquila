@@ -86,10 +86,13 @@ namespace Aquila
                 // Service containing navigation, same as INavigationWindow... but without window
                 services.AddSingleton<INavigationService, NavigationService>();
 
-                // Main window with navigation
+                // Main window with navigation — built the first time it is opened, through MainWindowService,
+                // and never asked for directly: resolving it is what builds it.
                 services.AddSingleton<INavigationWindow, MainWindow>();
-                // Same instance under both roles — it's the window that owns the tray icon.
-                services.AddSingleton<ITrayNotifier>(sp => (MainWindow)sp.GetRequiredService<INavigationWindow>());
+                services.AddSingleton<MainWindowService>();
+                // The tray icon belongs to no window, so it exists from startup whether or not the main one does.
+                services.AddSingleton<TrayIcon>();
+                services.AddSingleton<ITrayNotifier>(sp => sp.GetRequiredService<TrayIcon>());
                 services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<TitleBarViewModel>();
                 services.AddSingleton<NoticeCenterViewModel>();
@@ -203,13 +206,17 @@ namespace Aquila
             // sources do not). In a Velopack install this may relaunch us elevated via the
             // scheduled task and ask this instance to exit.
             //
-            // Kept alive by hand while that runs: the first run asks a question before any window exists,
-            // so the dialog is the only window, and under the default shutdown mode closing it would end
-            // the application — "Not now" would quit instead of carrying on unelevated.
+            // Kept alive by hand from here on, for the whole run. The first run asks a question before any
+            // window exists, so the dialog is the only window, and under the default shutdown mode closing it
+            // would end the application — "Not now" would quit instead of carrying on unelevated. And it is not
+            // only the first run any more: started in the tray, Aquila has no main window until it is opened
+            // (MainWindowService), so the last window to close could be the PawnIO question, an update dialog
+            // from the tray, or a desktop surface closed to be rebuilt for a monitor plugged in — each of which
+            // would have ended the application. Nothing relied on the default: every way out is explicit (the
+            // tray's Exit, the main or dashboard window closed, a restart, the lines below).
             bool needsElevation = _host.Services.GetServices<IHardwareDriver>().Any(d => d.RequiresElevation);
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             bool carryOn = !needsElevation || await ElevationService.EnsureElevatedAsync();
-            ShutdownMode = ShutdownMode.OnLastWindowClose;
             if (!carryOn)
             {
                 Shutdown(0);
@@ -247,7 +254,7 @@ namespace Aquila
             // in Settings reaches the charts at the next start; the rings and bars follow it at once.
             LiveChartsCore.LiveCharts.RenderingSettings.LiveChartsRenderLoopFPS = Controls.Motion.FrameRate;
 
-            // Before StartAsync, which is what shows the main window: loads the themes and the presets,
+            // Before StartAsync, which is what shows the first windows: loads the themes and the presets,
             // applies both, and starts watching Windows' light/dark switch. Doing it after would render
             // the first frame undressed and then correct it in view of the user.
             _host.Services.GetRequiredService<AppearanceService>().Initialize();
@@ -287,7 +294,9 @@ namespace Aquila
                     Models.StatusKind.Caution);
             // The other half of the same failure: elevated, but without PawnIO, the driver those readings
             // come through. Only asked elevated — unelevated nothing can be read through it either way, and
-            // the notice above already says why. After the window exists, since it may ask a question.
+            // the notice above already says why. After the host has started, since it may ask a question: the
+            // tray icon is up by then, and with no main window the question may be the only window open, which
+            // closing no longer ends the application (ShutdownMode, above).
             else
                 _ = _host.Services.GetRequiredService<PawnIoService>().OfferAtStartupAsync();
 

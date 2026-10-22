@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using Aquila.Models;
 using Aquila.Services;
-using Aquila.Views.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -19,14 +18,16 @@ public partial class WidgetsViewModel : ObservableObject
     private readonly SettingsService _settings;
     private readonly DesktopSurface.DesktopSurfaceService _surface;
     private readonly DesktopWidgetService _widgets;
+    private readonly MainWindowService _mainWindow;
     private bool _initialized;
 
     public WidgetsViewModel(SettingsService settings,
-        DesktopSurface.DesktopSurfaceService surface, DesktopWidgetService widgets)
+        DesktopSurface.DesktopSurfaceService surface, DesktopWidgetService widgets, MainWindowService mainWindow)
     {
         _settings = settings;
         _surface = surface;
         _widgets = widgets;
+        _mainWindow = mainWindow;
 
         ShowOnDesktop = _settings.Current.DesktopSurfaceEnabled;
         _initialized = true;
@@ -150,7 +151,9 @@ public partial class WidgetsViewModel : ObservableObject
         // swept — and our own minimize stays explicit rather than trusting the shell to have obliged.
         DesktopSurface.DesktopReveal.MinimizeAll();
 
-        if (FindMainWindow() is { } window)
+        // Only if it has been opened: edit mode reached from the tray before that has no window to move, and
+        // must not build one just to minimise it.
+        if (_mainWindow.Window is { } window)
             window.WindowState = WindowState.Minimized;
 
         _surface.SetEditing(true);
@@ -198,13 +201,10 @@ public partial class WidgetsViewModel : ObservableObject
         // not a reason to have to rebuild a whole workspace afterwards.
         DesktopSurface.DesktopReveal.RestoreAll();
 
-        if (FindMainWindow() is { } window)
+        if (_mainWindow.Window is { } window)
         {
             window.WindowState = WindowState.Normal;
             window.Activate();
         }
     }
-
-    private static Window? FindMainWindow() =>
-        Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
 }

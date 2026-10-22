@@ -72,6 +72,10 @@ public static class Dialogs
     /// None is a real answer and not a failure. Aquila spends most of its life in the tray with no window
     /// shown at all, and an ownerless dialog is right there — asking to be owned by a hidden window would
     /// put the dialog behind nothing, which is to say nowhere.
+    ///
+    /// "The main one" is Aquila's main window, asked of MainWindowService, and NOT Application.MainWindow:
+    /// started in the tray that slot goes to whichever window was built first, which is usually a desktop
+    /// surface — visible, and pinned beneath every other window, so a dialog it owned would go down with it.
     /// </summary>
     private static Window? Active()
     {
@@ -79,6 +83,7 @@ public static class Dialogs
         if (app is null) return null;
 
         return app.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive && w.IsVisible)
-            ?? (app.MainWindow is { IsVisible: true } main ? main : null);
+            ?? (App.Services.GetService(typeof(MainWindowService)) is MainWindowService { Window: { IsVisible: true } main }
+                ? main : null);
     }
 }

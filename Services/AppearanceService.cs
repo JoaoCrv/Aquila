@@ -26,6 +26,7 @@ public sealed class AppearanceService(
     SettingsService settings,
     PresetService presets,
     ThemeCatalog themes,
+    MainWindowService mainWindow,
     ILogger<AppearanceService> logger)
 {
 
@@ -94,6 +95,11 @@ public sealed class AppearanceService(
         };
 
         var theme = IsDark ? ApplicationTheme.Dark : ApplicationTheme.Light;
+
+        // 0. The kit dresses whatever window holds Application.MainWindow — Mica, its background removed —
+        //    and started in the tray that would be the desktop surface or the dashboard window, not ours.
+        //    See MainWindowService.Claim.
+        mainWindow.Claim();
 
         ApplicationThemeManager.Apply(theme);   // 1. WPF-UI's base look
         SwapOverlay();                          // 2. our theme file on top, or none under Fluent

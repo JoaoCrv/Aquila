@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Windows;
 using Aquila.Models;
 using Aquila.Services;
-using Aquila.Views.Windows;
 using Serilog.Events;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions.Controls;
@@ -36,6 +35,7 @@ namespace Aquila.ViewModels.Pages
         private readonly PresetService _presets;
         private readonly ThemeCatalog _themes;
         private readonly PawnIoService _pawnIo;
+        private readonly MainWindowService _mainWindow;
 
         /// <summary>
         /// When each family of readings stops being ordinary, edited in one place.
@@ -90,9 +90,10 @@ namespace Aquila.ViewModels.Pages
 
         public SettingsViewModel(UpdateService updateService, SettingsService settings, AquilaService aquila,
             INavigationService navigation, AppearanceService theme, PresetService presets,
-            ThemeCatalog themes, VitalMonitor vitals, PawnIoService pawnIo)
+            ThemeCatalog themes, VitalMonitor vitals, PawnIoService pawnIo, MainWindowService mainWindow)
         {
             _pawnIo = pawnIo;
+            _mainWindow = mainWindow;
             Thresholds = [.. Models.Thresholds.Configurable.Select(key => new ThresholdRow(vitals, key))];
 
             _updateService = updateService;
@@ -570,11 +571,7 @@ namespace Aquila.ViewModels.Pages
             }
 
             _settings.Save();
-            Application.Current.Dispatcher.BeginInvoke(() =>
-            {
-                var mw = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
-                mw?.ApplyDashboardMode(value);
-            });
+            Application.Current.Dispatcher.BeginInvoke(() => _mainWindow.Window?.ApplyDashboardMode(value));
         }
 
         [RelayCommand]
