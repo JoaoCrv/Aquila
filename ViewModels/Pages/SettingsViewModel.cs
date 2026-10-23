@@ -200,6 +200,9 @@ namespace Aquila.ViewModels.Pages
         private bool _isInstallingPawnIo;
 
         [ObservableProperty]
+        private bool _drawWithGraphicsCard;
+
+        [ObservableProperty]
         private bool _minimizeToTray;
 
         [ObservableProperty]
@@ -293,6 +296,7 @@ namespace Aquila.ViewModels.Pages
                 FrameRateOptions.FirstOrDefault(o => o.Fps == _settings.Current.MaxFrameRate)
                 ?? FrameRateOptions[2];
 
+            DrawWithGraphicsCard = _settings.Current.DrawWithGraphicsCard;
             MinimizeToTray   = _settings.Current.MinimizeToTray;
             StartMinimized   = _settings.Current.StartMinimized;
             StartWithWindows    = ElevationService.HasLogonTrigger();
@@ -497,6 +501,15 @@ namespace Aquila.ViewModels.Pages
             _settings.Save();
 
             Controls.Motion.Apply(_settings.Current);
+        }
+
+        /// <summary>Stored only: the render mode is taken once, before the first window (see App.OnStartup), and the
+        /// hint says so.</summary>
+        partial void OnDrawWithGraphicsCardChanged(bool value)
+        {
+            if (!_isInitialized) return;
+            _settings.Current.DrawWithGraphicsCard = value;
+            _settings.Save();
         }
 
         partial void OnMinimizeToTrayChanged(bool value)

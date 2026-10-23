@@ -109,13 +109,25 @@
             <ui:CardControl.Header>
                 <StackPanel>
                     <TextBlock Text="Frame rate" />
-                    <TextBlock Style="{StaticResource SettingHint}" Text="The most frames a second anything moving is drawn at. Fewer cost less. Dials and charts take a change when Aquila next starts." />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="The most frames a second anything moving is drawn at. Fewer cost less. Charts take a change when Aquila next starts." />
                 </StackPanel>
             </ui:CardControl.Header>
             <ComboBox MinWidth="120"
                       ItemsSource="{Binding ViewModel.FrameRateOptions}"
                       SelectedItem="{Binding ViewModel.SelectedFrameRate}"
                       DisplayMemberPath="Label" />
+        </ui:CardControl>
+
+        <!-- The third part of the same cost: what draws the frames. Off is the processor, which is the default
+             (#50): the graphics card's device alone holds more memory than everything Aquila keeps. -->
+        <ui:CardControl Icon="{ui:SymbolIcon DeveloperBoard24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Draw with the graphics card" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="Off, Aquila draws with the processor: about 200 MB less memory, for a little more processor time, more at high frame rates. Takes effect when Aquila next starts." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.DrawWithGraphicsCard}" />
         </ui:CardControl>
 
         <!-- ── Behaviour ───────────────────────────────────────────────────────────────────────── -->

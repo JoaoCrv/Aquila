@@ -16,6 +16,11 @@ namespace Aquila.DesktopSurface;
 /// Styles were brought up one at a time and each verified on screen (2026-07): per-screen positioning →
 /// borderless → transparency → no taskbar entry → click-through. (An earlier "everything at once" version
 /// looked broken, but that turned out to be a disabled setting, not the styles.)
+///
+/// The window covers the screen only while editing. Otherwise it covers what its widgets cover, and a screen with
+/// none has no window up at all (#50): a transparent window is kept as a bitmap of its whole size, four bytes a
+/// pixel, almost all of them clear. Canvas coordinates stay the SCREEN's — the content is shifted, not moved — so
+/// nothing outside this class knows the window changed size.
 /// </summary>
 internal sealed class ScreenCanvasWindow : Window
 {
@@ -29,8 +34,16 @@ internal sealed class ScreenCanvasWindow : Window
     private Vector _dragGrabOffset;
     private readonly List<EditModeAdorner> _adorners = [];
 
+    private readonly ExtentCanvas _surface = new();
+    private readonly TranslateTransform _shift = new();
+    private Rect _screen = Rect.Empty; // the whole screen, in DIPs
+    private double _dipsPerPixel = 1;
+
+    /// <summary>Room left around the widgets, so nothing drawn at an edge is cut by the window's.</summary>
+    private const double FitMargin = 8;
+
     /// <summary>Layer 1: where widget controls get added (as plain WPF children).</summary>
-    public Canvas Surface { get; } = new();
+    public Canvas Surface => _surface;
 
     /// <summary>Raised after a widget is dragged to a new position (canvas coordinates, DIPs). The seam
     /// for persisting layout — this window deliberately doesn't know what a widget "is" or where its
@@ -72,9 +85,14 @@ internal sealed class ScreenCanvasWindow : Window
         AllowsTransparency = true;
         Background = Brushes.Transparent;
         ShowInTaskbar = false;
+        ShowActivated = false; // Fit shows it again whenever a widget arrives, and must never take the focus
 
         // AdornerDecorator so edit mode has an adorner layer to draw the dashed outlines in.
         Content = new AdornerDecorator { Child = Surface };
+
+        _surface.RenderTransform = _shift;
+        // Not from inside the canvas's arrange: resizing the window there would lay it out again mid-pass.
+        _surface.ExtentChanged += () => Dispatcher.BeginInvoke(Fit);
 
         Surface.MouseLeftButtonDown += OnSurfaceMouseLeftButtonDown;
         Surface.MouseMove += OnSurfaceMouseMove;
@@ -100,6 +118,73 @@ internal sealed class ScreenCanvasWindow : Window
         if (_clickThrough) SetClickThrough(!editing);
 
         if (editing) AddAdorners(); else RemoveAdorners();
+        Fit();
+    }
+
+    /// <summary>The whole screen while editing, so a widget can be dragged anywhere on it or sent to an empty one;
+    /// otherwise the widgets' extent, and nothing on screen when there are none.</summary>
+    private void Fit()
+    {
+        if (_screen.IsEmpty) return; // before OnSourceInitialized, which calls it again
+
+        var area = _editing ? new Rect(_screen.Size) : Around(_surface.Extent);
+        if (area.IsEmpty)
+        {
+            if (IsVisible) Hide();
+            return;
+        }
+
+        _shift.X = -area.X;
+        _shift.Y = -area.Y;
+        Left = _screen.X + area.X;
+        Top = _screen.Y + area.Y;
+        Width = area.Width;
+        Height = area.Height;
+        if (!IsVisible) Show();
+    }
+
+    /// <summary>The extent with its margin, inside the screen, and on whole device pixels: a window at a fraction
+    /// of one would draw every widget in it a fraction off, and blurred.</summary>
+    private Rect Around(Rect extent)
+    {
+        if (extent.IsEmpty) return extent;
+
+        extent.Inflate(FitMargin, FitMargin);
+        extent.Intersect(new Rect(_screen.Size));
+        if (extent.IsEmpty) return extent;
+
+        var d = _dipsPerPixel;
+        return new Rect(
+            new Point(Math.Floor(extent.Left / d) * d, Math.Floor(extent.Top / d) * d),
+            new Point(Math.Ceiling(extent.Right / d) * d, Math.Ceiling(extent.Bottom / d) * d));
+    }
+
+    /// <summary>A canvas that says when the area its children cover changes — on arrange, which is where a widget
+    /// added, moved or resized always ends up, whoever did it.</summary>
+    private sealed class ExtentCanvas : Canvas
+    {
+        public Rect Extent { get; private set; } = Rect.Empty;
+        public event Action? ExtentChanged;
+
+        protected override Size ArrangeOverride(Size arrangeSize)
+        {
+            var size = base.ArrangeOverride(arrangeSize);
+
+            var extent = Rect.Empty;
+            foreach (UIElement child in InternalChildren)
+            {
+                if (child.Visibility == Visibility.Collapsed) continue;
+                extent.Union(new Rect(new Point(ScreenCanvasWindow.GetLeft(child), ScreenCanvasWindow.GetTop(child)),
+                    child.DesiredSize));
+            }
+
+            if (extent != Extent)
+            {
+                Extent = extent;
+                ExtentChanged?.Invoke();
+            }
+            return size;
+        }
     }
 
     private void AddAdorners()
@@ -150,8 +235,8 @@ internal sealed class ScreenCanvasWindow : Window
         // Keep the widget on its own screen — a canvas is exactly one monitor, so letting it be dragged
         // past the edge would just hide it.
         var size = _dragTarget.RenderSize;
-        Canvas.SetLeft(_dragTarget, Math.Clamp(position.X, 0, Math.Max(0, Surface.ActualWidth - size.Width)));
-        Canvas.SetTop(_dragTarget, Math.Clamp(position.Y, 0, Math.Max(0, Surface.ActualHeight - size.Height)));
+        Canvas.SetLeft(_dragTarget, Math.Clamp(position.X, 0, Math.Max(0, _screen.Width - size.Width)));
+        Canvas.SetTop(_dragTarget, Math.Clamp(position.Y, 0, Math.Max(0, _screen.Height - size.Height)));
     }
 
     private void OnSurfaceMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -195,8 +280,8 @@ internal sealed class ScreenCanvasWindow : Window
         widget.Height = height;
 
         // Growing near an edge would push the widget off-screen, so keep it inside as it changes size.
-        Canvas.SetLeft(widget, Math.Clamp(GetLeft(widget), 0, Math.Max(0, Surface.ActualWidth - width)));
-        Canvas.SetTop(widget, Math.Clamp(GetTop(widget), 0, Math.Max(0, Surface.ActualHeight - height)));
+        Canvas.SetLeft(widget, Math.Clamp(GetLeft(widget), 0, Math.Max(0, _screen.Width - width)));
+        Canvas.SetTop(widget, Math.Clamp(GetTop(widget), 0, Math.Max(0, _screen.Height - height)));
 
         WidgetResized?.Invoke(widget, width, height);
         e.Handled = true;
@@ -209,8 +294,8 @@ internal sealed class ScreenCanvasWindow : Window
         Surface.Children.Add(widget);
 
         var size = widget.RenderSize;
-        Canvas.SetLeft(widget, Math.Clamp(x, 0, Math.Max(0, Surface.ActualWidth - size.Width)));
-        Canvas.SetTop(widget, Math.Clamp(y, 0, Math.Max(0, Surface.ActualHeight - size.Height)));
+        Canvas.SetLeft(widget, Math.Clamp(x, 0, Math.Max(0, _screen.Width - size.Width)));
+        Canvas.SetTop(widget, Math.Clamp(y, 0, Math.Max(0, _screen.Height - size.Height)));
 
         RefreshEditModeAdorners();
     }
@@ -273,9 +358,15 @@ internal sealed class ScreenCanvasWindow : Window
             Top = topLeft.Y;
             Width = bottomRight.X - topLeft.X;
             Height = bottomRight.Y - topLeft.Y;
+            _screen = new Rect(topLeft, bottomRight);
+            _dipsPerPixel = fromDevice.M11;
         }
 
         if (_clickThrough) SetClickThrough(true);
+
+        // After whoever showed it has put its widgets on (the surface service populates right after Show): a canvas
+        // that stays empty never re-arranges to a different extent, so nothing else would ever take it down.
+        Dispatcher.BeginInvoke(Fit, System.Windows.Threading.DispatcherPriority.Background);
     }
 
 }

@@ -45,6 +45,15 @@ public class AppSettings
     /// and are plainly visible in a task manager. Beside the speed, and a setting rather than a constant,
     /// because what a frame is worth depends on the machine paying for it.</summary>
     public int    MaxFrameRate      { get; set; } = 30;
+
+    /// <summary>Whether WPF draws with the graphics card instead of the processor. Taken once, at start.
+    ///
+    /// Off by default (#50, measured 2026-10-22). Drawing with the card costs ~80 MB before a single window shows
+    /// anything (an empty WPF window: 90 MB against 12), and more per window: in the tray with the widgets 340 MB
+    /// against 138, with the main window open 460 against 190. Software costs processor in proportion to the frames
+    /// drawn: at rest about a point of one core at 30 fps and five at 60 (the clock's rings), with the main window
+    /// maximized eight at 60. Nothing Aquila draws looked any different.</summary>
+    public bool   DrawWithGraphicsCard { get; set; } = false;
     public bool   MinimizeToTray   { get; set; } = false;
     public bool   StartMinimized   { get; set; } = false;
     public double WindowLeft       { get; set; } = double.NaN;

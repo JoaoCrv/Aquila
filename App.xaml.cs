@@ -243,6 +243,11 @@ namespace Aquila
             if (settings.Current.EnableVerboseLogging)
                 LogLevel.MinimumLevel = LogEventLevel.Debug;
 
+            // Before the first window of the run, or the graphics card's device is made anyway and its memory kept:
+            // a single window drawn by the card is enough for the whole cost (see AppSettings.DrawWithGraphicsCard).
+            if (!settings.Current.DrawWithGraphicsCard)
+                System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+
             // A static for the same reason as VitalMonitor.Current below: the pieces that animate are
             // controls built by WidgetCatalog and by XAML, and neither can be handed anything by the
             // container.
