@@ -9,15 +9,16 @@ using Wpf.Ui.Controls;
 namespace Aquila.Views.Windows
 {
     /// <summary>
-    /// The main window. Built the first time it is opened, never at a start in the tray, and opened only
-    /// through <see cref="MainWindowService"/>; the tray icon is not its own any more, see <see cref="TrayIcon"/>.
+    /// The main window. Built when it is opened, never at a start in the tray, destroyed when it is closed, and
+    /// opened only through <see cref="MainWindowService"/>; the tray icon is not its own any more, see
+    /// <see cref="TrayIcon"/>.
     /// </summary>
     public partial class MainWindow : INavigationWindow
     {
         public MainWindowViewModel ViewModel { get; }
 
         private readonly SettingsService _settings;
-        private bool _allowClose = false;
+        private bool _exiting;
 
         // Tracks normal-state bounds so we always have a valid non-maximized size to persist
         private double _normalLeft = double.NaN, _normalTop = double.NaN, _normalWidth = double.NaN, _normalHeight = double.NaN;
@@ -38,7 +39,7 @@ namespace Aquila.Views.Windows
             // AppearanceService watches that switch instead and applies the chosen theme.
 
             InitializeComponent();
-            SetPageService(navigationViewPageProvider);
+            SetPageService(new PagesOfThisWindow(navigationViewPageProvider));
             navigationService.SetNavigationControl(RootNavigation);
             snackbarService.SetSnackbarPresenter(SnackbarPresenter);
 
@@ -66,25 +67,12 @@ namespace Aquila.Views.Windows
         /// and desktop widgets included.</summary>
         public void CloseForExit()
         {
-            _allowClose = true;
+            _exiting = true;
             Close();
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            // Keyed on one setting only. Dashboard mode used to force this too, which meant a window
-            // could refuse to close because of a choice made about a different window; and with
-            // minimize-to-tray off, closing is what closing means. Exiting for real is the tray's Exit,
-            // and that ends everything — dashboard and desktop widgets included.
-            if (!_allowClose && _settings.Current.MinimizeToTray)
-            {
-                e.Cancel = true;
-                SaveWindowBounds();
-                ShowInTaskbar = false;
-                Hide();
-                return;
-            }
-
             SaveWindowBounds();
             base.OnClosing(e);
         }
@@ -140,9 +128,29 @@ namespace Aquila.Views.Windows
 
         protected override void OnClosed(EventArgs e)
         {
-            // The tray icon goes with the application, not with this window — see TrayIcon.
             base.OnClosed(e);
-            Application.Current.Shutdown();
+
+            // Keyed on one setting only. Dashboard mode used to force this too, which meant a window could refuse
+            // to close because of a choice made about a different window. With minimize-to-tray on, closing ends
+            // this window and nothing else — destroyed, not hidden (see MainWindowService), and the tray icon goes
+            // with the application, not with it (see TrayIcon). Off, closing is what closing means. Exiting for real
+            // is the tray's Exit, and that ends everything — dashboard and desktop widgets included.
+            if (_exiting || !_settings.Current.MinimizeToTray)
+                Application.Current.Shutdown();
+        }
+
+        /// <summary>
+        /// One instance of each page for the life of this window, as the singletons they were gave before. The kit
+        /// asks for the page on every navigation, and a page belongs to the window that shows it — so they cannot
+        /// outlive it as singletons, or the next window would be handed a page still parented to the closed one.
+        /// Their view models stay singletons: what a page shows survives the window.
+        /// </summary>
+        private sealed class PagesOfThisWindow(INavigationViewPageProvider pages) : INavigationViewPageProvider
+        {
+            private readonly Dictionary<Type, object?> _built = [];
+
+            public object? GetPage(Type pageType) =>
+                _built.TryGetValue(pageType, out var page) ? page : _built[pageType] = pages.GetPage(pageType);
         }
 
         public void ApplyDashboardMode(bool on)

@@ -5,14 +5,15 @@ using Wpf.Ui;
 namespace Aquila.Services;
 
 /// <summary>
-/// The main window: built the first time it is opened, and opened only through here.
+/// The main window: built when it is opened, destroyed when it is closed, and opened only through here.
 ///
 /// It used to be built, shown and navigated to the dashboard at every start, and then hidden again when Aquila
-/// started in the tray — which is how it usually starts. Measured (#50): that hidden window held 111 MB of 362
-/// private, 75 of them graphics-driver pools for a surface nobody was shown; a build that simply skipped it came
-/// up at 251. So it waits until somebody asks for it, and every way of asking comes through <see cref="Open"/>:
-/// the tray's double click, its menu and flyout, a notification clicked. Once built it stays, hidden to the tray
-/// as before — letting it go on hide would be a separate decision.
+/// started in the tray — which is how it usually starts. Measured (#50): the hidden window cost ~15 MB and ~30% of
+/// Aquila's processor time (18.2 → 12.6% of a core), its dashboard taking every reading for nobody. So it waits
+/// until somebody asks for it, and every way of asking comes through <see cref="Open"/>: the tray's double click,
+/// its menu and flyout, a notification clicked. Closed to the tray it is destroyed, not hidden (2026-10-23): hiding
+/// would have brought that cost back after the first open, and most people set Aquila up once and then live in the
+/// tray. It is built again, quickly, the next time.
 ///
 /// The rest of the application gets by without it. The tray icon belongs to no window (<see cref="TrayIcon"/>),
 /// and the notice bell, the update badge on Settings and the vitals are view models over services that run
@@ -23,16 +24,17 @@ public sealed class MainWindowService(IServiceProvider services)
 {
     private MainWindow? _window;
 
-    /// <summary>The window once it has been opened, null until then. Never builds it: asking whether there is a
-    /// window to put back must not be what makes one.</summary>
+    /// <summary>The window while it is open, minimised included; null before it is opened and after it is closed.
+    /// Never builds it: asking whether there is a window to put back must not be what makes one.</summary>
     public MainWindow? Window => _window;
 
-    /// <summary>Whether it is on screen, not merely built. Hidden in the tray, minimised and never opened all say
-    /// no — which is what decides between a balloon and a snackbar nobody would see.</summary>
+    /// <summary>Whether it is on screen, not merely built. Minimised and not open both say no — which is what
+    /// decides between a balloon and a snackbar nobody would see.</summary>
     public bool IsOnScreen => _window is { IsVisible: true, WindowState: not WindowState.Minimized };
 
     /// <summary>
-    /// Brings the window up: built and on the dashboard the first time, put back as it was every time after.
+    /// Brings the window up: built and on the dashboard when there is none, put back as it was when it is only
+    /// minimised.
     /// </summary>
     public void Open()
     {
@@ -63,11 +65,18 @@ public sealed class MainWindowService(IServiceProvider services)
         window.Navigate(typeof(Views.Pages.DashboardPage));
     }
 
+    /// <summary>A new window each time — registered transient, since WPF never shows a closed window again.</summary>
     private MainWindow Create()
     {
-        _window = (MainWindow)services.GetRequiredService<INavigationWindow>();
+        var window = (MainWindow)services.GetRequiredService<INavigationWindow>();
+        window.Closed += (_, _) =>
+        {
+            _window = null;
+            Claim(); // lets go of the slot, which would otherwise keep the closed window and its pages alive
+        };
+        _window = window;
         Claim();
-        return _window;
+        return window;
     }
 
     /// <summary>

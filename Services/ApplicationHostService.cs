@@ -24,8 +24,8 @@ namespace Aquila.Services
             // StartMinimized outright, where the user can see it and turn it off.
             //
             // Started in the tray, the main window is not built at all: it used to be built, shown, navigated
-            // and hidden again, and that hidden window was 111 MB of 362 (#50). It is built the first time it
-            // is opened — see MainWindowService.
+            // and hidden again, and that hidden window cost ~30% of Aquila's processor time (#50). It is built
+            // when it is opened — see MainWindowService.
             if (settingsService.Current.StartMinimized)
             {
                 // Dashboard mode's own window, which the main window put up when it loaded (ApplyDashboardMode).

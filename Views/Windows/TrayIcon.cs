@@ -8,7 +8,7 @@ namespace Aquila.Views.Windows;
 /// The icon in the notification area — its update badge, its balloons, and the menu and flyout its clicks open.
 ///
 /// Owned by no window. It lived in MainWindow, which did no harm while that window was built at every start; now
-/// the window is built the first time it is opened (<see cref="MainWindowService"/>), and the icon is the only way
+/// the window exists only while it is open (<see cref="MainWindowService"/>), and the icon is the only way
 /// in for someone running Aquila in the tray, so it cannot wait for the window. Shown by ApplicationHostService
 /// before any window, and gone when the application exits, whichever way it exits.
 ///

@@ -86,9 +86,10 @@ namespace Aquila
                 // Service containing navigation, same as INavigationWindow... but without window
                 services.AddSingleton<INavigationService, NavigationService>();
 
-                // Main window with navigation — built the first time it is opened, through MainWindowService,
-                // and never asked for directly: resolving it is what builds it.
-                services.AddSingleton<INavigationWindow, MainWindow>();
+                // Main window with navigation — built each time it is opened, through MainWindowService, and never
+                // asked for directly: resolving it is what builds it. Transient because closing destroys it, and WPF
+                // never shows a closed window again.
+                services.AddTransient<INavigationWindow, MainWindow>();
                 services.AddSingleton<MainWindowService>();
                 // The tray icon belongs to no window, so it exists from startup whether or not the main one does.
                 services.AddSingleton<TrayIcon>();
@@ -98,19 +99,22 @@ namespace Aquila
                 services.AddSingleton<NoticeCenterViewModel>();
 
                 services.AddSingleton<DashboardWindow>();
-                services.AddTransient<DashboardPage>(); // transient: DashboardWindow and MainWindow each get their own instance; ViewModel is the shared singleton
+                // Pages are transient — each window gets its own, kept for the window's life (MainWindow's
+                // PagesOfThisWindow), since a page belongs to the window that shows it. View models are the shared
+                // singletons.
+                services.AddTransient<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-                services.AddSingleton<ExplorerPage>();
+                services.AddTransient<ExplorerPage>();
                 services.AddSingleton<ExplorerViewModel>();
-                services.AddSingleton<WidgetsPage>();
+                services.AddTransient<WidgetsPage>();
                 services.AddSingleton<WidgetsViewModel>();
-                services.AddSingleton<LhmExplorerPage>();
+                services.AddTransient<LhmExplorerPage>();
                 services.AddSingleton<LhmExplorerViewModel>();
-                services.AddSingleton<StoragePage>();
+                services.AddTransient<StoragePage>();
                 services.AddSingleton<StorageViewModel>();
-                services.AddSingleton<AboutPage>();
+                services.AddTransient<AboutPage>();
                 services.AddSingleton<AboutViewModel>();
-                services.AddSingleton<SettingsPage>();
+                services.AddTransient<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
             })
             .UseSerilog((_, _, cfg) => cfg
