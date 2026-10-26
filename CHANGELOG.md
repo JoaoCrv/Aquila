@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="2.4.0"></a>
+## [2.4.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.4.0) (2026-10-26)
+
+### Features
+
+* **pawnio:** Aquila installs PawnIO when the motherboard cannot be read ([9761550](https://www.github.com/JoaoCrv/Aquila/commit/97615507541c057843cdb2c14a0b0821c553d8ea))
+* **setup:** the first run asks once, and PawnIO arrives before the sensors are opened ([13b5544](https://www.github.com/JoaoCrv/Aquila/commit/13b55444fd7d3d1fd6d696469f327b7907975d89))
+* **sources:** several sources at once, and the applications as the second ([#26](https://www.github.com/JoaoCrv/Aquila/issues/26)) ([12da6e3](https://www.github.com/JoaoCrv/Aquila/commit/12da6e358275abbe26dd61d90e45d501b8774ed3))
+* **widgets:** a List widget for the apps using the most CPU, memory or I/O ([#26](https://www.github.com/JoaoCrv/Aquila/issues/26)) ([76223fa](https://www.github.com/JoaoCrv/Aquila/commit/76223fa687ec968b1a9250da66971ed35b272f7d))
+* **widgets:** a widget's sizes grow with the widget ([7094366](https://www.github.com/JoaoCrv/Aquila/commit/70943665e46326bc0c1ae411be4d5f37d2bd9f3e))
+* **widgets:** the clock gets rings, and short rounded arcs stop vanishing ([cc3b338](https://www.github.com/JoaoCrv/Aquila/commit/cc3b33807f37ca9386eee105c0d814d7da0e66be))
+* **widgets:** the clock's rings are drawn by our own RingArc, not LiveCharts ([c806c16](https://www.github.com/JoaoCrv/Aquila/commit/c806c16d72a5fd4b2e5ef93f01f71283e6453e1c))
+* **widgets:** the dial is drawn by RingArc, round figures keep their shape, and the clock follows its mockup ([c553cb0](https://www.github.com/JoaoCrv/Aquila/commit/c553cb0df4bc17382a3dcb311ce974864403efa6))
+
+### Bug Fixes
+
+* **layout:** widgets a build cannot read are kept and written back ([0c2796c](https://www.github.com/JoaoCrv/Aquila/commit/0c2796cddc7ebc450b240185834977c2704b706b))
+
+### Performance
+
+* **main window:** closing it to the tray destroys it instead of hiding it ([#50](https://www.github.com/JoaoCrv/Aquila/issues/50)) ([df9df1b](https://www.github.com/JoaoCrv/Aquila/commit/df9df1b0c1f32da1e438d138d031d4079a8e9e02))
+* **poll:** read the hardware off the UI thread ([#14](https://www.github.com/JoaoCrv/Aquila/issues/14)) ([4a8f170](https://www.github.com/JoaoCrv/Aquila/commit/4a8f17005f18dd57cf5ba1244fb92168969fd8c5))
+* **rendering:** draw with the processor by default, and fit the desktop surface to its widgets ([#50](https://www.github.com/JoaoCrv/Aquila/issues/50)) ([752bcd8](https://www.github.com/JoaoCrv/Aquila/commit/752bcd86613a65e2d331ea4dc1a08761423b11cf))
+* **startup:** the main window is built the first time it is opened ([#50](https://www.github.com/JoaoCrv/Aquila/issues/50)) ([584afd7](https://www.github.com/JoaoCrv/Aquila/commit/584afd757a1fbcde51280d4c8f76f880301b3e56))
+
 <a name="2.3.0"></a>
 ## [2.3.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.3.0) (2026-10-14)
 
