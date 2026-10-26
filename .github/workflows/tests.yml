@@ -23,10 +23,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup .NET 9
+      - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '9.0.x'
+          global-json-file: global.json
 
       # Locked, like every restore here: the app's packages and the test packages, hash for hash.
       - name: Restore

@@ -24,10 +24,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup .NET 9
+      - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '9.0.x'
+          global-json-file: global.json
 
       # Before anything is built: a package with a licence that is not allowed, or notices that no longer match
       # the packages, stops the release here rather than shipping.
@@ -48,11 +48,18 @@ jobs:
           $velopack = ($xml.Project.ItemGroup.PackageReference | Where-Object Include -eq 'Velopack').Version
           "VERSION=$($env:TAG.TrimStart('v'))" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "VELOPACK=$velopack"                  | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          # The runtime Setup installs and the folder publish writes to both follow <TargetFramework>, read from
+          # the csproj like the packer's version: the next .NET is one line in the csproj, and the package cannot
+          # fall behind.
+          $tfm = @($xml.Project.PropertyGroup | ForEach-Object { $_.TargetFramework } | Where-Object { $_ })[0]
+          if (-not ($tfm -match '^net(\d+)\.0-windows')) { throw "Unexpected <TargetFramework>: '$tfm'" }
+          "TFM=$tfm"                              | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "RUNTIME=net$($Matches[1])-x64-desktop" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Install Velopack CLI
         env:
           VELOPACK: ${{ steps.vars.outputs.VELOPACK }}
-        run: dotnet tool install -g vpk --version $env:VELOPACK
+        run: dotnet tool install -g vpk --version $env:VELOPACK --allow-roll-forward
 
       # A release never ships with a failing test.
       - name: Test
@@ -70,13 +77,15 @@ jobs:
         shell: pwsh
         env:
           VERSION: ${{ steps.vars.outputs.VERSION }}
-        # --framework: Aquila is framework-dependent - it runs on the machine's .NET 9 Desktop Runtime and carries
-        # none of its own - so on a PC without it, it installed fine and then would not open. Setup now installs the
-        # runtime first when it is missing. Keep it in step with <TargetFramework> when that moves.
+          TFM: ${{ steps.vars.outputs.TFM }}
+          RUNTIME: ${{ steps.vars.outputs.RUNTIME }}
+        # --framework: Aquila is framework-dependent - it runs on the machine's .NET Desktop Runtime, the one
+        # <TargetFramework> names, and carries none of its own. Setup installs that runtime first when it is
+        # missing, and an update asks for it before it applies. Both values are read from the csproj (Versions).
         run: |
           vpk pack --packId Aquila --packVersion $env:VERSION `
-            --packDir .\bin\Release\net9.0-windows10.0.19041\win-x64\publish --mainExe Aquila.exe `
-            --framework net9-x64-desktop
+            --packDir ".\bin\Release\$env:TFM\win-x64\publish" --mainExe Aquila.exe `
+            --framework $env:RUNTIME
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # A signed statement, recorded on the repository, that these exact files were built by this workflow from

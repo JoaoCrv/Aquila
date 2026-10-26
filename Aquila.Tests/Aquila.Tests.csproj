@@ -4,7 +4,7 @@
        inputs nobody would have written by hand, shrinking any that breaks the rule down to the smallest one that
        still does. Nothing here ships: the installer is published from Aquila.csproj alone. -->
   <PropertyGroup>
-    <TargetFramework>net9.0-windows10.0.19041</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
