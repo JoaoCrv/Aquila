@@ -31,13 +31,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup .NET 9
+      - name: Setup .NET
         if: steps.optional.outputs.FOSSA == 'True'
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: '9.0.x'
+          global-json-file: global.json
 
-      # Restored first, so FOSSA reads the full dependency graph from project.assets.json — 91 packages —
+      # Restored first, so FOSSA reads the full dependency graph from project.assets.json — 85 packages —
       # rather than only the 10 named in the csproj, which is all the GitHub integration could see.
       - name: Restore
         if: steps.optional.outputs.FOSSA == 'True'

@@ -7,7 +7,7 @@
       "commands": [
         "nuget-license"
       ],
-      "rollForward": false
+      "rollForward": true
     }
   }
 }
