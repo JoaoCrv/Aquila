@@ -1294,27 +1294,44 @@ public sealed class DesktopWidgetService
         // different object entirely, and a closure holding the old one goes on painting the old colours
         // while the background and the border change around it.
         var current = ramp;
+        var hooked = false;
 
+        // Painted now, so the first frame is already in its colour; listening only while on screen, as SensorList
+        // does. Subscribing here and letting go on Unloaded kept every piece that was built and dropped before it
+        // ever loaded — no Unloaded follows a Loaded that never came — painting for the rest of the session; and
+        // a piece sent to another screen let go on the way out and never listened again.
         Repaint();
-        sensor.PropertyChanged += OnSensorChanged;
-        piece.Unloaded += OnUnloaded;
-        PreviewChanged += Repaint;
+        piece.Loaded += (_, _) => Hook();
+        piece.Unloaded += (_, _) => Unhook();
 
-        if (monitor is not null) monitor.Changed += Repaint;
+        void Hook()
+        {
+            if (hooked) return;
+            hooked = true;
+
+            sensor.PropertyChanged += OnSensorChanged;
+            PreviewChanged += Repaint;
+            if (monitor is not null) monitor.Changed += Repaint;
+
+            // Whatever changed while it was off screen.
+            Repaint();
+        }
+
+        void Unhook()
+        {
+            if (!hooked) return;
+            hooked = false;
+
+            sensor.PropertyChanged -= OnSensorChanged;
+            PreviewChanged -= Repaint;
+            if (monitor is not null) monitor.Changed -= Repaint;
+        }
 
         void Repaint() => apply(HexBrush.From(current[RoleOf(sensor.Value, metric, monitor)], 1));
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(SensorNode.Value)) Repaint();
-        }
-
-        void OnUnloaded(object? _, RoutedEventArgs __)
-        {
-            sensor.PropertyChanged -= OnSensorChanged;
-            piece.Unloaded -= OnUnloaded;
-            PreviewChanged -= Repaint;
-            if (monitor is not null) monitor.Changed -= Repaint;
         }
 
         return next =>
@@ -1337,12 +1354,32 @@ public sealed class DesktopWidgetService
         // Held in a variable the closure reads, for the reason Paint gives: switching preset hands over a
         // different ramp, not an edited one.
         var current = ramp;
+        var hooked = false;
 
+        // Painted now, listening only while on screen — for the reasons Paint gives.
         Repaint();
-        piece.Unloaded += OnUnloaded;
-        PreviewChanged += Repaint;
+        piece.Loaded += (_, _) => Hook();
+        piece.Unloaded += (_, _) => Unhook();
 
-        if (monitor is not null) monitor.Changed += Repaint;
+        void Hook()
+        {
+            if (hooked) return;
+            hooked = true;
+
+            PreviewChanged += Repaint;
+            if (monitor is not null) monitor.Changed += Repaint;
+
+            Repaint();
+        }
+
+        void Unhook()
+        {
+            if (!hooked) return;
+            hooked = false;
+
+            PreviewChanged -= Repaint;
+            if (monitor is not null) monitor.Changed -= Repaint;
+        }
 
         void Repaint()
         {
@@ -1358,13 +1395,6 @@ public sealed class DesktopWidgetService
                 if (!brushes.TryGetValue(role, out var brush)) brushes[role] = brush = HexBrush.From(stops[role], 1);
                 return brush;
             });
-        }
-
-        void OnUnloaded(object? _, RoutedEventArgs __)
-        {
-            piece.Unloaded -= OnUnloaded;
-            PreviewChanged -= Repaint;
-            if (monitor is not null) monitor.Changed -= Repaint;
         }
 
         return next =>
