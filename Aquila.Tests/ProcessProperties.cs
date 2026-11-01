@@ -1,3 +1,4 @@
+using Aquila.Controls;
 using Aquila.Models.Nodes;
 using Aquila.Services.Processes;
 using FsCheck.Xunit;
@@ -80,6 +81,37 @@ public sealed class ProcessProperties
             && top.Zip(top.Skip(1)).All(pair => pair.First.Value >= pair.Second.Value)
             && top.All(row => apps.Single(app => app.Name == row.Name).Cpu is not null)
             && (top.Count < count % 25 ? !leftOut.Any() : leftOut.All(value => (float)value <= smallestKept));
+    }
+
+    /// <summary>
+    /// Shown against the order a list had, the numbers on screen still come largest first, and nothing left out reads
+    /// more than anything kept — but rows that READ the same keep the order they had, and those that were in the list
+    /// stay ahead of newcomers reading the same. For any figures, and any earlier order of any of them. The figures
+    /// are tenths up to 5, so most of them share a "%" with another and the rule is exercised on every draw.
+    /// </summary>
+    [Property(MaxTest = 300)]
+    public bool Rows_that_read_the_same_keep_their_places(int[] values, int[] places, byte count)
+    {
+        values ??= [];
+        places ??= [];
+        var apps = values.Select((v, i) => new AppUsage($"app{i}", Math.Abs(v % 50) / 10d, 0, null)).ToList();
+
+        // Some of them were shown before, in an order of their own: the figures have moved since.
+        List<string> before = [.. apps.Take(places.Length).Select((app, i) => (app.Name, Place: places[i]))
+            .OrderBy(app => app.Place).Select(app => app.Name)];
+        var was = before.Select((name, i) => (name, i)).ToDictionary(app => app.name, app => app.i);
+        int PlaceOf(string name) => was.GetValueOrDefault(name, int.MaxValue);
+        string Reads(float value) => SensorFormat.Reading(value, "%", showUnit: true);
+
+        var top = ProcessUsage.Top(apps, app => app.Cpu, count % 25, "%", before);
+        var kept = top.Select(row => row.Name).ToHashSet();
+        var leftOut = apps.Where(app => !kept.Contains(app.Name)).Select(app => (float)app.Cpu!.Value);
+
+        return top.Count == Math.Min(count % 25, apps.Count)
+            && top.Zip(top.Skip(1)).All(pair => Reads(pair.First.Value) == Reads(pair.Second.Value)
+                ? PlaceOf(pair.First.Name) <= PlaceOf(pair.Second.Name)
+                : pair.First.Value > pair.Second.Value)
+            && leftOut.All(value => top.All(row => Reads(value) == Reads(row.Value) || value <= row.Value));
     }
 
     /// <summary>

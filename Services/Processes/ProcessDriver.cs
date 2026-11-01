@@ -71,12 +71,14 @@ internal sealed class ProcessDriver : IHardwareDriver
         // the processes' times are read a moment apart, and their sum can come out a hair over the whole.
         var cpu = ProcessUsage.Total(usage, app => app.Cpu);
 
-        lists.Cpu.Show(ProcessUsage.Top(usage, app => app.Cpu, ListNode.MaxRows), "%",
-            cpu is { } load ? Math.Min(100, load) : null);
-        lists.Memory.Show(ProcessUsage.Top(usage, app => app.MemoryMb, ListNode.MaxRows), "MB",
-            ProcessUsage.Total(usage, app => app.MemoryMb));
-        lists.Io.Show(ProcessUsage.Top(usage, app => app.IoPerSecond, ListNode.MaxRows), SensorFormat.BytesPerSecond,
-            ProcessUsage.Total(usage, app => app.IoPerSecond));
+        Fill(lists.Cpu, app => app.Cpu, "%", cpu is { } load ? Math.Min(100, load) : null);
+        Fill(lists.Memory, app => app.MemoryMb, "MB", ProcessUsage.Total(usage, app => app.MemoryMb));
+        Fill(lists.Io, app => app.IoPerSecond, SensorFormat.BytesPerSecond, ProcessUsage.Total(usage, app => app.IoPerSecond));
+
+        // Each list ordered against the order it is showing now, so rows that read the same keep their places.
+        void Fill(ListNode list, Func<AppUsage, double?> measure, string unit, float? total) =>
+            list.Show(ProcessUsage.Top(usage, measure, ListNode.MaxRows, unit, [.. list.Rows.Select(row => row.Name ?? "")]),
+                unit, total);
     }
 
     public void Shutdown() => _table.Dispose();

@@ -1,3 +1,5 @@
+using Aquila.Controls;
+
 namespace Aquila.Services.Processes;
 
 /// <summary>One process as one read found it. <see cref="Created"/> is part of who it is: Windows hands a
@@ -65,19 +67,58 @@ public static class ProcessUsage
     }
 
     /// <summary>
-    /// The applications with the most of one measure, largest first. Ties go alphabetically, so two applications
-    /// at the same value keep their places from one read to the next instead of trading them at random.
-    /// Applications whose measure is not known yet are left out rather than shown as zero.
+    /// The applications with the most of one measure, largest first AS SHOWN. Applications whose measure is not known
+    /// yet are left out rather than shown as zero.
+    ///
+    /// Figures that read the same — two applications at "1%", which may be 1.4 and 0.6 — keep the order they had in
+    /// <paramref name="before"/>, so a row changes place only when a number on screen says why. Ordered by the exact
+    /// figure, two applications idling near the same share traded places nearly every read (measured on a recording,
+    /// 2026-11-01: almost every swap was between two rows showing the same number), and the list was always moving to
+    /// tell the viewer nothing. "Reads the same" is <see cref="SensorFormat.Reading(float?, string?, bool, string)"/>,
+    /// the text the row will show, so the rule follows the format — throughput's units included — and cannot drift
+    /// from it. Applications new to the list come after those that were there, by figure and then alphabetically, so
+    /// two at the same value never trade at random either.
     /// </summary>
+    /// <param name="unit">The unit the rows are shown in, which decides what reads the same.</param>
+    /// <param name="before">The order the list was last shown in; without one, simply largest first.</param>
     public static List<(string Name, float Value)> Top(
-        IEnumerable<AppUsage> apps, Func<AppUsage, double?> measure, int count) =>
-        apps.Select(app => (app.Name, Value: measure(app)))
+        IEnumerable<AppUsage> apps, Func<AppUsage, double?> measure, int count,
+        string? unit = null, IReadOnlyList<string>? before = null)
+    {
+        var place = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        if (before is not null)
+            for (var i = 0; i < before.Count; i++) place.TryAdd(before[i], i);
+
+        var largest = apps.Select(app => (app.Name, Value: measure(app)))
             .Where(app => app.Value is not null)
             .OrderByDescending(app => app.Value)
             .ThenBy(app => app.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(app => (app.Name, Value: (float)app.Value!.Value));
+
+        // Numbered runs of figures that read the same, as far as the run the last row kept falls in: formatting every
+        // application on the machine would be most of the work and change nothing.
+        var runs = new List<(string Name, float Value, int Run)>();
+        string? reading = null;
+        var run = 0;
+        foreach (var app in largest)
+        {
+            var shown = SensorFormat.Reading(app.Value, unit, showUnit: true);
+            if (shown != reading)
+            {
+                if (runs.Count >= count) break;
+                reading = shown;
+                run++;
+            }
+            runs.Add((app.Name, app.Value, run));
+        }
+
+        return runs
+            .OrderBy(app => app.Run)
+            .ThenBy(app => place.GetValueOrDefault(app.Name, int.MaxValue))
             .Take(count)
-            .Select(app => (app.Name, (float)app.Value!.Value))
+            .Select(app => (app.Name, app.Value))
             .ToList();
+    }
 
     /// <summary>
     /// One measure added up over every application — all of them, not the few a list keeps — or null while no
