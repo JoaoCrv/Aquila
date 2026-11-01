@@ -938,8 +938,14 @@ public sealed class DesktopWidgetService
             chart.ScaleMax = definition.ScaleMax;
         }
 
-        // How much of a list is on screen — the list's version of a chart's window.
-        if (piece is IListStyle list) list.ItemCount = definition.ItemCount;
+        // How much of a list is on screen — the list's version of a chart's window — and what each row draws.
+        if (piece is IListStyle list)
+        {
+            list.ItemCount = definition.ItemCount;
+            list.ShowBar = definition.ShowBar;
+            list.ShowSparkline = definition.ShowSparkline;
+            list.ShowTotal = definition.ShowTotal;
+        }
     }
 
     /// <summary>
@@ -1032,13 +1038,15 @@ public sealed class DesktopWidgetService
         // RestyleWidget.
         if (piece is IClockStyle clock) clock.Ramp = preset.RampFor(Ramp.Primary);
 
-        if (piece is IMeterStyle bar)
+        // The meter, the Bars and a list's rows read the same section, as the dial and the rings share theirs.
+        if (piece is IBarStyle bar)
         {
             bar.BarThickness = preset.Bar.Thickness * scale;
             bar.BarCorner = preset.Bar.Corner * scale;
-            bar.Layout = preset.Bar.Layout;
             bar.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
         }
+
+        if (piece is IMeterStyle meter) meter.Layout = preset.Bar.Layout;
 
         if (piece is IStatStyle stat)
         {
@@ -1241,7 +1249,9 @@ public sealed class DesktopWidgetService
 
         // A desktop widget sits on whatever wallpaper the user has, so it can't rely on the app's
         // background for contrast: it carries its own backing panel, which the user can restyle.
-        var widget = new Border { Child = new LabeledTile { Tile = piece } };
+        // A piece with something for the title's line — a list's total — hands it over here, once: it stays the
+        // piece's to fill and to hide, so a re-dress has nothing to hand over again.
+        var widget = new Border { Child = new LabeledTile { Tile = piece, Aside = (piece as ITitleAside)?.Aside } };
 
         Frame(widget, definition, preset, scale);
 

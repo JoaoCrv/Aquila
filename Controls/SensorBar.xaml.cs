@@ -111,18 +111,7 @@ public partial class SensorBar : UserControl
 
         _shown = target;
 
-        if (!Motion.Enabled)
-        {
-            // Released rather than left holding: a property under an animation ignores assignment, so a
-            // bar animated once and then switched to instant would freeze at whatever it last swept to.
-            Bar.BeginAnimation(RangeBase.ValueProperty, null);
-            Bar.Value = target;
-            return;
-        }
-
-        // No From, deliberately: the animation starts wherever the bar is currently DRAWN, so a reading
-        // that lands mid-sweep redirects smoothly instead of jumping back to begin again. It is also why
-        // a poll faster than the sweep degrades into a slower sweep rather than into a stutter.
-        Bar.BeginAnimation(RangeBase.ValueProperty, Motion.Sweep(target));
+        // From wherever the bar is drawn, or there at once with motion off — see Motion.To.
+        Motion.To(Bar, RangeBase.ValueProperty, target);
     }
 }

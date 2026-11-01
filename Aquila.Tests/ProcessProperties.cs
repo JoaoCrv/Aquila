@@ -83,6 +83,54 @@ public sealed class ProcessProperties
     }
 
     /// <summary>
+    /// The total is every application added up — not only the few a list keeps — so it is never less than the rows
+    /// under it, for any applications and any count. With no figure known yet, as on the first read of a rate, there
+    /// is no total rather than a total of nought.
+    /// </summary>
+    [Property(MaxTest = 300)]
+    public bool The_total_is_every_application(int[] values, byte count)
+    {
+        values ??= [];
+        var apps = values
+            .Select((v, i) => new AppUsage($"app{i}", v % 5 == 0 ? null : Math.Abs((double)(v % 1000)), 0, null))
+            .ToList();
+
+        var known = apps.Where(app => app.Cpu is not null).Sum(app => app.Cpu!.Value);
+        var total = ProcessUsage.Total(apps, app => app.Cpu);
+        var top = ProcessUsage.Top(apps, app => app.Cpu, count % 25).Sum(row => (double)row.Value);
+
+        // A float carries seven digits, and the total is one.
+        var slack = 1e-3 + known * 1e-6;
+
+        return apps.All(app => app.Cpu is null)
+            ? total is null
+            : total is { } sum && Math.Abs(sum - known) <= slack && sum >= top - slack;
+    }
+
+    /// <summary>A read's total is in place when its rows are announced, so whatever draws them on that one notification
+    /// finds the total of the same read — and nobody looking takes it away with the rows.</summary>
+    [Fact]
+    public void The_total_is_written_before_the_rows_are_announced()
+    {
+        var list = new ListNode("/processes/cpu", "CPU");
+        float? seen = null;
+        list.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ListNode.Rows)) seen = list.Total.Value;
+        };
+
+        list.Show([("Code", 9f), ("vivaldi", 4f)], "%", 37f);
+
+        Assert.Equal(37f, seen);
+        Assert.Equal("%", list.Total.Unit);
+
+        list.Show([], string.Empty);
+
+        Assert.Empty(list.Rows);
+        Assert.Null(list.Total.Value);
+    }
+
+    /// <summary>
     /// The real table, read on this machine, finds this very process — its name, its creation time to the tick, and
     /// some CPU time and memory. The kernel's structure is declared by hand, field by field; a field out of place
     /// would shift every one after it, and this is where that would show.

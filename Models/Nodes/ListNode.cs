@@ -42,6 +42,15 @@ public sealed class ListNode(string identifier, string name) : INotifyPropertyCh
     public IReadOnlyList<SensorNode> Rows { get; private set; } = [];
 
     /// <summary>
+    /// The whole of what the list measures — for the processes, every process the read found, not only the rows it
+    /// keeps — or null while it is not known. Of the CPU list, that is the load of the machine as the same source
+    /// measures it, so the total and the rows under it can never disagree about what they are shares of.
+    ///
+    /// A node of its own, so it is written, coloured and judged as a row is.
+    /// </summary>
+    public SensorNode Total { get; } = new() { Name = "Total", Identifier = $"{identifier}#total" };
+
+    /// <summary>
     /// Whether anything is showing this list. A source asks before it reads, so a list nobody draws costs
     /// nothing — reading every process on the machine is not free, and most people will never add one.
     /// </summary>
@@ -58,12 +67,19 @@ public sealed class ListNode(string identifier, string name) : INotifyPropertyCh
     }
 
     /// <summary>
-    /// Shows these items, in this order. An item already shown keeps its node — and with it its history — so a
-    /// row that moves up the list is the same row, not a new one that happens to carry the same name.
+    /// Shows these items, in this order, and the <paramref name="total"/> they are part of. An item already shown
+    /// keeps its node — and with it its history — so a row that moves up the list is the same row, not a new one
+    /// that happens to carry the same name.
+    ///
+    /// The total is written before the rows are announced, so whatever draws them on that one notification finds
+    /// the total of the same read beside them.
     /// </summary>
-    public void Show(IReadOnlyList<(string Name, float Value)> items, string unit)
+    public void Show(IReadOnlyList<(string Name, float Value)> items, string unit, float? total = null)
     {
-        if (items.Count == 0 && Rows.Count == 0) return;
+        if (items.Count == 0 && Rows.Count == 0 && total is null && Total.Value is null) return;
+
+        Total.Unit = unit;
+        Total.Value = total;
 
         var shown = new Dictionary<string, SensorNode>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in Rows) shown.TryAdd(row.Name ?? string.Empty, row);

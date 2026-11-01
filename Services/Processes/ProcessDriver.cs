@@ -67,9 +67,16 @@ internal sealed class ProcessDriver : IHardwareDriver
         if (_usage is not { } usage) return;
         _usage = null;
 
-        lists.Cpu.Show(ProcessUsage.Top(usage, app => app.Cpu, ListNode.MaxRows), "%");
-        lists.Memory.Show(ProcessUsage.Top(usage, app => app.MemoryMb, ListNode.MaxRows), "MB");
-        lists.Io.Show(ProcessUsage.Top(usage, app => app.IoPerSecond, ListNode.MaxRows), SensorFormat.BytesPerSecond);
+        // Each total over every process the read found. The CPU's is held to 100 as each application's already is:
+        // the processes' times are read a moment apart, and their sum can come out a hair over the whole.
+        var cpu = ProcessUsage.Total(usage, app => app.Cpu);
+
+        lists.Cpu.Show(ProcessUsage.Top(usage, app => app.Cpu, ListNode.MaxRows), "%",
+            cpu is { } load ? Math.Min(100, load) : null);
+        lists.Memory.Show(ProcessUsage.Top(usage, app => app.MemoryMb, ListNode.MaxRows), "MB",
+            ProcessUsage.Total(usage, app => app.MemoryMb));
+        lists.Io.Show(ProcessUsage.Top(usage, app => app.IoPerSecond, ListNode.MaxRows), SensorFormat.BytesPerSecond,
+            ProcessUsage.Total(usage, app => app.IoPerSecond));
     }
 
     public void Shutdown() => _table.Dispose();

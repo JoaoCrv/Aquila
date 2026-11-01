@@ -78,4 +78,19 @@ public static class ProcessUsage
             .Take(count)
             .Select(app => (app.Name, (float)app.Value!.Value))
             .ToList();
+
+    /// <summary>
+    /// One measure added up over every application — all of them, not the few a list keeps — or null while no
+    /// application's figure is known yet, which is the whole of the first read for a rate. Unknown figures are left
+    /// out as <see cref="Top"/> leaves them, rather than counted as nought.
+    /// </summary>
+    public static float? Total(IEnumerable<AppUsage> apps, Func<AppUsage, double?> measure)
+    {
+        double? sum = null;
+        foreach (var app in apps)
+            if (measure(app) is { } value)
+                sum = (sum ?? 0) + value;
+
+        return (float?)sum;
+    }
 }

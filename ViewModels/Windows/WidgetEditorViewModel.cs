@@ -520,6 +520,12 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     public bool ShowsLine => SelectedKind?.HasLine == true;
     public bool ShowsBar => SelectedKind?.HasBar == true;
+
+    /// <summary>Whether the bar section applies — to a meter and to Bars, and to a list drawing a bar under each row,
+    /// which takes two thirds of the section's thickness and corners. Only the bar kinds have a layout: a row's bar is
+    /// always under its line, as only the dial has a sweep.</summary>
+    public bool ShowsBarStyle => ShowsBar || (ShowsList && BarShown);
+
     public bool ShowsNumber => SelectedKind?.HasNumber == true;
 
     /// <summary>Whether this kind draws a reading at all, and so whether a size for one means anything.</summary>
@@ -1102,6 +1108,22 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// when the panel opens, and nothing checks this panel's markup before then.</summary>
     public double MaxItemCount => ListNode.MaxRows;
 
+    // Style, not Structure: the list puts its bars, trends and total up and takes them down in place, so nothing has
+    // to be built again for them — and the rows keep their places and their history.
+    partial void OnBarShownChanged(bool value) => Apply();
+    partial void OnSparklineShownChanged(bool value) => Apply();
+    partial void OnTotalShownChanged(bool value) => Apply();
+
+    /// <summary>What each row of a list draws besides its name and number, and whether the list's total is written on
+    /// the title's line. With the widget, beside the row count: each changes what is on the screen, so a preset never
+    /// carries one.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsBarStyle))]
+    private bool _barShown;
+
+    [ObservableProperty] private bool _sparklineShown;
+    [ObservableProperty] private bool _totalShown;
+
     /// <summary>What the picker offers, as the hint and the button name it: a List is given a list.</summary>
     private string Offered => ShowsList ? "list" : "sensor";
 
@@ -1255,6 +1277,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         // from a clock written before rings existed must read its None, not overwrite it.
         if (_loaded && value?.HasClock == true) SelectedRings = ClockRings.All;
 
+        // And a list made now has its bars, trends and total, by the same rule: a list written before them reads off.
+        if (_loaded && value?.HasList == true)
+        {
+            BarShown = true;
+            SparklineShown = true;
+            TotalShown = true;
+        }
+
         // What the picker offers changes when the kind moves to or from a List, and only then is it refilled:
         // refilling scrolls the picker back to its top, which a switch between two sensor kinds has no reason
         // to do. Everything in it is of one sort, so its first entry says which.
@@ -1320,6 +1350,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ScaleMin = ScaleMin;
         _target.ScaleMax = ScaleMax;
         _target.ItemCount = (int)ItemCount;
+        _target.ShowBar = BarShown;
+        _target.ShowSparkline = SparklineShown;
+        _target.ShowTotal = TotalShown;
 
         // Held to its proportions, by the rule the wheel is held to. Led by the box that was typed in — or, when the
         // widget has just started keeping a shape (made a dial, or a clock given rings), by its width, so it takes
@@ -1535,6 +1568,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         ScaleMin = target.ScaleMin;
         ScaleMax = target.ScaleMax;
         ItemCount = target.ItemCount;
+        BarShown = target.ShowBar;
+        SparklineShown = target.ShowSparkline;
+        TotalShown = target.ShowTotal;
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.

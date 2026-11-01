@@ -203,13 +203,23 @@ public static class WidgetCatalog
         // The first kind whose reading is not a sensor. Its one series names a list, which the SOURCE orders
         // and sizes; how many of its rows are shown is the widget's. One ramp for the whole list, and each row
         // judged on its own figure, so the application at the top can go amber while the rest stay calm.
+        //
+        // Taller since the bars, which a list made today starts with: the design's card at Ember's sizes — five rows
+        // with a bar under each, and the total on the title's line. A list from before them keeps the size it was given, and is
+        // measured as the column of text it is — the clock's argument about its rings. The width is the same either
+        // way, so at its starting size — or any shape at least as tall for its width — a list keeps the size of its
+        // text when the bar is turned off or on. One made wider or shorter than that is scaled by its height, and the
+        // two figures need different heights.
         new(DesktopWidgetKind.List,
             "List",
             "The applications using the most CPU, memory or I/O, largest first.",
-            240, 170,
+            240, 230,
             series => new SensorList(series),
             SeriesPaint.PerRow((piece, judge) => ((SensorList)piece).PaintRows(judge)))
-            { CreateList = list => new SensorList(list) },
+            {
+                CreateList = list => new SensorList(list),
+                Reference = list => list.ShowBar ? (240, 230) : (240, 170),
+            },
     ];
 
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which

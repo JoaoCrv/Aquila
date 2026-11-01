@@ -124,18 +124,8 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
         if (Math.Abs(target - bar.Shown) < 0.01) return;
         bar.Shown = target;
 
-        var grows = upright ? HeightProperty : WidthProperty;
-
-        // Same shape as SensorBar: no From, so a reading landing mid-sweep redirects rather than starting
-        // again, and the property is released when motion is off or an old animation would hold it frozen.
-        if (!animate || !Motion.Enabled)
-        {
-            bar.Fill.BeginAnimation(grows, null);
-            bar.Fill.SetValue(grows, target);
-            return;
-        }
-
-        bar.Fill.BeginAnimation(grows, Motion.Sweep(target));
+        // As SensorBar does: from wherever the bar is drawn, or there at once — see Motion.To.
+        Motion.To(bar.Fill, upright ? HeightProperty : WidthProperty, target, animate);
     }
 
     /// <summary>
@@ -162,8 +152,7 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
         foreach (var bar in _bars)
         {
             var ceiling = SensorScale.Ceiling(bar.Sensor, double.NaN);
-            var (number, unit) = SensorFormat.Parts((float)ceiling, bar.Sensor.Unit);
-            var sample = ShowUnit && !string.IsNullOrEmpty(unit) ? number + unit : number;
+            var sample = SensorFormat.Reading((float)ceiling, bar.Sensor.Unit, ShowUnit);
 
             var measured = new FormattedText(
                 sample, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,

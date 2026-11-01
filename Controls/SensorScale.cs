@@ -73,4 +73,27 @@ public static class SensorScale
         // Never zero: a sensor sitting at nothing still needs a range to be nothing WITHIN.
         return peak > 0 ? peak : sensor.Max ?? 100;
     }
+
+    /// <summary>
+    /// The top of the scale for one row of a list: the fixed top where its reading has one (<see cref="Fixed"/> —
+    /// an application's share of the CPU is drawn against the whole machine), and otherwise the largest row in the
+    /// list, which is drawn full. Megabytes and bytes per second have no top of their own, and the question a list
+    /// of them answers is how the rows compare.
+    ///
+    /// The largest and not the first, although with the processes the two are the same row: the order is the
+    /// source's, and a list kept in its owner's order would have rows larger than its first, drawn past full.
+    ///
+    /// Never zero, for the reason the sensor's ceiling gives: a list of nothing still needs a range to be nothing
+    /// within.
+    /// </summary>
+    public static double Ceiling(SensorNode row, IReadOnlyList<SensorNode> list)
+    {
+        if (Fixed(row) is { } top) return top;
+
+        var largest = 0d;
+        foreach (var other in list)
+            if (other.Value is { } value && value > largest) largest = value;
+
+        return largest > 0 ? largest : 1;
+    }
 }

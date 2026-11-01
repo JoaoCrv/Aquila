@@ -348,6 +348,16 @@
                                 <Slider Minimum="1" Maximum="{Binding ViewModel.MaxItemCount}"
                                         TickFrequency="1" IsSnapToTickEnabled="True"
                                         Value="{Binding ViewModel.ItemCount}"/>
+
+                                <!-- What each row draws besides its name and number, and the total. Here for
+                                     the same reason as the count: they are things to read, and trying on a
+                                     preset must never take one away. How they look is the preset's. -->
+                                <CheckBox Margin="0,10,0,0" Content="Bar under each row"
+                                          IsChecked="{Binding ViewModel.BarShown}"/>
+                                <CheckBox Margin="0,10,0,0" Content="Trend beside each reading"
+                                          IsChecked="{Binding ViewModel.SparklineShown}"/>
+                                <CheckBox Margin="0,10,0,0" Content="Total beside the title"
+                                          IsChecked="{Binding ViewModel.TotalShown}"/>
                             </StackPanel>
 
                             <!-- What is shown of the reading, beside the readings themselves. Not in the
@@ -1106,7 +1116,7 @@
 
 
                     <ui:CardExpander Icon="{ui:SymbolIcon DataBarHorizontal24}"
-                                         Visibility="{Binding ViewModel.ShowsBar, Converter={StaticResource BoolToVisibility}}">
+                                         Visibility="{Binding ViewModel.ShowsBarStyle, Converter={StaticResource BoolToVisibility}}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Bar" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
@@ -1126,9 +1136,12 @@
                             </DockPanel>
                             <Slider Minimum="0" Maximum="20"
                                     Value="{Binding ViewModel.BarCorner}"/>
-                            <TextBlock Text="Layout" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Layouts}"
-                                      SelectedItem="{Binding ViewModel.BarLayout}"/>
+                            <!-- A list's row bar is always under its line, so only the bar kinds are asked. -->
+                            <StackPanel Visibility="{Binding ViewModel.ShowsBar, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Layout" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                <ComboBox ItemsSource="{Binding ViewModel.Layouts}"
+                                          SelectedItem="{Binding ViewModel.BarLayout}"/>
+                            </StackPanel>
                         </StackPanel>
                     </ui:CardExpander>
 

@@ -63,11 +63,15 @@ public static class SensorFormat
     /// mistake; the stat is unaffected either way, since it draws the unit as a piece of its own so it can
     /// have its own size.
     /// </summary>
-    public static string Reading(this SensorNode? sensor, bool showUnit, string fallback = "--")
-    {
-        if (sensor?.Value is null) return fallback;
+    public static string Reading(this SensorNode? sensor, bool showUnit, string fallback = "--") =>
+        sensor is null ? fallback : Reading(sensor.Value, sensor.Unit, showUnit, fallback);
 
-        var (number, unit) = sensor.Parts();
-        return showUnit && !string.IsNullOrEmpty(unit) ? number + unit : number;
+    /// <summary>The same, for a value no sensor holds — the top of a scale, measured to size a column for it.</summary>
+    public static string Reading(float? value, string? unit, bool showUnit, string fallback = "--")
+    {
+        if (value is null) return fallback;
+
+        var (number, scaled) = Parts(value, unit);
+        return showUnit && !string.IsNullOrEmpty(scaled) ? number + scaled : number;
     }
 }

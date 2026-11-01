@@ -33,10 +33,10 @@ public class AppSettings
     /// IS the switch, following the charting library's own convention, so there is no second field beside
     /// it that could say otherwise.
     ///
-    /// 300 ms and not zero. With a one-second poll, a widget shows the true value for whatever is left of
-    /// the second, so this is the ceiling of what can be spent before the display is more often in transit
-    /// than correct.</summary>
-    public int    AnimationSpeedMs  { get; set; } = 300;
+    /// 600 ms — Smooth — and not zero. With a one-second poll the reading has arrived with 400 ms left to
+    /// show it at rest; Relaxed's 900 ms leaves a tenth of the second, so the slower one is a choice and not
+    /// the default.</summary>
+    public int    AnimationSpeedMs  { get; set; } = 600;
 
     /// <summary>The most frames a second anything moving may draw — dials, bars, the clock's rings. 15 to 60.
     ///

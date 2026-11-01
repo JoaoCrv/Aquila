@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Media.Animation;
 using Aquila.Models;
 
@@ -25,9 +26,8 @@ namespace Aquila.Controls;
 /// offered and none could be told apart. The mechanism was confirmed working — the dial's series reported
 /// back the speed and the easing it had accepted, and the bar's travel was 5 to 70 pixels — so the curve
 /// was reaching the drawing and simply could not be seen: below roughly 400 ms a viewer perceives THAT a
-/// thing moved, not HOW, and the speed in force never exceeds two fifths of the poll — 400 ms at the default
-/// one second. A control that cannot work inside the constraint the application imposes is better deleted
-/// than explained.
+/// thing moved, not HOW. That was measured while nothing could move for longer. Smooth now takes 600 ms and
+/// Relaxed 900 (an experiment, 2026-11-01), where a curve may show, and it has not been looked at again.
 ///
 /// One piece reads only whether this is on, not how fast: the clock's rings, which move through the whole of
 /// every second when it is, arriving on each one. They are not on the poll, so the cap below has nothing to
@@ -35,8 +35,8 @@ namespace Aquila.Controls;
 /// ClockTile.Sweep. The frame rate they follow like everything else.
 ///
 /// The dial's arc moves at this speed but steadily, as every ring does (RingArc.MoveTo), while the bars ease into
-/// place. Two paths under one setting, and the measurement above is why that is allowed: at the speeds permitted,
-/// nobody sees the curve.
+/// place. Two paths under one setting, and the measurement above is why that was allowed: up to 400 ms nobody sees
+/// the curve. Whether the two still look alike at 600 and 900 is part of the same experiment.
 /// </summary>
 public static class Motion
 {
@@ -70,20 +70,55 @@ public static class Motion
     }
 
     /// <summary>
-    /// The chosen speed, held to two fifths of the poll interval.
+    /// The chosen speed, held to nine tenths of the poll interval.
     ///
-    /// A sweep has to end well inside one tick, or the piece is in transit more often than it is right. The
-    /// menu stops at 400 ms because that is two fifths of the default second — but the poll is a setting of
-    /// its own, and at 500 ms the same "Relaxed" kept the dial moving four fifths of the time. Held here,
-    /// where both numbers meet, rather than by narrowing the menu, because the two change independently.
+    /// A sweep has to end inside one tick, or the piece is still on its way to one reading when the next
+    /// arrives. At nine tenths it does, if only just: the default second allows Relaxed its 900 ms with a tenth
+    /// left at rest, and a 500 ms poll holds every choice to 450. Held here, where both numbers meet, rather
+    /// than by narrowing the menu, because the two change independently.
+    ///
+    /// Two fifths until 2026-11-01, which kept the reading at rest for most of every read — raised to try steps
+    /// that can be told apart. At two fifths the slowest step was 400 ms against Smooth's 300, and the two
+    /// looked the same.
     /// </summary>
     public static void Apply(int speedMs, int pollMs) =>
-        Speed = TimeSpan.FromMilliseconds(Math.Clamp(speedMs, 0, Math.Max(0, pollMs) * 2 / 5));
+        Speed = TimeSpan.FromMilliseconds(Math.Clamp(speedMs, 0, Math.Max(0, pollMs) * 9 / 10));
 
     /// <summary>A reading's sweep to <paramref name="to"/>, as WPF draws it: at the speed and on the curve in
     /// force, and no oftener than the frame rate. One home, so the bars cannot come to move differently from each
     /// other.</summary>
     public static DoubleAnimation Sweep(double to) => Paced(new DoubleAnimation(to, Speed) { EasingFunction = WpfEasing });
+
+    /// <summary>
+    /// Takes a property to <paramref name="to"/>: by a <see cref="Sweep"/> while motion is on, at once while it is off
+    /// or when <paramref name="animate"/> says not to — a piece resized, a row that has only just appeared.
+    ///
+    /// The one home for that choice, which each bar wrote out by hand and the list would have written three times more
+    /// — its rows sliding, fading and filling. Both halves have a trap in them. The jump lets go of the animation
+    /// first: a property held by one ignores what it is set to, so a bar animated once and then switched to instant
+    /// would freeze where it last swept to. The sweep has no From and is handed off by snapshot, so it starts wherever
+    /// the property is DRAWN: a value arriving mid-way redirects instead of jumping back to begin again, and a poll
+    /// faster than the sweep degrades into a slower sweep rather than into a stutter.
+    ///
+    /// <paramref name="arrived"/> runs once the property is there — at once, for a jump. A sweep replaced by a later
+    /// one may still report, so whether it is still wanted is for the caller to check when it runs.
+    /// </summary>
+    public static void To<T>(T target, DependencyProperty property, double to, bool animate = true,
+        Action? arrived = null) where T : DependencyObject, IAnimatable
+    {
+        if (!animate || !Enabled)
+        {
+            target.BeginAnimation(property, null);
+            target.SetValue(property, to);
+            arrived?.Invoke();
+            return;
+        }
+
+        var sweep = Sweep(to);
+        if (arrived is not null) sweep.Completed += (_, _) => arrived();
+
+        target.BeginAnimation(property, sweep, HandoffBehavior.SnapshotAndReplace);
+    }
 
     /// <summary>Puts the frame rate on an animation Aquila makes. Asked of the root of what is begun — WPF reads it
     /// there and nowhere else.</summary>

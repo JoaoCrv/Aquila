@@ -60,6 +60,24 @@ public sealed class ScaleProperties
         Assert.Equal(scale, WidgetScale.Of(clock), precision: 6);
     }
 
+    /// <summary>
+    /// A list written before bars — none asked for, 240×170 — is drawn exactly as it was; a list made today, with
+    /// bars, is at one at its own starting size, and turning its bar off there leaves its text the size it was. With
+    /// bars it needs more height, so in the old box it is drawn smaller.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 240, 170, 1)]
+    [InlineData(false, 480, 340, 2)]
+    [InlineData(true, 240, 230, 1)]
+    [InlineData(false, 240, 230, 1)]
+    [InlineData(true, 240, 170, 170 / 230d)]
+    public void A_list_is_measured_by_the_figure_it_draws(bool bars, double width, double height, double scale)
+    {
+        var list = new DesktopWidgetDefinition { Kind = DesktopWidgetKind.List, ShowBar = bars, Width = width, Height = height };
+
+        Assert.Equal(scale, WidgetScale.Of(list), precision: 6);
+    }
+
     /// <summary>Whatever a file says the size is, the scale stays within its bounds.</summary>
     [Property(MaxTest = 1000)]
     public Property The_scale_is_always_within_its_bounds() =>

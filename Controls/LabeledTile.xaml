@@ -8,14 +8,19 @@
     <!-- A title placed around any content (gauge, sparkline, ...). Everything about how it is drawn —
          colour, face, weight, size, opacity, side and alignment — comes from the preset through the
          properties in the code-behind. Nothing here is a decision; the values below are only what an
-         un-dressed tile looks like in the designer. -->
+         un-dressed tile looks like in the designer.
+
+         The title's line can carry something of the piece's at its far end (Aside — a list's total). With
+         nothing there, the header is the title and nothing else, as it always was. -->
     <DockPanel x:Name="Root" LastChildFill="True">
-        <TextBlock x:Name="TitleText"
-                   DockPanel.Dock="Top"
-                   VerticalAlignment="Center"
-                   FontSize="11" Opacity="0.6"
-                   Margin="0,0,0,4"
-                   TextTrimming="CharacterEllipsis"/>
+        <DockPanel x:Name="Header" DockPanel.Dock="Top" LastChildFill="True">
+            <ContentPresenter x:Name="AsideHost" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
+            <TextBlock x:Name="TitleText"
+                       VerticalAlignment="Center"
+                       FontSize="11" Opacity="0.6"
+                       Margin="0,0,0,4"
+                       TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
         <ContentPresenter x:Name="Body"/>
     </DockPanel>
 </UserControl>

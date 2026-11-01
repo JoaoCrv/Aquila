@@ -60,16 +60,16 @@ namespace Aquila.ViewModels.Pages
         [ObservableProperty]
         private PollingOption _selectedPollingInterval = null!;
 
-        /// <summary>Up to 400 ms on purpose: two fifths of the default one-second poll, so a reading is drawn
-        /// correctly for whatever is left after the sweep — past that the widget is in transit more often
-        /// than it is right, and a monitor that never settles on the value has stopped being one. A faster
-        /// poll lowers the ceiling further (Motion.Apply): at 500 ms these are held to 200.</summary>
+        /// <summary>Steps far enough apart to be told apart: 150/300/400 put Smooth and Relaxed a third apart,
+        /// and they looked the same. Relaxed's 900 ms is nine tenths of the default one-second poll, the most
+        /// Motion.Apply allows, so a sweep still arrives before the next reading; a faster poll lowers the
+        /// ceiling further — at 500 ms Smooth and Relaxed are both held to 450.</summary>
         public List<MotionOption> MotionOptions { get; } =
         [
             new("Off",       0),
-            new("Subtle",  150),
-            new("Smooth",  300),
-            new("Relaxed", 400),
+            new("Subtle",  300),
+            new("Smooth",  600),
+            new("Relaxed", 900),
         ];
 
         [ObservableProperty]

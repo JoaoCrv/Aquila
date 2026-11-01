@@ -105,4 +105,28 @@ public sealed class RuleProperties
     [Property(MaxTest = 500)]
     public bool Throughput_lands_in_a_known_unit(float bytesPerSecond) =>
         SensorFormat.Parts(bytesPerSecond, SensorFormat.BytesPerSecond).Unit is "B/s" or "KB/s" or "MB/s";
+
+    // ── SensorScale: what a list's bars are drawn against ─────────────────────────────────────────────
+
+    /// <summary>
+    /// In a list with no top of its own — megabytes, bytes per second — the largest row is drawn exactly full and no
+    /// row past it, for any rows in any order; a share of the CPU is drawn against the whole machine, whatever the
+    /// other rows read. A list of nothing still has a range to be nothing within.
+    /// </summary>
+    [Property(MaxTest = 500)]
+    public bool A_list_is_drawn_against_its_largest_row_unless_it_has_a_top(ushort[] values, bool percent)
+    {
+        values ??= [];
+        var unit = percent ? "%" : "MB";
+        var rows = values.Select(v => new SensorNode { Unit = unit, Value = v }).ToList();
+        var largest = values.Length == 0 ? 0 : values.Max();
+
+        return rows.All(row =>
+        {
+            var ceiling = SensorScale.Ceiling(row, rows);
+            return percent
+                ? ceiling == 100
+                : ceiling > 0 && row.Value <= ceiling && (largest == 0 || ceiling == largest);
+        });
+    }
 }
