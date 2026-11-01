@@ -58,7 +58,8 @@
     "color": "#FFFFFF",
     "size": 11,
     "opacity": 0.55,
-    "align": "Center"
+    "align": "Left",
+    "gap": 12
   },
   "value": {
     "color": "#FFFFFF",

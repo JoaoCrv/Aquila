@@ -52,6 +52,7 @@ public sealed class PresetImportProperties : IDisposable
     [Theory]
     [InlineData("""{"id":"x","background":null}""")]                                // a section written as null
     [InlineData("""{"id":"x","gauge":{"track":null}}""")]                           // a nested one
+    [InlineData("""{"id":"x","title":{"background":null,"border":null}}""")]        // the title's box, said as null
     [InlineData("""{"id":"x","ramps":null}""")]                                     // no ramps, said as null
     [InlineData("""{"id":"x","ramps":{"primary":null}}""")]                        // a ramp written as null
     [InlineData("""{"id":"x","ramps":{"primary":{},"Primary":{"normal":"#FFF"}}}""")] // one name, two spellings
@@ -60,6 +61,27 @@ public sealed class PresetImportProperties : IDisposable
         var preset = Import(json);
         Assert.NotNull(preset);
         Assert.True(Drawable(preset!));
+    }
+
+    /// <summary>
+    /// A preset written before titles had a box draws its titles as it did: no background, no outline, no padding,
+    /// and four pixels from the content. Only the presets shipped with the app took the new heading. And an outline
+    /// given only a thickness gets none of the panel's padding or corners — the reason the title's border is a class
+    /// of its own, since the reader builds what it meets from that class's defaults.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"id":"x","title":{"size":11,"align":"Center"}}""", 0)]
+    [InlineData("""{"id":"x","title":{"border":{"thickness":1}}}""", 1)]
+    public void A_title_is_given_no_box_it_did_not_ask_for(string json, double thickness)
+    {
+        var title = Import(json)!.Title;
+
+        Assert.Equal(4, title.Gap);
+        Assert.False(title.Bleed);
+        Assert.Equal(0, title.Background.Opacity);
+        Assert.Equal(thickness, title.Border.Thickness);
+        Assert.Equal(0, title.Border.CornerRadius);
+        Assert.Equal(0, title.Border.Padding);
     }
 
     private Preset? Import(string json)
@@ -83,7 +105,7 @@ public sealed class PresetImportProperties : IDisposable
         && p.Ramps is { Count: > 0 }
         && p.Ramps.Values.All(r => r is not null)
         && p.Background is not null && p.Border is not null && p.Line is not null && p.Bar is not null
-        && p.Number is not null && p.Title is not null && p.Value is not null
+        && p.Number is not null && p.Title is { Background: not null, Border: not null } && p.Value is not null
         && p.Gauge is { Track: not null }
         && p.RampFor(null, 0) is not null;
 }

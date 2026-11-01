@@ -478,6 +478,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
                 offered.Add(preset.Background.Color);
                 offered.Add(preset.Border.Color);
                 offered.Add(preset.Title.Color);
+                offered.Add(preset.Title.Background.Color);
+                offered.Add(preset.Title.Border.Color);
                 offered.Add(preset.Value.Color);
             }
 
@@ -507,6 +509,27 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnBorderThicknessChanged(double value) => Dress();
     partial void OnCornerRadiusChanged(double value) => Dress();
     partial void OnPaddingChanged(double value) => Dress();
+
+    // The title's box — the panel's controls again, for the title's own (see PresetTitle.Background).
+    [ObservableProperty] private double _titleGap = 4;
+    [ObservableProperty] private string _titleBackgroundColor = "#000000";
+    [ObservableProperty] private double _titleBackgroundOpacity;
+    [ObservableProperty] private string _titleBorderColor = "#FFFFFF";
+    [ObservableProperty] private double _titleBorderOpacity = 25;
+    [ObservableProperty] private double _titleBorderThickness;
+    [ObservableProperty] private double _titleCornerRadius;
+    [ObservableProperty] private double _titlePadding;
+    [ObservableProperty] private bool _titleBleed;
+
+    partial void OnTitleBleedChanged(bool value) => Dress();
+    partial void OnTitleGapChanged(double value) => Dress();
+    partial void OnTitleBackgroundColorChanged(string value) => Dress();
+    partial void OnTitleBackgroundOpacityChanged(double value) => Dress();
+    partial void OnTitleBorderColorChanged(string value) => Dress();
+    partial void OnTitleBorderOpacityChanged(double value) => Dress();
+    partial void OnTitleBorderThicknessChanged(double value) => Dress();
+    partial void OnTitleCornerRadiusChanged(double value) => Dress();
+    partial void OnTitlePaddingChanged(double value) => Dress();
 
     // Which sections apply. Asked of the CATALOG rather than of the piece, so the editor knows what to
     // show before it has built anything — and a kind that is not a dial simply cannot be given dial
@@ -860,6 +883,15 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             TitleSize = preset.Title.Size;
             TitleOpacity = preset.Title.Opacity * 100;
             TitlePlacement = preset.Title.Placement;
+            TitleGap = preset.Title.Gap;
+            TitleBackgroundColor = preset.Title.Background.Color;
+            TitleBackgroundOpacity = preset.Title.Background.Opacity * 100;
+            TitleBorderColor = preset.Title.Border.Color;
+            TitleBorderOpacity = preset.Title.Border.Opacity * 100;
+            TitleBorderThickness = preset.Title.Border.Thickness;
+            TitleCornerRadius = preset.Title.Border.CornerRadius;
+            TitlePadding = preset.Title.Border.Padding;
+            TitleBleed = preset.Title.Bleed;
             ValueColor = preset.Value.Color;
             ValueFont = preset.Value.FontFamily ?? ThemeFont;
             ValueWeight = preset.Value.Weight;
@@ -924,6 +956,15 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Title.Size = TitleSize;
         preset.Title.Opacity = TitleOpacity / 100;
         preset.Title.Placement = TitlePlacement;
+        preset.Title.Gap = TitleGap;
+        preset.Title.Background.Color = TitleBackgroundColor;
+        preset.Title.Background.Opacity = TitleBackgroundOpacity / 100;
+        preset.Title.Border.Color = TitleBorderColor;
+        preset.Title.Border.Opacity = TitleBorderOpacity / 100;
+        preset.Title.Border.Thickness = TitleBorderThickness;
+        preset.Title.Border.CornerRadius = TitleCornerRadius;
+        preset.Title.Border.Padding = TitlePadding;
+        preset.Title.Bleed = TitleBleed;
         preset.Value.Color = ValueColor;
         preset.Value.FontFamily = ValueFont == ThemeFont ? null : ValueFont;
         preset.Value.Weight = ValueWeight;

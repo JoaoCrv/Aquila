@@ -690,6 +690,8 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         preset.Bar ??= new();
         preset.Number ??= new();
         preset.Title ??= new();
+        preset.Title.Background ??= new PresetTitle().Background;
+        preset.Title.Border ??= new();
         preset.Value ??= new();
 
         if (preset.Ramps.Count == 0)

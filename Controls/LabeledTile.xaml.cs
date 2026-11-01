@@ -138,9 +138,9 @@ public partial class LabeledTile : UserControl, IScaledFigure
     /// than being told: hidden, it takes nothing — not even the gap beside the title — and a widget whose piece has
     /// nothing to say there is drawn exactly as it was before there was an aside.
     ///
-    /// While it shows, the line is a header rather than a label, laid out as the list's design lays its own: the title
-    /// at the start of the line whatever its alignment says, since a title centred in what the aside leaves would sit
-    /// nowhere in particular; and the header twelve pixels from what it heads, where a label sits four.
+    /// While it shows, the title stands at the start of its line whatever its alignment says, since a title centred in
+    /// what the aside leaves would sit nowhere in particular. Everything else about the line — its box, its distance
+    /// from the content — is the same with an aside as without, so a list's heading is every widget's heading.
     /// </summary>
     public FrameworkElement? Aside
     {
@@ -166,9 +166,47 @@ public partial class LabeledTile : UserControl, IScaledFigure
         Apply();
     }
 
-    /// <summary>A header's distance from what it heads, beyond a label's: the design's 12 against the 4 every title
-    /// keeps.</summary>
-    private const double HeaderGap = 8;
+    private (Brush? Background, Brush? Border, double Thickness, double Corner, double Padding, double Gap) _box =
+        (null, null, 0, 0, 0, 4);
+
+    /// <summary>
+    /// The title line's own box — a background and an outline round the title and its aside, and the room inside
+    /// them — and its distance from the content. See <see cref="PresetTitle.Background"/>.
+    ///
+    /// Unscaled, like the margins here: the tile puts all of it through the widget's scale, so the box grows with
+    /// the title it holds. A size below nought or not a number is nought — the preset is a file anyone can write,
+    /// and WPF refuses a negative border outright, which would take the widget down with it.
+    /// </summary>
+    public void Box(Brush? background, Brush? border, double thickness, double corner, double padding, double gap)
+    {
+        _box = (background, border, Size(thickness), Size(corner), Size(padding), Size(gap));
+        Apply();
+    }
+
+    private (double Inset, double Corner)? _edges;
+
+    /// <summary>
+    /// Takes the box out to the panel's edge — see <see cref="PresetTitle.Bleed"/>: how far in the panel's padding sets
+    /// the tile, and how round the panel's corners are on the inside. Null keeps the box within the padding, as every
+    /// title was. Unscaled, like <see cref="Box"/>.
+    ///
+    /// The tile cannot see the panel, so it is told; and it reaches the edge with negative margins, which WPF draws
+    /// past the tile's own bounds — nothing between the tile and the panel clips.
+    /// </summary>
+    public void Edges(double inset, double corner)
+    {
+        _edges = (Size(inset), Size(corner));
+        Apply();
+    }
+
+    /// <summary>Back within the panel's padding.</summary>
+    public void NoEdges()
+    {
+        _edges = null;
+        Apply();
+    }
+
+    private static double Size(double value) => double.IsFinite(value) && value > 0 ? value : 0;
 
     private void Apply()
     {
@@ -197,10 +235,14 @@ public partial class LabeledTile : UserControl, IScaledFigure
 
         // An empty title still occupies a line, which a piece with nothing above it would wear as a gap.
         // Matters most to the kinds that draw no reading: a backdrop is a plain rectangle unless it is
-        // given a title, and it should not be a rectangle with a stripe missing from the top.
-        TitleText.Visibility = string.IsNullOrEmpty(Title) ? Visibility.Collapsed : Visibility.Visible;
+        // given a title, and it should not be a rectangle with a stripe missing from the top. The box goes
+        // with what is in it: with no title and no aside there is nothing to draw a box round, nor a distance
+        // to keep from the content.
+        var titled = !string.IsNullOrEmpty(Title);
+        TitleText.Visibility = titled ? Visibility.Visible : Visibility.Collapsed;
+        TitleBox.Visibility = titled || HasAside ? Visibility.Visible : Visibility.Collapsed;
 
-        DockPanel.SetDock(Header, TitlePlacement switch
+        DockPanel.SetDock(TitleBox, TitlePlacement switch
         {
             TitlePlacement.Bottom => Dock.Bottom,
             TitlePlacement.Left   => Dock.Left,
@@ -208,42 +250,44 @@ public partial class LabeledTile : UserControl, IScaledFigure
             _                     => Dock.Top,
         });
 
-        // A little breathing room between title and content, on the docked side.
-        TitleText.Margin = (TitlePlacement switch
+        var (background, border, thickness, corner, padding, gap) = _box;
+        TitleBox.Background = background;
+        TitleBox.BorderBrush = border;
+        TitleBox.BorderThickness = new Thickness(thickness).Scaled(_figureScale);
+        TitleBox.Padding = new Thickness(padding).Scaled(_figureScale);
+
+        // Out to the panel's edge, the three outer sides go back by the panel's padding and their corners become the
+        // panel's; the side facing the content keeps the title's own. Within the padding, every corner is the title's.
+        var (inset, outer) = _edges ?? (0d, corner);
+
+        TitleBox.CornerRadius = (TitlePlacement switch
         {
-            TitlePlacement.Bottom => new Thickness(0, 4, 0, 0),
-            TitlePlacement.Left   => new Thickness(0, 0, 6, 0),
-            TitlePlacement.Right  => new Thickness(6, 0, 0, 0),
-            _                     => new Thickness(0, 0, 0, 4),
+            TitlePlacement.Bottom => new CornerRadius(corner, corner, outer, outer),
+            TitlePlacement.Left   => new CornerRadius(outer, corner, corner, outer),
+            TitlePlacement.Right  => new CornerRadius(corner, outer, outer, corner),
+            _                     => new CornerRadius(outer, outer, corner, corner),
         }).Scaled(_figureScale);
 
-        // The aside keeps the same distance from the content as the title, and a gap from the title's end so a
-        // long title's ellipsis never runs into it. Above or below, the two share a line and their bottoms meet,
-        // which is as near as two sizes of text get to sharing a baseline; beside, the aside goes under the title
-        // and the pair is centred as the title alone was.
+        // The distance from the content, outside the box, on the docked side — so a box with a background stands
+        // clear of what it heads instead of touching it.
+        TitleBox.Margin = (TitlePlacement switch
+        {
+            TitlePlacement.Bottom => new Thickness(-inset, gap, -inset, -inset),
+            TitlePlacement.Left   => new Thickness(-inset, -inset, gap, -inset),
+            TitlePlacement.Right  => new Thickness(gap, -inset, -inset, -inset),
+            _                     => new Thickness(-inset, -inset, -inset, gap),
+        }).Scaled(_figureScale);
+
+        // The aside keeps a gap from the title's end so a long title's ellipsis never runs into it. Above or below,
+        // the two share a line and their bottoms meet, which is as near as two sizes of text get to sharing a
+        // baseline; beside, the aside goes under the title and the box is centred as the title alone was.
         var sideways = TitlePlacement is TitlePlacement.Left or TitlePlacement.Right;
 
         DockPanel.SetDock(AsideHost, sideways ? Dock.Bottom : Dock.Right);
-        Header.VerticalAlignment = sideways ? VerticalAlignment.Center : VerticalAlignment.Stretch;
+        TitleBox.VerticalAlignment = sideways ? VerticalAlignment.Center : VerticalAlignment.Stretch;
         TitleText.VerticalAlignment = sideways ? VerticalAlignment.Center : VerticalAlignment.Bottom;
 
-        AsideHost.Margin = (TitlePlacement switch
-        {
-            TitlePlacement.Bottom => new Thickness(8, 4, 0, 0),
-            TitlePlacement.Left   => new Thickness(0, 2, 6, 0),
-            TitlePlacement.Right  => new Thickness(6, 2, 0, 0),
-            _                     => new Thickness(8, 0, 0, 4),
-        }).Scaled(_figureScale);
-
+        AsideHost.Margin = (sideways ? new Thickness(0, 2, 0, 0) : new Thickness(8, 0, 0, 0)).Scaled(_figureScale);
         AsideHost.Visibility = HasAside ? Visibility.Visible : Visibility.Collapsed;
-
-        // A header stands further off than a label, on the side it heads. Beside the content there is no line to
-        // speak of, so nothing changes there.
-        Header.Margin = (HasAside ? TitlePlacement switch
-        {
-            TitlePlacement.Top    => new Thickness(0, 0, 0, HeaderGap),
-            TitlePlacement.Bottom => new Thickness(0, HeaderGap, 0, 0),
-            _                     => new Thickness(0),
-        } : new Thickness(0)).Scaled(_figureScale);
     }
 }

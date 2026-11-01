@@ -1215,6 +1215,67 @@
                         <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                    Opacity="0.5" TextWrapping="Wrap"
                                    Text="Applies with the title above or below. Docked to a side it is already as narrow as its text."/>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                       Text="{Binding ViewModel.TitleGap, StringFormat={}{0:F0} px}"/>
+                            <TextBlock Text="Distance to content" Style="{StaticResource FieldLabel}"/>
+                        </DockPanel>
+                        <Slider Minimum="0" Maximum="24"
+                                Value="{Binding ViewModel.TitleGap}"/>
+
+                        <!-- The title's own box: the panel's controls again, for the line the title sits on. -->
+                        <TextBlock Text="Box background" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
+                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TitleBackgroundColor, Mode=TwoWay}"
+                                             Swatches="{Binding ViewModel.Swatches}"/>
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                       Text="{Binding ViewModel.TitleBackgroundOpacity, StringFormat={}{0:F0}%}"/>
+                            <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
+                        </DockPanel>
+                        <Slider Minimum="0" Maximum="100"
+                                Value="{Binding ViewModel.TitleBackgroundOpacity}"/>
+
+                        <TextBlock Text="Box border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
+                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TitleBorderColor, Mode=TwoWay}"
+                                             Swatches="{Binding ViewModel.Swatches}"/>
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                       Text="{Binding ViewModel.TitleBorderOpacity, StringFormat={}{0:F0}%}"/>
+                            <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
+                        </DockPanel>
+                        <Slider Minimum="0" Maximum="100"
+                                Value="{Binding ViewModel.TitleBorderOpacity}"/>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                       Text="{Binding ViewModel.TitleBorderThickness, StringFormat={}{0:F0} px}"/>
+                            <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
+                        </DockPanel>
+                        <Slider Minimum="0" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding ViewModel.TitleBorderThickness}"/>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                       Text="{Binding ViewModel.TitleCornerRadius, StringFormat={}{0:F0} px}"/>
+                            <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
+                        </DockPanel>
+                        <Slider Minimum="0" Maximum="24"
+                                Value="{Binding ViewModel.TitleCornerRadius}"/>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                       Text="{Binding ViewModel.TitlePadding, StringFormat={}{0:F0} px}"/>
+                            <TextBlock Text="Padding" Style="{StaticResource FieldLabel}"/>
+                        </DockPanel>
+                        <Slider Minimum="0" Maximum="16"
+                                Value="{Binding ViewModel.TitlePadding}"/>
+
+                        <CheckBox Margin="0,10,0,0" Content="Box reaches the panel's edges"
+                                  IsChecked="{Binding ViewModel.TitleBleed}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                   Opacity="0.5" TextWrapping="Wrap"
+                                   Text="Past the panel's padding on the outer sides, with the panel's corners there — a title bar."/>
                         </StackPanel>
                     </ui:CardExpander>
 

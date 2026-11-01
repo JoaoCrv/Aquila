@@ -6,21 +6,23 @@
              mc:Ignorable="d"
              d:DesignHeight="140" d:DesignWidth="140">
     <!-- A title placed around any content (gauge, sparkline, ...). Everything about how it is drawn —
-         colour, face, weight, size, opacity, side and alignment — comes from the preset through the
-         properties in the code-behind. Nothing here is a decision; the values below are only what an
-         un-dressed tile looks like in the designer.
+         colour, face, weight, size, opacity, side, alignment, its box and its distance — comes from the
+         preset through the properties in the code-behind. Nothing here is a decision; the values below are
+         only what an un-dressed tile looks like in the designer.
 
-         The title's line can carry something of the piece's at its far end (Aside — a list's total). With
-         nothing there, the header is the title and nothing else, as it always was. -->
+         The title's line sits in a box of its own (TitleBox), as a heading in a div, and can carry something
+         of the piece's at its far end (Aside — a list's total). With nothing there, the line is the title and
+         nothing else, as it always was. -->
     <DockPanel x:Name="Root" LastChildFill="True">
-        <DockPanel x:Name="Header" DockPanel.Dock="Top" LastChildFill="True">
-            <ContentPresenter x:Name="AsideHost" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
-            <TextBlock x:Name="TitleText"
-                       VerticalAlignment="Center"
-                       FontSize="11" Opacity="0.6"
-                       Margin="0,0,0,4"
-                       TextTrimming="CharacterEllipsis"/>
-        </DockPanel>
+        <Border x:Name="TitleBox" DockPanel.Dock="Top" Margin="0,0,0,4">
+            <DockPanel LastChildFill="True">
+                <ContentPresenter x:Name="AsideHost" DockPanel.Dock="Right" VerticalAlignment="Bottom"/>
+                <TextBlock x:Name="TitleText"
+                           VerticalAlignment="Center"
+                           FontSize="11" Opacity="0.6"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
         <ContentPresenter x:Name="Body"/>
     </DockPanel>
 </UserControl>

@@ -19,7 +19,7 @@ internal static class PresetFiles
         "format", "id", "name", "author", "description", "ramps", "background", "border", "gauge", "line", "bar",
         "number", "title", "value", "normal", "elevated", "alert", "critical", "color", "opacity", "thickness",
         "cornerRadius", "padding", "fontFamily", "size", "weight", "align", "placement", "corner", "sweep", "track",
-        "fill", "fillOpacity", "smoothness", "pointSize", "layout", "unitSize", "panel",
+        "fill", "fillOpacity", "smoothness", "pointSize", "layout", "unitSize", "panel", "gap", "bleed",
     ];
 
     // Ramp names, with the casing traps: the reader matches property names case-insensitively, so "primary" and

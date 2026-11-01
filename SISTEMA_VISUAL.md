@@ -285,9 +285,20 @@ Três saltos, sempre os mesmos.
                   "smoothness": 0.5, "pointSize": 0 },
   "bar":        { "thickness": 6, "corner": 3, "layout": "Beside" },
   "number":     { "unitSize": 13, "panel": false },
-  "title":      { "size": 11, "opacity": 0.6, "placement": "Top" },
+  "title":      { "size": 11, "opacity": 0.6, "placement": "Top", "align": "Left", "gap": 12,
+                  "background": { "color": "#FFFFFF", "opacity": 0.05 },
+                  "border":     { "color": "#FFFFFF", "opacity": 0.1, "thickness": 0, "cornerRadius": 4,
+                                  "padding": 4 } },
   "value":      { "size": 18, "align": "Center", "show": true } }
 ```
+
+**O título tem uma caixa própria** (2026-11-01), como um cabeçalho numa div: `background` e `border` com os
+mesmos nomes e a mesma forma dos do painel, e `gap` para a distância ao conteúdo. A caixa ocupa a largura do
+widget com o título em cima ou em baixo, e a largura do título ao lado. Tudo a zero por omissão — um preset
+escrito antes da caixa desenha os títulos como desenhava (sem caixa, a 4 px) —, e só os presets incluídos
+passaram ao cabeçalho da lista: à esquerda, a 12 px. Cresce com o widget como tudo o resto. Com `"bleed": true`
+a caixa vai até à borda do painel nos três lados de fora, por cima do padding, com os cantos do painel desse lado
+— uma barra de título, como a de uma janela.
 
 **Nenhuma secção nomeia um ramp.** O `gauge`, o `line`, o `bar` e o `number` tiveram todos um campo `ramp` no
 esboço original; foram removidos porque **a série já nomeia o seu**. Uma coisa dita em dois sítios acaba a

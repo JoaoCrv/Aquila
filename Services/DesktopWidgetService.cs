@@ -988,6 +988,19 @@ public sealed class DesktopWidgetService
         tile.TitleOpacity = preset.Title.Opacity;
         tile.TitleAlign = preset.Title.Align;
         tile.TitlePlacement = preset.Title.Placement;
+        tile.Box(
+            HexBrush.From(preset.Title.Background.Color, preset.Title.Background.Opacity),
+            HexBrush.From(preset.Title.Border.Color, preset.Title.Border.Opacity),
+            preset.Title.Border.Thickness, preset.Title.Border.CornerRadius, preset.Title.Border.Padding,
+            preset.Title.Gap);
+
+        // The panel's corner on the inside of its outline: WPF centres the stroke on the radius, so the inside edge
+        // is half a stroke tighter.
+        if (preset.Title.Bleed)
+            tile.Edges(preset.Border.Padding, preset.Border.CornerRadius - preset.Border.Thickness / 2);
+        else
+            tile.NoEdges();
+
         tile.FigureScale = scale;
     }
 

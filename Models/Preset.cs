@@ -273,6 +273,43 @@ public sealed class PresetTitle
     public TextAlign Align { get; set; } = TextAlign.Center;
 
     public TitlePlacement Placement { get; set; } = TitlePlacement.Top;
+
+    /// <summary>The distance between the title's box and what it heads. Four by default — the label's distance
+    /// before it had a box, so a preset that says nothing about it draws as it did.</summary>
+    public double Gap { get; set; } = 4;
+
+    /// <summary>
+    /// The title's own box: a background and an outline round the title's line, as a div round a heading — the
+    /// widget's width above or below what it heads, the title's width beside it. The same two parts the panel has,
+    /// under the same names, so whoever has styled one has already learnt the other.
+    ///
+    /// Invisible unless asked for, because a title has never had a box: a preset written before it must not grow
+    /// one. A frame part, so a colour and not a ramp — it represents nothing.
+    /// </summary>
+    public PresetFill Background { get; set; } = new() { Opacity = 0 };
+
+    public PresetTitleBorder Border { get; set; } = new();
+
+    /// <summary>
+    /// The box out to the panel's edge on its outer three sides, past the panel's padding — a title bar rather than
+    /// a heading, as the printer's bleed runs a picture past the margin. Its outer corners then take the panel's own,
+    /// so it never pokes out of a rounded panel; the title's corner radius is left to the side facing the content.
+    /// </summary>
+    public bool Bleed { get; set; }
+}
+
+/// <summary>The title box's outline and the room inside it — the panel's border, with every size nought by
+/// default instead of the panel's eight-pixel corners and ten of padding, for the reason the box gives: a preset
+/// that says nothing about a title box must not get one. A class of its own because the reader builds whatever
+/// it meets from its own defaults, so <c>"border": { "thickness": 1 }</c> in a title would otherwise arrive with
+/// the panel's padding.</summary>
+public sealed class PresetTitleBorder : PresetFill
+{
+    public PresetTitleBorder() { Color = "#FFFFFF"; Opacity = 0.25; }
+
+    public double Thickness { get; set; }
+    public double CornerRadius { get; set; }
+    public double Padding { get; set; }
 }
 
 // A note that applies to all four of these: none of them names a ramp. The SERIES does, and one thing
