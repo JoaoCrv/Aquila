@@ -62,7 +62,6 @@ namespace Aquila.ViewModels.Windows
             };
 
             _updateService.StatusChanged += RefreshUpdateBadge;
-            RefreshUpdateBadge();
         }
 
         /// <summary>
@@ -96,54 +95,68 @@ namespace Aquila.ViewModels.Windows
             new() { Symbol = symbol, FontSize = RailIconSize };
 
         [ObservableProperty]
-        private ObservableCollection<object> _menuItems =
-        [
-            new NavigationViewItem()
-            {
-                Content = "Home",
-                Icon = RailIcon(SymbolRegular.Home24),
-                TargetPageType = typeof(DashboardPage)
-            },
-            new NavigationViewItem()
-            {
-                Content = "Explorer",
-                // A magnifier, as in the mockup: the page is for finding a sensor among hundreds. The
-                // histogram it used to carry described the data, not the act, and collided with the bar
-                // chart meaning elsewhere in the app.
-                Icon = RailIcon(SymbolRegular.Search24),
-                TargetPageType = typeof(ExplorerPage)
-            },
-            new NavigationViewItem()
-            {
-                Content = "Widgets",
-                Icon = RailIcon(SymbolRegular.Grid24),
-                TargetPageType = typeof(WidgetsPage)
-            },
-            new NavigationViewItem()
-            {
-                Content = "Storage",
-                Icon = RailIcon(SymbolRegular.Storage24),
-                TargetPageType = typeof(StoragePage)
-            }
-        ];
+        private ObservableCollection<object> _menuItems = [];
 
         [ObservableProperty]
-        private ObservableCollection<object> _footerMenuItems =
-        [
-            new NavigationViewItem()
-            {
-                Content = "About",
-                Icon = RailIcon(SymbolRegular.Info24),
-                TargetPageType = typeof(AboutPage)
-            },
-            new NavigationViewItem()
-            {
-                Content = "Settings",
-                Icon = RailIcon(SymbolRegular.Settings24),
-                TargetPageType = typeof(SettingsPage)
-            }
+        private ObservableCollection<object> _footerMenuItems = [];
 
-        ];
+        /// <summary>
+        /// Builds the rail's items again, for a new window. They are controls, and a control belongs to the window
+        /// that shows it, as a page does (see MainWindow.PagesOfThisWindow). Built once for the life of the
+        /// application, they came to the next window still lit for the page the closed one was on — Settings marked
+        /// while the new window opened on the Dashboard — because a new navigation view has selected nothing yet,
+        /// and so has nothing to clear when it selects the first page.
+        /// </summary>
+        public void BuildRail()
+        {
+            MenuItems =
+            [
+                new NavigationViewItem()
+                {
+                    Content = "Home",
+                    Icon = RailIcon(SymbolRegular.Home24),
+                    TargetPageType = typeof(DashboardPage)
+                },
+                new NavigationViewItem()
+                {
+                    Content = "Explorer",
+                    // A magnifier, as in the mockup: the page is for finding a sensor among hundreds. The
+                    // histogram it used to carry described the data, not the act, and collided with the bar
+                    // chart meaning elsewhere in the app.
+                    Icon = RailIcon(SymbolRegular.Search24),
+                    TargetPageType = typeof(ExplorerPage)
+                },
+                new NavigationViewItem()
+                {
+                    Content = "Widgets",
+                    Icon = RailIcon(SymbolRegular.Grid24),
+                    TargetPageType = typeof(WidgetsPage)
+                },
+                new NavigationViewItem()
+                {
+                    Content = "Storage",
+                    Icon = RailIcon(SymbolRegular.Storage24),
+                    TargetPageType = typeof(StoragePage)
+                }
+            ];
 
+            FooterMenuItems =
+            [
+                new NavigationViewItem()
+                {
+                    Content = "About",
+                    Icon = RailIcon(SymbolRegular.Info24),
+                    TargetPageType = typeof(AboutPage)
+                },
+                new NavigationViewItem()
+                {
+                    Content = "Settings",
+                    Icon = RailIcon(SymbolRegular.Settings24),
+                    TargetPageType = typeof(SettingsPage)
+                }
+            ];
+
+            RefreshUpdateBadge();
+        }
     }
 }

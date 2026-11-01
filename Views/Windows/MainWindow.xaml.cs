@@ -31,6 +31,7 @@ namespace Aquila.Views.Windows
             SettingsService settings)
         {
             ViewModel = viewModel;
+            ViewModel.BuildRail();
             _settings = settings;
             DataContext = this;
 
