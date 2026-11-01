@@ -37,6 +37,40 @@ jobs:
         with:
           global-json-file: global.json
 
+      # The .NET 10 SDK leaves out of the graph every package the framework already carries ("package pruning"),
+      # and learns which they are from each targeting pack's data/PackageOverrides.txt in the SDK's packs folder.
+      # A Linux SDK has no WPF pack there — EnableWindowsTargeting downloads it during the restore, too late to
+      # prune by — so this restore kept System.CodeDom and System.Diagnostics.EventLog, which the lock written on
+      # Windows does not have, and failed with NU1102 from the first .NET 10 push on. Put where a Windows SDK has
+      # it, at the version the SDK in force targets for <TargetFramework>, it prunes as Windows does.
+      - name: WPF targeting pack
+        if: steps.optional.outputs.FOSSA == 'True'
+        shell: pwsh
+        run: |
+          [xml]$csproj = Get-Content Aquila.csproj
+          $tfm = @($csproj.Project.PropertyGroup | ForEach-Object { $_.TargetFramework } | Where-Object { $_ })[0]
+          if (-not ($tfm -match '^(net\d+\.\d+)-windows')) { throw "Unexpected <TargetFramework>: '$tfm'" }
+          $framework = $Matches[1]
+
+          [xml]$bundled = Get-Content "$env:DOTNET_ROOT/sdk/$(dotnet --version)/Microsoft.NETCoreSdk.BundledVersions.props"
+          $known = @($bundled.Project.ItemGroup.KnownFrameworkReference |
+              Where-Object { $_.Include -eq 'Microsoft.WindowsDesktop.App' -and $_.TargetFramework -eq $framework })[0]
+          if (-not $known) { throw "This SDK knows no Microsoft.WindowsDesktop.App for $framework" }
+
+          $name = $known.TargetingPackName
+          $version = $known.TargetingPackVersion
+          $target = "$env:DOTNET_ROOT/packs/$name/$version"
+          if (Test-Path $target) { "$name $version is already there"; exit 0 }
+
+          $id = $name.ToLowerInvariant()
+          Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/$id/$version/$id.$version.nupkg" -OutFile pack.zip
+          sudo mkdir -p $target
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          sudo unzip -q pack.zip -d $target
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Remove-Item pack.zip
+          "$name $version installed for $framework"
+
       # Restored first, so FOSSA reads the full dependency graph from project.assets.json — 85 packages —
       # rather than only the 10 named in the csproj, which is all the GitHub integration could see.
       - name: Restore
