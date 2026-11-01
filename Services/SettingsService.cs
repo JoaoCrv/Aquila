@@ -36,7 +36,7 @@ public class SettingsService(ILogger<SettingsService> logger)
         }
     }
 
-    private const int CurrentVersion = 2;
+    private const int CurrentVersion = 3;
 
     /// <summary>
     /// One-time fix-ups, guarded by <see cref="AppSettings.SettingsVersion"/> so each runs exactly once.
@@ -70,6 +70,19 @@ public class SettingsService(ILogger<SettingsService> logger)
                 _logger.LogWarning(ex, "The old colour profile could not be carried over");
             }
         }
+
+        // v3 — the motion steps were spread out (2026-11-01): Subtle 150 → 300, Smooth 300 → 600, Relaxed
+        // 400 → 900. The file stores the step's milliseconds, not its name, so a Smooth chosen in 2.4.0 would
+        // come up as the new Subtle. Carried over step by step; a number no step had — written by hand — is
+        // left as it is.
+        if (Current.SettingsVersion < 3)
+            Current.AnimationSpeedMs = Current.AnimationSpeedMs switch
+            {
+                150 => 300,
+                300 => 600,
+                400 => 900,
+                var other => other,
+            };
 
         Current.SettingsVersion = CurrentVersion;
         Save();
