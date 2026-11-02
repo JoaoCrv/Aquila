@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:controls="clr-namespace:Aquila.Controls"
-        xmlns:helpers="clr-namespace:Aquila.Helpers"
+        xmlns:vm="clr-namespace:Aquila.ViewModels.Windows"
         Title="Widget"
         Width="460"
         MinWidth="0"
@@ -36,14 +36,6 @@
     -->
 
     <Window.Resources>
-        <CollectionViewSource x:Key="GroupedSensors" Source="{Binding ViewModel.Sensors}">
-            <CollectionViewSource.GroupDescriptions>
-                <PropertyGroupDescription PropertyName="Component"/>
-            </CollectionViewSource.GroupDescriptions>
-        </CollectionViewSource>
-
-        <helpers:MatchConverter x:Key="Match"/>
-
         <Style TargetType="ui:CardExpander" BasedOn="{StaticResource {x:Type ui:CardExpander}}">
             <Setter Property="Margin" Value="{DynamicResource Aquila.Space.BetweenCards}"/>
         </Style>
@@ -93,6 +85,227 @@
             </Style.Triggers>
         </Style>
 
+        <!-- A group of things that belong together inside a tab: the type, the readings. -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+
+        <!-- One kind in the type gallery. The current one wears the theme's chosen colours with a tick; the one
+             under the pointer or the keys is lifted, which is how the arrows show where they are — so no focus
+             rectangle of its own. A MenuToggle: the click chooses through the view model, and the tile shows. -->
+        <Style x:Key="KindTile" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Margin" Value="4"/>
+            <!-- Said outright: the kit's own ToggleButton style still applies under this one, and it does not
+                 stretch, so each tile came out the width of its own preview. -->
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Tile" Padding="6" CornerRadius="6" BorderThickness="1"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource ToggleButtonBackgroundChecked}"/>
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ToggleButtonForegroundChecked}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- One preset in the Preset tab's list: a card-like row, lifted under the pointer or the keys, in the theme's
+             chosen colours while this widget wears it. -->
+        <Style x:Key="PresetRowStyle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Row" MinHeight="40" Padding="12,0,6,0" CornerRadius="6" BorderThickness="1"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource ToggleButtonBackgroundChecked}"/>
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ToggleButtonForegroundChecked}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- A preset row's own menu: what can be done to that preset without wearing it. The menu takes the ROW as
+             its data context when it opens (OnPresetRowMenu), so each entry acts on that preset and no other. -->
+        <ContextMenu x:Key="PresetRowMenu" x:Shared="False">
+            <MenuItem Header="Export…" Click="OnExportPreset">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="ArrowDownload24"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator Visibility="{Binding CanDelete, Converter={StaticResource BoolToVisibility}}"/>
+            <MenuItem Header="Delete" Click="OnDeleteRowPreset"
+                      Foreground="{DynamicResource Aquila.Chrome.Danger}"
+                      Visibility="{Binding CanDelete, Converter={StaticResource BoolToVisibility}}">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Delete24" Foreground="{DynamicResource Aquila.Chrome.Danger}"/>
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+
+        <!-- One choice of a segmented control — a List's source. -->
+        <Style x:Key="Segment" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Height" Value="{DynamicResource Aquila.Size.Control}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Face" CornerRadius="4" BorderThickness="1" Background="Transparent"
+                                BorderBrush="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="{DynamicResource ToggleButtonBackgroundChecked}"/>
+                                <Setter TargetName="Face" Property="BorderBrush" Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ToggleButtonForegroundChecked}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- A heading inside a tab: what the controls under it are about. -->
+        <Style x:Key="Section" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <!-- A step of the header's path back: the text's own colour, underlined, rather than a web page's blue. -->
+        <Style x:Key="Crumb" TargetType="Hyperlink">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="TextDecorations" Value="Underline"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- One of the widget's three tabs. A MenuToggle, so the click asks the view model and the tab only shows
+             the answer: a radio button would write its own state, and unchecking the last tab would write too.
+             The open one is semibold in the primary text with a short accent bar under it; the others recede. -->
+        <Style x:Key="TabHeader" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <!-- A click on a tab leaves the keys where they were, so the arrows go on moving the widget. -->
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid x:Name="Face" Height="40" Margin="0,0,24,0" Background="Transparent" Opacity="0.7">
+                            <ContentPresenter x:Name="Label" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                              TextElement.FontSize="14"/>
+                            <Border x:Name="Indicator" Width="16" Height="3" CornerRadius="1.5"
+                                    HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="Hidden"
+                                    Background="{DynamicResource Aquila.Chrome.Accent}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Opacity" Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Face" Property="Opacity" Value="1"/>
+                                <Setter TargetName="Label" Property="TextElement.FontWeight" Value="SemiBold"/>
+                                <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Everything that acts on a preset as a whole. One menu, used by the Preset tab and by the preset view's
+             header: x:Shared is off, so each button has a menu of its own. -->
+        <ContextMenu x:Key="PresetMenu" x:Shared="False">
+            <MenuItem Header="Rename" Click="OnRenamePreset"
+                      IsEnabled="{Binding ViewModel.CanUpdatePreset}">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Rename24"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Set as default"
+                      Command="{Binding ViewModel.SetAsDefaultCommand}">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Star24"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <!-- The arrows point the way the file travels: down and out
+                 of the app, up and into it. -->
+            <MenuItem Header="Export preset…" Click="OnExportPreset">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="ArrowDownload24"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Import preset…" Click="OnImportPreset">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="ArrowUpload24"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <!-- The one entry that cannot be undone by doing it again wears
+                 the app's own alert colour. -->
+            <MenuItem Header="Delete"
+                      Foreground="{DynamicResource Aquila.Chrome.Danger}"
+                      IsEnabled="{Binding ViewModel.CanUpdatePreset}"
+                      Command="{Binding ViewModel.DeletePresetCommand}"
+                      CommandParameter="{Binding ViewModel.SelectedPreset}">
+                <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Delete24"
+                                   Foreground="{DynamicResource Aquila.Chrome.Danger}"/>
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
     </Window.Resources>
 
     <!-- No Border of its own: the panel IS a window, so its background, its rounded corners and its
@@ -105,569 +318,590 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- The whole panel is a drag handle: it has no title bar of its own, and being pinned to one
-                 edge would eventually cover the very widget being edited. -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,10" MouseLeftButtonDown="Header_Drag">
+            <!-- The header says where you are: the widget, or the preset you went into from it, each step a way
+                 back. All of it is the panel's handle — the panel has no title bar of its own, and wherever it is
+                 docked it may one day cover the widget being edited. Dragged, it stays where it is left; a
+                 double-click docks it again. -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,6" MouseLeftButtonDown="Header_Drag">
                 <DockPanel>
-                    <!-- Not Transparent: in the design this is a box with a face — a button you can see
-                         before you need it, rather than a glyph floating beside the title. -->
-                    <ui:Button Style="{StaticResource IconButton}" DockPanel.Dock="Left" Margin="0,0,8,0"
-                               Icon="{ui:SymbolIcon ChevronLeft24}"
-                               ToolTip="Back to the widget"
-                               Visibility="{Binding ViewModel.EditingPreset, Converter={StaticResource BoolToVisibility}}"
-                               Command="{Binding ViewModel.ClosePresetCommand}"/>
+                    <!-- The widget's own actions sit beside its name. They lived in a footer at the bottom of a
+                         scrolling panel, as far as they could be from the thing they act on.
 
-                    <!-- The widget's own actions sit beside its name, the way the preset's sit beside its
-                         picker. They lived in a footer at the bottom of a scrolling panel, as far as they
-                         could be from the thing they act on.
-
-                         Icons, not labelled buttons: two full buttons would turn the header into a toolbar,
-                         and the header is also the handle the panel is dragged by. Shown only while a widget
-                         is open — with nothing selected, adding is THE action and gets the centre of the
-                         panel instead; while a preset is being edited, neither is about what is on screen. -->
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
-                                Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
+                         Icons, not labelled buttons: full buttons would turn the header into a toolbar, and the
+                         header is also the handle the panel is dragged by. Duplicate and Remove in the widget's
+                         view; the preset's menu in the preset's. Close always: the panel exists only while a widget
+                         is selected, and closing it is letting go of the selection. -->
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,2,0,0">
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
+                            <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                       Icon="{ui:SymbolIcon Copy24}"
+                                       ToolTip="Duplicate (Ctrl+D)"
+                                       Click="Duplicate_Click"/>
+                            <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                       Icon="{ui:SymbolIcon Delete24}"
+                                       ToolTip="Remove (Del) — Discard brings it back"
+                                       Click="Remove_Click"/>
+                            <Border Width="1" Height="20" Margin="8,0,2,0" Opacity="0.14"
+                                    Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
+                            <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                       Icon="{ui:SymbolIcon MoreHorizontal24}"
+                                       ToolTip="More"
+                                       ContextMenu="{StaticResource PresetMenu}"
+                                       Click="OnPresetMenu"/>
+                            <Border Width="1" Height="20" Margin="8,0,2,0" Opacity="0.14"
+                                    Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
                         <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
-                                   Icon="{ui:SymbolIcon Add24}"
-                                   ToolTip="Add a widget"
-                                   Click="Add_Click"/>
-                        <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
-                                   Icon="{ui:SymbolIcon Delete24}"
-                                   ToolTip="Remove this widget — Discard brings it back"
-                                   Click="Remove_Click"/>
+                                   Appearance="Transparent" BorderThickness="0"
+                                   Icon="{ui:SymbolIcon Dismiss24}"
+                                   ToolTip="Close (Esc)"
+                                   Click="Close_Click"/>
                     </StackPanel>
 
-                    <TextBlock Text="{Binding ViewModel.PanelTitle}" FontSize="18" FontWeight="SemiBold"
-                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <StackPanel>
+                        <!-- "Widgets" goes up a level: it lets go of the widget and opens the bar's list of them.
+                             In the preset view the widget's name is the way back to it, as Esc is. -->
+                        <TextBlock FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
+                            <Hyperlink Style="{StaticResource Crumb}" Click="OnWidgetsCrumb">Widgets</Hyperlink>
+                            <Run Text=" › "/><Run Text="{Binding ViewModel.WidgetName, Mode=OneWay}"/>
+                        </TextBlock>
+                        <TextBlock FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
+                            <Hyperlink Style="{StaticResource Crumb}" Click="OnWidgetsCrumb">Widgets</Hyperlink>
+                            <Run Text=" › "/><Hyperlink Style="{StaticResource Crumb}"
+                                                        Command="{Binding ViewModel.ClosePresetCommand}"><Run
+                                Text="{Binding ViewModel.WidgetName, Mode=OneWay}"/></Hyperlink>
+                            <Run Text=" › "/><Run Text="{Binding ViewModel.PanelTitle, Mode=OneWay}"/>
+                        </TextBlock>
+
+                        <TextBlock Text="{Binding ViewModel.PanelTitle}" FontSize="20" FontWeight="SemiBold"
+                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}"/>
+                        <!-- In the preset view the title IS the name, renamed where it is read. A boxed input
+                             under a picker showing the same word looked like two fields for one thing. -->
+                        <TextBox x:Name="PresetNameBox" Margin="-6,0,0,0" FontSize="20" Style="{StaticResource InlineTitle}"
+                                 IsEnabled="{Binding ViewModel.CanUpdatePreset}"
+                                 ToolTip="Click to rename. Enter to keep it, Escape to put it back."
+                                 KeyDown="OnNameKey"
+                                 Text="{Binding ViewModel.PresetName, UpdateSourceTrigger=LostFocus}"
+                                 Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
                 </DockPanel>
-                <TextBlock FontSize="12" Opacity="0.6" TextWrapping="Wrap"
+                <TextBlock FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"
                            Text="{Binding ViewModel.PanelSubtitle}"/>
             </StackPanel>
 
-            <!-- Everything below is hidden until something is selected: an editor full of controls that
-                 change nothing is worse than an empty panel saying so. -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Expander.Expanded="OnCardExpanded">
+            <!-- The widget, in three tabs by what each is about: what it reads and says, what it wears, and the
+                 rest of how it is drawn and where. They replaced an accordion of six cards, where whatever was being
+                 used spent its life below the fold. Each tab scrolls on its own, and the one open stays open as the
+                 selection moves from widget to widget. -->
+            <Grid Grid.Row="1"
+                  Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                    <ui:CardExpander Icon="{ui:SymbolIcon Grid24}" IsExpanded="True">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Widget" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
+                <Border Grid.Row="0" Style="{StaticResource Divider}" Margin="0" VerticalAlignment="Bottom"
+                        Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                    <controls:MenuToggle Style="{StaticResource TabHeader}" Content="Content"
+                                         Command="{Binding ViewModel.ShowTabCommand}"
+                                         CommandParameter="{x:Static vm:PanelTab.Content}"
+                                         IsChecked="{Binding ViewModel.SelectedTab, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=Content}"/>
+                    <controls:MenuToggle Style="{StaticResource TabHeader}" Content="Preset"
+                                         Command="{Binding ViewModel.ShowTabCommand}"
+                                         CommandParameter="{x:Static vm:PanelTab.Preset}"
+                                         IsChecked="{Binding ViewModel.SelectedTab, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=Preset}"/>
+                    <controls:MenuToggle Style="{StaticResource TabHeader}" Content="Customize"
+                                         Command="{Binding ViewModel.ShowTabCommand}"
+                                         CommandParameter="{x:Static vm:PanelTab.Customize}"
+                                         IsChecked="{Binding ViewModel.SelectedTab, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=Customize}"/>
+                </StackPanel>
 
-                        <Grid Margin="0,14,0,0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
+                <!-- Content: what the widget is, what it reads, and the words it says. -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Visibility="{Binding ViewModel.SelectedTab, Converter={StaticResource Match}, ConverterParameter=Content}">
+                    <StackPanel Margin="2,16,6,16">
+                        <!-- The type: what the widget is, drawn as itself — its own readings, in its own preset — with
+                             the way to change it. Change opens the gallery here, in the tab: every kind drawn the same
+                             way, so the choice is made by looking rather than by reading names, and the card under it
+                             says what a change would take away before it does. -->
+                        <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ui:Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+                                           Content="{Binding ViewModel.TypeButtonLabel}"
+                                           Command="{Binding ViewModel.ToggleGalleryCommand}"/>
+                                <Border DockPanel.Dock="Left" Width="72" Height="44" Margin="0,0,12,0" Padding="4"
+                                        CornerRadius="4" Background="{DynamicResource Aquila.Window.Scrim}">
+                                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                                        <controls:KindPreview Kind="{Binding ViewModel.SelectedKind}"
+                                                              Sensors="{Binding ViewModel.GalleryReadings}"
+                                                              Accent="{Binding ViewModel.PreviewAccent}"/>
+                                    </Viewbox>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ViewModel.SelectedKind.Name}" FontSize="14" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding ViewModel.TypeSummary}" FontSize="12" Opacity="0.7"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
 
-                            <StackPanel Grid.Row="0">
-                                <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
-                                <ListBox ItemsSource="{Binding ViewModel.Kinds}"
-                                         SelectedItem="{Binding ViewModel.SelectedKind}"
-                                         BorderThickness="0" Background="Transparent"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                    <!-- Columns, not Rows="1". One row worked while there were three kinds and
-                                         broke at five: each cell fell to about 70px and every description wrapped
-                                         to four lines. Fixing the column count instead lets the list fill downwards
-                                         as kinds are added — two of them, because the panel is a narrow column and
-                                         three cells across it are narrower than the word "MiniSparkline". -->
-                                    <ListBox.ItemsPanel>
-                                        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
-                                    </ListBox.ItemsPanel>
-                                    <ListBox.ItemContainerStyle>
-                                        <Style TargetType="ListBoxItem">
-                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                            <Setter Property="Margin" Value="0,0,6,0"/>
-                                            <Setter Property="Padding" Value="10,8"/>
-                                        </Style>
-                                    </ListBox.ItemContainerStyle>
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
+                        <StackPanel Margin="0,8,0,0"
+                                    Visibility="{Binding ViewModel.IsGalleryOpen, Converter={StaticResource BoolToVisibility}}">
+                            <!-- The arrows move between the tiles, Enter takes one, Esc closes; the tile under the
+                                 pointer or the keys is the one the card below describes. -->
+                            <ItemsControl x:Name="Gallery" Margin="-4,0" ItemsSource="{Binding ViewModel.GalleryKinds}"
+                                          KeyboardNavigation.DirectionalNavigation="Contained"
+                                          KeyboardNavigation.TabNavigation="Once">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <controls:MenuToggle Style="{StaticResource KindTile}"
+                                                             IsChecked="{Binding IsCurrent, Mode=OneWay}"
+                                                             Command="{Binding DataContext.ViewModel.ChooseKindCommand,
+                                                                       RelativeSource={RelativeSource AncestorType=Window}}"
+                                                             CommandParameter="{Binding Kind}"
+                                                             MouseEnter="OnKindTileHovered"
+                                                             GotKeyboardFocus="OnKindTileFocused">
                                             <StackPanel>
-                                                <!-- The kind drawing itself, live, before you choose it. Built by the
-                                                     catalog — the same factory the desktop uses — so it cannot fall
-                                                     out of date the way the hand-written gallery on the Widgets page
-                                                     did, four kinds behind a catalog of nine.
-
-                                                     A fixed-height box with the piece scaled into it at its own
-                                                     proportions: a meter stays a strip and a gauge stays round,
-                                                     which is most of what tells them apart at a glance. -->
-                                                <Border Height="56" Margin="0,0,0,8" CornerRadius="4" Padding="6"
+                                                <Border Height="52" Padding="6" CornerRadius="4"
                                                         Background="{DynamicResource Aquila.Window.Scrim}">
                                                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
                                                         <controls:KindPreview
-                                                            Kind="{Binding}"
-                                                            Sensors="{Binding DataContext.ViewModel.PreviewSensors,
+                                                            Kind="{Binding Kind}"
+                                                            Sensors="{Binding DataContext.ViewModel.GalleryReadings,
                                                                       RelativeSource={RelativeSource AncestorType=Window}}"
                                                             Accent="{Binding DataContext.ViewModel.PreviewAccent,
                                                                      RelativeSource={RelativeSource AncestorType=Window}}"/>
                                                     </Viewbox>
                                                 </Border>
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding Description}" FontSize="11" Opacity="0.6"
-                                                           TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                <DockPanel Margin="2,8,2,0">
+                                                    <ui:SymbolIcon DockPanel.Dock="Right" Symbol="Checkmark24" FontSize="14"
+                                                                   Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}"/>
+                                                    <TextBlock Text="{Binding Kind.Name}" FontSize="13"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </DockPanel>
                                             </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </StackPanel>
-
-                            <!-- No accent picker here any more: colour belongs to a reading, not to the widget,
-                                 and each row above carries its own. -->
-                            <StackPanel Grid.Row="1" Margin="0,16,0,0">
-                                <!-- Under the type, because it IS one: having picked bars, the next thing
-                                     to say is which way they run. It sat in Data first, which was wrong —
-                                     that card is about which readings and what is shown of them, and this
-                                     is about the shape the widget takes. -->
-                                <StackPanel Margin="0,0,0,16"
-                                            Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Text="Bars run" Style="{StaticResource FieldLabel}"/>
-                                    <ComboBox ItemsSource="{Binding ViewModel.BarDirections}"
-                                              SelectedItem="{Binding ViewModel.BarDirection}"/>
-                                </StackPanel>
-
-                                <TextBlock Text="Title" Style="{StaticResource FieldLabel}"/>
-                                <ui:TextBox PlaceholderText="Defaults to the sensor name"
-                                            Text="{Binding ViewModel.Title, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                        </Grid>
-                    </ui:CardExpander>
-
-                    <!-- Hidden for the kinds that read nothing. A backdrop has no sensor to pick, and a
-                         sensor list it cannot use would be a choice with nowhere to go. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon DataHistogram24}"
-                                     Visibility="{Binding ViewModel.ShowsDataSection, Converter={StaticResource BoolToVisibility}}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Data" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
-
-                        <!-- A plain stack: in a scrolling panel nothing can stretch to fill, so the
-                             Grid that used to make the list take the leftover height had none to take. The
-                             list carries its own height instead. -->
-                        <StackPanel Margin="0,14,0,0">
-
-                            <TextBlock Text="Sensor" Style="{StaticResource FieldLabel}"/>
-                            <ui:TextBox PlaceholderText="Search sensors…"
-                                        Text="{Binding ViewModel.SensorFilter, UpdateSourceTrigger=PropertyChanged}"/>
-                            <!-- A height of its own, and a scrollbar of its own. Left to measure freely
-                                 inside the panel's scroller it would grow to two hundred rows and push
-                                 everything below it off the bottom. -->
-                            <ListBox Margin="0,8,0,0" Height="240"
-                                     ItemsSource="{Binding Source={StaticResource GroupedSensors}}"
-                                     SelectedItem="{Binding ViewModel.SelectedSensor}">
-                                <ListBox.GroupStyle>
-                                    <GroupStyle>
-                                        <GroupStyle.HeaderTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                                           Opacity="0.6" FontSize="11" Margin="0,8,0,2"/>
-                                            </DataTemplate>
-                                        </GroupStyle.HeaderTemplate>
-                                    </GroupStyle>
-                                </ListBox.GroupStyle>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-                                            <!-- Live value: names alone are ambiguous when a machine reports a
-                                                 dozen similar temperatures. A list has no one value to show —
-                                                 its value is its rows — so for a list there is none. -->
-                                            <TextBlock Grid.Column="1" Opacity="0.6" Margin="12,0,0,0"
-                                                       Visibility="{Binding Sensor, Converter={StaticResource NullToCollapsed}}">
-                                                <TextBlock.Text>
-                                                    <MultiBinding StringFormat="{}{0:F1} {1}">
-                                                        <Binding Path="Sensor.Value" FallbackValue="--"/>
-                                                        <Binding Path="Sensor.Unit"/>
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
-                                            </TextBlock>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,10,0,6"
-                                       Text="{Binding ViewModel.SeriesHint}"/>
-
-                            <!-- BETWEEN the two lists, because that is what it does: it takes the sensor picked
-                                 in the list above and puts it in the list below. Beside the search box it read
-                                 as part of searching, and sat as far as it could from the rows it changes.
-
-                                 Picking and pressing are still deliberately separate. A click that added straight
-                                 from the list would be far too easy to do by accident while scrolling two
-                                 hundred sensors. The label says which of the two things the press does —
-                                 "instead" is the whole of the difference between adding and replacing. -->
-                            <ui:Button Appearance="Primary" HorizontalAlignment="Stretch" Margin="0,0,0,14"
-                                       Content="{Binding ViewModel.AddLabel}"
-                                       IsEnabled="{Binding ViewModel.CanAdd}"
-                                       Command="{Binding ViewModel.AddSeriesCommand}"/>
-
-                            <!-- What the widget draws, in the order it was added — and the way to take one out.
-                                 Nothing here about how a reading LOOKS: which ramp draws each one moved to the
-                                 Preset card, beside the preset whose ramps it chooses from. This card says what
-                                 is on the screen; that one says how it is drawn. -->
-                            <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="4"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       Text="{Binding Sensor.Display}"/>
-                                            <ui:Button Style="{StaticResource IconButton}" Grid.Column="2"
-                                                       Icon="{ui:SymbolIcon Dismiss24}"
-                                                       ToolTip="Remove this reading"
-                                                       Command="{Binding DataContext.ViewModel.RemoveSeriesCommand,
-                                                                 RelativeSource={RelativeSource AncestorType=Window}}"
-                                                       CommandParameter="{Binding}"/>
-                                        </Grid>
+                                        </controls:MenuToggle>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <!-- How many of a list's rows are shown, under the list it counts. With the widget
-                                 and not in the preset, like a chart's window: it decides how much of the data is
-                                 on the screen, not how the data looks. -->
-                            <StackPanel Margin="0,14,0,0"
-                                        Visibility="{Binding ViewModel.ShowsList, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                               Text="{Binding ViewModel.ItemCount, StringFormat={}{0:F0}}"/>
-                                    <TextBlock Text="Rows" Style="{StaticResource FieldLabel}"/>
-                                </DockPanel>
-                                <Slider Minimum="1" Maximum="{Binding ViewModel.MaxItemCount}"
-                                        TickFrequency="1" IsSnapToTickEnabled="True"
-                                        Value="{Binding ViewModel.ItemCount}"/>
-
-                                <!-- What each row draws besides its name and number, and the total. Here for
-                                     the same reason as the count: they are things to read, and trying on a
-                                     preset must never take one away. How they look is the preset's. -->
-                                <CheckBox Margin="0,10,0,0" Content="Bar under each row"
-                                          IsChecked="{Binding ViewModel.BarShown}"/>
-                                <CheckBox Margin="0,10,0,0" Content="Trend beside each reading"
-                                          IsChecked="{Binding ViewModel.SparklineShown}"/>
-                                <CheckBox Margin="0,10,0,0" Content="Total beside the title"
-                                          IsChecked="{Binding ViewModel.TotalShown}"/>
-                            </StackPanel>
-
-                            <!-- What is shown of the reading, beside the readings themselves. Not in the
-                                 preset: a preset has to be safe to try on, and these two change what is on
-                                 the screen rather than how it looks. -->
-                            <CheckBox Margin="0,14,0,0" Content="Show the unit"
-                                      Visibility="{Binding ViewModel.ShowsUnit, Converter={StaticResource BoolToVisibility}}"
-                                      IsChecked="{Binding ViewModel.UnitShown}"/>
-
-                            <StackPanel Visibility="{Binding ViewModel.CanHideValue, Converter={StaticResource BoolToVisibility}}">
-                                <CheckBox Margin="0,10,0,0" Content="Show the reading"
-                                          IsChecked="{Binding ViewModel.ValueShown}"/>
-                                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                           Opacity="0.5" TextWrapping="Wrap"
-                                           Text="Off leaves the dial or bar drawing on its own, with the title above it."/>
-                            </StackPanel>
-                        </StackPanel>
-                    </ui:CardExpander>
-
-                    <!-- What it looks like lives here, in a file shared with every widget wearing it.
-                         Changing the picker re-dresses THIS widget; editing the preset changes them all,
-                         which is the point of it being a preset rather than thirty fields per widget. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon Color24}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Preset" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
-
-                        <StackPanel Margin="0,14,0,0" Expander.Expanded="OnCardExpanded">
-                            <DockPanel>
-                                <!-- Everything that acts on the preset showing in the list, in the order
-                                     it is reached for: open it, copy it, then the rest. -->
-                                <ui:Button Style="{StaticResource IconButton}" x:Name="PresetMenuButton" DockPanel.Dock="Right" Margin="6,0,0,0"
-                                           Icon="{ui:SymbolIcon MoreHorizontal24}"
-                                           ToolTip="More"
-                                           Click="OnPresetMenu">
-                                    <ui:Button.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Rename" Click="OnRenamePreset"
-                                                      IsEnabled="{Binding ViewModel.CanUpdatePreset}">
-                                                <MenuItem.Icon>
-                                                    <ui:SymbolIcon Symbol="Rename24"/>
-                                                </MenuItem.Icon>
-                                            </MenuItem>
-                                            <MenuItem Header="Set as default"
-                                                      Command="{Binding ViewModel.SetAsDefaultCommand}">
-                                                <MenuItem.Icon>
-                                                    <ui:SymbolIcon Symbol="Star24"/>
-                                                </MenuItem.Icon>
-                                            </MenuItem>
-                                            <Separator/>
-                                            <!-- The arrows point the way the file travels: down and out
-                                                 of the app, up and into it. -->
-                                            <MenuItem Header="Export preset…" Click="OnExportPreset">
-                                                <MenuItem.Icon>
-                                                    <ui:SymbolIcon Symbol="ArrowDownload24"/>
-                                                </MenuItem.Icon>
-                                            </MenuItem>
-                                            <MenuItem Header="Import preset…" Click="OnImportPreset">
-                                                <MenuItem.Icon>
-                                                    <ui:SymbolIcon Symbol="ArrowUpload24"/>
-                                                </MenuItem.Icon>
-                                            </MenuItem>
-                                            <Separator/>
-                                            <!-- The one entry that cannot be undone by doing it again wears
-                                                 the app's own alert colour. -->
-                                            <MenuItem Header="Delete"
-                                                      Foreground="{DynamicResource Aquila.Chrome.Danger}"
-                                                      IsEnabled="{Binding ViewModel.CanUpdatePreset}"
-                                                      Command="{Binding ViewModel.DeletePresetCommand}"
-                                                      CommandParameter="{Binding ViewModel.SelectedPreset}">
-                                                <MenuItem.Icon>
-                                                    <ui:SymbolIcon Symbol="Delete24"
-                                                                   Foreground="{DynamicResource Aquila.Chrome.Danger}"/>
-                                                </MenuItem.Icon>
-                                            </MenuItem>
-                                        </ContextMenu>
-                                    </ui:Button.ContextMenu>
-                                </ui:Button>
-
-                                <!-- Beside the list, because it is about the preset in the list: it makes
-                                     a new one FROM the one showing, rather than from nothing. -->
-                                <ui:Button Style="{StaticResource IconButton}" DockPanel.Dock="Right" Margin="6,0,0,0"
-                                           Icon="{ui:SymbolIcon Copy24}"
-                                           ToolTip="New preset, starting from this one"
-                                           Command="{Binding ViewModel.NewPresetCommand}"/>
-
-                                <ui:Button DockPanel.Dock="Right" Margin="6,0,0,0" Content="Edit"
-                                           Appearance="Primary" Icon="{ui:SymbolIcon Edit24}"
-                                           Command="{Binding ViewModel.EditPresetCommand}"/>
-                                <ComboBox ItemsSource="{Binding ViewModel.Presets}"
-                                          SelectedItem="{Binding ViewModel.SelectedPreset}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-
-                                                <!-- The padlock marks what cannot be written over. On the
-                                                     locked ones and not the others: the restriction is the
-                                                     exception, so it is the exception that carries a mark. -->
-                                                <ui:SymbolIcon Grid.Column="0" Symbol="LockClosed24"
-                                                               FontSize="12" Opacity="0.55"
-                                                               Margin="0,0,6,0" VerticalAlignment="Center"
-                                                               Visibility="{Binding IsBuiltIn, Converter={StaticResource BoolToVisibility}}"/>
-
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
-                                                           VerticalAlignment="Center"/>
-
-                                                <ui:Button Style="{StaticResource IconButton}" x:Name="Remove" Grid.Column="2"
-                                                           Visibility="Collapsed" Appearance="Transparent" Margin="8,0,0,0"
-                                                           Icon="{ui:SymbolIcon Delete24}"
-                                                           ToolTip="Delete this preset"
-                                                           PreviewMouseLeftButtonDown="OnDeletePreset"/>
-                                            </Grid>
-
-                                            <DataTemplate.Triggers>
-                                                <!-- Shown on the row under the pointer, and never on a
-                                                     locked one. The IsMouseOver condition also keeps it out
-                                                     of the CLOSED picker for free: the same template draws
-                                                     the selection box, where there is no ComboBoxItem above
-                                                     it for the binding to find. -->
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Value="True" Binding="{Binding IsMouseOver,
-                                                                   RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"/>
-                                                        <Condition Value="False" Binding="{Binding IsBuiltIn}"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter TargetName="Remove" Property="Visibility" Value="Visible"/>
-                                                </MultiDataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                            </DockPanel>
-                            <TextBox x:Name="PresetNameBox" Margin="-6,8,0,0" Style="{StaticResource InlineTitle}"
-                                     IsEnabled="{Binding ViewModel.CanUpdatePreset}"
-                                     ToolTip="Click to rename. Enter to keep it, Escape to put it back."
-                                     KeyDown="OnNameKey"
-                                     Text="{Binding ViewModel.PresetName, UpdateSourceTrigger=LostFocus}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="{Binding ViewModel.PresetNote}"/>
-
-                            <!-- What is inside it, without opening it. A preset IS its ramps, so the
-                                 ramps are the summary; the reach goes here too, because the number of
-                                 widgets about to change is the reason to hesitate before Edit. -->
-                            <Border Margin="0,10,0,0" Padding="10" CornerRadius="6" BorderThickness="1"
-                                    Background="#20000000"
-                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <Border Style="{StaticResource Card}" Margin="0,4,0,0">
                                 <StackPanel>
-                                    <ItemsControl ItemsSource="{Binding ViewModel.RampPreviews}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <DockPanel Margin="0,0,0,6">
-                                                    <TextBlock DockPanel.Dock="Left" Width="72"
-                                                               VerticalAlignment="Center" FontSize="11"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               Text="{Binding Name}"/>
-                                                    <UniformGrid Rows="1" Height="14">
-                                                        <Border Background="{Binding Normal}"/>
-                                                        <Border Background="{Binding Elevated}"/>
-                                                        <Border Background="{Binding Alert}"/>
-                                                        <Border Background="{Binding Critical}"/>
-                                                    </UniformGrid>
-                                                </DockPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-
-                                    <DockPanel Margin="0,6,0,0">
-                                        <!-- Shown in itself. A font's name tells you far less about it
-                                             than one word set in it does. -->
-                                        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center"
-                                                   FontSize="12" Opacity="0.6"
-                                                   FontFamily="{Binding ViewModel.TitleFont}"
-                                                   Text="{Binding ViewModel.TitleFont}"/>
-                                        <ui:Badge HorizontalAlignment="Left" Appearance="Light">
-                                            <TextBlock FontSize="11" Text="{Binding ViewModel.WornBy}"/>
-                                        </ui:Badge>
+                                    <TextBlock TextWrapping="Wrap">
+                                        <Run Text="{Binding ViewModel.FocusedKind.Name, Mode=OneWay}" FontWeight="SemiBold"/><Run
+                                             Text=" · "/><Run Text="{Binding ViewModel.FocusedKind.Description, Mode=OneWay}"
+                                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </TextBlock>
+                                    <DockPanel Margin="0,8,0,0"
+                                               Visibility="{Binding ViewModel.HasConsequence, Converter={StaticResource BoolToVisibility}}">
+                                        <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Warning24" FontSize="16" Margin="0,0,8,0"
+                                                       VerticalAlignment="Top" Foreground="{DynamicResource Aquila.Chrome.Caution}"/>
+                                        <TextBlock Text="{Binding ViewModel.Consequence}" TextWrapping="Wrap"/>
                                     </DockPanel>
                                 </StackPanel>
                             </Border>
+                        </StackPanel>
 
-                            <!-- Which ramp draws each reading of THIS widget — here, beside the preset its options
-                                 come from, rather than in Data, two cards away from the ramps it names. Choosing a
-                                 ramp is a question about how a reading LOOKS, and with the cards working as an
-                                 accordion the two halves of that question could never be open at once.
+                        <!-- The readings: one row each, drawn in the ramp the reading is shown in, with its live value
+                             and the way to take it out. A reading is added from a list that appears when asked for, so
+                             no list of two hundred sensors stands in the panel the rest of the time. -->
+                        <StackPanel Margin="0,20,0,0"
+                                    Visibility="{Binding ViewModel.ShowsReadings, Converter={StaticResource BoolToVisibility}}">
+                            <DockPanel Margin="0,0,0,4">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldLabel}" Margin="0"
+                                           Text="{Binding ViewModel.ReadingsCount}"/>
+                                <TextBlock Text="Readings" Style="{StaticResource FieldLabel}" Margin="0"/>
+                            </DockPanel>
 
-                                 In the first view and NEVER in the edit view, because of where it is stored: on
-                                 the widget's own reading (WidgetSeries.Ramp), not in the preset. The edit view
-                                 changes the preset every widget wearing it shares; this changes one widget. And it
-                                 is why trying another preset keeps these choices — they travel by name, and a
-                                 name the new preset does not have falls back to its primary.
-
-                                 Each row names a RAMP, not a colour: which colour it shows depends on how the
-                                 reading is doing. Two readings on one ramp are one reading, which is why they start
-                                 on different ones.
-
-                                 "Drawn in" rather than "Colour", and that is not fussiness: the format calls these
-                                 ramps precisely so the word colour stays free for the fixed kind — a theme's, a
-                                 caption's, value.color. A phrase names the RELATIONSHIP and borrows no noun that
-                                 already has an owner. Scheme and Palette were out for the same reason:
-                                 Aquila.Scheme.* and the theme palette are both taken.
-
-                                 Hidden for a widget with no readings — a clock or a backdrop has nothing to draw
-                                 in anything. -->
-                            <StackPanel Margin="0,16,0,0">
-                                <StackPanel.Style>
-                                    <Style TargetType="StackPanel">
+                            <Border Padding="0">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding ViewModel.Chosen.Count}" Value="0">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </StackPanel.Style>
-
-                                <Grid Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="8"/>
-                                        <ColumnDefinition Width="140"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}" Text="Reading"/>
-                                    <TextBlock Grid.Column="2" Style="{StaticResource FieldLabel}" Text="Drawn in"/>
-                                </Grid>
-
+                                </Border.Style>
                                 <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Margin="0,0,0,4">
+                                            <Grid MinHeight="44" Margin="12,0,6,0">
                                                 <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="44"/>
                                                     <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="8"/>
-                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" VerticalAlignment="Center"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           Text="{Binding Sensor.Display}"/>
-                                                <!-- The ramp is SHOWN, not named: four swatches say "this
-                                                     changes with the reading" without anybody being told, and
-                                                     teach the word instead of replacing it. The same strip the
-                                                     summary above draws, so a ramp looks like itself wherever
-                                                     you meet it.
-
-                                                     Bound to ShownItem — the ramp the reading is actually drawn in
-                                                     under this preset, as an ITEM of the list. Two wrong bindings
-                                                     came before it, and SeriesRow.ShownItem tells both stories:
-                                                     by the stored name it came up empty when the preset lacked the
-                                                     name, and by any name at all it came up empty after every switch,
-                                                     because "primary" before and "primary" after looked like no
-                                                     change to WPF and it never re-selected in the new list. -->
-                                                <ComboBox Grid.Column="2"
-                                                          ItemsSource="{Binding DataContext.ViewModel.RampPreviews,
-                                                                       RelativeSource={RelativeSource AncestorType=Window}}"
-                                                          SelectedItem="{Binding ShownItem}">
-                                                    <ComboBox.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <UniformGrid Rows="1" Width="34" Height="10"
-                                                                             VerticalAlignment="Center" Margin="0,0,8,0">
-                                                                    <Border Background="{Binding Normal}"/>
-                                                                    <Border Background="{Binding Elevated}"/>
-                                                                    <Border Background="{Binding Alert}"/>
-                                                                    <Border Background="{Binding Critical}"/>
-                                                                </UniformGrid>
-                                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
-                                                                           TextTrimming="CharacterEllipsis"/>
-                                                            </StackPanel>
-                                                        </DataTemplate>
-                                                    </ComboBox.ItemTemplate>
-                                                </ComboBox>
+                                                <!-- The ramp the reading is DRAWN in under this preset (ShownItem), not
+                                                     the name it stored — see SeriesRow.ShownItem. -->
+                                                <UniformGrid Grid.Column="0" Rows="1" Height="10" VerticalAlignment="Center">
+                                                    <Border Background="{Binding ShownItem.Normal}"/>
+                                                    <Border Background="{Binding ShownItem.Elevated}"/>
+                                                    <Border Background="{Binding ShownItem.Alert}"/>
+                                                    <Border Background="{Binding ShownItem.Critical}"/>
+                                                </UniformGrid>
+                                                <TextBlock Grid.Column="1" Margin="12,0" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis">
+                                                    <Run Text="{Binding Sensor.Name, Mode=OneWay}"/><Run
+                                                         Text=" · " Foreground="{DynamicResource TextFillColorSecondaryBrush}"/><Run
+                                                         Text="{Binding Sensor.Component, Mode=OneWay}"
+                                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </TextBlock>
+                                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Opacity="0.8"
+                                                           Typography.NumeralAlignment="Tabular">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0:F1} {1}">
+                                                            <Binding Path="Sensor.Sensor.Value" FallbackValue="--" TargetNullValue="--"/>
+                                                            <Binding Path="Sensor.Sensor.Unit"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                                <ui:Button Grid.Column="3" Style="{StaticResource IconButton}" Width="28" Height="28"
+                                                           Margin="8,0,0,0" Appearance="Transparent" BorderThickness="0"
+                                                           Icon="{ui:SymbolIcon Dismiss24}"
+                                                           ToolTip="Remove this reading"
+                                                           Command="{Binding DataContext.ViewModel.RemoveSeriesCommand,
+                                                                     RelativeSource={RelativeSource AncestorType=Window}}"
+                                                           CommandParameter="{Binding}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                            </Border>
 
-                                <ui:Button Margin="0,6,0,0" HorizontalAlignment="Left"
-                                           Appearance="Secondary"
-                                           Icon="{ui:SymbolIcon Drop24}"
-                                           Content="Same ramp for all"
-                                           ToolTip="Gives every reading the ramp of the first one."
-                                           Visibility="{Binding ViewModel.CanMatchRamps, Converter={StaticResource BoolToVisibility}}"
-                                           Command="{Binding ViewModel.MatchRampsCommand}"/>
-                            </StackPanel>
+                            <Border Style="{StaticResource Card}"
+                                    Visibility="{Binding ViewModel.ShowsNoReadings, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap"
+                                           Text="No readings yet. Add one and the widget appears."/>
+                            </Border>
 
+                            <Button x:Name="ReadingButton" Style="{StaticResource GhostButton}" Height="36" Margin="0,8,0,0"
+                                    HorizontalAlignment="Stretch" Click="OnReadingButton"
+                                    Visibility="{Binding ViewModel.ShowsReadingButton, Converter={StaticResource BoolToVisibility}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="Add24" FontSize="14" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ViewModel.ReadingButtonLabel}" Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Text="{Binding ViewModel.ReadingsFullHint}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <Trigger Property="Text" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <Popup x:Name="ReadingPopup" PlacementTarget="{Binding ElementName=ReadingButton}"
+                                   Placement="Bottom" VerticalOffset="4" StaysOpen="False" AllowsTransparency="True"
+                                   Width="{Binding ActualWidth, ElementName=ReadingButton}">
+                                <controls:SensorPicker x:Name="ReadingPicker" MaxHeight="404"/>
+                            </Popup>
                         </StackPanel>
-                    </ui:CardExpander>
 
-                    <!-- Only for the kinds made of words, and only the words themselves: how big they are
-                         drawn is the preset's business. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon TextFont24}"
-                                     Visibility="{Binding ViewModel.ShowsTextOptions, Converter={StaticResource BoolToVisibility}}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Text" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
+                        <!-- A List ranks applications, so it is given its source instead of readings: one of three,
+                             chosen in place. -->
+                        <StackPanel Margin="0,20,0,0"
+                                    Visibility="{Binding ViewModel.ShowsList, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Ranked by" Style="{StaticResource FieldLabel}"/>
+                            <Border Style="{StaticResource Card}" Padding="4">
+                                <ItemsControl ItemsSource="{Binding ViewModel.RankedChoices}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <controls:MenuToggle Style="{StaticResource Segment}" Content="{Binding Option.Name}"
+                                                                 IsChecked="{Binding IsChosen, Mode=OneWay}"
+                                                                 Command="{Binding DataContext.ViewModel.RankByCommand,
+                                                                           RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                 CommandParameter="{Binding Option}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                            <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="I/O counts files, network and devices together, not just the disk."/>
+                            <Grid Margin="0,12,0,0">
+                                <Border CornerRadius="6" Opacity="0.12" Background="{DynamicResource Aquila.Chrome.Accent}"/>
+                                <Border CornerRadius="6" BorderThickness="1" Opacity="0.35"
+                                        BorderBrush="{DynamicResource Aquila.Chrome.Accent}"/>
+                                <DockPanel Margin="12,10">
+                                    <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Info24" FontSize="16" Margin="0,1,10,0"
+                                                   VerticalAlignment="Top" Foreground="{DynamicResource Aquila.Chrome.Accent}"/>
+                                    <TextBlock FontSize="12" TextWrapping="Wrap"
+                                               Text="Aquila reads the running applications only while a list is on screen."/>
+                                </DockPanel>
+                            </Grid>
+                        </StackPanel>
 
-                        <StackPanel Margin="0,14,0,0">
+                        <StackPanel Margin="0,20,0,0">
+                            <TextBlock Text="Title" Style="{StaticResource FieldLabel}"/>
+                            <ui:TextBox PlaceholderText="Defaults to the sensor name"
+                                        Text="{Binding ViewModel.Title, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <!-- The words of a Text widget are what it says, so they are content like its title. -->
+                        <StackPanel Margin="0,16,0,0">
                             <StackPanel Visibility="{Binding ViewModel.ShowsCaptionOptions, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Text="Text" Style="{StaticResource FieldLabel}"/>
                                 <ui:TextBox PlaceholderText="CPU"
                                             Text="{Binding ViewModel.Caption, UpdateSourceTrigger=PropertyChanged}"/>
                                 <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                            Opacity="0.5" TextWrapping="Wrap"
-                                           Text="Add a reading below and it is written after this, with its unit."/>
+                                           Text="Add a reading above and it is written after this, with its unit."/>
                             </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
 
+                <!-- Preset: what it wears, and which ramp draws each of its readings. -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Visibility="{Binding ViewModel.SelectedTab, Converter={StaticResource Match}, ConverterParameter=Preset}">
+                    <StackPanel Margin="2,16,6,16">
+                        <!-- Every preset as a row: its primary ramp, its name, a padlock on the built-ins, how many
+                             widgets wear it. A click wears it. A preset is deleted or exported from its own row's ⋯,
+                             so tidying away an old one never means wearing it first. -->
+                        <DockPanel Margin="0,0,0,4">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Opacity="0.7">
+                                <ui:SymbolIcon Symbol="LockClosed24" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Text="Built in" FontSize="12" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Preset" Style="{StaticResource FieldLabel}" Margin="0"/>
+                        </DockPanel>
+
+                        <ItemsControl ItemsSource="{Binding ViewModel.PresetRows}"
+                                      KeyboardNavigation.DirectionalNavigation="Contained"
+                                      KeyboardNavigation.TabNavigation="Once">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <controls:MenuToggle Style="{StaticResource PresetRowStyle}"
+                                                         IsChecked="{Binding IsChosen, Mode=OneWay}"
+                                                         Command="{Binding DataContext.ViewModel.ChoosePresetCommand,
+                                                                   RelativeSource={RelativeSource AncestorType=Window}}"
+                                                         CommandParameter="{Binding Preset}">
+                                        <DockPanel>
+                                            <UniformGrid DockPanel.Dock="Left" Rows="1" Width="44" Height="10"
+                                                         VerticalAlignment="Center" Margin="0,0,12,0">
+                                                <Border Background="{Binding Strip.Normal}"/>
+                                                <Border Background="{Binding Strip.Elevated}"/>
+                                                <Border Background="{Binding Strip.Alert}"/>
+                                                <Border Background="{Binding Strip.Critical}"/>
+                                            </UniformGrid>
+                                            <ui:Button x:Name="More" DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                                       Width="28" Height="28" Margin="6,0,0,0" Visibility="Hidden"
+                                                       Appearance="Transparent" BorderThickness="0"
+                                                       Icon="{ui:SymbolIcon MoreHorizontal24}" ToolTip="More"
+                                                       ContextMenu="{StaticResource PresetRowMenu}"
+                                                       Click="OnPresetRowMenu"/>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Worn}" FontSize="12"
+                                                       Opacity="0.7" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                            <ui:SymbolIcon DockPanel.Dock="Right" Symbol="Checkmark24" FontSize="14"
+                                                           VerticalAlignment="Center" Margin="8,0,0,0"
+                                                           Visibility="{Binding IsChosen, Converter={StaticResource BoolToVisibility}}"/>
+                                            <ui:SymbolIcon DockPanel.Dock="Right" Symbol="LockClosed24" FontSize="12"
+                                                           Opacity="0.55" VerticalAlignment="Center" Margin="8,0,0,0"
+                                                           Visibility="{Binding Preset.IsBuiltIn, Converter={StaticResource BoolToVisibility}}"/>
+                                            <TextBlock Text="{Binding Preset.Name}" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
+                                    </controls:MenuToggle>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver,
+                                                     RelativeSource={RelativeSource AncestorType=controls:MenuToggle}}"
+                                                     Value="True">
+                                            <Setter TargetName="More" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- What can be done with the preset worn: a preset of the user's is opened as it is, with
+                             a square button beside it for a copy; a built-in is copied first, and the copy opened. -->
+                        <DockPanel Margin="0,8,0,0"
+                                   Visibility="{Binding ViewModel.CanUpdatePreset, Converter={StaticResource BoolToVisibility}}">
+                            <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="8,0,0,0"
+                                       Width="36" Height="36"
+                                       Icon="{ui:SymbolIcon Copy24}"
+                                       ToolTip="New preset from this one"
+                                       Command="{Binding ViewModel.NewPresetCommand}"/>
+                            <ui:Button HorizontalAlignment="Stretch" Height="36" Icon="{ui:SymbolIcon Edit24}"
+                                       Content="{Binding ViewModel.EditPresetLabel}"
+                                       Command="{Binding ViewModel.EditPresetCommand}"/>
+                        </DockPanel>
+                        <ui:Button Margin="0,8,0,0" HorizontalAlignment="Stretch" Height="36"
+                                   Icon="{ui:SymbolIcon Copy24}" Content="Copy to edit"
+                                   Command="{Binding ViewModel.CopyToEditCommand}">
+                            <ui:Button.Style>
+                                <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.CanUpdatePreset}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:Button.Style>
+                        </ui:Button>
+                        <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="{Binding ViewModel.PresetNote}"/>
+
+                        <DockPanel Margin="0,10,0,0">
+                            <!-- Reading a preset in is about the list, not about the preset worn, so it sits here
+                                 rather than in a row's menu. -->
+                            <ui:Button DockPanel.Dock="Right" Appearance="Transparent" BorderThickness="0"
+                                       Icon="{ui:SymbolIcon ArrowUpload24}" Content="Import…"
+                                       ToolTip="Import a preset from a file"
+                                       Click="OnImportPreset"/>
+                            <ui:Button HorizontalAlignment="Left" Appearance="Transparent" BorderThickness="0"
+                                       Icon="{ui:SymbolIcon Star24}"
+                                       Content="{Binding ViewModel.DefaultLabel}"
+                                       IsEnabled="{Binding ViewModel.CanSetDefault}"
+                                       Command="{Binding ViewModel.SetAsDefaultCommand}"/>
+                        </DockPanel>
+
+                        <!-- Which ramp draws each reading of THIS widget — here, beside the preset its options
+                             come from, rather than with the readings, a tab away from the ramps it names. Choosing a
+                             ramp is a question about how a reading LOOKS.
+
+                             In the widget's tabs and NEVER in the preset view, because of where it is stored: on
+                             the widget's own reading (WidgetSeries.Ramp), not in the preset. The edit view
+                             changes the preset every widget wearing it shares; this changes one widget. And it
+                             is why trying another preset keeps these choices — they travel by name, and a
+                             name the new preset does not have falls back to its primary.
+
+                             Each row names a RAMP, not a colour: which colour it shows depends on how the
+                             reading is doing. Two readings on one ramp are one reading, which is why they start
+                             on different ones.
+
+                             "Drawn in" rather than "Colour", and that is not fussiness: the format calls these
+                             ramps precisely so the word colour stays free for the fixed kind — a theme's, a
+                             caption's, value.color. A phrase names the RELATIONSHIP and borrows no noun that
+                             already has an owner. Scheme and Palette were out for the same reason:
+                             Aquila.Scheme.* and the theme palette are both taken.
+
+                             Hidden for a widget with no readings — a clock or a backdrop has nothing to draw
+                             in anything. -->
+                        <StackPanel Margin="0,20,0,0">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ViewModel.Chosen.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <TextBlock Text="Each reading drawn in" Style="{StaticResource FieldLabel}"/>
+                            <Border Style="{StaticResource Card}" Padding="12,2">
+                            <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid MinHeight="48">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="160"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <Run Text="{Binding Sensor.Name, Mode=OneWay}"/><Run
+                                                     Text=" · " Foreground="{DynamicResource TextFillColorSecondaryBrush}"/><Run
+                                                     Text="{Binding Sensor.Component, Mode=OneWay}"
+                                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            </TextBlock>
+                                            <!-- The ramp is SHOWN, not named: four swatches say "this
+                                                 changes with the reading" without anybody being told, and
+                                                 teach the word instead of replacing it. The same strip the
+                                                 summary above draws, so a ramp looks like itself wherever
+                                                 you meet it.
+
+                                                 Bound to ShownItem — the ramp the reading is actually drawn in
+                                                 under this preset, as an ITEM of the list. Two wrong bindings
+                                                 came before it, and SeriesRow.ShownItem tells both stories:
+                                                 by the stored name it came up empty when the preset lacked the
+                                                 name, and by any name at all it came up empty after every switch,
+                                                 because "primary" before and "primary" after looked like no
+                                                 change to WPF and it never re-selected in the new list. -->
+                                            <ComboBox Grid.Column="2" VerticalAlignment="Center"
+                                                      ItemsSource="{Binding DataContext.ViewModel.RampPreviews,
+                                                                   RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      SelectedItem="{Binding ShownItem}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <UniformGrid Rows="1" Width="34" Height="10"
+                                                                         VerticalAlignment="Center" Margin="0,0,8,0">
+                                                                <Border Background="{Binding Normal}"/>
+                                                                <Border Background="{Binding Elevated}"/>
+                                                                <Border Background="{Binding Alert}"/>
+                                                                <Border Background="{Binding Critical}"/>
+                                                            </UniformGrid>
+                                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            </Border>
+
+                            <ui:Button Margin="0,6,0,0" HorizontalAlignment="Left"
+                                       Appearance="Transparent" BorderThickness="0"
+                                       Icon="{ui:SymbolIcon Drop24}"
+                                       Content="Same ramp for all"
+                                       ToolTip="Gives every reading the ramp of the first one."
+                                       Visibility="{Binding ViewModel.CanMatchRamps, Converter={StaticResource BoolToVisibility}}"
+                                       Command="{Binding ViewModel.MatchRampsCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Customize: the rest of how this one widget is drawn and where — its kind's own options, what is
+                     shown of its reading, its place, size and layer. Each section only where it applies, by the
+                     catalog's flags: a kind that is not a clock cannot be shown clock options. -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Visibility="{Binding ViewModel.SelectedTab, Converter={StaticResource Match}, ConverterParameter=Customize}">
+                    <StackPanel Margin="2,16,6,16">
+                        <!-- Under the type, because it IS one: having picked bars, the next thing
+                             to say is which way they run. It sat in Data first, which was wrong —
+                             that card is about which readings and what is shown of them, and this
+                             is about the shape the widget takes. -->
+                        <StackPanel Margin="0,0,0,16"
+                                    Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Bars run" Style="{StaticResource FieldLabel}"/>
+                            <ComboBox ItemsSource="{Binding ViewModel.BarDirections}"
+                                      SelectedItem="{Binding ViewModel.BarDirection}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,20"
+                                    Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Clock" Style="{StaticResource Section}"/>
                             <StackPanel Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
                                 <!-- Rings first, because they decide which of the two below applies: without
                                      rings a clock writes one of the formats, with them the time is always in
@@ -697,17 +931,12 @@
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
-                    </ui:CardExpander>
 
-                    <!-- How much data a chart shows, and against what scale. Both are questions about the
-                         readings rather than about the look, so they stay with the widget. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon DataLine24}"
-                                     Visibility="{Binding ViewModel.ShowsChartData, Converter={StaticResource BoolToVisibility}}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Chart" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
-
-                        <StackPanel Margin="0,14,0,0">
+                        <!-- How much data a chart shows, and against what scale. Both are questions about the
+                             readings rather than about the look, so they stay with the widget. -->
+                        <StackPanel Margin="0,0,0,20"
+                                    Visibility="{Binding ViewModel.ShowsChartData, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Chart" Style="{StaticResource Section}"/>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
                                            Text="{Binding ViewModel.WindowLabel}"/>
@@ -721,7 +950,9 @@
 
                             <TextBlock Text="Scale" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
                             <ComboBox ItemsSource="{Binding ViewModel.Scales}"
-                                      SelectedItem="{Binding ViewModel.SelectedScale}"/>
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Value"
+                                      SelectedValue="{Binding ViewModel.SelectedScale}"/>
                             <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
                                        Opacity="0.5" TextWrapping="Wrap"
                                        Text="From zero keeps widgets comparable. Fit to data uses the full height, but the scale moves."/>
@@ -745,79 +976,184 @@
                                               Value="{Binding ViewModel.ScaleMax, Mode=TwoWay}"/>
                             </Grid>
                         </StackPanel>
-                    </ui:CardExpander>
 
-                    <!-- Where it sits and how big it is, in exact numbers. Dragging and the wheel are the
-                         quick way; these are for lining widgets up deliberately, and for fetching one back
-                         when it has ended up somewhere off-screen. -->
-                    <ui:CardExpander Icon="{ui:SymbolIcon Ruler24}">
-                        <ui:CardExpander.Header>
-                            <TextBlock Text="Layout" FontWeight="SemiBold"/>
-                        </ui:CardExpander.Header>
+                        <StackPanel Margin="0,0,0,20"
+                                    Visibility="{Binding ViewModel.ShowsList, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="List" Style="{StaticResource Section}"/>
+                            <!-- How many of a list's rows are shown, under the list it counts. With the widget
+                                 and not in the preset, like a chart's window: it decides how much of the data is
+                                 on the screen, not how the data looks. -->
+                            <StackPanel Margin="0,14,0,0"
+                                        Visibility="{Binding ViewModel.ShowsList, Converter={StaticResource BoolToVisibility}}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                               Text="{Binding ViewModel.ItemCount, StringFormat={}{0:F0}}"/>
+                                    <TextBlock Text="Rows" Style="{StaticResource FieldLabel}"/>
+                                </DockPanel>
+                                <Slider Minimum="1" Maximum="{Binding ViewModel.MaxItemCount}"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding ViewModel.ItemCount}"/>
 
-                        <StackPanel Margin="0,14,0,0">
-
-                            <TextBlock Text="Position" Style="{StaticResource FieldLabel}"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="X" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Y" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                              Value="{Binding ViewModel.WidgetX, Mode=TwoWay}"/>
-                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                              Value="{Binding ViewModel.WidgetY, Mode=TwoWay}"/>
-                            </Grid>
-
-                            <TextBlock Text="Size" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Height" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                                <!-- A dial or a ringed clock keeps its proportions: typing either box sets the
-                                     other. The range is the view model's, which holds both sides inside it. -->
-                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                              Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
-                                              Value="{Binding ViewModel.WidgetWidth, Mode=TwoWay}"/>
-                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                              Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
-                                              Value="{Binding ViewModel.WidgetHeight, Mode=TwoWay}"/>
-                            </Grid>
-
-                            <!-- Which widget draws on top where two overlap. "Layer" rather than "Z-index":
-                                 the number is a z-index, but the thing being chosen is what sits in front. -->
-                            <DockPanel Margin="0,16,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.Layer, StringFormat={}{0:F0}}"/>
-                                <TextBlock Text="Layer" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="-5" Maximum="10"
-                                    TickFrequency="1" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.Layer}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Where two widgets overlap, the higher layer draws in front. Below zero is behind everything else — where a backdrop belongs."/>
+                                <!-- What each row draws besides its name and number, and the total. Here for
+                                     the same reason as the count: they are things to read, and trying on a
+                                     preset must never take one away. How they look is the preset's. -->
+                                <CheckBox Margin="0,10,0,0" Content="Bar under each row"
+                                          IsChecked="{Binding ViewModel.BarShown}"/>
+                                <CheckBox Margin="0,10,0,0" Content="Trend beside each reading"
+                                          IsChecked="{Binding ViewModel.SparklineShown}"/>
+                                <CheckBox Margin="0,10,0,0" Content="Total beside the title"
+                                          IsChecked="{Binding ViewModel.TotalShown}"/>
+                            </StackPanel>
                         </StackPanel>
-                    </ui:CardExpander>
 
-                </StackPanel>
-            </ScrollViewer>
+                        <StackPanel Margin="0,0,0,20"
+                                    Visibility="{Binding ViewModel.ShowsDisplay, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Display" Style="{StaticResource Section}"/>
+                            <!-- What is shown of the reading, beside the readings themselves. Not in the
+                                 preset: a preset has to be safe to try on, and these two change what is on
+                                 the screen rather than how it looks. -->
+                            <CheckBox Margin="0,14,0,0" Content="Show the unit"
+                                      Visibility="{Binding ViewModel.ShowsUnit, Converter={StaticResource BoolToVisibility}}"
+                                      IsChecked="{Binding ViewModel.UnitShown}"/>
 
+                            <StackPanel Visibility="{Binding ViewModel.CanHideValue, Converter={StaticResource BoolToVisibility}}">
+                                <CheckBox Margin="0,10,0,0" Content="Show the reading"
+                                          IsChecked="{Binding ViewModel.ValueShown}"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
+                                           Opacity="0.5" TextWrapping="Wrap"
+                                           Text="Off leaves the dial or bar drawing on its own, with the title above it."/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Where it sits and how big it is, in exact numbers. Dragging and the wheel are the
+                             quick way; these are for lining widgets up deliberately, and for fetching one back
+                             when it has ended up somewhere off-screen. -->
+                        <TextBlock Text="Position and size" Style="{StaticResource Section}"/>
+
+                        <TextBlock Text="Position" Style="{StaticResource FieldLabel}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="X" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Y" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                            <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                          Value="{Binding ViewModel.WidgetX, Mode=TwoWay}"/>
+                            <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                          Value="{Binding ViewModel.WidgetY, Mode=TwoWay}"/>
+                        </Grid>
+
+                        <TextBlock Text="Size" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Height" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
+                            <!-- Free by default, every kind alike. The lock keeps the ratio the widget has:
+                                 typing either box sets the other, and the desktop's corners keep it too. The
+                                 range is the view model's, which holds both sides inside it. -->
+                            <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                          Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
+                                          Value="{Binding ViewModel.WidgetWidth, Mode=TwoWay}"/>
+                            <ToggleButton Grid.Row="1" Grid.Column="1" Margin="6,0" Padding="7,0"
+                                          VerticalAlignment="Stretch"
+                                          ToolTip="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag."
+                                          IsChecked="{Binding ViewModel.KeepsProportions, Mode=TwoWay}">
+                                <ToggleButton.Style>
+                                    <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}">
+                                        <Setter Property="Content">
+                                            <Setter.Value>
+                                                <ui:SymbolIcon Symbol="LockOpen24" FontSize="16"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter Property="Content">
+                                                    <Setter.Value>
+                                                        <ui:SymbolIcon Symbol="LockClosed24" FontSize="16"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToggleButton.Style>
+                            </ToggleButton>
+                            <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                          Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
+                                          Value="{Binding ViewModel.WidgetHeight, Mode=TwoWay}"/>
+                        </Grid>
+
+                        <!-- Which screen it is shown on. Pointing at a name lights up that monitor, as the desktop
+                             menu's "Send to" does: a name alone does not say which piece of hardware it is. -->
+                        <TextBlock Text="Screen" Style="{StaticResource Section}" Margin="0,20,0,8"/>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <ComboBox DockPanel.Dock="Right" MinWidth="200"
+                                          ItemsSource="{Binding ViewModel.Screens}"
+                                          SelectedItem="{Binding ViewModel.SelectedScreen}"
+                                          DisplayMemberPath="Label"
+                                          IsEnabled="{Binding ViewModel.CanChooseScreen}"
+                                          DropDownClosed="OnScreenPickerClosed">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                            <EventSetter Event="MouseEnter" Handler="OnScreenPointed"/>
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Desktop24" FontSize="16" Margin="0,0,10,0"
+                                               VerticalAlignment="Center"/>
+                                <TextBlock Text="Shown on" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Which widget draws on top where two overlap — said in words, with a step each way.
+                             A slider from −5 to 10 said a number, and moving it from 0 to 1 could change nothing
+                             anyone could see; each press here passes one widget that overlaps this one. -->
+                        <DockPanel Margin="0,20,0,8">
+                            <TextBlock DockPanel.Dock="Right" FontSize="12" Opacity="0.7" VerticalAlignment="Bottom"
+                                       Text="{Binding ViewModel.LayerDescription}"/>
+                            <TextBlock Text="Layer" Style="{StaticResource Section}" Margin="0"/>
+                        </DockPanel>
+                        <UniformGrid Rows="1">
+                            <ui:Button Margin="0,0,4,0" HorizontalAlignment="Stretch" Height="36"
+                                       Icon="{ui:SymbolIcon PositionBackward24}" Content="Send backward"
+                                       IsEnabled="{Binding ViewModel.CanSendBackward}"
+                                       Command="{Binding ViewModel.SendBackwardCommand}"/>
+                            <ui:Button Margin="4,0,0,0" HorizontalAlignment="Stretch" Height="36"
+                                       Icon="{ui:SymbolIcon PositionForward24}" Content="Bring forward"
+                                       IsEnabled="{Binding ViewModel.CanBringForward}"
+                                       Command="{Binding ViewModel.BringForwardCommand}"/>
+                        </UniformGrid>
+                        <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,0"
+                                   Text="Where two widgets overlap, the one in front draws on top. A backdrop sits behind everything."/>
+
+                        <Grid Margin="0,16,0,0">
+                            <Border CornerRadius="6" Opacity="0.12" Background="{DynamicResource Aquila.Chrome.Accent}"/>
+                            <Border CornerRadius="6" BorderThickness="1" Opacity="0.35"
+                                    BorderBrush="{DynamicResource Aquila.Chrome.Accent}"/>
+                            <DockPanel Margin="12,10">
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Info24" FontSize="16" Margin="0,1,10,0"
+                                               VerticalAlignment="Top" Foreground="{DynamicResource Aquila.Chrome.Accent}"/>
+                                <TextBlock FontSize="12" TextWrapping="Wrap"
+                                           Text="On the desktop: drag to move it, pull a corner to resize it — hold Shift to keep its shape — or use the mouse wheel."/>
+                            </DockPanel>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
 
             <!-- The same row, so the two views occupy the same space and only one is ever shown. Cheaper
                  than moving anything, and it keeps the header and the footer where they were. -->
@@ -826,31 +1162,19 @@
                           Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel Expander.Expanded="OnCardExpanded">
 
-                    <StackPanel Margin="0,0,0,8">
-                        <TextBlock Text="Preview on desktop" FontWeight="SemiBold" FontSize="12"
-                                   Margin="0,0,0,6"/>
-                        <!-- Written out rather than generated: ConverterParameter is not a dependency
-                             property, so it cannot be bound to the item, and there are four states that
-                             are never going to be five. -->
-                        <UniformGrid Rows="1">
-                            <ToggleButton Margin="0,0,4,0" Padding="4,3" FontSize="11" Content="Normal"
-                                          IsChecked="{Binding ViewModel.PreviewState, Mode=TwoWay,
-                                                      Converter={StaticResource Match}, ConverterParameter=Normal}"/>
-                            <ToggleButton Margin="0,0,4,0" Padding="4,3" FontSize="11" Content="Elevated"
-                                          IsChecked="{Binding ViewModel.PreviewState, Mode=TwoWay,
-                                                      Converter={StaticResource Match}, ConverterParameter=Elevated}"/>
-                            <ToggleButton Margin="0,0,4,0" Padding="4,3" FontSize="11" Content="Alert"
-                                          IsChecked="{Binding ViewModel.PreviewState, Mode=TwoWay,
-                                                      Converter={StaticResource Match}, ConverterParameter=Alert}"/>
-                            <ToggleButton Padding="4,3" FontSize="11" Content="Critical"
-                                          IsChecked="{Binding ViewModel.PreviewState, Mode=TwoWay,
-                                                      Converter={StaticResource Match}, ConverterParameter=Critical}"/>
-                        </UniformGrid>
-                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,6,0,0" FontSize="11"
-                                   Opacity="0.5" TextWrapping="Wrap"
-                                   Text="Draws every widget in that state while this panel is open — the only way to tune Critical without waiting for the machine to run hot."/>
-                    </StackPanel>
-
+                    <!-- How far an edit here reaches, said before anything is touched, on a wash of the accent: this
+                         is the one place in the panel where a change is not this widget's alone. No preview here:
+                         it paints the whole desktop, so it is the edit bar's. -->
+                    <Grid Margin="0,4,0,12">
+                        <Border CornerRadius="6" Opacity="0.12" Background="{DynamicResource Aquila.Chrome.Accent}"/>
+                        <Border CornerRadius="6" BorderThickness="1" Opacity="0.35"
+                                BorderBrush="{DynamicResource Aquila.Chrome.Accent}"/>
+                        <DockPanel Margin="12,10">
+                            <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Info24" FontSize="16" Margin="0,1,10,0"
+                                           VerticalAlignment="Top" Foreground="{DynamicResource Aquila.Chrome.Accent}"/>
+                            <TextBlock Text="{Binding ViewModel.PresetReach}" FontSize="12" TextWrapping="Wrap"/>
+                        </DockPanel>
+                    </Grid>
                     <ui:CardExpander Icon="{ui:SymbolIcon SquareHint24}">
                         <ui:CardExpander.Header>
                             <TextBlock Text="Panel" FontWeight="SemiBold"/>
@@ -1325,45 +1649,17 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- Pointed at nothing. Row 1 was simply blank here, which read as the panel being broken
-                 rather than as it waiting. -->
-            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
-                        Margin="24"
-                        Visibility="{Binding ViewModel.ShowsNothing, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold"
-                           Text="No widget selected"/>
-                <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" TextAlignment="Center"
-                           TextWrapping="Wrap" Opacity="0.6" MaxWidth="240"
-                           Text="Click a widget on the desktop to edit it, or start a new one."/>
-
-                <!-- The action, where the eye already is. This text used to end "or add one below",
-                     pointing at a button in a footer — sending the reader away from the one place on the
-                     panel they were looking at, at the one moment adding was the only thing to do.
-
-                     A dashed square with a plus: the empty slot a new thing goes into, the convention of
-                     every canvas tool. And the same GhostButton as "Add ramp" further down this panel, so
-                     making something new looks the same wherever it is offered. It replaced a hint icon
-                     that sat above the text saying nothing — the slot itself is the picture now. -->
-                <Button Style="{StaticResource GhostButton}" Margin="0,20,0,0"
-                        Width="148" Height="148" HorizontalAlignment="Center"
-                        ToolTip="Add a widget"
-                        Click="Add_Click">
-                    <StackPanel>
-                        <ui:SymbolIcon Symbol="Add24" FontSize="40" HorizontalAlignment="Center"/>
-                        <TextBlock Margin="0,8,0,0" FontSize="13" HorizontalAlignment="Center"
-                                   Text="Add widget"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-
-            <!-- Right-aligned and plain, as the design has it. Accent on Done said "this is the thing to
-                 do here", and it is the opposite: the panel's work is everything above it, and Done is
-                 only the way back out. -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
-                        Margin="0,12,0,0"
-                        Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
-                <ui:Button Content="Done" Padding="22,9"
-                           Command="{Binding ViewModel.ClosePresetCommand}"/>
+            <!-- The keys the panel answers to, written at its foot — the only place they are. Replaced the preset
+                 view's Done: the way back is the breadcrumb, and Esc, which this line names. -->
+            <StackPanel Grid.Row="2"
+                        Visibility="{Binding ViewModel.HasTarget, Converter={StaticResource BoolToVisibility}}">
+                <Border Style="{StaticResource Divider}" Margin="0,4,0,10"
+                        Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <StackPanel Orientation="Horizontal" Opacity="0.6">
+                    <ui:SymbolIcon Symbol="Keyboard24" FontSize="14" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ViewModel.Footer}" FontSize="12" Margin="8,0,0,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
             </StackPanel>
     </Grid>
 </ui:FluentWindow>

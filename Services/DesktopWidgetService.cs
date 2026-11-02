@@ -26,13 +26,24 @@ public sealed class DesktopWidgetService
     private readonly DesktopLayoutService _layout;
     private readonly NoticeService _notices;
     private readonly PresetService _presets;
+    private readonly SettingsService _settings;
 
     private List<DesktopWidgetDefinition>? _widgets;
     private readonly Dictionary<UIElement, DesktopWidgetDefinition> _byElement = [];
 
-    /// <summary>The properties panel, alive only while edit mode is on. One for the whole session, not one
-    /// per widget — that is what lets the selection move between widgets without dismissing anything.</summary>
+    /// <summary>The properties panel, alive only while edit mode is on and on screen only while a widget is
+    /// selected. One for the whole session, not one per widget — that is what lets the selection move between
+    /// widgets without dismissing anything.</summary>
     private Views.Windows.WidgetEditorPanel? _panel;
+
+    /// <summary>The widget being edited, if any — see <see cref="Select"/>.</summary>
+    private DesktopWidgetDefinition? _selected;
+
+    /// <summary>The edit bar, alive exactly as long as the session: the way to add a widget, find one, preview the
+    /// desktop in a state, and leave. Here and not in the surface layer, which may not know what any of that is.
+    /// </summary>
+    private Views.Windows.EditBar? _bar;
+    private bool _barRefreshPending;
 
     /// <summary>
     /// The layout as it was when edit mode began, and the fact that a session is open at all — non-null IS
@@ -49,13 +60,14 @@ public sealed class DesktopWidgetService
     private readonly HashSet<DesktopWidgetDefinition> _dressed = [];
 
     public DesktopWidgetService(AquilaService aquila, DesktopSurfaceService surfaces,
-        DesktopLayoutService layout, PresetService presets, NoticeService notices)
+        DesktopLayoutService layout, PresetService presets, NoticeService notices, SettingsService settings)
     {
         _aquila = aquila;
         _surfaces = surfaces;
         _layout = layout;
         _presets = presets;
         _notices = notices;
+        _settings = settings;
         _presets.RampRenamed += OnRampRenamed;
         _surfaces.WidgetMoved += OnWidgetMoved;
         _surfaces.WidgetResized += OnWidgetResized;
@@ -128,6 +140,10 @@ public sealed class DesktopWidgetService
         }
 
         ReportSilentWidgets(silent, hardware);
+
+        // Every element is new, so the outlines are too — including the selected widget's, which now has a new
+        // element to be drawn around.
+        ShowSelection();
     }
 
     /// <summary>
@@ -249,11 +265,7 @@ public sealed class DesktopWidgetService
 
     /// <summary>Rebuilds every widget. Simpler and far less error-prone than patching one element in
     /// place, and these are rare, user-initiated actions where a rebuild is imperceptible.</summary>
-    private void Repopulate()
-    {
-        Populate(); // idempotent — clears what it placed before
-        _surfaces.RefreshEditModeAdorners();
-    }
+    private void Repopulate() => Populate(); // idempotent — clears what it placed before
 
     private void OnWidgetRightClicked(DesktopSurfaceService.Surface surface, UIElement element)
     {
@@ -268,6 +280,17 @@ public sealed class DesktopWidgetService
         var remove = new MenuItem { Header = "Remove widget" };
         remove.Click += (_, _) => Remove(definition);
         menu.Items.Add(remove);
+
+        // The panel's two layer buttons, by the same rule, so a widget can be brought out from under another
+        // without opening anything.
+        var layer = LayerOf(definition);
+        menu.Items.Add(new Separator());
+        var forward = new MenuItem { Header = "Bring forward", IsEnabled = layer.Behind > 0 };
+        forward.Click += (_, _) => ApplyLayer(definition, Restack(definition, forward: true));
+        menu.Items.Add(forward);
+        var backward = new MenuItem { Header = "Send backward", IsEnabled = layer.InFrontOf > 0 };
+        backward.Click += (_, _) => ApplyLayer(definition, Restack(definition, forward: false));
+        menu.Items.Add(backward);
 
         var others = _surfaces.Surfaces.Where(s => s.Canvas != surface.Canvas).ToList();
         if (others.Count > 0)
@@ -290,12 +313,191 @@ public sealed class DesktopWidgetService
         menu.IsOpen = true;
     }
 
-    /// <summary>Points the panel at a widget — what the desktop context menu's "Edit" does, and what
-    /// selecting one does. If edit mode isn't on there is no panel, so this opens one.</summary>
+    /// <summary>Selects a widget for editing — what the desktop context menu's "Edit" does. If edit mode isn't on
+    /// there is no session, so this opens one.</summary>
     public void EditWidget(DesktopWidgetDefinition definition)
     {
         BeginEditSession();
-        _panel?.Edit(definition);
+        Select(definition);
+    }
+
+    /// <summary>
+    /// The widget being edited, or none: drawn as selected on the desktop, and shown in the panel, which exists on
+    /// screen only while there is one. Kept as the definition, never the element — a rebuild (a change of kind, a
+    /// monitor plugged in) makes a new element for the same widget, and the selection has to survive it.
+    /// </summary>
+    public void Select(DesktopWidgetDefinition? definition)
+    {
+        _selected = definition;
+        ShowSelection();
+        if (_panel is null) return;
+
+        // A preview stays as it was: it is the edit bar's, and paints the whole desktop, not the widget let go of.
+        if (definition is null)
+        {
+            _panel.Edit(null);
+            _panel.Hide();
+            _bar?.KeepClearOf(Rect.Empty);
+            return;
+        }
+
+        _panel.Edit(definition);
+        PlacePanel();
+        if (!_panel.IsVisible) _panel.Show();
+        _panel.TakeKeys();
+
+        // The first tip says to click a widget; once one has been, it has nothing left to teach.
+        _bar?.ViewModel.TipSeen();
+    }
+
+    /// <summary>Draws the selection around whatever element the selected widget is drawn by now. Asked again after
+    /// every rebuild, since a rebuild makes a new element for the same definition.</summary>
+    private void ShowSelection()
+    {
+        var (accent, onAccent) = AccentColours();
+        var keepShape = _panel?.ViewModel.KeepsProportions == true;
+
+        _surfaces.SetSelected(ElementOf(_selected), accent, onAccent, keepShape);
+    }
+
+    /// <summary>The accent the desktop's outlines are drawn in, and the text that reads on it — the theme's, read
+    /// as they are drawn, since the theme may have changed since the last time.</summary>
+    private static (Brush Accent, Brush OnAccent) AccentColours() =>
+        (Application.Current.TryFindResource("Aquila.Chrome.Accent") as Brush ?? Brushes.DodgerBlue,
+         Application.Current.TryFindResource("TextOnAccentFillColorPrimaryBrush") as Brush ?? Brushes.White);
+
+    /// <summary>Draws a widget as pointed at from the edit bar's list, or none, with a label saying what it is.
+    /// A widget that draws nothing has nothing to point at; the list is where it is reached.</summary>
+    public void Highlight(DesktopWidgetDefinition? definition, string label)
+    {
+        var (accent, onAccent) = AccentColours();
+        _surfaces.SetHighlighted(ElementOf(definition), accent, onAccent, label);
+    }
+
+    /// <summary>
+    /// Every widget, with the screen it is drawn on and its box there — what the edit bar lists, and how it works
+    /// out which widgets cover which. Null for the screen of one that draws nothing: it has no box anywhere.
+    /// </summary>
+    public IReadOnlyList<EditMode.WidgetPlace> Places()
+    {
+        _widgets ??= _layout.Load();
+        var state = _aquila.State;
+        var surfaces = _surfaces.Surfaces;
+
+        return [.. _widgets.Select(definition =>
+        {
+            var element = ElementOf(definition);
+            var surface = surfaces.FirstOrDefault(s => element is not null && s.Canvas.Children.Contains(element));
+            return surface.Canvas is null
+                ? new EditMode.WidgetPlace(Describe(definition, state), null, Rect.Empty)
+                : new EditMode.WidgetPlace(Describe(definition, state), surface.Label,
+                    new Rect(definition.X, definition.Y, definition.Width, definition.Height));
+        })];
+    }
+
+    /// <summary>A widget among the others on its screen, in layout order — what the layer rule
+    /// (<see cref="EditMode.Layers"/>) is asked about. Null for one drawn nowhere: it overlaps nothing.</summary>
+    private (List<Rect> Boxes, List<int> Layers, int Index)? StackOf(DesktopWidgetDefinition definition)
+    {
+        var places = Places();
+        var mine = places.FirstOrDefault(p => p.Summary.Definition == definition);
+        if (mine?.Screen is null) return null;
+
+        var screen = places.Where(p => p.Screen == mine.Screen).ToList();
+        return ([.. screen.Select(p => p.Box)], [.. screen.Select(p => p.Summary.Definition.ZIndex)], screen.IndexOf(mine));
+    }
+
+    /// <summary>How many widgets this one covers, and how many cover it — the Customize tab's sentence about it.
+    /// </summary>
+    public (int InFrontOf, int Behind) LayerOf(DesktopWidgetDefinition definition) =>
+        StackOf(definition) is var (boxes, layers, index)
+            ? (EditMode.Layers.InFrontOf(boxes, layers, index), EditMode.Layers.Behind(boxes, layers, index))
+            : (0, 0);
+
+    /// <summary>The layer one step forward or back takes this widget to; its own when nothing is in the way.</summary>
+    public int Restack(DesktopWidgetDefinition definition, bool forward) =>
+        StackOf(definition) is var (boxes, layers, index)
+            ? forward
+                ? EditMode.Layers.BringForward(boxes, layers, index)
+                : EditMode.Layers.SendBackward(boxes, layers, index)
+            : definition.ZIndex;
+
+    /// <summary>Puts a widget on a layer from the desktop's menu, as the panel's buttons do from the panel.</summary>
+    private void ApplyLayer(DesktopWidgetDefinition definition, int layer)
+    {
+        definition.ZIndex = layer;
+        RestyleWidget(definition);
+        SaveUnlessEditing();
+        if (_panel?.Target == definition) _panel.ViewModel.SyncGeometry();
+    }
+
+    /// <summary>The screens a widget can be shown on, by key and name, for the Customize tab's picker.</summary>
+    public IReadOnlyList<ViewModels.Windows.ScreenChoice> Screens() =>
+        [.. _surfaces.Surfaces.Select(s => new ViewModels.Windows.ScreenChoice(s.Key, s.Label))];
+
+    /// <summary>The key of the screen a widget is drawn on, or null for one drawn nowhere.</summary>
+    private string? ScreenKeyOf(DesktopWidgetDefinition definition)
+    {
+        var element = ElementOf(definition);
+        var surface = _surfaces.Surfaces.FirstOrDefault(s => element is not null && s.Canvas.Children.Contains(element));
+        return surface.Canvas is null ? null : surface.Key;
+    }
+
+    /// <summary>Sends a widget to another screen from the Customize tab — the desktop menu's "Send to", reported back
+    /// the same way (<see cref="OnWidgetScreenChanged"/>).</summary>
+    private void MoveToScreen(DesktopWidgetDefinition definition, string key)
+    {
+        var target = _surfaces.Surfaces.FirstOrDefault(s => s.Key == key);
+        if (ElementOf(definition) is { } element && target.Canvas is not null)
+            _surfaces.SendWidgetToScreen(element, target);
+    }
+
+    /// <summary>Lights up a screen while its name is pointed at in the picker, or none.</summary>
+    private void IdentifyScreen(string? key)
+    {
+        var surface = _surfaces.Surfaces.FirstOrDefault(s => s.Key == key);
+        if (surface.Canvas is null) _surfaces.HideScreenIdentify();
+        else _surfaces.ShowScreenIdentify(surface);
+    }
+
+    /// <summary>Raised by the edit bar's Save (true) or Discard (false). Ending the session can ask questions and
+    /// puts the user's windows back, which is the Widgets page's to do; this only says which was pressed.</summary>
+    public event Action<bool>? FinishRequested;
+
+    public void Finish(bool save) => FinishRequested?.Invoke(save);
+
+    /// <summary>The editor's lock holds the handles too, so the desktop hears when it is turned.</summary>
+    private void OnPanelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ViewModels.Windows.WidgetEditorViewModel.KeepsProportions)) ShowSelection();
+    }
+
+    private UIElement? ElementOf(DesktopWidgetDefinition? definition) =>
+        definition is null ? null : _byElement.FirstOrDefault(pair => pair.Value == definition).Key;
+
+    private void NudgeSelected(double dx, double dy)
+    {
+        if (ElementOf(_selected) is { } element) _surfaces.Nudge(element, dx, dy);
+    }
+
+    /// <summary>
+    /// A copy of the selected widget, a little down and to the right, and selected in its place. Put right after
+    /// the original in the list, so it draws over it, as a copy laid on top should; held on its screen the way a
+    /// nudge is, since sixteen DIPs can take a widget at the edge past it.
+    /// </summary>
+    private void DuplicateSelected()
+    {
+        if (_selected is null || _widgets is null) return;
+
+        var copy = _selected.Clone();
+        copy.X += 16;
+        copy.Y += 16;
+        _widgets.Insert(_widgets.IndexOf(_selected) + 1, copy);
+        SaveUnlessEditing();
+
+        RefreshWidget(copy);
+        if (ElementOf(copy) is { } element) _surfaces.Nudge(element, 0, 0);
+        Select(copy);
     }
 
     /// <summary>
@@ -322,7 +524,7 @@ public sealed class DesktopWidgetService
 
         if (_panel is not null)
         {
-            _panel.Activate();
+            if (_panel.IsVisible) _panel.Activate();
             return;
         }
 
@@ -331,7 +533,7 @@ public sealed class DesktopWidgetService
         _panel = new Views.Windows.WidgetEditorPanel(_aquila.State, _presets);
         _panel.ViewModel.Changed += OnPanelEdited;
         _panel.ViewModel.PresetRemoved += DropPreset;
-        _panel.ViewModel.PreviewRequested += PreviewRole;
+        _panel.ViewModel.PropertyChanged += OnPanelPropertyChanged;
 
         // The panel cannot count them itself: the layout is the service's. Compared as RESOLVED presets,
         // the way RestyleWearing compares them, so a widget naming no preset — or one that has since gone —
@@ -340,26 +542,101 @@ public sealed class DesktopWidgetService
         _panel.ViewModel.CountWearers = id => _widgets?.Count(w =>
             ReferenceEquals(_presets.For(w.Preset), _presets.For(id))) ?? 0;
         _panel.ViewModel.PollInterval = () => _aquila.Interval;
-        _panel.AddRequested += OnAddRequested;
+        _panel.ViewModel.ScreenOf = definition =>
+        {
+            var element = ElementOf(definition);
+            var surface = _surfaces.Surfaces.FirstOrDefault(s => element is not null && s.Canvas.Children.Contains(element));
+            return surface.Canvas is null ? null : surface.Label;
+        };
+        _panel.ViewModel.ScreenKeyOf = ScreenKeyOf;
+        _panel.ViewModel.ScreenList = Screens;
+        _panel.ViewModel.MoveToScreen = MoveToScreen;
+        _panel.ViewModel.IdentifyScreen = IdentifyScreen;
+        _panel.ViewModel.LayerOf = LayerOf;
+        _panel.ViewModel.Restack = Restack;
         _panel.RemoveRequested += RemoveFromPanel;
+        _panel.DuplicateRequested += DuplicateSelected;
+        _panel.NudgeRequested += NudgeSelected;
+        _panel.CloseRequested += Deselect;
+        _panel.Moved += OnPanelMoved;
+        _panel.DockRequested += OnPanelDockRequested;
+        _panel.WidgetsRequested += OnWidgetsRequested;
 
-        _panel.Show();
+        // Not shown: the panel appears with the first selection (Select), placed then. Its window is made now all
+        // the same, so it has a presentation source to convert physical screen bounds with before it is on screen.
+        new System.Windows.Interop.WindowInteropHelper(_panel).EnsureHandle();
+    }
 
-        // After Show, so the panel has a presentation source to convert physical screen bounds with.
-        //
-        // WorkingArea rather than Bounds: the panel is an ordinary window and belongs above the taskbar.
-        // The widget canvases use the full bounds because covering the whole screen is the point of them.
-        var surfaces = _surfaces.Surfaces;
-        if (surfaces.Count > 0)
-            _panel.DockRight(System.Windows.Forms.Screen.FromRectangle(PrimarySurface(surfaces).Bounds).WorkingArea);
+    private void Deselect() => Select(null);
 
-        _panel.Edit(null);
+    /// <summary>
+    /// Stands the panel where <see cref="EditMode.PanelPlacement"/> says — where it was dragged to while that screen
+    /// exists, otherwise docked on the primary screen, out of the selected widget's way — and tells the bar, so the
+    /// two do not stand on each other on a narrow screen.
+    ///
+    /// Working areas rather than bounds: the panel is an ordinary window and belongs above the taskbar. The widget
+    /// canvases use the full bounds because covering the whole screen is the point of them.
+    /// </summary>
+    private void PlacePanel()
+    {
+        if (_panel is null || System.Windows.Forms.Screen.PrimaryScreen is not { } primary) return;
+
+        var settings = _settings.Current;
+        (Point, Rect)? saved = null;
+        if (!double.IsNaN(settings.EditorPanelLeft) && !double.IsNaN(settings.EditorPanelTop)
+            && System.Windows.Forms.Screen.AllScreens.FirstOrDefault(s => ScreenIdentity.KeyFor(s) == settings.EditorPanelScreen)
+                is { } screen)
+            saved = (new Point(settings.EditorPanelLeft, settings.EditorPanelTop), _panel.ToDips(screen.WorkingArea));
+
+        // The widget's box counts only on the primary screen, the one a docked panel stands on. Canvas coordinates
+        // are DIPs from the screen's top-left, and the primary screen's top-left is the desktop's origin.
+        var element = ElementOf(_selected);
+        var onPrimary = element is not null && _surfaces.Surfaces
+            .Any(s => s.Canvas.Children.Contains(element) && s.Key == ScreenIdentity.KeyFor(primary));
+        Rect? widget = onPrimary && _selected is { } definition
+            ? new Rect(definition.X, definition.Y, definition.Width, definition.Height)
+            : null;
+
+        var place = EditMode.PanelPlacement.Choose(_panel.ToDips(primary.WorkingArea), widget, saved, _panel.Width);
+        _panel.Place(place);
+        _bar?.KeepClearOf(place);
+    }
+
+    /// <summary>Dragged by hand: kept there, this session and the next, on whichever screen it was left.</summary>
+    private void OnPanelMoved(Point at)
+    {
+        if (_panel is null) return;
+
+        var centre = _panel.PointToScreen(new Point(_panel.ActualWidth / 2, _panel.ActualHeight / 2));
+        var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)centre.X, (int)centre.Y));
+
+        _settings.Current.EditorPanelScreen = ScreenIdentity.KeyFor(screen);
+        _settings.Current.EditorPanelLeft = at.X;
+        _settings.Current.EditorPanelTop = at.Y;
+        _settings.Save();
+        _bar?.KeepClearOf(new Rect(at, new Size(_panel.ActualWidth, _panel.ActualHeight)));
+    }
+
+    /// <summary>"Widgets" in the panel's path: up a level, to the list of every widget, which the bar holds.</summary>
+    private void OnWidgetsRequested()
+    {
+        Select(null);
+        _bar?.OpenWidgetsMenu();
+    }
+
+    private void OnPanelDockRequested()
+    {
+        _settings.Current.EditorPanelScreen = null;
+        _settings.Current.EditorPanelLeft = double.NaN;
+        _settings.Current.EditorPanelTop = double.NaN;
+        _settings.Save();
+        PlacePanel();
     }
 
     /// <summary>
-    /// Opens an edit session: the panel appears, and from here until Save or Discard nothing is written to
-    /// disk. The snapshot is taken once — re-entering (adding a widget, or the context menu's Edit) must
-    /// not move the point Discard returns to.
+    /// Opens an edit session: the bar appears, and from here until Save or Discard nothing is written to disk.
+    /// The snapshot is taken once — re-entering (adding a widget, or the context menu's Edit) must not move the
+    /// point Discard returns to.
     /// </summary>
     public void BeginEditSession()
     {
@@ -367,6 +644,41 @@ public sealed class DesktopWidgetService
         _snapshot ??= _widgets.Select(d => d.Clone()).ToList();
 
         ShowEditorPanel();
+        ShowBar();
+    }
+
+    private void ShowBar()
+    {
+        if (_bar is not null) return;
+
+        _bar = new Views.Windows.EditBar(new ViewModels.Windows.EditBarViewModel(this, _settings));
+        _bar.ViewModel.Refresh();
+        _bar.Show();
+    }
+
+    /// <summary>Closed with the session. Whatever it was previewing stops: a widget left frozen in Critical after
+    /// the editor closed would be a monitor that lies.</summary>
+    private void CloseBar()
+    {
+        PreviewRole(null);
+        Highlight(null, string.Empty);
+        _bar?.Close();
+        _bar = null;
+    }
+
+    /// <summary>The bar says whether anything would be lost, so it hears of every change — after the change has
+    /// finished, once however many arrive together: a drag reports at every step, and each answer compares the
+    /// whole layout.</summary>
+    private void RefreshBarSoon()
+    {
+        if (_bar is null || _barRefreshPending) return;
+
+        _barRefreshPending = true;
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            _barRefreshPending = false;
+            _bar?.ViewModel.Refresh();
+        }, System.Windows.Threading.DispatcherPriority.Background);
     }
 
     /// <summary>
@@ -377,6 +689,7 @@ public sealed class DesktopWidgetService
     /// </summary>
     public void EndEditSession(bool save)
     {
+        CloseBar();
         HideEditorPanel();
 
         var restore = _snapshot;
@@ -515,13 +828,17 @@ public sealed class DesktopWidgetService
 
         _panel.ViewModel.Changed -= OnPanelEdited;
         _panel.ViewModel.PresetRemoved -= DropPreset;
-        _panel.ViewModel.PreviewRequested -= PreviewRole;
-
-        // Whatever was being previewed stops being previewed. A widget left frozen in Critical after the
-        // editor closed would be a monitor that lies.
-        PreviewRole(null);
-        _panel.AddRequested -= OnAddRequested;
+        _panel.ViewModel.PropertyChanged -= OnPanelPropertyChanged;
         _panel.RemoveRequested -= RemoveFromPanel;
+        _panel.DuplicateRequested -= DuplicateSelected;
+        _panel.NudgeRequested -= NudgeSelected;
+        _panel.CloseRequested -= Deselect;
+        _panel.Moved -= OnPanelMoved;
+        _panel.DockRequested -= OnPanelDockRequested;
+        _panel.WidgetsRequested -= OnWidgetsRequested;
+
+        // The next session starts with nothing selected; the outline goes with edit mode itself.
+        _selected = null;
 
         // Cleared before closing: the panel is closed, not hidden, and a view model still pointing at a
         // definition would keep it alive along with every sensor subscription behind it.
@@ -582,12 +899,15 @@ public sealed class DesktopWidgetService
     /// which is the whole reason Discard has something to go back to.
     ///
     /// Every caller that persists an edit goes through here. The one write that does not is the first-run
-    /// seed, which is not an edit: it is the file coming into existence.
+    /// seed, which is not an edit: it is the file coming into existence. So during a session this is where the
+    /// edit bar hears that something changed.
     /// </summary>
     private void SaveUnlessEditing()
     {
-        if (_snapshot is not null || _widgets is null) return;
-        _layout.Save(_widgets);
+        if (_widgets is null) return;
+
+        if (_snapshot is null) _layout.Save(_widgets);
+        else RefreshBarSoon();
     }
 
     /// <summary>Every edit in the panel lands here — rendered and saved on the spot, doing only as much as
@@ -678,13 +998,11 @@ public sealed class DesktopWidgetService
         foreach (var definition in _byElement.Values.ToList()) RestyleWidget(definition);
     }
 
-    /// <summary>Reaching for a widget on the desktop is what fills the panel. An element with no definition
-    /// behind it is one a rebuild has already replaced; the panel is emptied rather than left pointing at
-    /// something that is no longer on screen.</summary>
+    /// <summary>Reaching for a widget on the desktop selects it. An element with no definition behind it is one a
+    /// rebuild has already replaced, and is ignored: the selection stays on what is really there.</summary>
     private void OnWidgetSelected(UIElement element)
     {
-        if (_panel is null) return;
-        _panel.Edit(_byElement.TryGetValue(element, out var definition) ? definition : null);
+        if (_panel is not null && _byElement.TryGetValue(element, out var definition)) Select(definition);
     }
 
     /// <summary>
@@ -702,15 +1020,15 @@ public sealed class DesktopWidgetService
         _widgets.Add(definition);
         SaveUnlessEditing();
 
-        _panel?.Edit(definition);
+        // A widget just made is asked first what it reads, whatever tab the last one was left on.
+        if (_panel is not null) _panel.ViewModel.SelectedTab = ViewModels.Windows.PanelTab.Content;
+        Select(definition);
     }
-
-    private void OnAddRequested() => AddWidget(null);
 
     private void RemoveFromPanel(DesktopWidgetDefinition definition)
     {
         Remove(definition);
-        _panel?.Edit(null);
+        Select(null);
     }
 
     /// <summary>
@@ -857,7 +1175,8 @@ public sealed class DesktopWidgetService
         surface.Canvas.Children.Add(element);
         _byElement[element] = definition;
 
-        _surfaces.RefreshEditModeAdorners();
+        // A new element: the outlines follow it, and if it is the selected widget, so does the selection.
+        ShowSelection();
     }
 
     private void RemoveElementFor(DesktopWidgetDefinition definition)
@@ -1104,11 +1423,11 @@ public sealed class DesktopWidgetService
     {
         if (!_byElement.TryGetValue(element, out var definition)) return;
 
-        // The wheel grows both sides alike, which keeps a shape it started with — but not one it did not, and not at
-        // the edge of its range, where one side stops and the other goes on. Led by the width, as every change of
-        // shape is. The canvas knows nothing of kinds, so the shape is put right here; the box it sized is sized again
-        // by the re-dress below, before anything is drawn.
-        (definition.Width, definition.Height) = WidgetScale.Proportioned(definition, width, height, SizeLead.Width);
+        // Taken as it comes. The desktop already kept the shape where it should: the wheel keeps the one the widget
+        // has, and a handle keeps it while the editor's lock is on or Shift is held. Putting the kind's shape back
+        // here, as it was once, would undo a freed dial at the first turn of the wheel.
+        definition.Width = width;
+        definition.Height = height;
 
         // A new size is a new scale, so the widget is re-dressed at it — a Style change, which leaves the piece
         // and its history where they are. The wheel has already sized the box; this sizes what is drawn in it.
@@ -1132,6 +1451,9 @@ public sealed class DesktopWidgetService
         SaveUnlessEditing();
 
         if (_panel?.Target == definition) _panel.ViewModel.SyncGeometry();
+
+        // The selection is drawn by the screen that holds the widget, and the one it left has let go of it.
+        if (definition == _selected) ShowSelection();
     }
 
     /// <summary>

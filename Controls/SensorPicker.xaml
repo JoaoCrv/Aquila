@@ -1,0 +1,101 @@
+<UserControl x:Class="Aquila.Controls.SensorPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <!--
+        The sensors to choose a reading from, opened when one is asked for and gone once one is chosen. Search
+        first, with the keys: the arrows move the highlight from inside the search box, Enter takes it, Esc closes.
+        A click takes the row and closes. It replaced a list of two hundred sensors standing in the panel all the
+        time, with a button below it to confirm the pick — the confirmation was there so that scrolling could not
+        add a sensor by accident, and a list that only appears when asked for has no scrolling to fear.
+
+        Drawn as a menu, in the kit's flyout colours, with its text colour said again: it lives in a popup, a
+        window of its own.
+    -->
+
+    <Border Background="{DynamicResource FlyoutBackground}" BorderBrush="{DynamicResource FlyoutBorderBrush}"
+            BorderThickness="1" CornerRadius="8"
+            TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+        <DockPanel>
+            <ui:TextBox x:Name="Search" DockPanel.Dock="Top" Margin="10,10,10,6"
+                        PlaceholderText="Search sensors" Icon="{ui:SymbolIcon Search24}"
+                        TextChanged="OnSearchChanged" PreviewKeyDown="OnKey"/>
+
+            <StackPanel DockPanel.Dock="Bottom">
+                <Border Height="1" Opacity="0.14" Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <TextBlock Margin="14,8,14,10" FontSize="12" Opacity="0.6"
+                           Text="↑ ↓ to choose · Enter adds it · Esc closes"/>
+            </StackPanel>
+
+            <TextBlock x:Name="Nothing" DockPanel.Dock="Top" Margin="14,10" FontSize="12" Opacity="0.6"
+                       Visibility="Collapsed" Text="No sensor matches."/>
+
+            <ListBox x:Name="List" BorderThickness="0" Background="Transparent" Padding="0,0,0,4"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     PreviewKeyDown="OnKey">
+                <ListBox.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.HeaderTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="14,10,14,4" Opacity="0.6">
+                                    <TextBlock DockPanel.Dock="Right" FontSize="12" Text="{Binding ItemCount}"/>
+                                    <TextBlock FontSize="12" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                </DockPanel>
+                            </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                    </GroupStyle>
+                </ListBox.GroupStyle>
+                <!-- A row of a menu: the highlight is the menu's hover fill, not the kit's accent selection, which
+                     painted the row the keys were on solid orange — the colour that means "chosen", for a row that
+                     is only being pointed at. -->
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Margin" Value="4,0"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <EventSetter Event="MouseLeftButtonUp" Handler="OnItemClick"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Row" Padding="10,7" CornerRadius="4" Background="Transparent">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Row" Property="Background"
+                                                    Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Row" Property="Background"
+                                                    Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <!-- Live, because names alone are ambiguous when a machine reports a dozen similar
+                                 temperatures. -->
+                            <TextBlock DockPanel.Dock="Right" Opacity="0.6" Margin="12,0,0,0">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:F1} {1}">
+                                        <Binding Path="Sensor.Value" FallbackValue="--" TargetNullValue="--"/>
+                                        <Binding Path="Sensor.Unit"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Border>
+</UserControl>

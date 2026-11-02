@@ -94,4 +94,15 @@ public class AppSettings
     // Desktop widgets (#24). Off by default while the feature is built out. The widget layout itself
     // lives in widgets.json, not here — it's a document, not a preference.
     public bool DesktopSurfaceEnabled { get; set; } = false;
+
+    /// <summary>Whether the edit bar's first tip — click a widget, drag it, pull a corner — has been seen: closed,
+    /// or made unnecessary by a first selection. Shown once, ever; after that the gestures are known.</summary>
+    public bool EditTipSeen { get; set; } = false;
+
+    /// <summary>Where the editor panel was dragged to — the screen's key and its position in DIPs — or, with the
+    /// position NaN, nowhere: docked on the primary screen. Kept across sessions, since a panel placed by hand never
+    /// jumps on its own; a double-click on its header docks it again.</summary>
+    public string? EditorPanelScreen { get; set; }
+    public double EditorPanelLeft { get; set; } = double.NaN;
+    public double EditorPanelTop { get; set; } = double.NaN;
 }

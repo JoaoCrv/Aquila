@@ -140,8 +140,8 @@ public sealed class ScaleProperties
             });
 
     /// <summary>Every kind with every choice of rings — what a resize can meet — split by whether the catalog says it
-    /// keeps its shape. Asked of the catalog rather than listed, so a kind that starts keeping one is tested here
-    /// without anyone remembering to add it.</summary>
+    /// has a shape of its own. Asked of the catalog rather than listed, so a kind that starts having one is tested
+    /// here without anyone remembering to add it.</summary>
     private static readonly DesktopWidgetDefinition[] Everything =
     [
         .. from kind in WidgetCatalog.All
@@ -155,10 +155,10 @@ public sealed class ScaleProperties
     private static readonly DesktopWidgetDefinition[] Free =
         [.. Everything.Where(w => WidgetScale.ShapeOf(w) is null)];
 
-    /// <summary>The dial and a clock with rings keep their shape; a clock without rings is a line of text, and every
-    /// other kind is free.</summary>
+    /// <summary>The dial and a clock with rings have a shape of their own; a clock without rings is a line of text,
+    /// and every other kind has none.</summary>
     [Fact]
-    public void The_round_figures_keep_their_shape_and_nothing_else_does()
+    public void The_round_figures_have_a_shape_and_nothing_else_does()
     {
         Assert.All(Shaped, w => Assert.True(
             w.Kind == DesktopWidgetKind.RadialGauge || w is { Kind: DesktopWidgetKind.Clock, Rings: not ClockRings.None }));
@@ -169,7 +169,7 @@ public sealed class ScaleProperties
     }
 
     /// <summary>
-    /// Resized any way, a widget that keeps its shape comes out in its reference's proportions — led by the side that
+    /// Resized any way, a widget held to its shape comes out in its reference's proportions — led by the side that
     /// was set, which it keeps whenever the range allows it, and inside the range on both sides when there is one.
     /// The editor's range is drawn often, since that is where a dial cannot be both its widest and its height taller.
     /// </summary>

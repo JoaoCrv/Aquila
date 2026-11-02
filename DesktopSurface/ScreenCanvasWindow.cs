@@ -32,7 +32,19 @@ internal sealed class ScreenCanvasWindow : Window
     private bool _editing;
     private UIElement? _dragTarget;
     private Vector _dragGrabOffset;
-    private readonly List<EditModeAdorner> _adorners = [];
+    private readonly Dictionary<UIElement, Adorner> _adorners = [];
+
+    // The widget being edited, drawn with a SelectionAdorner instead of the dashed one; and what a handle drag needs
+    // to remember from the moment it began.
+    private UIElement? _selected;
+    private Brush _selectionAccent = Brushes.White;
+    private Brush _selectionText = Brushes.Black;
+    private bool _keepShape;
+    private Rect _resizeFrom;
+    private Point _resizePointer;
+
+    // A widget pointed at from the edit bar's list, drawn over its other outline; never more than one.
+    private HighlightAdorner? _highlight;
 
     private readonly ExtentCanvas _surface = new();
     private readonly TranslateTransform _shift = new();
@@ -117,7 +129,7 @@ internal sealed class ScreenCanvasWindow : Window
         // it, so dragging works while the surface still never steals focus.
         if (_clickThrough) SetClickThrough(!editing);
 
-        if (editing) AddAdorners(); else RemoveAdorners();
+        if (editing) RefreshEditModeAdorners(); else RemoveAdorners();
         Fit();
     }
 
@@ -187,26 +199,112 @@ internal sealed class ScreenCanvasWindow : Window
         }
     }
 
-    private void AddAdorners()
+    private SelectionAdorner Selection(UIElement widget)
+    {
+        var adorner = new SelectionAdorner(widget, _selectionAccent, _selectionText) { ShapeKept = _keepShape };
+        adorner.ResizeStarted += _ => OnResizeStarted();
+        adorner.Resizing += corner => OnResizing(adorner, corner);
+        adorner.ResizeCompleted += _ => adorner.ShapeKept = _keepShape;
+        return adorner;
+    }
+
+    /// <summary>
+    /// Draws one widget of this screen as the one being edited, or none. The colours, and whether the editor's lock
+    /// keeps its shape, come from the caller: this window knows neither the theme nor the editor.
+    /// </summary>
+    public void SetSelected(UIElement? widget, Brush accent, Brush onAccent, bool keepShape)
+    {
+        _selected = widget is not null && Surface.Children.Contains(widget) ? widget : null;
+        _selectionAccent = accent;
+        _selectionText = onAccent;
+        _keepShape = keepShape;
+
+        // Made again rather than kept, so it wears the accent in force now — the theme may have changed since.
+        foreach (var (adorned, adorner) in _adorners.Where(pair => pair.Value is SelectionAdorner).ToList())
+        {
+            AdornerLayer.GetAdornerLayer(Surface)?.Remove(adorner);
+            _adorners.Remove(adorned);
+        }
+        RefreshEditModeAdorners();
+    }
+
+    /// <summary>Draws one widget of this screen as pointed at, or none — see <see cref="HighlightAdorner"/>.</summary>
+    public void SetHighlighted(UIElement? widget, Brush accent, Brush onAccent, string label)
     {
         var layer = AdornerLayer.GetAdornerLayer(Surface);
-        if (layer is null) return;
+        if (_highlight is not null) layer?.Remove(_highlight);
+        _highlight = null;
 
-        foreach (UIElement child in Surface.Children)
-        {
-
-            var adorner = new EditModeAdorner(child);
-            layer.Add(adorner);
-            _adorners.Add(adorner);
-        }
+        if (!_editing || widget is null || layer is null || !Surface.Children.Contains(widget)) return;
+        _highlight = new HighlightAdorner(widget, accent, onAccent, label);
+        layer.Add(_highlight);
     }
+
+    private void OnResizeStarted()
+    {
+        if (_selected is not FrameworkElement widget) return;
+
+        _resizeFrom = new Rect(GetLeft(widget), GetTop(widget), widget.ActualWidth, widget.ActualHeight);
+        _resizePointer = Mouse.GetPosition(Surface);
+    }
+
+    /// <summary>
+    /// A corner handle pulled: the widget resized live, from where the drag began, so a corner that hit the edge or
+    /// the smallest size and came back is where the pointer is, not where the handle's own deltas add up to.
+    ///
+    /// Free, for every kind alike: the shape it keeps is the one it has, while the editor's lock is on or Shift is
+    /// held. A rule per kind — dials kept, the rest free, Shift swapping them — had two widgets answering the same
+    /// hand in opposite ways (João, 2026-11-02); a dial in a wide box simply has room beside it, which a background
+    /// may want. The owner hears every step, because a new size is a new scale, and the text and strokes inside
+    /// should follow the corner rather than jump when it is let go.
+    /// </summary>
+    private void OnResizing(SelectionAdorner adorner, Corner corner)
+    {
+        if (_selected is not FrameworkElement widget) return;
+
+        var keepShape = _keepShape || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        adorner.ShapeKept = keepShape;
+        var to = EditGeometry.Resize(_resizeFrom, corner, Mouse.GetPosition(Surface) - _resizePointer, keepShape,
+            _screen.Size);
+
+        widget.Width = to.Width;
+        widget.Height = to.Height;
+        if (to.X != GetLeft(widget) || to.Y != GetTop(widget))
+        {
+            Canvas.SetLeft(widget, to.X);
+            Canvas.SetTop(widget, to.Y);
+            WidgetMoved?.Invoke(widget, to.X, to.Y);
+        }
+        WidgetResized?.Invoke(widget, to.Width, to.Height);
+    }
+
+    /// <summary>Moves a widget by the arrow keys, held on its screen as a drag is.</summary>
+    public void Nudge(UIElement widget, double dx, double dy)
+    {
+        var at = EditGeometry.Nudge(new Rect(new Point(GetLeft(widget), GetTop(widget)), SizeOf(widget)),
+            new Vector(dx, dy), _screen.Size);
+
+        Canvas.SetLeft(widget, at.X);
+        Canvas.SetTop(widget, at.Y);
+        WidgetMoved?.Invoke(widget, at.X, at.Y);
+    }
+
+    /// <summary>The size a widget asked for, else the size it was given: one just built has not been laid out, and
+    /// its RenderSize is still nothing.</summary>
+    private static Size SizeOf(UIElement widget) =>
+        widget is FrameworkElement { Width: var width, Height: var height } && double.IsFinite(width) && double.IsFinite(height)
+            ? new Size(width, height)
+            : widget.RenderSize;
 
     private void RemoveAdorners()
     {
         var layer = AdornerLayer.GetAdornerLayer(Surface);
-        foreach (var adorner in _adorners)
+        foreach (var adorner in _adorners.Values)
             layer?.Remove(adorner);
         _adorners.Clear();
+
+        if (_highlight is not null) layer?.Remove(_highlight);
+        _highlight = null;
     }
 
     private void OnSurfaceMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -234,9 +332,9 @@ internal sealed class ScreenCanvasWindow : Window
 
         // Keep the widget on its own screen — a canvas is exactly one monitor, so letting it be dragged
         // past the edge would just hide it.
-        var size = _dragTarget.RenderSize;
-        Canvas.SetLeft(_dragTarget, Math.Clamp(position.X, 0, Math.Max(0, _screen.Width - size.Width)));
-        Canvas.SetTop(_dragTarget, Math.Clamp(position.Y, 0, Math.Max(0, _screen.Height - size.Height)));
+        var at = EditGeometry.ClampPosition(position, _dragTarget.RenderSize, _screen.Size);
+        Canvas.SetLeft(_dragTarget, at.X);
+        Canvas.SetTop(_dragTarget, at.Y);
     }
 
     private void OnSurfaceMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -260,10 +358,9 @@ internal sealed class ScreenCanvasWindow : Window
     }
 
     /// <summary>
-    /// Wheel over a widget resizes it. Both dimensions scale together, which keeps most shapes as they were. A
-    /// widget whose figure has a fixed shape is held to it by whoever owns it, on hearing
-    /// <see cref="WidgetResized"/>: this window knows nothing of kinds, and its bounds below are per side. The size
-    /// boxes in the editor remain the precise method; this is the quick one.
+    /// Wheel over a widget resizes it. Both dimensions scale by one factor, held at the ends of the range so the
+    /// shape survives them: a widget keeps the shape it has — its kind's, or one the user chose with a handle. The
+    /// corner handles are the precise method; this is the quick one.
     /// </summary>
     private void OnSurfaceMouseWheel(object sender, MouseWheelEventArgs e)
     {
@@ -273,17 +370,23 @@ internal sealed class ScreenCanvasWindow : Window
         if (child is not FrameworkElement widget) return;
 
         var scale = e.Delta > 0 ? 1.08 : 1 / 1.08;
-        var width = Math.Clamp(widget.ActualWidth * scale, 80, 600);
-        var height = Math.Clamp(widget.ActualHeight * scale, 60, 500);
+        var size = EditGeometry.Scale(new Size(widget.ActualWidth, widget.ActualHeight), scale, _screen.Size);
 
-        widget.Width = width;
-        widget.Height = height;
+        widget.Width = size.Width;
+        widget.Height = size.Height;
 
-        // Growing near an edge would push the widget off-screen, so keep it inside as it changes size.
-        Canvas.SetLeft(widget, Math.Clamp(GetLeft(widget), 0, Math.Max(0, _screen.Width - width)));
-        Canvas.SetTop(widget, Math.Clamp(GetTop(widget), 0, Math.Max(0, _screen.Height - height)));
+        // Growing near an edge would push the widget off-screen, so keep it inside as it changes size — and say so,
+        // or the owner keeps the old position and the widget comes back over the edge the next time it is placed.
+        var from = new Point(GetLeft(widget), GetTop(widget));
+        var at = EditGeometry.ClampPosition(from, size, _screen.Size);
+        if (at != from)
+        {
+            Canvas.SetLeft(widget, at.X);
+            Canvas.SetTop(widget, at.Y);
+            WidgetMoved?.Invoke(widget, at.X, at.Y);
+        }
 
-        WidgetResized?.Invoke(widget, width, height);
+        WidgetResized?.Invoke(widget, size.Width, size.Height);
         e.Handled = true;
     }
 
@@ -293,9 +396,9 @@ internal sealed class ScreenCanvasWindow : Window
     {
         Surface.Children.Add(widget);
 
-        var size = widget.RenderSize;
-        Canvas.SetLeft(widget, Math.Clamp(x, 0, Math.Max(0, _screen.Width - size.Width)));
-        Canvas.SetTop(widget, Math.Clamp(y, 0, Math.Max(0, _screen.Height - size.Height)));
+        var at = EditGeometry.ClampPosition(new Point(x, y), widget.RenderSize, _screen.Size);
+        Canvas.SetLeft(widget, at.X);
+        Canvas.SetTop(widget, at.Y);
 
         RefreshEditModeAdorners();
     }
@@ -303,16 +406,40 @@ internal sealed class ScreenCanvasWindow : Window
     public void ReleaseWidget(UIElement widget)
     {
         Surface.Children.Remove(widget);
+        if (widget == _selected) _selected = null;
         RefreshEditModeAdorners();
     }
 
-    /// <summary>Re-syncs the dashed outlines with the current children — adorners are per-element, so they
-    /// have to be rebuilt whenever the set of widgets on this canvas changes.</summary>
+    /// <summary>
+    /// Re-syncs the outlines with the current children — dashed on each, solid with handles on the selected one.
+    /// Adorners are per element, so a widget added or rebuilt needs its own. One that is still right is kept and
+    /// only measured again: a refresh usually means a widget changed size, and while a handle is being pulled it
+    /// is asked for at every step — making that handle again would drop it from under the pointer.
+    /// </summary>
     public void RefreshEditModeAdorners()
     {
         if (!_editing) return;
-        RemoveAdorners();
-        AddAdorners();
+        var layer = AdornerLayer.GetAdornerLayer(Surface);
+        if (layer is null) return;
+
+        foreach (var (widget, adorner) in _adorners.ToList())
+        {
+            if (Surface.Children.Contains(widget) && adorner is SelectionAdorner == (widget == _selected))
+            {
+                adorner.InvalidateMeasure();
+                continue;
+            }
+            layer.Remove(adorner);
+            _adorners.Remove(widget);
+        }
+
+        foreach (UIElement widget in Surface.Children)
+        {
+            if (_adorners.ContainsKey(widget)) continue;
+            Adorner adorner = widget == _selected ? Selection(widget) : new EditModeAdorner(widget);
+            layer.Add(adorner);
+            _adorners[widget] = adorner;
+        }
     }
 
     /// <summary>Walks up from whatever was hit to the direct child of the canvas — the widget as a whole,
