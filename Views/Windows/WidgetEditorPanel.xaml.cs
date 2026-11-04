@@ -127,6 +127,11 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// <summary>Raised for a double-click on the header: dock again, and forget where it was dragged to.</summary>
     public event Action? DockRequested;
 
+    /// <summary>Raised for Ctrl+Z, and for Ctrl+Y or Ctrl+Shift+Z — the session's, which the service keeps. A text
+    /// field being typed in keeps its own: it handles them first.</summary>
+    public event Action? UndoRequested;
+    public event Action? RedoRequested;
+
     /// <summary>Raised for "Widgets" in the header's path: up a level — let go of the widget and show the list of
     /// them, which is the edit bar's.</summary>
     public event Action? WidgetsRequested;
@@ -238,9 +243,9 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     }
 
     /// <summary>
-    /// Del, Esc and Ctrl+D, heard after the focused control has had them — so a text field keeps Delete, and an open
-    /// combo closes on Esc before the panel does. Esc steps back one level: out of the preset into the widget, then
-    /// out of the widget, which lets go of it.
+    /// Del, Esc, Ctrl+D and the undo keys, heard after the focused control has had them — so a text field keeps
+    /// Delete and its own Ctrl+Z, and an open combo closes on Esc before the panel does. Esc steps back one level: out
+    /// of the gallery, out of the preset into the widget, then out of the widget, which lets go of it.
     /// </summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -263,6 +268,13 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
                 break;
             case Key.D when Keyboard.Modifiers == ModifierKeys.Control:
                 DuplicateRequested?.Invoke();
+                break;
+            case Key.Z when Keyboard.Modifiers == ModifierKeys.Control:
+                UndoRequested?.Invoke();
+                break;
+            case Key.Y when Keyboard.Modifiers == ModifierKeys.Control:
+            case Key.Z when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                RedoRequested?.Invoke();
                 break;
             default:
                 return;

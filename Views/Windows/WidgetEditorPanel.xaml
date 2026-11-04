@@ -336,11 +336,11 @@
                                     Visibility="{Binding ViewModel.ShowsWidgetView, Converter={StaticResource BoolToVisibility}}">
                             <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
                                        Icon="{ui:SymbolIcon Copy24}"
-                                       ToolTip="Duplicate (Ctrl+D)"
+                                       ToolTip="Duplicate (Ctrl+D)" AutomationProperties.Name="Duplicate (Ctrl+D)"
                                        Click="Duplicate_Click"/>
                             <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
                                        Icon="{ui:SymbolIcon Delete24}"
-                                       ToolTip="Remove (Del) — Discard brings it back"
+                                       ToolTip="Remove (Del) — Discard brings it back" AutomationProperties.Name="Remove (Del) — Discard brings it back"
                                        Click="Remove_Click"/>
                             <Border Width="1" Height="20" Margin="8,0,2,0" Opacity="0.14"
                                     Background="{DynamicResource TextFillColorPrimaryBrush}"/>
@@ -349,7 +349,7 @@
                                     Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
                             <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
                                        Icon="{ui:SymbolIcon MoreHorizontal24}"
-                                       ToolTip="More"
+                                       ToolTip="More" AutomationProperties.Name="More"
                                        ContextMenu="{StaticResource PresetMenu}"
                                        Click="OnPresetMenu"/>
                             <Border Width="1" Height="20" Margin="8,0,2,0" Opacity="0.14"
@@ -358,7 +358,7 @@
                         <ui:Button Style="{StaticResource IconButton}" Margin="6,0,0,0"
                                    Appearance="Transparent" BorderThickness="0"
                                    Icon="{ui:SymbolIcon Dismiss24}"
-                                   ToolTip="Close (Esc)"
+                                   ToolTip="Close (Esc)" AutomationProperties.Name="Close (Esc)"
                                    Click="Close_Click"/>
                     </StackPanel>
 
@@ -575,7 +575,7 @@
                                                 <ui:Button Grid.Column="3" Style="{StaticResource IconButton}" Width="28" Height="28"
                                                            Margin="8,0,0,0" Appearance="Transparent" BorderThickness="0"
                                                            Icon="{ui:SymbolIcon Dismiss24}"
-                                                           ToolTip="Remove this reading"
+                                                           ToolTip="Remove this reading" AutomationProperties.Name="Remove this reading"
                                                            Command="{Binding DataContext.ViewModel.RemoveSeriesCommand,
                                                                      RelativeSource={RelativeSource AncestorType=Window}}"
                                                            CommandParameter="{Binding}"/>
@@ -712,7 +712,7 @@
                                             <ui:Button x:Name="More" DockPanel.Dock="Right" Style="{StaticResource IconButton}"
                                                        Width="28" Height="28" Margin="6,0,0,0" Visibility="Hidden"
                                                        Appearance="Transparent" BorderThickness="0"
-                                                       Icon="{ui:SymbolIcon MoreHorizontal24}" ToolTip="More"
+                                                       Icon="{ui:SymbolIcon MoreHorizontal24}" ToolTip="More" AutomationProperties.Name="More"
                                                        ContextMenu="{StaticResource PresetRowMenu}"
                                                        Click="OnPresetRowMenu"/>
                                             <TextBlock DockPanel.Dock="Right" Text="{Binding Worn}" FontSize="12"
@@ -745,7 +745,7 @@
                             <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="8,0,0,0"
                                        Width="36" Height="36"
                                        Icon="{ui:SymbolIcon Copy24}"
-                                       ToolTip="New preset from this one"
+                                       ToolTip="New preset from this one" AutomationProperties.Name="New preset from this one"
                                        Command="{Binding ViewModel.NewPresetCommand}"/>
                             <ui:Button HorizontalAlignment="Stretch" Height="36" Icon="{ui:SymbolIcon Edit24}"
                                        Content="{Binding ViewModel.EditPresetLabel}"
@@ -888,10 +888,8 @@
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Visibility="{Binding ViewModel.SelectedTab, Converter={StaticResource Match}, ConverterParameter=Customize}">
                     <StackPanel Margin="2,16,6,16">
-                        <!-- Under the type, because it IS one: having picked bars, the next thing
-                             to say is which way they run. It sat in Data first, which was wrong —
-                             that card is about which readings and what is shown of them, and this
-                             is about the shape the widget takes. -->
+                        <!-- First of the kind's options, because it is about the shape the widget takes:
+                             having picked bars, the next thing to say is which way they run. -->
                         <StackPanel Margin="0,0,0,16"
                                     Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="Bars run" Style="{StaticResource FieldLabel}"/>
@@ -1070,7 +1068,7 @@
                                           Value="{Binding ViewModel.WidgetWidth, Mode=TwoWay}"/>
                             <ToggleButton Grid.Row="1" Grid.Column="1" Margin="6,0" Padding="7,0"
                                           VerticalAlignment="Stretch"
-                                          ToolTip="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag."
+                                          ToolTip="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag." AutomationProperties.Name="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag."
                                           IsChecked="{Binding ViewModel.KeepsProportions, Mode=TwoWay}">
                                 <ToggleButton.Style>
                                     <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}">
@@ -1252,7 +1250,7 @@
                                                  shape from the others for a reason you could only infer. -->
                                             <ui:Button Style="{StaticResource IconButton}" DockPanel.Dock="Right" Margin="6,0,0,0"
                                                        Icon="{ui:SymbolIcon MoreHorizontal24}"
-                                                       ToolTip="More"
+                                                       ToolTip="More" AutomationProperties.Name="More"
                                                        Click="OnRampMenu">
                                                 <ui:Button.ContextMenu>
                                                     <ContextMenu>

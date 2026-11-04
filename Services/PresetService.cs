@@ -289,6 +289,60 @@ public sealed class PresetService(ILogger<PresetService> logger, SettingsService
         return true;
     }
 
+    /// <summary>
+    /// The presets' part of an edit session at one moment, for the editor's undo: every preset as a copy, and what
+    /// the session has drafted, made and deleted so far. <paramref name="Fingerprint"/> is all of it as text, so two
+    /// moments can be told apart without walking a preset's every field.
+    /// </summary>
+    public sealed record Session(
+        IReadOnlyList<Preset> Presets,
+        IReadOnlyDictionary<string, Preset> Originals,
+        IReadOnlyList<string> Created,
+        IReadOnlyDictionary<string, Preset> Deleted,
+        string Fingerprint);
+
+    /// <summary>The presets' part of the session as it stands. Copies: what is edited next must not reach it.</summary>
+    public Session CaptureSession()
+    {
+        var copies = new List<Preset>(_presets.Count);
+        var text = new System.Text.StringBuilder();
+        foreach (var preset in _presets)
+        {
+            var json = JsonSerializer.Serialize(preset, _write);
+            var copy = JsonSerializer.Deserialize<Preset>(json, _read) ?? Fallback;
+            copy.IsBuiltIn = preset.IsBuiltIn;
+            copies.Add(copy);
+            text.Append(json).Append('\n');
+        }
+        text.Append('|').AppendJoin(',', _originals.Keys.Order(StringComparer.OrdinalIgnoreCase))
+            .Append('|').AppendJoin(',', _created.Order(StringComparer.OrdinalIgnoreCase))
+            .Append('|').AppendJoin(',', _deleted.Keys.Order(StringComparer.OrdinalIgnoreCase));
+
+        return new Session(copies,
+            new Dictionary<string, Preset>(_originals, StringComparer.OrdinalIgnoreCase),
+            [.. _created],
+            new Dictionary<string, Preset>(_deleted, StringComparer.OrdinalIgnoreCase),
+            text.ToString());
+    }
+
+    /// <summary>
+    /// Puts the presets' part of the session back as <paramref name="session"/> holds it. Copies again, so the moment
+    /// kept for another undo is never edited through. The presets are new objects afterwards: whoever held one asks
+    /// <see cref="For"/> again — the widgets do on every re-dress, the panel when it reloads.
+    /// </summary>
+    public void RestoreSession(Session session)
+    {
+        _presets.Clear();
+        _presets.AddRange(session.Presets.Select(Clone));
+
+        _originals.Clear();
+        foreach (var (id, original) in session.Originals) _originals[id] = original;
+        _created.Clear();
+        _created.UnionWith(session.Created);
+        _deleted.Clear();
+        foreach (var (id, deleted) in session.Deleted) _deleted[id] = deleted;
+    }
+
     /// <summary>Puts every edited preset back as it was and ends the session.</summary>
     public void Revert()
     {

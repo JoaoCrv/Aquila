@@ -35,6 +35,11 @@ public sealed record WidgetKindInfo(
     /// </summary>
     public Wpf.Ui.Controls.SymbolRegular Icon { get; init; } = Wpf.Ui.Controls.SymbolRegular.Square24;
 
+    /// <summary>What a widget made this kind NOW starts with, beyond its size: a clock its rings, a list its bars,
+    /// trends and total. Only when it is made — a widget written before these existed reads them off, so loading one
+    /// never applies this. Asked by the editor when a kind is picked and by Add widget alike.</summary>
+    public Action<DesktopWidgetDefinition>? MadeNow { get; init; }
+
     /// <summary>Whether a widget made this kind starts behind the others — a plate exists to back them. The backdrop
     /// alone: the rule was "reads nothing", which a clock does too, and a clock chosen went behind everything.</summary>
     public bool SitsBehind { get; init; }
@@ -205,6 +210,7 @@ public static class WidgetCatalog
                 NeedsReading = false, HasClock = true, HasUnit = false, Icon = Wpf.Ui.Controls.SymbolRegular.Clock24, Summary = "The time, in rings or as text",
                 Reference = clock => clock.Rings == ClockRings.None ? (200, 70) : (200, 200),
                 HasShape = clock => clock.Rings != ClockRings.None,
+                MadeNow = clock => clock.Rings = ClockRings.All,
             },
 
         // The first kind whose count the hardware decides. Sixteen is a ceiling, not a shape: this machine
@@ -236,6 +242,7 @@ public static class WidgetCatalog
             SeriesPaint.PerRow((piece, judge) => ((SensorList)piece).PaintRows(judge)))
             {
                 CreateList = list => new SensorList(list),
+                MadeNow = list => (list.ShowBar, list.ShowSparkline, list.ShowTotal) = (true, true, true),
                 Icon = Wpf.Ui.Controls.SymbolRegular.TextBulletListLtr24, Summary = "The busiest applications, largest first",
                 Reference = list => list.ShowBar ? (240, 230) : (240, 170),
             },
@@ -245,6 +252,15 @@ public static class WidgetCatalog
     /// a user can hand-edit and an older build may have written before a kind was renamed.</summary>
     public static WidgetKindInfo For(DesktopWidgetKind kind) =>
         All.FirstOrDefault(k => k.Kind == kind) ?? All[0];
+
+    /// <summary>
+    /// The kind a widget made from one sensor starts as — pinned from the Explorer, or added from the edit bar.
+    /// A percentage is a share of a whole, which is what a dial draws; every other reading — temperature included,
+    /// although it has a fixed scale too — starts as its trend, the same for all of them, which reads honestly
+    /// whatever the units are (João, 2026-10-07: consistency across pins). A different shape is one click away.
+    /// </summary>
+    public static WidgetKindInfo SuggestFor(SensorNode sensor) =>
+        For(sensor.Unit == "%" ? DesktopWidgetKind.RadialGauge : DesktopWidgetKind.MiniSparkline);
 
     /// <summary>
     /// The readings a widget keeps when it becomes <paramref name="to"/>, in their order: those of the sort it draws

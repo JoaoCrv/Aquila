@@ -117,21 +117,20 @@ public partial class WidgetsViewModel : ObservableObject
     private void IdentifyScreens() => _surface.IdentifyScreens();
 
     /// <summary>
-    /// Creates a widget and takes the user to it. Adding one means going to the desktop to place and dress
-    /// it, so this enters edit mode rather than leaving the new widget behind on a screen nobody is looking
-    /// at — the same trip they would have made a second later anyway.
+    /// Takes the user to the desktop to add a widget: edit mode, with the edit bar's Add widget menu open — the
+    /// same menu, starting from what is to be seen. Adding one means going to the desktop to place and dress it
+    /// anyway, and the widget is made once something is chosen, not before.
     /// </summary>
     [RelayCommand]
     private void AddWidget()
     {
         // The surface first, because there has to be somewhere to put the widget; then the session, because
         // a widget added outside one would be written to disk immediately and Discard could not take it
-        // back; then the widget itself. Populate is idempotent, so turning the surface on twice is harmless.
+        // back. Populate is idempotent, so turning the surface on twice is harmless.
         if (!ShowOnDesktop) ShowOnDesktop = true;
 
         StartEditing();
-        _widgets.AddWidget(presetSensorIdentifier: null);
-        RefreshWidgets();
+        _widgets.OpenAddMenu();
     }
 
     /// <summary>

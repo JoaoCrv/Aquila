@@ -180,6 +180,20 @@ public record SensorOption(string Component, string Name, string Identifier, Sen
     /// <summary>A list has no one node to show a live value from — its value is its rows — so it is the option
     /// with no sensor.</summary>
     public bool IsList => Sensor is null;
+
+    /// <summary>Every sensor the machine reports, in the catalogue's order, grouped by the part it belongs to — what
+    /// a reading is chosen from, in the panel and in the edit bar's Add widget alike.</summary>
+    public static IEnumerable<SensorOption> SensorsOf(HardwareNode hardware) =>
+        from component in SensorCatalog.GetComponents(hardware)
+        from entry in component.Sensors
+        where !string.IsNullOrEmpty(entry.Sensor.Identifier)
+        select new SensorOption(component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry.Key.ToString());
+
+    /// <summary>The lists, grouped under what they are lists OF, the way a sensor is under its part — so the reading
+    /// a List was given reads "Processes — CPU" wherever it is shown.</summary>
+    public static IEnumerable<SensorOption> ListsOf(AquilaState state) =>
+        state.Processes.All.Select(list => new SensorOption(
+            state.Processes.Name, list.Name, list.Identifier, null, list.Metric?.ToString() ?? string.Empty));
 }
 
 /// <summary>
@@ -1424,8 +1438,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     public bool ShowsClockFormat => ShowsClockOptions && SelectedRings == ClockRings.None;
     public bool ShowsRingOptions => ShowsClockOptions && SelectedRings != ClockRings.None;
 
-    /// <summary>Whether this kind is made of words at all — a caption, a clock, or both.</summary>
-    public bool ShowsTextOptions => ShowsCaptionOptions || ShowsClockOptions;
 
     public bool ShowsCaptionOptions => SelectedKind?.HasCaption == true;
     public bool ShowsClockOptions => SelectedKind?.HasClock == true;
@@ -1638,16 +1650,18 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         if (_loaded && value?.HasList == true && Chosen.Count == 0 && _allLists.Count > 0)
             Chosen.Add(new SeriesRow(_allLists[0], DefaultRamp(0), OnSeriesEdited, ShownItem));
 
-        // A clock made now has rings. Only when the USER picks the kind, like the size above: filling the form
-        // from a clock written before rings existed must read its None, not overwrite it.
-        if (_loaded && value?.HasClock == true) SelectedRings = ClockRings.All;
-
-        // And a list made now has its bars, trends and total, by the same rule: a list written before them reads off.
-        if (_loaded && value?.HasList == true)
+        // What the kind starts with when it is made — a clock its rings, a list its bars (WidgetKindInfo.MadeNow, as
+        // Add widget does it). Only when the USER picks the kind, like the size above: filling the form from a clock
+        // written before rings existed must read its None, not overwrite it. Read from a copy with the writes held,
+        // since each option read would otherwise write the rest of the form, still the old kind's, over the copy's;
+        // the Structure apply below writes them all at once.
+        if (_loaded && value?.MadeNow is { } made && _target is not null)
         {
-            BarShown = true;
-            SparklineShown = true;
-            TotalShown = true;
+            var fresh = _target.Clone();
+            made(fresh);
+            _loaded = false;
+            ReadOptions(fresh);
+            _loaded = true;
         }
 
         NotifySeriesState();
@@ -1864,18 +1878,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         var hardware = state.Hardware;
 
         _allSensors.Clear();
-        foreach (var component in SensorCatalog.GetComponents(hardware))
-            foreach (var entry in component.Sensors)
-                if (!string.IsNullOrEmpty(entry.Sensor.Identifier))
-                    _allSensors.Add(new SensorOption(
-                        component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry.Key.ToString()));
-
-        // Grouped under what they are lists OF, the way a sensor is under its part — so the reading a List was
-        // given reads "Processes — CPU" wherever it is shown.
+        _allSensors.AddRange(SensorOption.SensorsOf(hardware));
         _allLists.Clear();
-        foreach (var list in state.Processes.All)
-            _allLists.Add(new SensorOption(
-                state.Processes.Name, list.Name, list.Identifier, null, list.Metric?.ToString() ?? string.Empty));
+        _allLists.AddRange(SensorOption.ListsOf(state));
 
         // Set once, on the first Load — every kind in the picker rebuilds its preview when this is assigned,
         // and the hardware tree does not grow cores between one widget and the next.
@@ -1943,24 +1948,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
                 Chosen.Add(new SeriesRow(pinned, DefaultRamp(0), OnSeriesEdited, ShownItem));
         }
 
-        Caption = target.Text;
-        SelectedClockFormat = target.ClockFormat;
-        SelectedRings = target.Rings;
-        SecondsShown = target.ShowSeconds;
-        DateShown = target.ShowDate;
-        TextFillsRings = target.FillRings;
-        ValueShown = target.ShowValue;
-        UnitShown = target.ShowUnit;
-        BarDirection = target.BarDirection;
-
-        PointCount = target.PointCount;
-        SelectedScale = target.Scale;
-        ScaleMin = target.ScaleMin;
-        ScaleMax = target.ScaleMax;
-        ItemCount = target.ItemCount;
-        BarShown = target.ShowBar;
-        SparklineShown = target.ShowSparkline;
-        TotalShown = target.ShowTotal;
+        ReadOptions(target);
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.
@@ -1973,6 +1961,30 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         // Chosen is refilled above, after the kind was set, so anything reading both is out of date by now.
         NotifySeriesState();
+    }
+
+    /// <summary>The form's options read from a definition — on Load, and from a fresh copy when a kind is picked.
+    /// </summary>
+    private void ReadOptions(DesktopWidgetDefinition source)
+    {
+        Caption = source.Text;
+        SelectedClockFormat = source.ClockFormat;
+        SelectedRings = source.Rings;
+        SecondsShown = source.ShowSeconds;
+        DateShown = source.ShowDate;
+        TextFillsRings = source.FillRings;
+        ValueShown = source.ShowValue;
+        UnitShown = source.ShowUnit;
+        BarDirection = source.BarDirection;
+
+        PointCount = source.PointCount;
+        SelectedScale = source.Scale;
+        ScaleMin = source.ScaleMin;
+        ScaleMax = source.ScaleMax;
+        ItemCount = source.ItemCount;
+        BarShown = source.ShowBar;
+        SparklineShown = source.ShowSparkline;
+        TotalShown = source.ShowTotal;
     }
 }
 

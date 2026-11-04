@@ -52,13 +52,29 @@ public sealed partial class EditBarViewModel(DesktopWidgetService widgets, Setti
     [ObservableProperty] private bool _needsAttention;
     [ObservableProperty] private string _widgetsTip = string.Empty;
 
-    /// <summary>Whether discarding would lose anything. Before undo there is no count to give, only the fact.
-    /// </summary>
+    /// <summary>Whether discarding would lose anything — what the Discard question is still decided by.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText))]
     private bool _hasChanges;
 
-    public string StatusText => HasChanges ? "Unsaved changes" : "No changes yet";
+    /// <summary>The steps there are to undo: the count of unsaved changes. Undone to the start, there are none.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    private int _steps;
+
+    [ObservableProperty] private bool _canUndo;
+    [ObservableProperty] private bool _canRedo;
+
+    /// <summary>"3 unsaved changes"; "Unsaved changes" when they are older than the steps kept; "No changes yet".
+    /// </summary>
+    public string StatusText =>
+        Steps > 0 ? (Steps == 1 ? "1 unsaved change" : $"{Steps} unsaved changes")
+        : HasChanges ? "Unsaved changes"
+        : "No changes yet";
+
+    public void Undo() => widgets.Undo();
+    public void Redo() => widgets.Redo();
 
     /// <summary>The state every widget is drawn in, or null for what the sensors read — Live. The bar's, because
     /// it paints the whole desktop, not the widget the panel is about.</summary>
@@ -83,7 +99,10 @@ public sealed partial class EditBarViewModel(DesktopWidgetService widgets, Setti
         WidgetsTip = attention > 0
             ? $"{Plural(places.Count, "widget")}, {attention} {(attention == 1 ? "needs" : "need")} attention"
             : Plural(places.Count, "widget");
-        HasChanges = widgets.HasUnsavedChanges;
+        HasChanges = widgets.HasUnsavedChanges || widgets.UndoSteps > 0;
+        Steps = widgets.UndoSteps;
+        CanUndo = widgets.CanUndo;
+        CanRedo = widgets.CanRedo;
     }
 
     /// <summary>
@@ -140,7 +159,38 @@ public sealed partial class EditBarViewModel(DesktopWidgetService widgets, Setti
 
     public void Highlight(WidgetRow? row) => widgets.Highlight(row?.Definition, row?.Highlight ?? string.Empty);
 
-    public void Add() => widgets.AddWidget(presetSensorIdentifier: null);
+    /// <summary>The kinds that read nothing — Text, Clock, Backdrop — made straight from a tile in the Add menu.
+    /// Asked of the catalogue, so a kind added there that reads nothing arrives here too; a plate last, as it is
+    /// the one made to go behind the others.</summary>
+    public IReadOnlyList<WidgetKindInfo> Unread { get; } =
+        [.. WidgetCatalog.All.Where(kind => !kind.NeedsReading).OrderBy(kind => kind.SitsBehind)];
+
+    /// <summary>What a widget can be made from: every sensor, then the lists.</summary>
+    public IReadOnlyList<SensorOption> Readings() => widgets.AddableReadings();
+
+    /// <summary>The kind a reading starts as: a list as a List, a sensor by <see cref="WidgetCatalog.SuggestFor"/>.
+    /// </summary>
+    private static WidgetKindInfo KindFor(SensorOption reading) =>
+        reading.Sensor is { } sensor ? WidgetCatalog.SuggestFor(sensor) : WidgetCatalog.For(DesktopWidgetKind.List);
+
+    /// <summary>Written beside each row of the Add menu: the kind it would start as.</summary>
+    public string Starts(SensorOption reading) => KindFor(reading).Name;
+
+    /// <summary>A list is offered as what it shows — "Top applications by CPU" — rather than by its bare name.
+    /// </summary>
+    public string LabelOf(SensorOption reading) =>
+        reading.IsList ? $"Top applications by {By(reading)}" : reading.Name;
+
+    /// <summary>"CPU", "memory", "I/O": a list's name in a sentence — lowered, unless it is an abbreviation.</summary>
+    private static string By(SensorOption list) =>
+        list.Name.Any(char.IsLower) ? list.Name.ToLowerInvariant() : list.Name;
+
+    /// <summary>A widget made from a reading: the kind it starts as, titled after it — a list "Top CPU".</summary>
+    public void Create(SensorOption reading) =>
+        widgets.AddWidget(KindFor(reading), reading, reading.IsList ? $"Top {By(reading)}" : reading.Name);
+
+    /// <summary>A widget of a kind that reads nothing, untitled.</summary>
+    public void Create(WidgetKindInfo kind) => widgets.AddWidget(kind, null, string.Empty);
 
     public void Finish(bool save) => widgets.Finish(save);
 }

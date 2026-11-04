@@ -48,6 +48,34 @@
             <Setter Property="Margin" Value="14,8,14,4"/>
         </Style>
 
+        <!-- A kind that reads nothing, in the Add menu: a tile with its icon and name, made with a click. -->
+        <Style x:Key="UnreadTile" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Tile" Height="60" CornerRadius="6" BorderThickness="1"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="BarDivider" TargetType="Border">
             <Setter Property="Width" Value="1"/>
             <Setter Property="Height" Value="20"/>
@@ -128,12 +156,15 @@
     <Grid x:Name="Root" Margin="8">
         <StackPanel Orientation="Horizontal">
 
-            <ui:Button Height="{DynamicResource Aquila.Size.Control}" Padding="12,0" Click="Add_Click">
+            <!-- A widget starts from what is to be seen: the menu offers the readings, each with the kind it would
+                 start as, and the kinds that read nothing. -->
+            <controls:MenuToggle x:Name="AddButton" Padding="12,0" Height="{DynamicResource Aquila.Size.Control}"
+                                 Click="Add_Click">
                 <StackPanel Orientation="Horizontal">
                     <ui:SymbolIcon Symbol="Add24" FontSize="16" Foreground="{DynamicResource Aquila.Chrome.Accent}"/>
                     <TextBlock Text="Add widget" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
-            </ui:Button>
+            </controls:MenuToggle>
 
             <controls:MenuToggle x:Name="WidgetsButton" Margin="8,0,0,0" Padding="12,0"
                                  Height="{DynamicResource Aquila.Size.Control}"
@@ -156,6 +187,16 @@
                     <ui:SymbolIcon Symbol="ChevronDown24" FontSize="12" Margin="10,0,0,0"/>
                 </StackPanel>
             </controls:MenuToggle>
+
+            <Border Style="{StaticResource BarDivider}"/>
+
+            <!-- The session's steps, back and forward — every change Discard would undo, one gesture at a time. -->
+            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowUndo24}"
+                       ToolTip="Undo (Ctrl+Z)" AutomationProperties.Name="Undo (Ctrl+Z)"
+                       IsEnabled="{Binding ViewModel.CanUndo}" Click="Undo_Click"/>
+            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowRedo24}" Margin="6,0,0,0"
+                       ToolTip="Redo (Ctrl+Y)" AutomationProperties.Name="Redo (Ctrl+Y)"
+                       IsEnabled="{Binding ViewModel.CanRedo}" Click="Redo_Click"/>
 
             <Border Style="{StaticResource BarDivider}"/>
 
@@ -194,6 +235,38 @@
             <ui:Button Content="Save" Appearance="Primary" Height="{DynamicResource Aquila.Size.Control}"
                        Padding="16,0" Margin="8,0,0,0" FontWeight="SemiBold" Click="Save_Click"/>
         </StackPanel>
+
+        <!-- Add widget: search, the kinds that read nothing, then every reading — a click makes the widget, where
+             there is room, selected, its panel on Content. -->
+        <Popup x:Name="AddMenu" PlacementTarget="{Binding ElementName=AddButton}" Placement="Bottom"
+               VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Closed="Menu_Closed">
+            <controls:SensorPicker x:Name="AddPicker" Width="360" MaxHeight="640"
+                                   Footer="A percentage starts as a gauge, any other reading as a sparkline. Change the type afterwards in the panel.">
+                <controls:SensorPicker.Extra>
+                    <StackPanel Margin="10,2,10,8">
+                        <TextBlock Text="Without a reading" FontSize="12" Opacity="0.7" Margin="4,0,0,6"/>
+                        <!-- Bound, not named: a name cannot be given inside another control's content. -->
+                        <ItemsControl ItemsSource="{Binding ViewModel.Unread}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource UnreadTile}" Click="OnUnreadTile">
+                                        <StackPanel>
+                                            <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="20" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="12" Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </controls:SensorPicker.Extra>
+            </controls:SensorPicker>
+        </Popup>
 
         <!-- The widgets: what needs attention, then each screen's from the front to the back. -->
         <Popup x:Name="WidgetsMenu" PlacementTarget="{Binding ElementName=WidgetsButton}" Placement="Bottom"
@@ -309,7 +382,7 @@
                     <TextBlock Margin="10,0" VerticalAlignment="Center" FontSize="12"
                                Text="Click a widget to edit it. Drag to move it; pull a corner to resize it, with Shift to keep its shape."/>
                     <ui:Button Appearance="Transparent" BorderThickness="0" Width="24" Height="24" MinWidth="0"
-                               MinHeight="0" Padding="0" VerticalAlignment="Center" ToolTip="Close"
+                               MinHeight="0" Padding="0" VerticalAlignment="Center" ToolTip="Close" AutomationProperties.Name="Close"
                                Icon="{ui:SymbolIcon Dismiss24}" Click="CloseTip_Click"/>
                 </StackPanel>
             </Border>

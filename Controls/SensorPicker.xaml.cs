@@ -8,19 +8,43 @@ using Aquila.ViewModels.Windows;
 
 namespace Aquila.Controls;
 
+/// <summary>One row of the picker: the reading, the words it is listed under, and what the caller writes beside it.
+/// </summary>
+public sealed record PickerRow(SensorOption Option, string Label, string? Aside);
+
 /// <summary>
-/// The sensors to choose a reading from, grouped by the part they belong to, searched by name and part. Given its
-/// options each time it opens, minus the ones to leave out — a widget's own readings are not offered to it again —
-/// and it says which was chosen, or that nothing was. What a choice means is the caller's: the editor adds it, the
-/// edit bar's Add widget will make a widget of it.
+/// The readings to choose from, grouped by the part they belong to, searched by name and part. Given its options
+/// each time it opens, minus the ones to leave out — a widget's own readings are not offered to it again — and it
+/// says which was chosen, or that nothing was. What a choice means is the caller's: the editor adds it to a widget,
+/// the edit bar's Add widget makes a widget of it.
 /// </summary>
 public partial class SensorPicker : UserControl
 {
-    private readonly ObservableCollection<SensorOption> _shown = [];
-    private IReadOnlyList<SensorOption> _options = [];
-    private HashSet<string> _left = [];
+    public static readonly DependencyProperty ExtraProperty = DependencyProperty.Register(
+        nameof(Extra), typeof(object), typeof(SensorPicker));
 
-    /// <summary>A sensor was chosen: Enter on the highlighted row, or a click on one.</summary>
+    public static readonly DependencyProperty FooterProperty = DependencyProperty.Register(
+        nameof(Footer), typeof(string), typeof(SensorPicker),
+        new PropertyMetadata("↑ ↓ to choose · Enter adds it · Esc closes"));
+
+    /// <summary>Shown between the search and the list — the edit bar's kinds that read nothing.</summary>
+    public object? Extra
+    {
+        get => GetValue(ExtraProperty);
+        set => SetValue(ExtraProperty, value);
+    }
+
+    /// <summary>The line at the foot: the keys, or what the caller's choice will do.</summary>
+    public string Footer
+    {
+        get => (string)GetValue(FooterProperty);
+        set => SetValue(FooterProperty, value);
+    }
+
+    private readonly ObservableCollection<PickerRow> _shown = [];
+    private IReadOnlyList<PickerRow> _rows = [];
+
+    /// <summary>A reading was chosen: Enter on the highlighted row, or a click on one.</summary>
     public event Action<SensorOption>? Chosen;
 
     /// <summary>Esc: nothing was chosen.</summary>
@@ -31,16 +55,21 @@ public partial class SensorPicker : UserControl
         InitializeComponent();
 
         var view = new CollectionViewSource { Source = _shown };
-        view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(SensorOption.Component)));
+        view.GroupDescriptions.Add(new PropertyGroupDescription($"{nameof(PickerRow.Option)}.{nameof(SensorOption.Component)}"));
         List.ItemsSource = view.View;
     }
 
-    /// <summary>Fills it afresh as it opens, from a blank search, with the keys in the search box — so typing
-    /// finds a sensor at once, and Enter takes the first there is.</summary>
-    public void Open(IReadOnlyList<SensorOption> options, IEnumerable<string> leaveOut)
+    /// <summary>
+    /// Fills it afresh as it opens, from a blank search, with the keys in the search box — so typing finds a reading
+    /// at once, and Enter takes the first there is. <paramref name="label"/> names a row where its own name will not
+    /// do ("Top applications by CPU" for the list called CPU); <paramref name="aside"/> writes beside it.
+    /// </summary>
+    public void Open(IEnumerable<SensorOption> options, IEnumerable<string> leaveOut,
+        Func<SensorOption, string?>? aside = null, Func<SensorOption, string>? label = null)
     {
-        _options = options;
-        _left = [.. leaveOut];
+        var left = leaveOut.ToHashSet();
+        _rows = [.. options.Where(o => !left.Contains(o.Identifier))
+            .Select(o => new PickerRow(o, label?.Invoke(o) ?? o.Name, aside?.Invoke(o)))];
         Search.Text = string.Empty;
         Filter();
         Dispatcher.BeginInvoke(() => Search.Focus(), DispatcherPriority.Input);
@@ -55,10 +84,11 @@ public partial class SensorPicker : UserControl
         var text = Search.Text.Trim();
 
         _shown.Clear();
-        foreach (var option in _options)
-            if (!_left.Contains(option.Identifier)
-                && (text.Length == 0 || option.Display.Contains(text, StringComparison.CurrentCultureIgnoreCase)))
-                _shown.Add(option);
+        foreach (var row in _rows)
+            if (text.Length == 0
+                || row.Label.Contains(text, StringComparison.CurrentCultureIgnoreCase)
+                || row.Option.Component.Contains(text, StringComparison.CurrentCultureIgnoreCase))
+                _shown.Add(row);
 
         Nothing.Visibility = _shown.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         List.SelectedIndex = _shown.Count > 0 ? 0 : -1;
@@ -79,8 +109,8 @@ public partial class SensorPicker : UserControl
                 List.ScrollIntoView(List.SelectedItem);
                 break;
             case Key.Enter:
-                if (List.SelectedItem is not SensorOption option) return;
-                Chosen?.Invoke(option);
+                if (List.SelectedItem is not PickerRow row) return;
+                Chosen?.Invoke(row.Option);
                 break;
             case Key.Escape:
                 Cancelled?.Invoke();
@@ -93,6 +123,6 @@ public partial class SensorPicker : UserControl
 
     private void OnItemClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is ListBoxItem { DataContext: SensorOption option }) Chosen?.Invoke(option);
+        if (sender is ListBoxItem { DataContext: PickerRow row }) Chosen?.Invoke(row.Option);
     }
 }

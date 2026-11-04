@@ -37,6 +37,42 @@ public partial class EditBar : Wpf.Ui.Controls.FluentWindow
             if (e.PropertyName == nameof(EditBarViewModel.ShowsTip) && !ViewModel.ShowsTip) Tip.IsOpen = false;
         };
         ContentRendered += (_, _) => Tip.IsOpen = ViewModel.ShowsTip;
+
+        AddPicker.Chosen += reading =>
+        {
+            AddMenu.IsOpen = false;
+            ViewModel.Create(reading);
+        };
+        AddPicker.Cancelled += () => AddMenu.IsOpen = false;
+    }
+
+    /// <summary>Opens the Add menu — from its button, or from the Widgets page's, which opens edit mode on the way:
+    /// the bar may not be on screen yet then, and a popup has to wait for the thing it stands under.</summary>
+    public void OpenAddMenu()
+    {
+        if (!IsLoaded)
+        {
+            ContentRendered += OpenOnce;
+            return;
+        }
+
+        Activate();
+        AddPicker.Open(ViewModel.Readings(), [], ViewModel.Starts, ViewModel.LabelOf);
+        AddMenu.IsOpen = true;
+
+        void OpenOnce(object? sender, EventArgs e)
+        {
+            ContentRendered -= OpenOnce;
+            OpenAddMenu();
+        }
+    }
+
+    private void OnUnreadTile(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: Aquila.Services.WidgetKindInfo kind }) return;
+
+        AddMenu.IsOpen = false;
+        ViewModel.Create(kind);
     }
 
     /// <summary>
@@ -97,13 +133,35 @@ public partial class EditBar : Wpf.Ui.Controls.FluentWindow
 
     protected override void OnClosed(EventArgs e)
     {
+        AddMenu.IsOpen = false;
         WidgetsMenu.IsOpen = false;
         PreviewMenu.IsOpen = false;
         Tip.IsOpen = false;
         base.OnClosed(e);
     }
 
-    private void Add_Click(object sender, RoutedEventArgs e) => ViewModel.Add();
+    private void Add_Click(object sender, RoutedEventArgs e)
+    {
+        if (!JustClosed(AddMenu)) OpenAddMenu();
+    }
+
+    private void Undo_Click(object sender, RoutedEventArgs e) => ViewModel.Undo();
+
+    private void Redo_Click(object sender, RoutedEventArgs e) => ViewModel.Redo();
+
+    /// <summary>The undo keys here too: with nothing selected the panel is gone, and the bar is what has the keys.
+    /// After the focused control, so the search boxes keep their own.</summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled) return;
+
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control) ViewModel.Undo();
+        else if ((e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)
+                 || (e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))) ViewModel.Redo();
+        else return;
+        e.Handled = true;
+    }
 
     private void Discard_Click(object sender, RoutedEventArgs e) => ViewModel.Finish(save: false);
 
