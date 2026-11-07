@@ -48,10 +48,11 @@ in [SECURITY.md](SECURITY.md#verifying-a-download).
 - **Desktop widgets** — put any reading on your desktop: dials, sparklines, bars, numbers, an equaliser, text,
   a clock, and backdrops to group them on. They sit above the wallpaper and behind your windows, and clicks
   pass straight through them.
-- **Create and edit them in place** — add a widget from the Widgets page, or pin any sensor straight from the
-  Explorer. Edit mode keeps the widgets on your real desktop while a docked editor sets each one's kind,
-  readings, preset, text and layout; drag them where you want them. Nothing is saved until you press Save,
-  and Discard puts everything back.
+- **Create and edit them in place** — start a widget from the reading you want to see, or pin any sensor
+  straight from the Explorer. Edit mode keeps the widgets on your real desktop: click one to select it, drag it,
+  pull a corner to resize it, and a panel beside it sets its content, its preset and the rest of how it is drawn
+  and where — even which widget sits in front. A bar at the top adds widgets, finds them, previews the desktop in
+  any state, and saves or discards: nothing is saved until you press Save, and Discard puts everything back.
 - **Make it yours** — themes dress the app, presets dress the data: colour ramps, typefaces, dials and bars,
   chosen per widget. Edit the built-in presets, make your own, and share them as files.
 - **Tray flyout and menu** — click the tray icon for the machine at a glance: CPU, GPU, RAM and package
@@ -71,10 +72,10 @@ in [SECURITY.md](SECURITY.md#verifying-a-download).
 
 ### Desktop widgets
 
-Edit mode: the widgets stay on the real desktop while the editor docks beside them, and nothing is saved until
-you press Save.
+Edit mode: the widgets stay on the real desktop, the one selected wears its handles, and the editor stands beside
+them; nothing is saved until you press Save.
 
-<img src="Assets/Screenshots/desktop-widgets-editor.png" alt="Desktop widgets in edit mode, with the editor panel docked on the right" />
+<img src="Assets/Screenshots/desktop-widgets-editor.png" alt="Desktop widgets in edit mode: a selected widget with handles, the edit bar at the top and the editor panel docked on the left" />
 
 ### Themes
 

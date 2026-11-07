@@ -2,8 +2,8 @@ using Aquila.Models;
 
 namespace Aquila.Services;
 
-/// <summary>Which side leads a resize: the one the user set, which the other follows when the widget keeps its
-/// proportions.</summary>
+/// <summary>Which side leads a resize: the one the user set, which the other follows when the proportions are kept.
+/// </summary>
 public enum SizeLead { Width, Height }
 
 /// <summary>
@@ -46,31 +46,28 @@ public static class WidgetScale
         return kind.Reference?.Invoke(definition) ?? (kind.DefaultWidth, kind.DefaultHeight);
     }
 
-    /// <summary>The proportions a widget is held to — its reference size — or null when it may take any
-    /// (<see cref="WidgetKindInfo.KeepsProportions"/>).</summary>
+    /// <summary>The proportions a widget of a figure with its own shape is given when it becomes one — its reference
+    /// size — or null for a kind with none (<see cref="WidgetKindInfo.HasShape"/>).</summary>
     public static (double Width, double Height)? ShapeOf(DesktopWidgetDefinition definition) =>
-        WidgetCatalog.For(definition.Kind).KeepsProportions?.Invoke(definition) == true ? ReferenceOf(definition) : null;
+        WidgetCatalog.For(definition.Kind).HasShape?.Invoke(definition) == true ? ReferenceOf(definition) : null;
+
+    /// <summary>The size a resize lands on for a widget given its kind's shape (<see cref="ShapeOf"/>); a kind with
+    /// none gets exactly what it asked for.</summary>
+    public static (double Width, double Height) Proportioned(DesktopWidgetDefinition definition, double width,
+        double height, SizeLead lead, double least = 0, double most = double.PositiveInfinity) =>
+        ShapeOf(definition) is { } shape ? Proportioned(shape, width, height, lead, least, most) : (width, height);
 
     /// <summary>
-    /// The size a resize to <paramref name="width"/> × <paramref name="height"/> lands on.
+    /// The size a resize to <paramref name="width"/> × <paramref name="height"/> lands on, held to the proportions
+    /// of <paramref name="shape"/> — a kind's own, or whatever a widget has while the editor's lock is on.
     ///
-    /// The one place a widget is held to its proportions: every way of resizing one asks here — the wheel, the
-    /// editor's boxes, and the moment a widget starts keeping them — so no two of them can come to disagree about
-    /// what shape a dial is. A free kind gets exactly what it asked for.
-    ///
-    /// One that keeps them gets its reference's shape, led by <paramref name="lead"/>: type a width and the height
-    /// follows, type a height and the width does. Within <paramref name="least"/> and <paramref name="most"/> on
-    /// both sides when they are given, which can move the lead too — a dial cannot be the widest the editor allows
-    /// and still be its height taller.
-    ///
-    /// Only a resize asks. A size read from widgets.json is drawn as it was written, and takes its proportions the
-    /// next time it is resized.
+    /// Led by <paramref name="lead"/>: type a width and the height follows, type a height and the width does. Within
+    /// <paramref name="least"/> and <paramref name="most"/> on both sides when they are given, which can move the
+    /// lead too — a dial cannot be the widest the editor allows and still be its height taller.
     /// </summary>
-    public static (double Width, double Height) Proportioned(DesktopWidgetDefinition definition, double width,
+    public static (double Width, double Height) Proportioned((double Width, double Height) shape, double width,
         double height, SizeLead lead, double least = 0, double most = double.PositiveInfinity)
     {
-        if (ShapeOf(definition) is not { } shape) return (width, height);
-
         var (across, down) = shape;
         var led = lead == SizeLead.Width ? width : height;
         if (!(across > 0) || !(down > 0) || double.IsNaN(led)) return (width, height);

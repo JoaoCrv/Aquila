@@ -27,6 +27,7 @@
                  files without its converters being renamed. A converter one file uses stays in that file. -->
             <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
             <helpers:IntensityBrushConverter x:Key="Intensity"/>
+            <helpers:MatchConverter x:Key="Match"/>
             <helpers:NullToCollapsedConverter x:Key="NullToCollapsed"/>
             <helpers:ThroughputConverter x:Key="Throughput"/>
             <helpers:WidthThresholdConverter x:Key="WidthThreshold"/>

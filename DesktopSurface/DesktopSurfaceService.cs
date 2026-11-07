@@ -25,7 +25,6 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     private bool _editing;
     private bool _watchingDisplayChanges;
     private System.Windows.Threading.DispatcherTimer? _displayChangeDebounce;
-    private EditModeToolbar? _toolbar;
 
     public bool IsShown => _surfaces.Count > 0;
 
@@ -138,40 +137,42 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
     public void IdentifyScreens() =>
         ScreenIdentifyOverlay.ShowAll(_surfaces.Select(s => (s.Window.ScreenBounds, s.Window.ScreenLabel)));
 
-    /// <summary>Raised when the user finishes editing from the floating toolbar, so the app can undo
-    /// whatever it did to get out of the way (typically un-minimize itself). True to keep the changes made
-    /// during the session, false to throw them away — this layer only reports which button was pressed and
-    /// has no idea what either one means.</summary>
-    public event Action<bool>? EditingFinished;
-
     /// <summary>
     /// Enters/leaves edit mode (#30) on every surface: widgets become draggable and get a dashed outline.
     /// One switch for all screens — the mode is a state of the app, not of an individual widget or canvas.
+    /// The bar that ends it is not this layer's: it knows what a widget, a preset and a preview are.
     /// </summary>
     public void SetEditing(bool editing)
     {
         _editing = editing; // remembered so a display-change rebuild doesn't drop the user out of it
         foreach (var (window, _) in _surfaces)
             window.SetEditing(editing);
-
-        if (editing) ShowToolbar(); else HideToolbar();
     }
 
-    private void ShowToolbar()
+    /// <summary>Draws one widget as pointed at — on whichever screen holds it — or none. The colours and the label
+    /// are the caller's: this layer knows neither the theme nor what the widget is called.</summary>
+    public void SetHighlighted(System.Windows.UIElement? widget, System.Windows.Media.Brush accent,
+        System.Windows.Media.Brush onAccent, string label)
     {
-        if (_toolbar is not null) return;
-
-        _toolbar = new EditModeToolbar();
-        _toolbar.Save += () => EditingFinished?.Invoke(true);
-        _toolbar.Discard += () => EditingFinished?.Invoke(false);
-        _toolbar.Show();
+        foreach (var (window, _) in _surfaces)
+            window.SetHighlighted(widget, accent, onAccent, label);
     }
 
-    private void HideToolbar()
+    /// <summary>
+    /// Draws one widget as the one being edited — on whichever screen holds it — or none. The colours, and whether the
+    /// editor's lock keeps its shape, are the caller's to say: this layer knows neither the theme nor the editor.
+    /// </summary>
+    public void SetSelected(System.Windows.UIElement? widget, System.Windows.Media.Brush accent,
+        System.Windows.Media.Brush onAccent, bool keepShape)
     {
-        _toolbar?.Close();
-        _toolbar = null;
+        foreach (var (window, _) in _surfaces)
+            window.SetSelected(widget, accent, onAccent, keepShape);
     }
+
+    /// <summary>Moves a widget by the arrow keys, held on its screen; reported as <see cref="WidgetMoved"/>, like a
+    /// drag.</summary>
+    public void Nudge(System.Windows.UIElement widget, double dx, double dy) =>
+        _surfaces.FirstOrDefault(s => s.Window.Surface.Children.Contains(widget)).Window?.Nudge(widget, dx, dy);
 
     /// <summary>Raised when a widget is dragged to a new position, with the surface it belongs to. The
     /// seam for persisting layout.</summary>
@@ -229,7 +230,6 @@ public sealed class DesktopSurfaceService(Func<IDesktopAnchor> anchorFactory,
 
     public void Hide()
     {
-        HideToolbar();
         foreach (var (window, anchor) in _surfaces)
         {
             anchor.Dispose();

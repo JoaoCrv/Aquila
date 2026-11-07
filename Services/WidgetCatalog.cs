@@ -31,6 +31,23 @@ public sealed record WidgetKindInfo(
 {
     public int MaxSeries => Accent.Max;
 
+    /// <summary>The kind's icon wherever widgets are listed by kind — the edit bar's list, and the type gallery.
+    /// </summary>
+    public Wpf.Ui.Controls.SymbolRegular Icon { get; init; } = Wpf.Ui.Controls.SymbolRegular.Square24;
+
+    /// <summary>What a widget made this kind NOW starts with, beyond its size: a clock its rings, a list its bars,
+    /// trends and total. Only when it is made — a widget written before these existed reads them off, so loading one
+    /// never applies this. Asked by the editor when a kind is picked and by Add widget alike.</summary>
+    public Action<DesktopWidgetDefinition>? MadeNow { get; init; }
+
+    /// <summary>Whether a widget made this kind starts behind the others — a plate exists to back them. The backdrop
+    /// alone: the rule was "reads nothing", which a clock does too, and a clock chosen went behind everything.</summary>
+    public bool SitsBehind { get; init; }
+
+    /// <summary>What the kind is, in a few words, under its name in the panel's type row. The
+    /// <see cref="Description"/> says what it is good for, and the gallery shows that one.</summary>
+    public string Summary { get; init; } = string.Empty;
+
     /// <summary>
     /// Whether this kind is useless without a reading.
     ///
@@ -100,17 +117,18 @@ public sealed record WidgetKindInfo(
     public Func<DesktopWidgetDefinition, (double Width, double Height)>? Reference { get; init; }
 
     /// <summary>
-    /// Whether a widget of this kind keeps the proportions of its reference size whenever it is resized — see
-    /// <see cref="WidgetScale.Proportioned"/>, the one place that holds it to them. Null for every kind that does not.
+    /// Whether a widget of this kind draws a figure with a shape of its own, which it is given — its reference's
+    /// proportions, see <see cref="WidgetScale.Proportioned"/> — at the moment it becomes one: made a dial, or a
+    /// clock given rings, so the figure is not drawn a third of its size in a box made for something else. Null for
+    /// every kind that does not.
     ///
-    /// For a figure with a fixed shape. A dial stretched one way is a dial in a box with room to spare beside it: the
-    /// arc cannot widen without growing, and it grows only as far as the tighter axis lets it. A meter made wider is
-    /// a longer meter, a chart made wider shows its trend wider; those stay free.
+    /// Only then. Every resize after it is free, the same for every kind (João, 2026-11-02): a dial in a wide box is a
+    /// dial with room beside it, and the editor's lock or Shift keeps whatever shape a widget has.
     ///
     /// A predicate on the widget rather than a flag, for the clock: with rings it is round, without them it is a
     /// line of text, as free as a caption.
     /// </summary>
-    public Func<DesktopWidgetDefinition, bool>? KeepsProportions { get; init; }
+    public Func<DesktopWidgetDefinition, bool>? HasShape { get; init; }
 }
 
 public static class WidgetCatalog
@@ -122,28 +140,32 @@ public static class WidgetCatalog
             "A dial. Best for a percentage, like load.",
             170, 190,
             series => new RadialGauge { Sensor = series[0] },
-            SeriesPaint.Properties(RadialGauge.AccentProperty)) { HasDial = true, KeepsProportions = _ => true },
+            SeriesPaint.Properties(RadialGauge.AccentProperty))
+            { HasDial = true, HasShape = _ => true, Icon = Wpf.Ui.Controls.SymbolRegular.Gauge24, Summary = "One reading as a dial" },
 
         new(DesktopWidgetKind.MiniSparkline,
             "Sparkline",
             "A small line chart of the recent history.",
             240, 100,
             series => new MiniSparkline { Sensor = series[0] },
-            SeriesPaint.Properties(MiniSparkline.AccentProperty)) { HasLine = true },
+            SeriesPaint.Properties(MiniSparkline.AccentProperty))
+            { HasLine = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataLine24, Summary = "One reading and its recent history" },
 
         new(DesktopWidgetKind.SensorMeter,
             "Meter",
             "A bar with the value beside it.",
             240, 80,
             series => BuildMeter(series[0]),
-            SeriesPaint.Properties(SensorMeter.AccentProperty)) { HasBar = true },
+            SeriesPaint.Properties(SensorMeter.AccentProperty))
+            { HasBar = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = "One reading as a bar" },
 
         new(DesktopWidgetKind.StatBox,
             "Number",
             "Just the reading, large, with its unit.",
             150, 120,
             series => BuildStatBox(series[0]),
-            SeriesPaint.Properties(StatBox.AccentProperty)) { HasNumber = true },
+            SeriesPaint.Properties(StatBox.AccentProperty))
+            { HasNumber = true, Icon = Wpf.Ui.Controls.SymbolRegular.NumberSymbol24, Summary = "One reading, large" },
 
         new(DesktopWidgetKind.SparklineChart,
             "Chart",
@@ -152,7 +174,7 @@ public static class WidgetCatalog
             BuildChart,
             SeriesPaint.Properties(
                 SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty))
-            { HasLine = true, HasValue = false, HasUnit = false },
+            { HasLine = true, HasValue = false, HasUnit = false, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = "Two readings and their history" },
 
         // Nowhere to put a colour, so MaxSeries is 0 — the first kind that reads nothing at all. Everything
         // it draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is
@@ -162,7 +184,8 @@ public static class WidgetCatalog
             "A plate to sit behind other widgets. Reads nothing.",
             240, 160,
             _ => new Grid(),
-            SeriesPaint.None) { NeedsReading = false, HasValue = false, HasUnit = false },
+            SeriesPaint.None)
+            { NeedsReading = false, HasValue = false, HasUnit = false, SitsBehind = true, Icon = Wpf.Ui.Controls.SymbolRegular.SelectObject24, Summary = "A plate behind other widgets" },
 
         // One accent property, so it MAY take a reading; NeedsReading false, so it does not have to. It is
         // the first kind where the ceiling and the requirement differ.
@@ -172,7 +195,7 @@ public static class WidgetCatalog
             200, 60,
             series => new TextTile { Sensor = series.Count > 0 ? series[0] : null },
             SeriesPaint.Properties(TextBlock.ForegroundProperty))
-            { NeedsReading = false, HasCaption = true },
+            { NeedsReading = false, HasCaption = true, Icon = Wpf.Ui.Controls.SymbolRegular.TextT24, Summary = "Your own words, with a reading if you like" },
 
         // Square since the rings, which a clock made today starts with, and large enough for "10:09 AM" to sit
         // inside three of them at the preset's usual size. A clock from before them keeps the size it was given —
@@ -184,9 +207,10 @@ public static class WidgetCatalog
             _ => new ClockTile(),
             SeriesPaint.None)
             {
-                NeedsReading = false, HasClock = true, HasUnit = false,
+                NeedsReading = false, HasClock = true, HasUnit = false, Icon = Wpf.Ui.Controls.SymbolRegular.Clock24, Summary = "The time, in rings or as text",
                 Reference = clock => clock.Rings == ClockRings.None ? (200, 70) : (200, 200),
-                KeepsProportions = clock => clock.Rings != ClockRings.None,
+                HasShape = clock => clock.Rings != ClockRings.None,
+                MadeNow = clock => clock.Rings = ClockRings.All,
             },
 
         // The first kind whose count the hardware decides. Sixteen is a ceiling, not a shape: this machine
@@ -198,7 +222,7 @@ public static class WidgetCatalog
             260, 140,
             series => new SensorBars(series),
             SeriesPaint.Many(16, (piece, i, brush) => ((SensorBars)piece).PaintBar(i, brush)))
-            { HasBar = true, HasDirection = true },
+            { HasBar = true, HasDirection = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataBarVertical24, Summary = "Up to 16 readings side by side" },
 
         // The first kind whose reading is not a sensor. Its one series names a list, which the SOURCE orders
         // and sizes; how many of its rows are shown is the widget's. One ramp for the whole list, and each row
@@ -218,6 +242,8 @@ public static class WidgetCatalog
             SeriesPaint.PerRow((piece, judge) => ((SensorList)piece).PaintRows(judge)))
             {
                 CreateList = list => new SensorList(list),
+                MadeNow = list => (list.ShowBar, list.ShowSparkline, list.ShowTotal) = (true, true, true),
+                Icon = Wpf.Ui.Controls.SymbolRegular.TextBulletListLtr24, Summary = "The busiest applications, largest first",
                 Reference = list => list.ShowBar ? (240, 230) : (240, 170),
             },
     ];
@@ -226,6 +252,24 @@ public static class WidgetCatalog
     /// a user can hand-edit and an older build may have written before a kind was renamed.</summary>
     public static WidgetKindInfo For(DesktopWidgetKind kind) =>
         All.FirstOrDefault(k => k.Kind == kind) ?? All[0];
+
+    /// <summary>
+    /// The kind a widget made from one sensor starts as — pinned from the Explorer, or added from the edit bar.
+    /// A percentage is a share of a whole, which is what a dial draws; every other reading — temperature included,
+    /// although it has a fixed scale too — starts as its trend, the same for all of them, which reads honestly
+    /// whatever the units are (João, 2026-10-07: consistency across pins). A different shape is one click away.
+    /// </summary>
+    public static WidgetKindInfo SuggestFor(SensorNode sensor) =>
+        For(sensor.Unit == "%" ? DesktopWidgetKind.RadialGauge : DesktopWidgetKind.MiniSparkline);
+
+    /// <summary>
+    /// The readings a widget keeps when it becomes <paramref name="to"/>, in their order: those of the sort it draws
+    /// — a list, or sensors — and of those as many as it draws. The one statement of the rule, asked by the change
+    /// itself and by the gallery beforehand, so the warning that names what would go and what then goes are the same.
+    /// It was written inside the change, which cut in silence.
+    /// </summary>
+    public static IReadOnlyList<T> ReadingsKept<T>(WidgetKindInfo to, IEnumerable<T> readings, Func<T, bool> isList) =>
+        [.. readings.Where(reading => isList(reading) == to.HasList).Take(to.MaxSeries)];
 
     /// <summary>
     /// SensorMeter takes the displayed number as a pre-formatted string — the Sensor property only drives

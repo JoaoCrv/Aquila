@@ -9,6 +9,11 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Aquila.ViewModels.Windows;
 
+/// <summary>The editor panel's tabs, by what they are about: what the widget reads and says (Content), what it
+/// wears (Preset), and the rest of how it is drawn and where (Customize) — its kind's options, what is shown of the
+/// reading, its place, size and layer.</summary>
+public enum PanelTab { Content, Preset, Customize }
+
 /// <summary>One sensor as offered in the picker. Carries the component for grouping and the live node so
 /// the list can show current values — picking by name alone is guesswork when a machine reports a dozen
 /// similarly-named temperatures.</summary>
@@ -150,6 +155,22 @@ public partial class RampRow : ObservableObject
 
 public record RampPreview(string Name, string Normal, string Elevated, string Alert, string Critical);
 
+/// <summary>A screen in the Customize tab's picker: its stable key, and the name it goes by.</summary>
+public sealed record ScreenChoice(string Key, string Label);
+
+/// <summary>One tile of the type gallery: a kind, and whether it is the widget's now.</summary>
+public sealed record KindChoice(WidgetKindInfo Kind, bool IsCurrent);
+
+/// <summary>One of a List's sources, and whether the list ranks by it now.</summary>
+public sealed record ListChoice(SensorOption Option, bool IsChosen);
+
+/// <summary>One preset in the Preset tab: its primary ramp as a strip, whether this widget wears it, and how many
+/// widgets do — the number that is the reason to hesitate before changing it.</summary>
+public sealed record PresetRow(Preset Preset, RampPreview? Strip, bool IsChosen, string Worn)
+{
+    public bool CanDelete => !Preset.IsBuiltIn;
+}
+
 /// <summary>One reading as the picker offers it: a sensor, or — to a List — a list. <paramref name="Metric"/> is
 /// what it is judged as ("Cpu.Load"), empty for a reading with no scale to be judged on.</summary>
 public record SensorOption(string Component, string Name, string Identifier, SensorNode? Sensor, string Metric)
@@ -159,6 +180,20 @@ public record SensorOption(string Component, string Name, string Identifier, Sen
     /// <summary>A list has no one node to show a live value from — its value is its rows — so it is the option
     /// with no sensor.</summary>
     public bool IsList => Sensor is null;
+
+    /// <summary>Every sensor the machine reports, in the catalogue's order, grouped by the part it belongs to — what
+    /// a reading is chosen from, in the panel and in the edit bar's Add widget alike.</summary>
+    public static IEnumerable<SensorOption> SensorsOf(HardwareNode hardware) =>
+        from component in SensorCatalog.GetComponents(hardware)
+        from entry in component.Sensors
+        where !string.IsNullOrEmpty(entry.Sensor.Identifier)
+        select new SensorOption(component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry.Key.ToString());
+
+    /// <summary>The lists, grouped under what they are lists OF, the way a sensor is under its part — so the reading
+    /// a List was given reads "Processes — CPU" wherever it is shown.</summary>
+    public static IEnumerable<SensorOption> ListsOf(AquilaState state) =>
+        state.Processes.All.Select(list => new SensorOption(
+            state.Processes.Name, list.Name, list.Identifier, null, list.Metric?.ToString() ?? string.Empty));
 }
 
 /// <summary>
@@ -186,7 +221,11 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// </summary>
     public IReadOnlyList<Preset> Presets => [.. presets.Presets];
 
-    public ObservableCollection<SensorOption> Sensors { get; } = [];
+    /// <summary>Every sensor this machine reports, as the reading picker offers them; filled on each Load.</summary>
+    public IReadOnlyList<SensorOption> SensorOptions => _allSensors;
+
+    /// <summary>What the widget reads already — left out of the picker, since a reading drawn twice is one.</summary>
+    public IEnumerable<string> ChosenIdentifiers => Chosen.Select(row => row.Sensor.Identifier);
 
     /// <summary>
     /// What the widget draws, in the order it was added — the shopping-basket half of the dialog. The list
@@ -211,11 +250,21 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// guarantees there is always something to go back to.</summary>
     public bool CanUpdatePreset => SelectedPreset is { IsBuiltIn: false };
 
-    public string PresetNote => SelectedPreset is not { } preset
-        ? string.Empty
-        : preset.IsBuiltIn
-            ? "Built in, so it cannot be changed. Edit freely — you are asked where to keep it when you finish."
-            : $"Every widget wearing {preset.Name} follows what you change here.";
+    /// <summary>Under the buttons: what pressing one will do, and to how many widgets.</summary>
+    public string PresetNote
+    {
+        get
+        {
+            if (SelectedPreset is not { } preset) return string.Empty;
+            if (preset.IsBuiltIn)
+                return "Built-in presets stay as they are. The copy starts identical and only this widget wears it.";
+
+            var count = CountWearers?.Invoke(preset.Id) ?? 0;
+            return count > 1
+                ? $"Opens the preset. What you change there reaches the {count} widgets wearing {preset.Name}."
+                : "Opens the preset. What you change there reaches only this widget.";
+        }
+    }
 
     /// <summary>
     /// Whether the panel is showing the preset instead of the widget.
@@ -228,21 +277,11 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private bool _editingPreset;
 
     /// <summary>Which view is on screen. Both carry HasTarget, because a panel pointed at nothing shows
-    /// neither — an editor full of controls that change nothing is worse than an empty panel saying so.</summary>
+    /// neither — it is hidden then, and must not flash a form full of controls that change nothing on its way
+    /// out.</summary>
     public bool ShowsWidgetView => HasTarget && !EditingPreset;
 
     public bool ShowsPresetView => HasTarget && EditingPreset;
-
-    /// <summary>
-    /// Pointed at nothing, and not part-way through a preset. The panel says so, and offers the one thing
-    /// that means something here: a large Add in the middle.
-    ///
-    /// That Add is load-bearing. Adding was once hidden along with the form, and the panel could then edit
-    /// a widget and remove one but never make one — the only way to a first widget was the Widgets page.
-    /// The header's add and remove show only while a widget is open, so this is the Add for every other
-    /// moment, and it must never be made to depend on a selection.
-    /// </summary>
-    public bool ShowsNothing => !HasTarget && !EditingPreset;
 
     partial void OnEditingPresetChanged(bool value) => NotifyView();
 
@@ -250,10 +289,29 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     {
         OnPropertyChanged(nameof(ShowsWidgetView));
         OnPropertyChanged(nameof(ShowsPresetView));
-        OnPropertyChanged(nameof(ShowsNothing));
+        NotifyHeader();
+    }
+
+    /// <summary>The header and the footer say what is open and where, so they follow the title, the kind, the
+    /// size, the screen and the preset.</summary>
+    private void NotifyHeader()
+    {
+        OnPropertyChanged(nameof(WidgetName));
         OnPropertyChanged(nameof(PanelTitle));
         OnPropertyChanged(nameof(PanelSubtitle));
+        OnPropertyChanged(nameof(PresetReach));
+        OnPropertyChanged(nameof(Footer));
     }
+
+    /// <summary>
+    /// Which of the widget's three tabs is open: what it reads, what it wears, and the rest of how it is drawn and
+    /// where. Kept while the selection moves from widget to widget — someone working through the desktop's layers
+    /// wants Customize on every one — and Content for a widget just made, whose first question is what it reads.
+    /// </summary>
+    [ObservableProperty] private PanelTab _selectedTab;
+
+    [RelayCommand]
+    private void ShowTab(PanelTab tab) => SelectedTab = tab;
 
     [RelayCommand]
     private void EditPreset() => EditingPreset = SelectedPreset is not null;
@@ -293,6 +351,16 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         presets.SetDefault(preset);
         OnPropertyChanged(nameof(IsDefaultPreset));
         OnPropertyChanged(nameof(PresetNote));
+        NotifyPresetActions();
+        NotifyHeader();
+    }
+
+    /// <summary>The Preset tab's buttons are named after the preset and say whether it is the default.</summary>
+    private void NotifyPresetActions()
+    {
+        OnPropertyChanged(nameof(EditPresetLabel));
+        OnPropertyChanged(nameof(DefaultLabel));
+        OnPropertyChanged(nameof(CanSetDefault));
     }
 
     /// <summary>
@@ -308,11 +376,11 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
                 new RampPreview(r.Key, r.Value.Normal, r.Value.Elevated, r.Value.Alert, r.Value.Critical))];
 
     /// <summary>
-    /// What the type picker's previews read: the CPU's two temperatures.
+    /// What the type previews read while the widget has no sensor of its own (<see cref="GalleryReadings"/>):
+    /// the CPU's two temperatures.
     ///
     /// One sample for every kind, not one chosen per kind — each takes as many as it can draw, so a gauge
-    /// shows the first and the chart draws both, and a new kind needs nothing added here. The preview's job
-    /// is to show the KIND; the reading this widget actually has is right below it, in Data.
+    /// shows the first and the chart draws both, and a new kind needs nothing added here.
     ///
     /// Only two, because that is what the model holds: CpuTemperatureNode has a Primary and a Secondary and
     /// no per-core list, unlike load. So Bars previews as two bars rather than a row — honest, if a smaller
@@ -345,6 +413,11 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     {
         base.OnPropertyChanged(e);
 
+        // The tab's list says which preset is worn, how many wear each and what its ramp looks like, so it follows
+        // all three — one place, for the reason PreviewAccent is here.
+        if (e.PropertyName is nameof(Presets) or nameof(SelectedPreset) or nameof(RampPreviews))
+            base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(PresetRows)));
+
         if (e.PropertyName == nameof(RampPreviews))
         {
             base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(PreviewAccent)));
@@ -355,19 +428,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             foreach (var row in Chosen) row.RefreshShown();
         }
     }
-
-    /// <summary>
-    /// A state to draw every widget in, regardless of what its reading actually says.
-    ///
-    /// Null is the normal case — the readings speak for themselves. Set, it is the only practical way to
-    /// judge the critical colour: the alternative is heating the machine up on purpose and editing while
-    /// it is hot.
-    /// </summary>
-    [ObservableProperty] private string? _previewState;
-
-    partial void OnPreviewStateChanged(string? value) => PreviewRequested?.Invoke(value);
-
-    public event Action<string?>? PreviewRequested;
 
     /// <summary>Raised when a preset is removed, so the host can put the widgets wearing it back on the
     /// default — something the panel has no way to reach on its own.</summary>
@@ -421,13 +481,56 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     /// <summary>A file name to offer when exporting: the id, which is what the file would be called in
     /// the presets folder.</summary>
-    public string ExportFileName => SelectedPreset is { } preset ? $"{preset.Id}.json" : "preset.json";
+    public static string ExportFileName(Preset preset) => $"{preset.Id}.json";
 
-    /// <summary>Writes the preset on screen to a file, drafts and all.</summary>
-    public void Export(string path)
+    /// <summary>Writes a preset to a file, drafts and all — the one on screen, or any row of the list.</summary>
+    public void Export(Preset preset, string path) => presets.Export(preset, path);
+
+    /// <summary>
+    /// Every preset, as the Preset tab lists them: a row each, chosen by a click, which is wearing it. Read from the
+    /// service each time, so one written into the folder by hand, imported, copied or deleted is there at the next
+    /// notification.
+    /// </summary>
+    public IReadOnlyList<PresetRow> PresetRows =>
+    [
+        .. presets.Presets.Select(preset => new PresetRow(
+            preset,
+            StripOf(preset),
+            ReferenceEquals(preset, SelectedPreset),
+            (CountWearers?.Invoke(preset.Id) ?? 0) switch { 0 => "Not worn", 1 => "1 widget", var n => $"{n} widgets" })),
+    ];
+
+    /// <summary>A preset at a glance: its primary ramp, or its first where it has no ramp of that name.</summary>
+    private static RampPreview? StripOf(Preset preset) =>
+        (preset.Ramps.TryGetValue(Ramp.Primary, out var primary) ? primary : preset.Ramps.Values.FirstOrDefault())
+            is { } ramp
+            ? new RampPreview(Ramp.Primary, ramp.Normal, ramp.Elevated, ramp.Alert, ramp.Critical)
+            : null;
+
+    [RelayCommand]
+    private void ChoosePreset(Preset? preset)
     {
-        if (SelectedPreset is { } preset) presets.Export(preset, path);
+        if (preset is not null) SelectedPreset = preset;
     }
+
+    /// <summary>
+    /// A built-in preset is copied before it is changed, rather than edited and asked about at Save — which stays,
+    /// as the net under it. The copy starts identical, only this widget wears it, and its preset view opens: changing
+    /// a built-in never ends in a dialog, and the widgets on the original are never swept along.
+    /// </summary>
+    [RelayCommand]
+    private void CopyToEdit()
+    {
+        NewPreset();
+        EditPresetCommand.Execute(null);
+    }
+
+    /// <summary>"Edit Ember 3" — named after the preset, and not "Customize", which is the next tab's name.</summary>
+    public string EditPresetLabel => SelectedPreset is { } preset ? $"Edit {preset.Name}" : "Edit";
+
+    public string DefaultLabel => IsDefaultPreset ? "Default for new widgets" : "Set as default for new widgets";
+
+    public bool CanSetDefault => SelectedPreset is not null && !IsDefaultPreset;
 
     /// <summary>
     /// Reads a preset in and wears it. False when the file is not a preset.
@@ -449,7 +552,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// never moves, because that is what the widgets reference.</summary>
     [ObservableProperty] private string _presetName = string.Empty;
 
-    partial void OnPresetNameChanged(string value) => Dress();
+    partial void OnPresetNameChanged(string value)
+    {
+        Dress();
+
+        // A new name reaches the list's row and the button named after it.
+        OnPropertyChanged(nameof(PresetRows));
+        OnPropertyChanged(nameof(EditPresetLabel));
+    }
 
     // --- Appearance. These write into the PRESET, so they change every widget wearing it. ---
 
@@ -566,6 +676,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>Whether this kind's reading has a unit to hide. The clock draws a reading and has none.
     /// </summary>
     public bool ShowsUnit => SelectedKind?.HasUnit == true;
+
+    /// <summary>Whether Customize has anything to say about what is shown of the reading — so its heading is not
+    /// left standing over nothing, as it would be for a backdrop.</summary>
+    public bool ShowsDisplay => ShowsUnit || CanHideValue;
 
     /// <summary>Whether this kind can be turned on its side.</summary>
     public bool ShowsDirection => SelectedKind?.HasDirection == true;
@@ -836,8 +950,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         OnPropertyChanged(nameof(PresetNote));
         OnPropertyChanged(nameof(Swatches));
         OnPropertyChanged(nameof(WornBy));
-        OnPropertyChanged(nameof(PanelTitle));
         OnPropertyChanged(nameof(IsDefaultPreset));
+        NotifyPresetActions();
+        NotifyHeader();
         OnPropertyChanged(nameof(RampPreviews));
 
         if (preset is null) return;
@@ -976,11 +1091,84 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         Changed?.Invoke(WidgetChange.Dress);
     }
 
-    partial void OnLayerChanged(double value) => Apply();
+    partial void OnLayerChanged(double value)
+    {
+        Apply();
+        NotifyLayer();
+    }
 
-    /// <summary>Which widget wins where two overlap. A double because that is what a Slider binds to; the
-    /// definition keeps it as the whole number it really is.</summary>
+    /// <summary>Which widget wins where two overlap. A double because a slider bound to it once; the definition
+    /// keeps it as the whole number it really is.</summary>
     [ObservableProperty] private double _layer;
+
+    /// <summary>Where the widget sits among the ones it overlaps, and the step forward or back. Supplied by the host,
+    /// which knows the other widgets and their screens; the rule is <see cref="Services.EditMode.Layers"/>.</summary>
+    public Func<DesktopWidgetDefinition, (int InFrontOf, int Behind)>? LayerOf { get; set; }
+    public Func<DesktopWidgetDefinition, bool, int>? Restack { get; set; }
+
+    private (int InFrontOf, int Behind) Stacking =>
+        _target is not null && LayerOf is not null ? LayerOf(_target) : (0, 0);
+
+    /// <summary>
+    /// What is in front of what, said in words — "Behind 1 widget" — where a slider from −5 to 10 said a number,
+    /// and moving it from 0 to 1 could change nothing anyone could see.
+    /// </summary>
+    public string LayerDescription => Stacking switch
+    {
+        (0, 0) => "Overlaps nothing right now",
+        (var front, 0) => $"In front of {Widgets(front)}",
+        (0, var behind) => $"Behind {Widgets(behind)}",
+        var (front, behind) => $"In front of {front} · behind {behind}",
+    };
+
+    private static string Widgets(int count) => count == 1 ? "1 widget" : $"{count} widgets";
+
+    public bool CanBringForward => Stacking.Behind > 0;
+    public bool CanSendBackward => Stacking.InFrontOf > 0;
+
+    [RelayCommand]
+    private void BringForward()
+    {
+        if (_target is not null && Restack is not null) Layer = Restack(_target, true);
+    }
+
+    [RelayCommand]
+    private void SendBackward()
+    {
+        if (_target is not null && Restack is not null) Layer = Restack(_target, false);
+    }
+
+    private void NotifyLayer()
+    {
+        OnPropertyChanged(nameof(LayerDescription));
+        OnPropertyChanged(nameof(CanBringForward));
+        OnPropertyChanged(nameof(CanSendBackward));
+    }
+
+    /// <summary>The screens a widget can be shown on, and which holds it — the host's, like the layers.</summary>
+    public Func<IReadOnlyList<ScreenChoice>>? ScreenList { get; set; }
+    public Func<DesktopWidgetDefinition, string?>? ScreenKeyOf { get; set; }
+    public Action<DesktopWidgetDefinition, string>? MoveToScreen { get; set; }
+
+    /// <summary>Lights up the screen a name in the picker means, or none — a name alone does not say which piece of
+    /// hardware it is.</summary>
+    public Action<string?>? IdentifyScreen { get; set; }
+
+    [ObservableProperty] private IReadOnlyList<ScreenChoice> _screens = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanChooseScreen))]
+    private ScreenChoice? _selectedScreen;
+
+    /// <summary>A screen chosen sends the widget there, through the same door as the desktop's "Send to".</summary>
+    partial void OnSelectedScreenChanged(ScreenChoice? value)
+    {
+        if (_loaded && _target is not null && value is not null && value.Key != ScreenKeyOf?.Invoke(_target))
+            MoveToScreen?.Invoke(_target, value.Key);
+    }
+
+    /// <summary>Only a drawn widget has a screen to leave, and only with another screen to go to.</summary>
+    public bool CanChooseScreen => SelectedScreen is not null && Screens.Count > 1;
 
     [ObservableProperty] private double _widgetWidth = 170;
     [ObservableProperty] private double _widgetHeight = 190;
@@ -993,14 +1181,51 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     // Style, all four: a new size is a new scale, which re-dresses the widget where it stands. They went missing
     // with the appearance fields in the move to presets, after which the boxes changed nothing until some other
-    // edit happened to write them. The size boxes also say which side leads, for a widget that keeps its shape.
-    partial void OnWidgetWidthChanged(double value) => Apply(lead: SizeLead.Width);
-    partial void OnWidgetHeightChanged(double value) => Apply(lead: SizeLead.Height);
+    // edit happened to write them.
+    partial void OnWidgetWidthChanged(double oldValue, double newValue)
+    {
+        OnPropertyChanged(nameof(PanelSubtitle));
+        Resized(SizeLead.Width, oldValue);
+    }
 
-    /// <summary>The size boxes' range — here rather than in the markup, because a widget that keeps its proportions
-    /// is held inside it on both sides, and a range written in two places would let one box be refused what the other
-    /// was given.</summary>
-    public double LeastSize => 40;
+    partial void OnWidgetHeightChanged(double oldValue, double newValue)
+    {
+        OnPropertyChanged(nameof(PanelSubtitle));
+        Resized(SizeLead.Height, oldValue);
+    }
+
+    /// <summary>
+    /// The lock between the size boxes: on, typing one box moves the other by the ratio the widget had, and the
+    /// desktop's corners keep it too, as Shift does while it is held. Off — the default — every widget resizes freely,
+    /// whatever its kind (João, 2026-11-02: two kinds answering the same hand in opposite ways confused more than a
+    /// stretched dial ever could). The editor's, for as long as it is open: a way of working, not a widget's.
+    /// </summary>
+    [ObservableProperty] private bool _keepsProportions;
+
+    // Both sizes being written as a pair — a kind's own, or the lock's — so neither follows the other, and one Apply
+    // writes them after.
+    private bool _settingSize;
+
+    private void Resized(SizeLead lead, double before)
+    {
+        if (_settingSize) return;
+
+        if (KeepsProportions && _loaded && before > 0)
+        {
+            var had = lead == SizeLead.Width ? (before, WidgetHeight) : (WidgetWidth, before);
+            _settingSize = true;
+            (WidgetWidth, WidgetHeight) = WidgetScale.Proportioned(had, WidgetWidth, WidgetHeight, lead, LeastSize,
+                MostSize);
+            _settingSize = false;
+        }
+        Apply();
+    }
+
+    /// <summary>The size boxes' range — here rather than in the markup, because the lock holds a widget inside it on
+    /// both sides, and a range written in two places would let one box be refused what the other was given. The
+    /// least is the desktop's own (<see cref="DesktopSurface.EditGeometry.MinSide"/>), so the wheel and the handles
+    /// cannot make a widget smaller than a box can, or the other way round.</summary>
+    public double LeastSize => DesktopSurface.EditGeometry.MinSide;
     public double MostSize => 4000;
     partial void OnWidgetXChanged(double value) => Apply();
     partial void OnWidgetYChanged(double value) => Apply();
@@ -1008,11 +1233,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty]
     private WidgetKindInfo? _selectedKind;
 
-    [ObservableProperty]
-    private SensorOption? _selectedSensor;
-
     /// <summary>
-    /// Whether the button swaps the one reading instead of appending another.
+    /// Whether a reading chosen swaps the one there is instead of joining it — "Change reading".
     ///
     /// A widget that draws a single value has no "add" that means anything once it has one, and leaving the
     /// button dead made changing its sensor a two-step demolition: remove the reading — which blanked the
@@ -1027,6 +1249,152 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>Whether this kind reads anything at all. A backdrop does not, and neither will a label —
     /// showing them a sensor list would be offering a choice with nowhere to go.</summary>
     public bool ShowsDataSection => SelectedKind is { MaxSeries: > 0 };
+
+    /// <summary>Whether the widget's readings are sensors, listed one per row — every kind that reads anything
+    /// but the List, which ranks applications and is given its source instead (<see cref="RankedChoices"/>).</summary>
+    public bool ShowsReadings => ShowsDataSection && !ShowsList;
+
+    /// <summary>"1 of 2", beside the readings' heading.</summary>
+    public string ReadingsCount => SelectedKind is { } kind ? $"{Chosen.Count} of {kind.MaxSeries}" : string.Empty;
+
+    /// <summary>What the widget says while it has nothing to read — it draws nothing on the desktop then.</summary>
+    public bool ShowsNoReadings => Chosen.Count == 0 && SelectedKind is { NeedsReading: true };
+
+    /// <summary>Whether a reading can still be given — a slot is free, or the one reading can be swapped.</summary>
+    public bool ShowsReadingButton => SelectedKind is { } kind && (Chosen.Count < kind.MaxSeries || ReplacesSeries);
+
+    public string ReadingButtonLabel => ReplacesSeries ? "Change reading" : "Add reading";
+
+    /// <summary>Said where the button would be once every slot of a several-reading kind is taken: there is no one
+    /// reading a new one would obviously replace, so the way to swap is to free a slot.</summary>
+    public string ReadingsFullHint => SelectedKind is { MaxSeries: > 1 } kind && Chosen.Count >= kind.MaxSeries
+        ? $"A {kind.Name.ToLowerInvariant()} draws up to {kind.MaxSeries} readings. Remove one to swap it."
+        : string.Empty;
+
+    /// <summary>A reading chosen in the picker: given, or swapped for the one there is.</summary>
+    public void AddReading(SensorOption option)
+    {
+        if (SelectedKind is not { } kind || (!ReplacesSeries && Chosen.Count >= kind.MaxSeries)) return;
+
+        // Swapped in place rather than removed and re-added: the widget keeps its colour role and never
+        // spends a frame with nothing to draw.
+        if (ReplacesSeries) Chosen.Clear();
+
+        Chosen.Add(new SeriesRow(option, DefaultRamp(Chosen.Count), OnSeriesEdited, ShownItem));
+
+        // Offered, not imposed: an untitled widget takes the sensor's name the first time it is given one,
+        // and keeps whatever it has after that — including nothing, if that is what the user chose.
+        if (string.IsNullOrWhiteSpace(Title)) Title = option.Name;
+
+        OnSeriesEdited();
+    }
+
+    /// <summary>A List's sources — CPU, Memory, I/O — each marked when it is the one the list ranks by.</summary>
+    public IReadOnlyList<ListChoice> RankedChoices =>
+        [.. _allLists.Select(list => new ListChoice(list, Chosen.Any(row => row.Sensor.Identifier == list.Identifier)))];
+
+    /// <summary>Ranks the list by another source. A List has one reading, so this replaces it; its ramp stays.</summary>
+    [RelayCommand]
+    private void RankBy(SensorOption? list)
+    {
+        if (list is null || !ShowsList || Chosen.Any(row => row.Sensor.Identifier == list.Identifier)) return;
+
+        var ramp = Chosen.FirstOrDefault()?.Ramp ?? DefaultRamp(0);
+        Chosen.Clear();
+        Chosen.Add(new SeriesRow(list, ramp, OnSeriesEdited, ShownItem));
+        if (string.IsNullOrWhiteSpace(Title)) Title = list.Name;
+
+        OnSeriesEdited();
+    }
+
+    /// <summary>
+    /// Whether the type gallery is open in the Content tab — every kind drawing itself with this widget's own
+    /// readings, in this widget's preset. Closed the rest of the time, and its kinds are then not built at all.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GalleryKinds), nameof(TypeSummary), nameof(Footer), nameof(TypeButtonLabel))]
+    private bool _isGalleryOpen;
+
+    partial void OnIsGalleryOpenChanged(bool value) => FocusedKind = SelectedKind;
+
+    [RelayCommand]
+    private void ToggleGallery() => IsGalleryOpen = !IsGalleryOpen;
+
+    public string TypeButtonLabel => IsGalleryOpen ? "Close" : "Change";
+
+    public string TypeSummary => IsGalleryOpen ? "Pick another type below" : SelectedKind?.Summary ?? string.Empty;
+
+    private (WidgetKindInfo? Kind, IReadOnlyList<KindChoice> Choices) _gallery;
+
+    /// <summary>The gallery's tiles, the current kind marked. Built when it opens and when the kind changes, never
+    /// on any other notification: a tile rebuilt is a preview rebuilt, a chart's line started from empty.</summary>
+    public IReadOnlyList<KindChoice> GalleryKinds
+    {
+        get
+        {
+            if (!IsGalleryOpen) return [];
+            if (_gallery.Choices is null || _gallery.Kind != SelectedKind)
+                _gallery = (SelectedKind, [.. Kinds.Select(kind => new KindChoice(kind, kind == SelectedKind))]);
+            return _gallery.Choices;
+        }
+    }
+
+    /// <summary>The tile under the pointer or the keys, which the card below the gallery describes — with what the
+    /// change would take away, before it does.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Consequence), nameof(HasConsequence))]
+    private WidgetKindInfo? _focusedKind;
+
+    /// <summary>
+    /// The readings a change to the focused kind would remove, named — said while the choice is still a question,
+    /// by the same rule the change will follow (<see cref="WidgetCatalog.ReadingsKept"/>). It used to happen in
+    /// silence, and a chart made a number had lost its second line before anyone could see why.
+    /// </summary>
+    public string Consequence
+    {
+        get
+        {
+            if (FocusedKind is not { } to || to == SelectedKind) return string.Empty;
+
+            var kept = WidgetCatalog.ReadingsKept(to, Chosen, row => row.Sensor.IsList);
+            var lost = Chosen.Where(row => !kept.Contains(row)).Select(row => row.Sensor.Name).ToList();
+            if (lost.Count == 0) return string.Empty;
+
+            var names = string.Join(", ", lost);
+            if (to.HasList != ShowsList) return $"A list ranks applications, not sensors. {names} would be removed.";
+            return to.MaxSeries == 1
+                ? $"Draws one reading. {names} would be removed."
+                : $"Draws up to {to.MaxSeries} readings. {names} would be removed.";
+        }
+    }
+
+    public bool HasConsequence => Consequence.Length > 0;
+
+    /// <summary>A tile chosen: the widget becomes that kind, and the gallery closes.</summary>
+    [RelayCommand]
+    private void ChooseKind(WidgetKindInfo? kind)
+    {
+        if (kind is not null && kind != SelectedKind) SelectedKind = kind;
+        IsGalleryOpen = false;
+    }
+
+    /// <summary>
+    /// What the previews read: this widget's own sensors, so the gallery shows this widget as each kind rather than
+    /// a catalogue of strangers — or, while it has none, the CPU's temperatures. The same list until the readings
+    /// change, so a preview is rebuilt when there is something new to draw and not at every notification.
+    /// </summary>
+    public IReadOnlyList<SensorNode> GalleryReadings
+    {
+        get
+        {
+            IReadOnlyList<SensorNode> own = [.. Chosen.Select(row => row.Sensor.Sensor).OfType<SensorNode>()];
+            var now = own.Count > 0 ? own : PreviewSensors;
+            if (!now.SequenceEqual(_galleryReadings)) _galleryReadings = now;
+            return _galleryReadings;
+        }
+    }
+
+    private IReadOnlyList<SensorNode> _galleryReadings = [];
 
     partial void OnCaptionChanged(string value) => Apply();
     partial void OnSelectedClockFormatChanged(ClockFormat value) => Apply();
@@ -1070,8 +1438,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     public bool ShowsClockFormat => ShowsClockOptions && SelectedRings == ClockRings.None;
     public bool ShowsRingOptions => ShowsClockOptions && SelectedRings != ClockRings.None;
 
-    /// <summary>Whether this kind is made of words at all — a caption, a clock, or both.</summary>
-    public bool ShowsTextOptions => ShowsCaptionOptions || ShowsClockOptions;
 
     public bool ShowsCaptionOptions => SelectedKind?.HasCaption == true;
     public bool ShowsClockOptions => SelectedKind?.HasClock == true;
@@ -1129,7 +1495,16 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private double _scaleMin;
     [ObservableProperty] private double _scaleMax = 100;
 
-    public IReadOnlyList<ChartScale> Scales { get; } = Enum.GetValues<ChartScale>();
+    /// <summary>One choice in the scale picker, named as a phrase — the rings picker's reason: "FromZero" is the
+    /// name of a value, and the picker showed it.</summary>
+    public sealed record ScaleChoice(ChartScale Value, string Label);
+
+    public IReadOnlyList<ScaleChoice> Scales { get; } =
+    [
+        new(ChartScale.FromZero, "From zero"),
+        new(ChartScale.FitToData, "Fit to data"),
+        new(ChartScale.Manual, "Manual"),
+    ];
 
     /// <summary>Only Manual has ends to type in — the other two work them out.</summary>
     public bool ScaleIsManual => SelectedScale == ChartScale.Manual;
@@ -1164,51 +1539,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     [ObservableProperty] private bool _sparklineShown;
     [ObservableProperty] private bool _totalShown;
-
-    /// <summary>What the picker offers, as the hint and the button name it: a List is given a list.</summary>
-    private string Offered => ShowsList ? "list" : "sensor";
-
-    /// <summary>How many more readings this kind will take, said plainly.</summary>
-    public string SeriesHint => SelectedKind is null or { MaxSeries: 0 }
-        ? string.Empty
-        : ReplacesSeries
-            ? $"This widget draws one reading. Pick another {Offered} to swap it."
-            : Chosen.Count >= SelectedKind.MaxSeries
-                ? $"This widget draws {SelectedKind.MaxSeries} readings — that is all of them."
-                : $"Pick a {Offered} above. Up to {SelectedKind.MaxSeries}.";
-
-    /// <summary>
-    /// The button says what pressing it will do, so the two behaviours are never a surprise.
-    ///
-    /// "Use this sensor", naming the thing the press acts on — the one picked in the list above — rather than
-    /// a bare "Add", which left the reader to work out what was being added and to where; "Use this list" when
-    /// that is what is offered. The difference between adding and replacing is carried by one word, "instead",
-    /// which is only offered when there is really something to replace (see ReplacesSeries): a one-reading
-    /// widget that has none yet is simply being given its first.
-    /// </summary>
-    public string AddLabel => ReplacesSeries ? $"Use this {Offered} instead" : $"Use this {Offered}";
-
-    public bool CanAdd => SelectedSensor is not null
-                          && SelectedKind is not null
-                          && (ReplacesSeries || Chosen.Count < SelectedKind.MaxSeries);
-
-    [RelayCommand]
-    private void AddSeries()
-    {
-        if (!CanAdd || SelectedSensor is null) return;
-
-        // Swapped in place rather than removed and re-added: the widget keeps its colour role and never
-        // spends a frame with nothing to draw.
-        if (ReplacesSeries) Chosen.Clear();
-
-        Chosen.Add(new SeriesRow(SelectedSensor, DefaultRamp(Chosen.Count), OnSeriesEdited, ShownItem));
-
-        // Offered, not imposed: an untitled widget takes the sensor's name the first time it is given one,
-        // and keeps whatever it has after that — including nothing, if that is what the user chose.
-        if (string.IsNullOrWhiteSpace(Title)) Title = SelectedSensor.Name;
-
-        OnSeriesEdited();
-    }
 
     [RelayCommand]
     private void RemoveSeries(SeriesRow? row)
@@ -1295,60 +1625,60 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         // size at all. NOT taken while the form is being filled from a definition — there the size is being
         // read out of the widget, and the default would overwrite what the user dragged.
         if (value is not null && (_loaded || WidgetWidth <= 0 || WidgetHeight <= 0))
-            (WidgetWidth, WidgetHeight) = (value.DefaultWidth, value.DefaultHeight);
-
-        // A kind that reads nothing exists to sit behind, so it starts behind. Without this a backdrop
-        // arrives on layer 0 like everything else and, being the most recently added, covers the widgets
-        // it was meant to back — which is the first thing anyone would try and the first thing to go wrong.
-        if (_loaded && value is { MaxSeries: 0 } && Layer >= 0) Layer = -1;
-
-        // Switching from a chart to a dial leaves readings the new kind cannot draw. Dropped here rather
-        // than quietly ignored at render time, so what is saved is what is on screen.
-        //
-        // So does switching to or from a List, whatever the count: a list is not a sensor, and a sensor is not
-        // a list.
-        if (value is not null)
-            for (var i = Chosen.Count - 1; i >= 0; i--)
-                if (Chosen[i].Sensor.IsList != value.HasList) Chosen.RemoveAt(i);
-
-        while (value is not null && Chosen.Count > value.MaxSeries)
-            Chosen.RemoveAt(Chosen.Count - 1);
-
-        // A clock made now has rings. Only when the USER picks the kind, like the size above: filling the form
-        // from a clock written before rings existed must read its None, not overwrite it.
-        if (_loaded && value?.HasClock == true) SelectedRings = ClockRings.All;
-
-        // And a list made now has its bars, trends and total, by the same rule: a list written before them reads off.
-        if (_loaded && value?.HasList == true)
         {
-            BarShown = true;
-            SparklineShown = true;
-            TotalShown = true;
+            _settingSize = true;
+            (WidgetWidth, WidgetHeight) = (value.DefaultWidth, value.DefaultHeight);
+            _settingSize = false;
         }
 
-        // What the picker offers changes when the kind moves to or from a List, and only then is it refilled:
-        // refilling scrolls the picker back to its top, which a switch between two sensor kinds has no reason
-        // to do. Everything in it is of one sort, so its first entry says which.
-        if (Sensors.Count == 0 || Sensors[0].IsList != ShowsList) ApplyFilter();
+        // A backdrop exists to sit behind, so it starts behind. Without this it arrives on layer 0 like everything
+        // else and, being the most recently added, covers the widgets it was meant to back — which is the first
+        // thing anyone would try and the first thing to go wrong.
+        if (_loaded && value is { SitsBehind: true } && Layer >= 0) Layer = -1;
+
+        // Switching from a chart to a dial leaves readings the new kind cannot draw, and switching to or from a
+        // List all of them — a list is not a sensor. Dropped here rather than quietly ignored at render time, so
+        // what is saved is what is on screen; by the rule the gallery warned with before the click.
+        if (value is not null)
+        {
+            var kept = WidgetCatalog.ReadingsKept(value, Chosen, row => row.Sensor.IsList);
+            for (var i = Chosen.Count - 1; i >= 0; i--)
+                if (!kept.Contains(Chosen[i])) Chosen.RemoveAt(i);
+        }
+
+        // A list made now ranks by the first source there is, so it draws at once; its source is one click away.
+        if (_loaded && value?.HasList == true && Chosen.Count == 0 && _allLists.Count > 0)
+            Chosen.Add(new SeriesRow(_allLists[0], DefaultRamp(0), OnSeriesEdited, ShownItem));
+
+        // What the kind starts with when it is made — a clock its rings, a list its bars (WidgetKindInfo.MadeNow, as
+        // Add widget does it). Only when the USER picks the kind, like the size above: filling the form from a clock
+        // written before rings existed must read its None, not overwrite it. Read from a copy with the writes held,
+        // since each option read would otherwise write the rest of the form, still the old kind's, over the copy's;
+        // the Structure apply below writes them all at once.
+        if (_loaded && value?.MadeNow is { } made && _target is not null)
+        {
+            var fresh = _target.Clone();
+            made(fresh);
+            _loaded = false;
+            ReadOptions(fresh);
+            _loaded = true;
+        }
 
         NotifySeriesState();
+        NotifyHeader();
         Apply(WidgetChange.Structure);
     }
 
-    /// <summary>Selecting in the list no longer changes the widget — it only arms the Add button. Picking
-    /// and adding are separate on purpose: a click that silently replaced a series would be very easy to
-    /// do by accident while scrolling a list of two hundred sensors.</summary>
-    partial void OnSelectedSensorChanged(SensorOption? value) => NotifySeriesState();
     partial void OnTitleChanged(string value)
     {
-        OnPropertyChanged(nameof(PanelTitle));
+        NotifyHeader();
         Apply();
     }
 
     /// <summary>Writes the form into the live definition and tells the host to re-render it. The screen is
     /// never touched — moving a widget between monitors is the desktop context menu's job, because it is
     /// the only place that can show you which monitor you are pointing at.</summary>
-    private void Apply(WidgetChange change = WidgetChange.Style, SizeLead? lead = null)
+    private void Apply(WidgetChange change = WidgetChange.Style)
     {
         if (!_loaded || _target is null) return;
 
@@ -1395,15 +1725,15 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowSparkline = SparklineShown;
         _target.ShowTotal = TotalShown;
 
-        // Held to its proportions, by the rule the wheel is held to. Led by the box that was typed in — or, when the
-        // widget has just started keeping a shape (made a dial, or a clock given rings), by its width, so it takes
-        // the shape now: a 200×70 clock given rings would otherwise draw them a third of the size until someone
-        // happened to resize it. Anything else leaves the size alone, so opening a widget never reshapes it.
+        // A widget that has just started drawing a figure of its own shape (made a dial, or a clock given rings) takes
+        // that shape now, led by its width: a 200×70 clock given rings would otherwise draw them a third of the size
+        // until someone happened to resize it. Free after that, like every widget. Anything else leaves the size
+        // alone, so opening a widget never reshapes it.
         var shape = WidgetScale.ShapeOf(_target);
-        if (shape is not null && (lead is not null || shape != shapeBefore))
+        if (shape is not null && shape != shapeBefore)
         {
             (_target.Width, _target.Height) = WidgetScale.Proportioned(_target, _target.Width, _target.Height,
-                lead ?? SizeLead.Width, LeastSize, MostSize);
+                SizeLead.Width, LeastSize, MostSize);
 
             // The other box has to say what the widget now is.
             SyncGeometry();
@@ -1425,9 +1755,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         Changed?.Invoke(change);
     }
 
-    [ObservableProperty]
-    private string _sensorFilter = string.Empty;
-
     /// <summary>
     /// The widget the panel is pointed at, in the words the widget itself uses.
     ///
@@ -1435,18 +1762,51 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// them — so a panel docked at the edge of a desktop holding six widgets never said which one it was
     /// editing. Falls back to the kind's name, because a title is allowed to be empty and a heading is not.
     /// </summary>
-    public string PanelTitle =>
-        EditingPreset ? SelectedPreset?.Name ?? "Preset"
-        : _target is null ? "Widget"
+    public string WidgetName =>
+        _target is null ? "Widget"
         : !string.IsNullOrWhiteSpace(Title) ? Title.Trim()
         : SelectedKind?.Name ?? "Widget";
 
-    /// <summary>The line under the title. In the preset view it says how far the changes reach, which is
-    /// the one thing somebody needs to know before touching anything there.</summary>
+    /// <summary>The heading: the widget, or in the preset view the preset — whose name box stands in its place
+    /// there, so this is what a built-in, which cannot be renamed, still reads.</summary>
+    public string PanelTitle => EditingPreset ? SelectedPreset?.Name ?? "Preset" : WidgetName;
+
+    /// <summary>Where the screen a widget is drawn on is named. Supplied by the host, which owns the screens;
+    /// null for a widget drawn nowhere.</summary>
+    public Func<DesktopWidgetDefinition, string?>? ScreenOf { get; set; }
+
+    /// <summary>
+    /// The line under the title. For a widget, what it is, where and how big — "Chart · Screen 1 · 300 × 160" —
+    /// following the drag and the wheel. In the preset view, how far the changes reach, which is the one thing
+    /// somebody needs to know before touching anything there.
+    /// </summary>
     public string PanelSubtitle =>
-        EditingPreset ? $"Editing a preset — {WornBy.ToLowerInvariant()}."
-        : _target is null ? "Click a widget on the desktop to edit it."
-        : "Changes land on the desktop as you make them.";
+        EditingPreset
+            ? $"Preset · {WornBy.ToLowerInvariant()}{(IsDefaultPreset ? " · default for new widgets" : string.Empty)}"
+        : _target is null ? string.Empty
+        : string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"{SelectedKind?.Name} · {ScreenOf?.Invoke(_target) ?? "Not drawn"} · {Math.Round(WidgetWidth)} × {Math.Round(WidgetHeight)}");
+
+    /// <summary>The preset view's first words: what an edit there will reach, said before anything is touched.
+    /// </summary>
+    public string PresetReach
+    {
+        get
+        {
+            if (SelectedPreset is not { } preset) return string.Empty;
+
+            var count = CountWearers?.Invoke(preset.Id) ?? 0;
+            return count > 1
+                ? $"What you change here reaches all {count} widgets wearing {preset.Name}, as you change it."
+                : "What you change here reaches only this widget.";
+        }
+    }
+
+    /// <summary>The keys the panel answers to, at its foot — the only place they are written down.</summary>
+    public string Footer =>
+        EditingPreset ? $"Esc goes back to {WidgetName}"
+        : IsGalleryOpen ? "Previews use this widget's own readings and preset"
+        : "Arrows nudge · Shift+arrows by 10 · Del removes · Esc closes";
 
     /// <summary>Whether there is anything to edit. The panel is long-lived and spends part of its life
     /// pointed at nothing, and a form full of controls that change nothing reads as broken.</summary>
@@ -1472,21 +1832,25 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         WidgetHeight = _target.Height;
         WidgetX = _target.X;
         WidgetY = _target.Y;
+        Layer = _target.ZIndex;
+        SelectedScreen = Screens.FirstOrDefault(screen => screen.Key == ScreenKeyOf?.Invoke(_target));
         _loaded = loaded;
+
+        // Sent to another screen, a widget may keep its size: the subtitle names the screen too. And moved, it may
+        // cover others, or stop covering them.
+        OnPropertyChanged(nameof(PanelSubtitle));
+        NotifyLayer();
     }
 
     public void Clear()
     {
         _loaded = false;
         EditingPreset = false;
-        PreviewState = null;
         _target = null;
         Chosen.Clear();
-        SelectedSensor = null;
-        SensorFilter = string.Empty;
+        IsGalleryOpen = false;
         OnPropertyChanged(nameof(HasTarget));
         NotifyView();
-        OnPropertyChanged(nameof(PanelTitle));
     }
 
 
@@ -1514,18 +1878,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         var hardware = state.Hardware;
 
         _allSensors.Clear();
-        foreach (var component in SensorCatalog.GetComponents(hardware))
-            foreach (var entry in component.Sensors)
-                if (!string.IsNullOrEmpty(entry.Sensor.Identifier))
-                    _allSensors.Add(new SensorOption(
-                        component.Name, entry.Label, entry.Sensor.Identifier!, entry.Sensor, entry.Key.ToString()));
-
-        // Grouped under what they are lists OF, the way a sensor is under its part — so the reading a List was
-        // given reads "Processes — CPU" wherever it is shown.
+        _allSensors.AddRange(SensorOption.SensorsOf(hardware));
         _allLists.Clear();
-        foreach (var list in state.Processes.All)
-            _allLists.Add(new SensorOption(
-                state.Processes.Name, list.Name, list.Identifier, null, list.Metric?.ToString() ?? string.Empty));
+        _allLists.AddRange(SensorOption.ListsOf(state));
 
         // Set once, on the first Load — every kind in the picker rebuilds its preview when this is assigned,
         // and the hardware tree does not grow cores between one widget and the next.
@@ -1542,8 +1897,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target = target;
 
         // Back to the widget. Reaching for another widget while a preset is open is asking about the
-        // widget, and leaving the panel on the shared asset would answer a question nobody asked.
+        // widget, and leaving the panel on the shared asset would answer a question nobody asked. The type
+        // gallery likewise belongs to the widget it was opened for.
         EditingPreset = false;
+        IsGalleryOpen = false;
 
         // Before the rows, which offer this preset's ramps. Set after them and every row would be listing
         // the ramps of whichever widget was open before.
@@ -1556,12 +1913,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         WidgetX = target.X;
         WidgetY = target.Y;
 
+        // Read like the rest. It never was: the panel kept the layer of the widget open before, and the next edit to
+        // this one wrote it here — a backdrop selected, then a title typed on a gauge, put the gauge behind everything.
+        Layer = target.ZIndex;
+        Screens = ScreenList?.Invoke() ?? [];
+        SelectedScreen = Screens.FirstOrDefault(screen => screen.Key == ScreenKeyOf?.Invoke(target));
+
         // The form is filled from the definition itself, so "default" is defined in exactly one place.
         SelectedKind = Kinds.FirstOrDefault(k => k.Kind == target.Kind) ?? Kinds[0];
-
-        // After the kind, which decides whether the picker offers sensors or lists. The kind changing filters
-        // too, but a widget of the same kind as the one before it changes nothing, and the readings are new.
-        ApplyFilter();
 
         Title = target.Title;
 
@@ -1589,29 +1948,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
                 Chosen.Add(new SeriesRow(pinned, DefaultRamp(0), OnSeriesEdited, ShownItem));
         }
 
-        // Cleared, or the list keeps the row highlighted from the widget before — and since this is what
-        // decides whether Add is offered and what it is called, the panel goes on looking like it is still
-        // pointed at the previous widget.
-        SelectedSensor = null;
-
-        Caption = target.Text;
-        SelectedClockFormat = target.ClockFormat;
-        SelectedRings = target.Rings;
-        SecondsShown = target.ShowSeconds;
-        DateShown = target.ShowDate;
-        TextFillsRings = target.FillRings;
-        ValueShown = target.ShowValue;
-        UnitShown = target.ShowUnit;
-        BarDirection = target.BarDirection;
-
-        PointCount = target.PointCount;
-        SelectedScale = target.Scale;
-        ScaleMin = target.ScaleMin;
-        ScaleMax = target.ScaleMax;
-        ItemCount = target.ItemCount;
-        BarShown = target.ShowBar;
-        SparklineShown = target.ShowSparkline;
-        TotalShown = target.ShowTotal;
+        ReadOptions(target);
 
         // The setters above each fire a rebuild; letting them run only after this point means one preview
         // on open instead of a dozen. The first one is raised by the window once it has subscribed.
@@ -1626,28 +1963,28 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         NotifySeriesState();
     }
 
-
-
-    partial void OnSensorFilterChanged(string value) => ApplyFilter();
-
-    private void ApplyFilter()
+    /// <summary>The form's options read from a definition — on Load, and from a fresh copy when a kind is picked.
+    /// </summary>
+    private void ReadOptions(DesktopWidgetDefinition source)
     {
-        var keep = SelectedSensor;
+        Caption = source.Text;
+        SelectedClockFormat = source.ClockFormat;
+        SelectedRings = source.Rings;
+        SecondsShown = source.ShowSeconds;
+        DateShown = source.ShowDate;
+        TextFillsRings = source.FillRings;
+        ValueShown = source.ShowValue;
+        UnitShown = source.ShowUnit;
+        BarDirection = source.BarDirection;
 
-        // A List is offered the lists and every other kind the sensors: each draws only its own sort, and the
-        // other would be a choice with nowhere to go.
-        var offered = ShowsList ? _allLists : _allSensors;
-
-        Sensors.Clear();
-        foreach (var sensor in offered)
-            if (string.IsNullOrWhiteSpace(SensorFilter) ||
-                sensor.Display.Contains(SensorFilter, StringComparison.OrdinalIgnoreCase))
-                Sensors.Add(sensor);
-
-        // Filtering must not silently drop the current choice — the user would save something they can't
-        // see. Keep it selected if it survived the filter, and let it go if it did not: after a switch to or
-        // from a List the old choice is not even of the right sort, and must not stay armed behind the button.
-        SelectedSensor = keep is not null && Sensors.Contains(keep) ? keep : null;
+        PointCount = source.PointCount;
+        SelectedScale = source.Scale;
+        ScaleMin = source.ScaleMin;
+        ScaleMax = source.ScaleMax;
+        ItemCount = source.ItemCount;
+        BarShown = source.ShowBar;
+        SparklineShown = source.ShowSparkline;
+        TotalShown = source.ShowTotal;
     }
 }
 

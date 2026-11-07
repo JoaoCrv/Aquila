@@ -23,12 +23,19 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// hardware.</summary>
     private readonly AquilaState _state;
 
-    /// <summary>Raised when the panel wants a widget created. The panel does not own the widget list —
-    /// the domain service does, and it answers by selecting whatever it created.</summary>
-    public event Action? AddRequested;
-
     /// <summary>Raised when the user removes the widget being edited.</summary>
     public event Action<DesktopWidgetDefinition>? RemoveRequested;
+
+    /// <summary>Raised for Ctrl+D or the Duplicate button. The panel does not own the widget list — the domain
+    /// service does, and it answers by selecting the copy.</summary>
+    public event Action? DuplicateRequested;
+
+    /// <summary>Raised for the arrow keys, in DIPs: 1, or 10 with Shift.</summary>
+    public event Action<double, double>? NudgeRequested;
+
+    /// <summary>Raised for Esc or the close button: letting go of the selection, which is what hides the panel.
+    /// </summary>
+    public event Action? CloseRequested;
 
     public WidgetEditorViewModel ViewModel { get; }
 
@@ -39,11 +46,63 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
 
         InitializeComponent();
         DataContext = this;
+
+        ReadingPicker.Chosen += OnReadingChosen;
+        ReadingPicker.Cancelled += () => ReadingPopup.IsOpen = false;
+        ReadingPopup.Closed += (_, _) => _readingClosedAt = DateTime.UtcNow;
+
+        ViewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(WidgetEditorViewModel.IsGalleryOpen) && ViewModel.IsGalleryOpen)
+                Dispatcher.BeginInvoke(FocusCurrentKind, DispatcherPriority.Loaded);
+        };
     }
 
-    /// <summary>Points the panel at a definition, or at nothing. Called every time the selection on the
-    /// desktop changes, which is why the view model reloads in place rather than being replaced — the
-    /// Changed subscription the host set up has to survive.</summary>
+    private DateTime _readingClosedAt;
+
+    /// <summary>Opens the sensors to choose a reading from, under the button, leaving out what the widget reads
+    /// already. Pressing the button while they are open closes them on the press, and the click that follows must
+    /// not open them again.</summary>
+    private void OnReadingButton(object sender, RoutedEventArgs e)
+    {
+        if (DateTime.UtcNow - _readingClosedAt < TimeSpan.FromMilliseconds(300)) return;
+
+        ReadingPicker.Open(ViewModel.SensorOptions, ViewModel.ChosenIdentifiers);
+        ReadingPopup.IsOpen = true;
+    }
+
+    private void OnReadingChosen(SensorOption option)
+    {
+        ReadingPopup.IsOpen = false;
+        ViewModel.AddReading(option);
+    }
+
+    /// <summary>The gallery opens on the current kind, with the keys there, so the arrows start from it.</summary>
+    private void FocusCurrentKind()
+    {
+        foreach (var tile in Descendants<Controls.MenuToggle>(Gallery))
+            if (tile.DataContext is KindChoice { IsCurrent: true })
+            {
+                tile.Focus();
+                return;
+            }
+    }
+
+    /// <summary>The tile under the pointer or the keys is the one the card below the gallery describes. Two handlers,
+    /// each of its event's exact type: inside a template the event is bound by name, which takes no looser signature —
+    /// one shared handler threw as the gallery opened.</summary>
+    private void OnKindTileHovered(object sender, MouseEventArgs e) => Describe(sender);
+
+    private void OnKindTileFocused(object sender, KeyboardFocusChangedEventArgs e) => Describe(sender);
+
+    private void Describe(object tile)
+    {
+        if (tile is FrameworkElement { DataContext: KindChoice choice }) ViewModel.FocusedKind = choice.Kind;
+    }
+
+    /// <summary>Points the panel at a definition, or at nothing — the latter only as it is hidden, since the panel
+    /// is shown for a selection alone. Called every time the selection changes, which is why the view model reloads
+    /// in place rather than being replaced: the Changed subscription the host set up has to survive.</summary>
     public void Edit(DesktopWidgetDefinition? definition)
     {
         Target = definition;
@@ -62,38 +121,165 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// <summary>The definition currently shown, so the host knows what Remove refers to.</summary>
     public DesktopWidgetDefinition? Target { get; private set; }
 
-    /// <summary>
-    /// Docks the panel to the right edge of a screen.
-    ///
-    /// Bounds arrive in physical pixels — that is what Screen reports — while Left/Top are DIPs, so they
-    /// have to be converted or the panel lands off the edge of a scaled display. Call this after Show:
-    /// the transform comes from the window's own presentation source, which does not exist before then.
-    /// </summary>
-    public void DockRight(System.Drawing.Rectangle screenBounds)
-    {
-        const double inset = 16;
+    /// <summary>Raised when the panel has been dragged somewhere by hand, with where it now stands.</summary>
+    public event Action<Point>? Moved;
 
+    /// <summary>Raised for a double-click on the header: dock again, and forget where it was dragged to.</summary>
+    public event Action? DockRequested;
+
+    /// <summary>Raised for Ctrl+Z, and for Ctrl+Y or Ctrl+Shift+Z — the session's, which the service keeps. A text
+    /// field being typed in keeps its own: it handles them first.</summary>
+    public event Action? UndoRequested;
+    public event Action? RedoRequested;
+
+    /// <summary>Raised for "Widgets" in the header's path: up a level — let go of the widget and show the list of
+    /// them, which is the edit bar's.</summary>
+    public event Action? WidgetsRequested;
+
+    private void OnWidgetsCrumb(object sender, RoutedEventArgs e) => WidgetsRequested?.Invoke();
+
+    /// <summary>
+    /// A screen's area in DIPs, from the physical pixels Screen reports — Left/Top are DIPs, so a rectangle left
+    /// unconverted lands off the edge of a scaled display. Asked once the window exists (Show, or EnsureHandle while
+    /// it is still hidden): the transform comes from its own presentation source, which does not exist before then.
+    /// </summary>
+    public Rect ToDips(System.Drawing.Rectangle pixels)
+    {
         var fromDevice = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice
             ?? System.Windows.Media.Matrix.Identity;
 
-        var topLeft = fromDevice.Transform(new Point(screenBounds.Left, screenBounds.Top));
-        var bottomRight = fromDevice.Transform(new Point(screenBounds.Right, screenBounds.Bottom));
-
-        Height = Math.Max(320, bottomRight.Y - topLeft.Y - inset * 2);
-        Left = bottomRight.X - Width - inset;
-        Top = topLeft.Y + inset;
+        return new Rect(fromDevice.Transform(new Point(pixels.Left, pixels.Top)),
+            fromDevice.Transform(new Point(pixels.Right, pixels.Bottom)));
     }
 
+    /// <summary>Stands the panel where the placement rule chose — see <see cref="Services.EditMode.PanelPlacement"/>.
+    /// </summary>
+    public void Place(Rect at)
+    {
+        Height = Math.Max(320, at.Height);
+        Left = at.Left;
+        Top = at.Top;
+    }
+
+    /// <summary>The whole header is the panel's handle. DragMove returns when the button is let go, so the new place
+    /// is known here; a click that did not move it is not a drag.</summary>
     private void Header_Drag(object sender, MouseButtonEventArgs e)
     {
-        if (e.ButtonState == MouseButtonState.Pressed) DragMove();
+        if (e.ButtonState != MouseButtonState.Pressed) return;
+
+        // A step of the path is a link, not a handle: a drag started on it would swallow its click.
+        for (var at = e.OriginalSource as DependencyObject; at is not null; at = LogicalTreeHelper.GetParent(at))
+            if (at is System.Windows.Documents.Hyperlink) return;
+
+        if (e.ClickCount == 2)
+        {
+            DockRequested?.Invoke();
+            return;
+        }
+
+        var before = new Point(Left, Top);
+        DragMove();
+        if (new Point(Left, Top) != before) Moved?.Invoke(new Point(Left, Top));
     }
 
-    private void Add_Click(object sender, RoutedEventArgs e) => AddRequested?.Invoke();
+    private void Duplicate_Click(object sender, RoutedEventArgs e) => DuplicateRequested?.Invoke();
 
     private void Remove_Click(object sender, RoutedEventArgs e)
     {
         if (Target is { } target) RemoveRequested?.Invoke(target);
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke();
+
+    /// <summary>Brings the panel forward with the keyboard on the window itself, not on whichever field had it
+    /// last: a widget just reached for on the desktop is what the arrows should move, not a slider left focused.
+    /// </summary>
+    public void TakeKeys()
+    {
+        Activate();
+        Focus();
+    }
+
+    /// <summary>
+    /// The arrows move the widget, read before anything else sees them: the panel's ScrollViewer takes them to
+    /// scroll, and the window would never hear them otherwise. Except where the focused control uses them itself —
+    /// a caret in a text field, a slider, a list, a combo, the type gallery's tiles — which the user is plainly
+    /// working in.
+    /// </summary>
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (e.Handled || Target is null || OwnsArrows(Keyboard.FocusedElement as DependencyObject)) return;
+
+        var step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 10 : 1;
+        (double dx, double dy)? by = e.Key switch
+        {
+            Key.Left => (-step, 0),
+            Key.Right => (step, 0),
+            Key.Up => (0, -step),
+            Key.Down => (0, step),
+            _ => null,
+        };
+        if (by is not { } move) return;
+
+        NudgeRequested?.Invoke(move.dx, move.dy);
+        e.Handled = true;
+    }
+
+    /// <summary>Whether the focused control, or the item or field it sits in, moves with the arrows. Named one by
+    /// one rather than as Selector: a TabControl is a Selector too, and everything in a tab would then keep them.
+    /// </summary>
+    private static bool OwnsArrows(DependencyObject? focused)
+    {
+        for (var at = focused; at is not null and not Window;
+             at = (at is Visual ? VisualTreeHelper.GetParent(at) : null) ?? LogicalTreeHelper.GetParent(at))
+        {
+            if (at is System.Windows.Controls.Primitives.TextBoxBase or PasswordBox
+                or System.Windows.Controls.Primitives.RangeBase or ComboBox or ListBox or ListBoxItem
+                or TabItem or MenuItem or Controls.MenuToggle)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Del, Esc, Ctrl+D and the undo keys, heard after the focused control has had them — so a text field keeps
+    /// Delete and its own Ctrl+Z, and an open combo closes on Esc before the panel does. Esc steps back one level: out
+    /// of the gallery, out of the preset into the widget, then out of the widget, which lets go of it.
+    /// </summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled || Target is null) return;
+
+        switch (e.Key)
+        {
+            case Key.Delete:
+                RemoveRequested?.Invoke(Target);
+                break;
+            case Key.Escape when ViewModel.IsGalleryOpen:
+                ViewModel.IsGalleryOpen = false;
+                break;
+            case Key.Escape when ViewModel.EditingPreset:
+                ViewModel.EditingPreset = false;
+                break;
+            case Key.Escape:
+                CloseRequested?.Invoke();
+                break;
+            case Key.D when Keyboard.Modifiers == ModifierKeys.Control:
+                DuplicateRequested?.Invoke();
+                break;
+            case Key.Z when Keyboard.Modifiers == ModifierKeys.Control:
+                UndoRequested?.Invoke();
+                break;
+            case Key.Y when Keyboard.Modifiers == ModifierKeys.Control:
+            case Key.Z when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                RedoRequested?.Invoke();
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
     }
 
     /// <summary>
@@ -111,10 +297,35 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
         menu.IsOpen = true;
     }
 
+    /// <summary>Opens a preset row's menu with the ROW as its data context, so Export and Delete act on that preset —
+    /// not on the one worn, which is what the row's menu exists to spare: tidying one away without wearing it.</summary>
+    private void OnPresetRowMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu } button) return;
+
+        menu.PlacementTarget = button;
+        menu.DataContext = button.DataContext;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>Pointing at a screen's name in the picker lights up that monitor; closing the picker puts it out.
+    /// </summary>
+    private void OnScreenPointed(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: ScreenChoice screen }) ViewModel.IdentifyScreen?.Invoke(screen.Key);
+    }
+
+    private void OnScreenPickerClosed(object? sender, EventArgs e) => ViewModel.IdentifyScreen?.Invoke(null);
+
+    private void OnDeleteRowPreset(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: PresetRow row }) ViewModel.DeletePresetCommand.Execute(row.Preset);
+    }
+
     private const string PresetFilter = "Aquila preset (*.json)|*.json|All files (*.*)|*.*";
 
     /// <summary>
-    /// Writes the preset on screen to a file.
+    /// Writes a preset to a file: a row's, from its own menu, or the one on screen, from the preset view's.
     ///
     /// Offered under its id rather than its name, because that is what the file is called in the presets
     /// folder — so a preset exported and then dropped back into that folder lands where it would have been
@@ -122,11 +333,14 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
     /// </summary>
     private async void OnExportPreset(object sender, RoutedEventArgs e)
     {
+        var preset = (sender as FrameworkElement)?.DataContext is PresetRow row ? row.Preset : ViewModel.SelectedPreset;
+        if (preset is null) return;
+
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
             Title = "Export preset",
             Filter = PresetFilter,
-            FileName = ViewModel.ExportFileName,
+            FileName = WidgetEditorViewModel.ExportFileName(preset),
             DefaultExt = ".json",
             AddExtension = true,
         };
@@ -135,7 +349,7 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
 
         try
         {
-            ViewModel.Export(dialog.FileName);
+            ViewModel.Export(preset, dialog.FileName);
         }
         catch (Exception ex)
         {
@@ -219,6 +433,16 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
         return null;
     }
 
+    private static IEnumerable<T> Descendants<T>(DependencyObject from) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(from); i++)
+        {
+            var child = VisualTreeHelper.GetChild(from, i);
+            if (child is T hit) yield return hit;
+            foreach (var deeper in Descendants<T>(child)) yield return deeper;
+        }
+    }
+
     private static T? Descendant<T>(DependencyObject? from) where T : DependencyObject
     {
         if (from is null) return null;
@@ -233,28 +457,17 @@ public partial class WidgetEditorPanel : Wpf.Ui.Controls.FluentWindow
         return null;
     }
 
-    /// <summary>Renaming is the name box, so the menu entry goes there rather than opening a dialog that
-    /// would ask for the same thing in a second place.</summary>
+    /// <summary>Renaming is the name box — the preset view's title — so the menu entry goes there, opening the view
+    /// when it is reached from the Preset tab, rather than a dialog asking for the same thing in a second place.
+    /// After the layout pass: the box is only just being shown.</summary>
     private void OnRenamePreset(object sender, RoutedEventArgs e)
     {
-        PresetNameBox.Focus();
-        PresetNameBox.SelectAll();
-    }
-
-    /// <summary>
-    /// Removes the preset on the row the pointer is over.
-    ///
-    /// Handled on the PREVIEW of the button press, not on its Click. A ComboBoxItem selects on mouse-down,
-    /// so by the time a Click arrived the list would already have chosen the very preset being removed —
-    /// and the open widget would be wearing it. Marking the press handled stops it reaching the row at all,
-    /// which is also why the work happens here rather than in a command binding.
-    /// </summary>
-    private void OnDeletePreset(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement { DataContext: Preset preset })
-            ViewModel.DeletePresetCommand.Execute(preset);
-
-        e.Handled = true;
+        ViewModel.EditPresetCommand.Execute(null);
+        Dispatcher.BeginInvoke(() =>
+        {
+            PresetNameBox.Focus();
+            PresetNameBox.SelectAll();
+        }, DispatcherPriority.Loaded);
     }
 
     /// <summary>

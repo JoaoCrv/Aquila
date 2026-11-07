@@ -32,11 +32,11 @@ public partial class WidgetsViewModel : ObservableObject
         ShowOnDesktop = _settings.Current.DesktopSurfaceEnabled;
         _initialized = true;
 
-        // The floating toolbar is the only way out of edit mode once the window is minimized.
+        // The edit bar is the only way out of edit mode once the window is minimized.
         //
         // Started and not awaited, which an event handler cannot do anyway. Nothing follows it here, so
         // the sequence inside StopEditing is the whole of the ordering that matters.
-        _surface.EditingFinished += save => _ = StopEditing(save);
+        _widgets.FinishRequested += save => _ = StopEditing(save);
     }
 
     /// <summary>
@@ -72,7 +72,7 @@ public partial class WidgetsViewModel : ObservableObject
 
     /// <summary>Desktop edit mode: drag, change, remove, and send widgets between screens. "Edit" rather
     /// than "arrange" because arranging describes only the dragging part — and the same word is used
-    /// throughout the code (SetEditing, EditingFinished, EditModeAdorner) so the UI and the code can be
+    /// throughout the code (SetEditing, BeginEditSession, EditModeAdorner) so the UI and the code can be
     /// searched for with the same term.</summary>
     [ObservableProperty]
     private bool _isEditingOnDesktop;
@@ -117,27 +117,26 @@ public partial class WidgetsViewModel : ObservableObject
     private void IdentifyScreens() => _surface.IdentifyScreens();
 
     /// <summary>
-    /// Creates a widget and takes the user to it. Adding one means going to the desktop to place and dress
-    /// it, so this enters edit mode rather than leaving the new widget behind on a screen nobody is looking
-    /// at — the same trip they would have made a second later anyway.
+    /// Takes the user to the desktop to add a widget: edit mode, with the edit bar's Add widget menu open — the
+    /// same menu, starting from what is to be seen. Adding one means going to the desktop to place and dress it
+    /// anyway, and the widget is made once something is chosen, not before.
     /// </summary>
     [RelayCommand]
     private void AddWidget()
     {
         // The surface first, because there has to be somewhere to put the widget; then the session, because
         // a widget added outside one would be written to disk immediately and Discard could not take it
-        // back; then the widget itself. Populate is idempotent, so turning the surface on twice is harmless.
+        // back. Populate is idempotent, so turning the surface on twice is harmless.
         if (!ShowOnDesktop) ShowOnDesktop = true;
 
         StartEditing();
-        _widgets.AddWidget(presetSensorIdentifier: null);
-        RefreshWidgets();
+        _widgets.OpenAddMenu();
     }
 
     /// <summary>
     /// Enters desktop edit mode and gets the app out of the way — you can't edit a desktop you can't see.
-    /// The floating toolbar (owned by the surface service) is what brings it back, so minimizing can't
-    /// strand the user.
+    /// The edit bar (owned by the widget service, for the session) is what brings it back, so minimizing
+    /// can't strand the user.
     /// </summary>
     [RelayCommand]
     private void StartEditing()
@@ -146,9 +145,9 @@ public partial class WidgetsViewModel : ObservableObject
 
         IsEditingOnDesktop = true;
 
-        // Everything else out of the way FIRST, then our own window, then the toolbar and the panel. The
-        // last two are the only way back out of edit mode, so they must not be standing when the screen is
-        // swept — and our own minimize stays explicit rather than trusting the shell to have obliged.
+        // Everything else out of the way FIRST, then our own window, then the edit bar. It is the only way
+        // back out of edit mode, so it must not be standing when the screen is swept — and our own minimize
+        // stays explicit rather than trusting the shell to have obliged.
         DesktopSurface.DesktopReveal.MinimizeAll();
 
         // Only if it has been opened: edit mode reached from the tray before that has no window to move, and

@@ -40,7 +40,7 @@
                 <StackPanel>
                     <TextBlock Text="Manage widgets"/>
                     <TextBlock Style="{StaticResource SettingHint}"
-                               Text="Editing minimizes Aquila so you can see the desktop; a bar at the top brings it back. There you can drag widgets, and right-click one to change, remove, or send it to another screen."/>
+                               Text="Editing minimizes Aquila so you can see the desktop. Click a widget to change it; a bar at the top adds widgets, finds them, and saves or discards your changes."/>
                 </StackPanel>
             </ui:CardControl.Header>
             <StackPanel Orientation="Horizontal">

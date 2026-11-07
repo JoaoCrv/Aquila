@@ -1,0 +1,391 @@
+<ui:FluentWindow x:Class="Aquila.Views.Windows.EditBar"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:controls="clr-namespace:Aquila.Controls"
+        xmlns:helpers="clr-namespace:Aquila.Helpers"
+        xmlns:vm="clr-namespace:Aquila.ViewModels.Windows"
+        Title="Edit widgets"
+        SizeToContent="WidthAndHeight"
+        MinWidth="0"
+        MinHeight="0"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica"
+        WindowCornerPreference="Round"
+        WindowStartupLocation="Manual">
+
+    <!--
+        The edit bar: what belongs to the whole session rather than to one widget. Adding a widget, finding one,
+        previewing the desktop in a state, and leaving — so with nothing selected, this is all there is on screen,
+        and the desktop is free.
+
+        A FluentWindow like the panel, so both wear the same Mica and corners in every theme. MinWidth AND
+        MinHeight zero: the kit sets a floor and it wins without a word (the panel was 460 for months while its
+        file said 380). Sized by its content; the code keeps it centred as that changes.
+    -->
+
+    <Window.Resources>
+        <!-- A menu's surface: the kit's flyout colours, so a menu here looks like every other menu in the theme. The
+             text colour said again: a popup is a window of its own, and its text should not depend on what it
+             inherits from this one. -->
+        <Style x:Key="MenuSurface" TargetType="Border">
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource FlyoutBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource FlyoutBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="0,6"/>
+        </Style>
+
+        <Style x:Key="MenuHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Opacity" Value="0.6"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="14,8,14,4"/>
+        </Style>
+
+        <!-- A kind that reads nothing, in the Add menu: a tile with its icon and name, made with a click. -->
+        <Style x:Key="UnreadTile" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Tile" Height="60" CornerRadius="6" BorderThickness="1"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BarDivider" TargetType="Border">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Margin" Value="10,0"/>
+            <Setter Property="Opacity" Value="0.14"/>
+            <Setter Property="Background" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+        </Style>
+
+        <!-- One state in the Preview menu, drawn as a menu row with the theme's chosen colours on the one in force.
+             A MenuToggle, not a RadioButton: checking one radio unchecks the last, whose binding would then write
+             Live over the choice just made. Here the row only shows the state; its click sets it. -->
+        <Style x:Key="PreviewRow" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Row" Margin="6,1" Padding="10,0" MinHeight="34" CornerRadius="4"
+                                Background="Transparent">
+                            <DockPanel>
+                                <ui:SymbolIcon x:Name="Check" DockPanel.Dock="Right" Symbol="Checkmark24" FontSize="14"
+                                               Visibility="Hidden"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource ToggleButtonBackgroundChecked}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ToggleButtonForegroundChecked}"/>
+                                <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Swatch" TargetType="Border">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Margin" Value="2,0,14,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <DataTemplate x:Key="WidgetRowTemplate" DataType="{x:Type vm:WidgetRow}">
+            <Border x:Name="Row" Margin="6,1" Padding="10,7" MinHeight="34" CornerRadius="4" Background="Transparent"
+                    Cursor="Hand" MouseEnter="Row_MouseEnter" MouseLeave="Row_MouseLeave"
+                    MouseLeftButtonUp="Row_Click">
+                <DockPanel>
+                    <ui:SymbolIcon x:Name="Icon" DockPanel.Dock="Left" Symbol="{Binding Icon}" FontSize="16"
+                                   Opacity="0.7" VerticalAlignment="Top" Margin="0,1,12,0"/>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Aside}" FontSize="12" Opacity="0.6"
+                               VerticalAlignment="Top" Margin="12,1,0,0"/>
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Problem}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"
+                                   Foreground="{DynamicResource Aquila.Chrome.Caution}"
+                                   Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Row" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}"/>
+                </Trigger>
+                <DataTrigger Binding="{Binding HasProblem}" Value="True">
+                    <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource Aquila.Chrome.Caution}"/>
+                    <Setter TargetName="Icon" Property="Opacity" Value="1"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid x:Name="Root" Margin="8">
+        <StackPanel Orientation="Horizontal">
+
+            <!-- A widget starts from what is to be seen: the menu offers the readings, each with the kind it would
+                 start as, and the kinds that read nothing. -->
+            <controls:MenuToggle x:Name="AddButton" Padding="12,0" Height="{DynamicResource Aquila.Size.Control}"
+                                 Click="Add_Click">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Add24" FontSize="16" Foreground="{DynamicResource Aquila.Chrome.Accent}"/>
+                    <TextBlock Text="Add widget" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </controls:MenuToggle>
+
+            <controls:MenuToggle x:Name="WidgetsButton" Margin="8,0,0,0" Padding="12,0"
+                                 Height="{DynamicResource Aquila.Size.Control}"
+                                 ToolTip="{Binding ViewModel.WidgetsTip}" Click="Widgets_Click">
+                <StackPanel Orientation="Horizontal">
+                    <Grid>
+                        <ui:SymbolIcon Symbol="Grid24" FontSize="16"/>
+                        <!-- Something on the list needs attention: a widget drawing nothing is invisible on the
+                             desktop, so the list is the only place it can be seen. -->
+                        <Ellipse Width="8" Height="8" Margin="0,-2,-3,0" HorizontalAlignment="Right"
+                                 VerticalAlignment="Top" Fill="{DynamicResource Aquila.Chrome.Caution}"
+                                 Visibility="{Binding ViewModel.NeedsAttention, Converter={StaticResource BoolToVisibility}}"/>
+                    </Grid>
+                    <TextBlock Text="Widgets" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <Border Margin="8,0,0,0" MinWidth="18" Height="18" Padding="6,0" CornerRadius="9"
+                            Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                        <TextBlock Text="{Binding ViewModel.WidgetCount}" FontSize="11"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ui:SymbolIcon Symbol="ChevronDown24" FontSize="12" Margin="10,0,0,0"/>
+                </StackPanel>
+            </controls:MenuToggle>
+
+            <Border Style="{StaticResource BarDivider}"/>
+
+            <!-- The session's steps, back and forward — every change Discard would undo, one gesture at a time. -->
+            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowUndo24}"
+                       ToolTip="Undo (Ctrl+Z)" AutomationProperties.Name="Undo (Ctrl+Z)"
+                       IsEnabled="{Binding ViewModel.CanUndo}" Click="Undo_Click"/>
+            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowRedo24}" Margin="6,0,0,0"
+                       ToolTip="Redo (Ctrl+Y)" AutomationProperties.Name="Redo (Ctrl+Y)"
+                       IsEnabled="{Binding ViewModel.CanRedo}" Click="Redo_Click"/>
+
+            <Border Style="{StaticResource BarDivider}"/>
+
+            <!-- In the chosen look outside Live, so a desktop painted in a state it is not in cannot be mistaken
+                 for the truth. -->
+            <controls:MenuToggle x:Name="PreviewButton" Padding="12,0" Height="{DynamicResource Aquila.Size.Control}"
+                                 IsChecked="{Binding ViewModel.IsPreviewing, Mode=OneWay}" Click="Preview_Click">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Eye24" FontSize="16"/>
+                    <TextBlock Text="Preview" Margin="8,0,0,0" Opacity="0.7" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ViewModel.PreviewName}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    <ui:SymbolIcon Symbol="ChevronDown24" FontSize="12" Margin="10,0,0,0"/>
+                </StackPanel>
+            </controls:MenuToggle>
+
+            <StackPanel Orientation="Horizontal" Margin="16,0" VerticalAlignment="Center">
+                <Ellipse x:Name="StatusDot" Width="8" Height="8">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="{DynamicResource ControlStrokeColorSecondaryBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ViewModel.HasChanges}" Value="True">
+                                    <Setter Property="Fill" Value="{DynamicResource Aquila.Chrome.Accent}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="{Binding ViewModel.StatusText}" FontSize="12" Opacity="0.7" Margin="8,0,0,0"
+                           TextWrapping="NoWrap"/>
+            </StackPanel>
+
+            <!-- Discard first, Save last: the destructive one further from where the hand rests. -->
+            <ui:Button Content="Discard" Height="{DynamicResource Aquila.Size.Control}" Padding="14,0"
+                       Click="Discard_Click"/>
+            <ui:Button Content="Save" Appearance="Primary" Height="{DynamicResource Aquila.Size.Control}"
+                       Padding="16,0" Margin="8,0,0,0" FontWeight="SemiBold" Click="Save_Click"/>
+        </StackPanel>
+
+        <!-- Add widget: search, the kinds that read nothing, then every reading — a click makes the widget, where
+             there is room, selected, its panel on Content. -->
+        <Popup x:Name="AddMenu" PlacementTarget="{Binding ElementName=AddButton}" Placement="Bottom"
+               VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Closed="Menu_Closed">
+            <controls:SensorPicker x:Name="AddPicker" Width="360" MaxHeight="640"
+                                   Footer="A percentage starts as a gauge, any other reading as a sparkline. Change the type afterwards in the panel.">
+                <controls:SensorPicker.Extra>
+                    <StackPanel Margin="10,2,10,8">
+                        <TextBlock Text="Without a reading" FontSize="12" Opacity="0.7" Margin="4,0,0,6"/>
+                        <!-- Bound, not named: a name cannot be given inside another control's content. -->
+                        <ItemsControl ItemsSource="{Binding ViewModel.Unread}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource UnreadTile}" Click="OnUnreadTile">
+                                        <StackPanel>
+                                            <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="20" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="12" Margin="0,4,0,0"
+                                                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </controls:SensorPicker.Extra>
+            </controls:SensorPicker>
+        </Popup>
+
+        <!-- The widgets: what needs attention, then each screen's from the front to the back. -->
+        <Popup x:Name="WidgetsMenu" PlacementTarget="{Binding ElementName=WidgetsButton}" Placement="Bottom"
+               VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Closed="Menu_Closed">
+            <Border Style="{StaticResource MenuSurface}" Width="340" MaxHeight="620">
+                <DockPanel>
+                    <ui:TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="10,4,10,6"
+                                PlaceholderText="Search widgets" Icon="{ui:SymbolIcon Search24}"
+                                Text="{Binding ViewModel.Search, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource MenuHint}"
+                               Text="Hover to find it on the desktop. Click to edit it."/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding ViewModel.Groups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:WidgetGroup}">
+                                    <StackPanel>
+                                        <Border x:Name="Rule" Style="{StaticResource Divider}" Margin="0,4"
+                                                Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        <DockPanel Margin="16,6,16,4">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" FontSize="12"
+                                                       Opacity="0.6"/>
+                                            <TextBlock Text="{Binding Header}" FontSize="12" Opacity="0.7"/>
+                                        </DockPanel>
+                                        <ItemsControl ItemsSource="{Binding Rows}"
+                                                      ItemTemplate="{StaticResource WidgetRowTemplate}"/>
+                                    </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding First}" Value="True">
+                                            <Setter TargetName="Rule" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Popup>
+
+        <!-- The states every widget can be drawn in, each with its colour in the dashboard's preset. Written out
+             rather than generated: ConverterParameter is not a dependency property, so it cannot be bound to an
+             item, and there are four states that are never going to be five. -->
+        <Popup x:Name="PreviewMenu" PlacementTarget="{Binding ElementName=PreviewButton}" Placement="Bottom"
+               VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Closed="Menu_Closed">
+            <Border Style="{StaticResource MenuSurface}" Width="260">
+                <StackPanel>
+                    <controls:MenuToggle Style="{StaticResource PreviewRow}" Tag="{x:Null}" Click="PreviewChoice_Click"
+                                         IsChecked="{Binding ViewModel.IsPreviewing, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=False}">
+                        <StackPanel Orientation="Horizontal" Margin="0,7">
+                            <ui:SymbolIcon Symbol="Eye24" FontSize="16" Margin="0,0,12,0" VerticalAlignment="Top"/>
+                            <StackPanel>
+                                <TextBlock Text="Live"/>
+                                <TextBlock Text="What the sensors read now" FontSize="12" Opacity="0.6"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </controls:MenuToggle>
+                    <Border Style="{StaticResource Divider}" Margin="10,4"
+                            Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <controls:MenuToggle Style="{StaticResource PreviewRow}" Tag="Normal" Click="PreviewChoice_Click"
+                                         IsChecked="{Binding ViewModel.PreviewRole, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=Normal}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource Swatch}" Background="{DynamicResource Aquila.Scheme.Normal}"/>
+                            <TextBlock Text="Normal" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </controls:MenuToggle>
+                    <controls:MenuToggle Style="{StaticResource PreviewRow}" Tag="Elevated" Click="PreviewChoice_Click"
+                                         IsChecked="{Binding ViewModel.PreviewRole, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=Elevated}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource Swatch}" Background="{DynamicResource Aquila.Scheme.Elevated}"/>
+                            <TextBlock Text="Elevated" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </controls:MenuToggle>
+                    <controls:MenuToggle Style="{StaticResource PreviewRow}" Tag="Alert" Click="PreviewChoice_Click"
+                                         IsChecked="{Binding ViewModel.PreviewRole, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=Alert}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource Swatch}" Background="{DynamicResource Aquila.Scheme.Alert}"/>
+                            <TextBlock Text="Alert" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </controls:MenuToggle>
+                    <controls:MenuToggle Style="{StaticResource PreviewRow}" Tag="Critical" Click="PreviewChoice_Click"
+                                         IsChecked="{Binding ViewModel.PreviewRole, Mode=OneWay,
+                                                     Converter={StaticResource Match}, ConverterParameter=Critical}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource Swatch}" Background="{DynamicResource Aquila.Scheme.Critical}"/>
+                            <TextBlock Text="Critical" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </controls:MenuToggle>
+                    <Border Style="{StaticResource Divider}" Margin="10,4"
+                            Background="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Style="{StaticResource MenuHint}"
+                               Text="Paints every widget in this state until you switch back to Live."/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- The first time only: the three gestures nothing on screen announces. Opened from the code once the bar
+             is on screen, centred under it — a popup opened before its target is shown has nowhere to stand. -->
+        <Popup x:Name="Tip" PlacementTarget="{Binding ElementName=Root}" Placement="Custom"
+               AllowsTransparency="True" StaysOpen="True">
+            <Border Height="36" CornerRadius="18" Padding="14,0,6,0"
+                    TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                    Background="{DynamicResource FlyoutBackground}" BorderBrush="{DynamicResource FlyoutBorderBrush}"
+                    BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Info24" FontSize="16" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Aquila.Chrome.Accent}"/>
+                    <TextBlock Margin="10,0" VerticalAlignment="Center" FontSize="12"
+                               Text="Click a widget to edit it. Drag to move it; pull a corner to resize it, with Shift to keep its shape."/>
+                    <ui:Button Appearance="Transparent" BorderThickness="0" Width="24" Height="24" MinWidth="0"
+                               MinHeight="0" Padding="0" VerticalAlignment="Center" ToolTip="Close" AutomationProperties.Name="Close"
+                               Icon="{ui:SymbolIcon Dismiss24}" Click="CloseTip_Click"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</ui:FluentWindow>

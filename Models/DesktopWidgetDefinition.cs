@@ -314,6 +314,19 @@ public class DesktopWidgetDefinition
         copy.Series = Series.Select(s => s.Clone()).ToList();
         return copy;
     }
+
+    /// <summary>
+    /// Takes every value of <paramref name="source"/> into THIS object — <see cref="Clone"/> the other way round.
+    /// The editor's undo puts a widget back this way rather than swapping in a copy: the element on the desktop, the
+    /// panel and the selection all hold this object, and they stay right. Every property, so one added later is
+    /// carried without anyone remembering to add it here.
+    /// </summary>
+    public void CopyFrom(DesktopWidgetDefinition source)
+    {
+        foreach (var property in typeof(DesktopWidgetDefinition).GetProperties())
+            if (property.CanRead && property.CanWrite) property.SetValue(this, property.GetValue(source));
+        Series = source.Series.Select(s => s.Clone()).ToList();
+    }
 }
 
 /// <summary>One reading inside a widget: which sensor, and the colour role it is drawn in.</summary>
