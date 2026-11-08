@@ -29,11 +29,22 @@ public static class PlotGeometry
     }
 
     /// <summary>
+    /// How far past the furthest reading a fitted end of the scale reaches, as a share of the scale: a tenth.
+    ///
+    /// Fitted exactly, the highest reading touches the top of the box and the line runs along its edge, where a card's
+    /// border or a widget's title sits. The charting library left far more — a fitted line used about half the height —
+    /// and a tenth keeps most of what fitting gains while no line touches an edge. A fixed end is never moved: a scale
+    /// from nought starts at nought.
+    /// </summary>
+    public const double Headroom = 0.1;
+
+    /// <summary>
     /// The scale's ends.
     ///
-    /// A finite end is kept; a NaN one is fitted to the readings shown of either series, so two lines share a scale.
-    /// Both given with the top at or under the bottom, the top is fitted instead — an editor lets the two be typed in
-    /// any order, and passing through the moment they cross must not collapse the chart.
+    /// A finite end is kept; a NaN one is fitted to the readings shown of either series, so two lines share a scale,
+    /// and given <see cref="Headroom"/> beyond them. Both given with the top at or under the bottom, the top is fitted
+    /// instead — an editor lets the two be typed in any order, and passing through the moment they cross must not
+    /// collapse the chart.
     ///
     /// A scale with no height — a flat series, a single reading, a fitted end meeting the fixed one — is opened, away
     /// from a fixed end, so noughts on a scale from nought lie along the bottom, which is what they say; and around
@@ -51,9 +62,15 @@ public static class PlotGeometry
         Extent(values, window, ref low, ref high);
         Extent(second, window, ref low, ref high);
 
-        var bottom = fitBottom ? low : min;
-        var top = fitTop ? high : max;
+        var (bottom, top) = Ends(fitBottom ? low : min, fitTop ? high : max, fitBottom, fitTop);
+        var room = (top - bottom) * Headroom;
 
+        return (fitBottom ? bottom - room : bottom, fitTop ? top + room : top);
+    }
+
+    /// <summary>The ends the readings reach, opened where they have no height between them.</summary>
+    private static (double Bottom, double Top) Ends(double bottom, double top, bool fitBottom, bool fitTop)
+    {
         if (!double.IsFinite(bottom) && !double.IsFinite(top)) return (0, 1);
         if (!double.IsFinite(bottom)) bottom = top - Span(top);
         if (!double.IsFinite(top)) top = bottom + Span(bottom);

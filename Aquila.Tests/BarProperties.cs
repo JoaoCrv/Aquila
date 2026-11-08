@@ -47,16 +47,14 @@ public sealed class BarProperties
             return share is >= 0 and <= 1 && (!double.IsNaN(fraction) || share == 0);
         });
 
-    /// <summary>Something is never shown as nothing: any reading above nought is at least <see cref="BarGeometry.Least"/>,
-    /// nought stays nought, and from the least share up a reading is shown as it is.</summary>
+    /// <summary>A bar is never shown shorter than <see cref="BarGeometry.Least"/> — nought included, so a reading at
+    /// rest still shows the end of a bar — and from there up a reading is shown as it is.</summary>
     [Property(MaxTest = 500)]
-    public Property Something_is_never_shown_as_nothing() =>
+    public Property A_bar_is_never_shown_shorter_than_the_least() =>
         Prop.ForAll(Fractions().ToArbitrary(), fraction =>
         {
             var (share, shown) = (BarGeometry.Share(fraction), BarGeometry.Shown(fraction));
-            return share == 0 ? shown == 0
-                : share < BarGeometry.Least ? shown == BarGeometry.Least
-                : shown == share;
+            return share < BarGeometry.Least ? shown == BarGeometry.Least : shown == share;
         });
 
     /// <summary>The filled part lies inside its track, starts where the track starts — the left lying down, the bottom

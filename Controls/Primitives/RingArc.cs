@@ -32,13 +32,22 @@ public class RingArc : FrameworkElement
         set => SetValue(ValueProperty, value);
     }
 
-    public static readonly DependencyProperty ThicknessProperty = RegisterShape(nameof(Thickness), 10d);
+    public static readonly DependencyProperty LookProperty = RegisterShape(nameof(Look), ArcLook.Default);
 
-    /// <summary>The stroke, in pixels. The arc and the track share it.</summary>
-    public double Thickness
+    /// <summary>
+    /// The stroke the arc and the track share, their ends, and the track's colour, as one value — changing preset is
+    /// one assignment.
+    ///
+    /// The ends reach the arc and the track alike, and the track's only when the sweep stops short of a turn (a whole
+    /// turn has no ends). Round reaches half the stroke past each end, so a short arc is a pill and never a stub: a
+    /// clock's first second is a dot with a tail, not a sliver. That is meant. The value is still honest where it
+    /// matters — at the arc's centre line — and an arc that vanished below some length, which is what a corner fitted
+    /// INSIDE the arc forces, said nothing at all for the first seconds of every minute.
+    /// </summary>
+    public ArcLook Look
     {
-        get => (double)GetValue(ThicknessProperty);
-        set => SetValue(ThicknessProperty, value);
+        get => (ArcLook)GetValue(LookProperty);
+        set => SetValue(LookProperty, value);
     }
 
     public static readonly DependencyProperty StartAngleProperty = RegisterShape(nameof(StartAngle), -90d);
@@ -68,31 +77,6 @@ public class RingArc : FrameworkElement
     {
         get => (Brush?)GetValue(StrokeProperty);
         set => SetValue(StrokeProperty, value);
-    }
-
-    public static readonly DependencyProperty TrackBrushProperty = Register<Brush?>(nameof(TrackBrush), null);
-
-    /// <summary>The whole sweep, under the arc. Null draws no track.</summary>
-    public Brush? TrackBrush
-    {
-        get => (Brush?)GetValue(TrackBrushProperty);
-        set => SetValue(TrackBrushProperty, value);
-    }
-
-    public static readonly DependencyProperty CapsProperty = RegisterShape(nameof(Caps), PenLineCap.Round);
-
-    /// <summary>
-    /// The ends of the arc, and of the track when the sweep stops short of a turn (a whole turn has no ends).
-    ///
-    /// Round reaches half the stroke past each end, so a short arc is a pill and never a stub: a clock's first
-    /// second is a dot with a tail, not a sliver. That is meant. The value is still honest where it matters — at the
-    /// arc's centre line — and an arc that vanished below some length, which is what a corner fitted INSIDE the arc
-    /// forces, said nothing at all for the first seconds of every minute.
-    /// </summary>
-    public PenLineCap Caps
-    {
-        get => (PenLineCap)GetValue(CapsProperty);
-        set => SetValue(CapsProperty, value);
     }
 
     public static readonly DependencyProperty FitProperty = RegisterShape(nameof(Fit), RingFit.Circle);
@@ -138,11 +122,9 @@ public class RingArc : FrameworkElement
 
     // ── Drawing ──────────────────────────────────────────────────────────────
 
-    /// <summary>What a geometry was built for. Any of it changing is a new geometry; anything else — a colour, the
-    /// ends — is a new pen over the same one.</summary>
+    /// <summary>What a shape was made for. Any of it changing is a new shape; anything else — a colour, the ends — is a
+    /// new pen over the same one.</summary>
     private readonly record struct Figure(double Value, Point Centre, double Radius, double Start, double Sweep);
-
-    private readonly record struct Ink(Brush Brush, double Thickness, PenLineCap Caps);
 
     /// <summary>What a placement was worked out for. The fitted one is a small sum, but the ring is drawn every frame
     /// it moves, and its box almost never changes.</summary>
@@ -150,21 +132,21 @@ public class RingArc : FrameworkElement
         RingFit Fit, Size Middle);
 
     private Figure _arcFigure;
-    private StreamGeometry? _arc;
+    private Geometry? _arc;
     private Figure _trackFigure;
-    private StreamGeometry? _track;
+    private Geometry? _track;
 
-    private Ink _strokeInk;
-    private Pen? _strokePen;
-    private Ink _trackInk;
-    private Pen? _trackPen;
+    /// <summary>The pens, made again only when a colour, the thickness or the ends change — never as the arc moves.
+    /// </summary>
+    private readonly Inks _inks = new();
 
     private Room? _room;
     private (Point Centre, double Radius) _placed;
 
     private (Point Centre, double Radius) Placement()
     {
-        var room = new Room(RenderSize, Thickness, StartAngle, SweepAngle, Caps, Fit, CentreSize);
+        var look = Look;
+        var room = new Room(RenderSize, look.Thickness, StartAngle, SweepAngle, look.Caps, Fit, CentreSize);
         if (room == _room) return _placed;
 
         _room = room;
@@ -174,76 +156,36 @@ public class RingArc : FrameworkElement
 
     protected override void OnRender(DrawingContext drawing)
     {
-        var thickness = Thickness;
-        if (!(thickness > 0)) return;
+        var look = Look;
+        if (!(look.Thickness > 0)) return;
 
         var (centre, radius) = Placement();
         if (!(radius > 0)) return;
 
-        var caps = Caps;
-
-        if (TrackBrush is { } track)
-            Draw(drawing, PenFor(ref _trackPen, ref _trackInk, new(track, thickness, caps)),
-                ref _track, ref _trackFigure, new(1, centre, radius, StartAngle, SweepAngle));
+        if (look.Track is { } track)
+            Trace(drawing, _inks.Pen(track, look.Thickness, look.Caps), ref _track, ref _trackFigure,
+                new(1, centre, radius, StartAngle, SweepAngle));
 
         if (Stroke is { } stroke)
-            Draw(drawing, PenFor(ref _strokePen, ref _strokeInk, new(stroke, thickness, caps)),
-                ref _arc, ref _arcFigure, new(Value, centre, radius, StartAngle, SweepAngle));
+            Trace(drawing, _inks.Pen(stroke, look.Thickness, look.Caps), ref _arc, ref _arcFigure,
+                new(Value, centre, radius, StartAngle, SweepAngle));
     }
 
-    private static void Draw(DrawingContext drawing, Pen pen, ref StreamGeometry? cached, ref Figure built,
-        Figure figure)
+    /// <summary>Draws the arc a figure stands for (<see cref="Draw.ArcShape"/>), kept while the figure is the same:
+    /// the track does not change while the arc travels, and the arc does not change while only its colour does.
+    /// Nothing at all below <see cref="ArcGeometry.Least"/> of the sweep.</summary>
+    private static void Trace(DrawingContext drawing, Pen pen, ref Geometry? kept, ref Figure made, Figure figure)
     {
-        switch (ArcGeometry.ShapeOf(figure.Value, figure.Sweep))
+        if (ArcGeometry.ShapeOf(figure.Value, figure.Sweep) == ArcShape.None) return;
+
+        if (kept is null || made != figure)
         {
-            case ArcShape.Circle:
-                drawing.DrawEllipse(null, pen, figure.Centre, figure.Radius, figure.Radius);
-                return;
-
-            case ArcShape.Arc:
-                if (cached is null || built != figure)
-                {
-                    cached = Arc(figure.Centre, figure.Radius, figure.Value, figure.Start, figure.Sweep);
-                    built = figure;
-                }
-
-                drawing.DrawGeometry(null, pen, cached);
-                return;
-        }
-    }
-
-    private static StreamGeometry Arc(Point centre, double radius, double value, double start, double sweep)
-    {
-        var (from, to) = ArcGeometry.Ends(centre, radius, value, start, sweep);
-
-        var geometry = new StreamGeometry();
-        using (var context = geometry.Open())
-        {
-            context.BeginFigure(from, isFilled: false, isClosed: false);
-            context.ArcTo(to, new Size(radius, radius), 0, ArcGeometry.IsLargeArc(value, sweep),
-                SweepDirection.Clockwise, isStroked: true, isSmoothJoin: false);
+            kept = Draw.ArcShape(figure.Centre, figure.Radius, figure.Start,
+                ArcGeometry.Share(figure.Value) * ArcGeometry.Sweep(figure.Sweep));
+            made = figure;
         }
 
-        geometry.Freeze();
-        return geometry;
-    }
-
-    /// <summary>
-    /// The pen for a brush, a thickness and an end — made again only when one of them changes, since the arc is
-    /// redrawn every frame it moves and none of them does.
-    ///
-    /// Frozen when its brush already is, which is what makes it cheap to draw with. Never frozen otherwise: freezing
-    /// a pen freezes its brush with it, and the brush belongs to whoever handed it over.
-    /// </summary>
-    private static Pen PenFor(ref Pen? cached, ref Ink made, Ink ink)
-    {
-        if (cached is not null && made == ink) return cached;
-
-        var pen = new Pen(ink.Brush, ink.Thickness) { StartLineCap = ink.Caps, EndLineCap = ink.Caps };
-        if (ink.Brush.IsFrozen) pen.Freeze();
-
-        made = ink;
-        return cached = pen;
+        if (kept is not null) drawing.DrawGeometry(null, pen, kept);
     }
 
     // ── Motion ───────────────────────────────────────────────────────────────

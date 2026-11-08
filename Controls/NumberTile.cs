@@ -112,6 +112,7 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
         Loaded += (_, _) => Hook();
         Unloaded += (_, _) => Unhook();
 
+        SetResourceReference(SchemeTrackProperty, TrackKey);
         Apply();
     }
 
@@ -235,8 +236,9 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
 
     /// <summary>
     /// How far the reading is into its limits — those in force now, the user's, the hardware's own or the built-in
-    /// ones — and never shorter than <see cref="LeastBar"/> of its track, so a reading at rest still shows the end of a
-    /// bar rather than a bare track. No bar at all for a reading with no limits, and no room kept for one.
+    /// ones — and never shorter than <see cref="BarGeometry.Least"/> of its track, which the bar holds it to, so a reading
+    /// at rest still shows the end of a bar rather than a bare track. No bar at all for a reading with no limits, and no
+    /// room kept for one.
     /// </summary>
     private void ShowLevel(bool animate)
     {
@@ -253,12 +255,12 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
 
         _level.Visibility = Visibility.Visible;
 
-        var target = Math.Max(LeastBar, within.Level(_sensor?.Value ?? 0));
+        var target = within.Level(_sensor?.Value ?? 0);
         if (animate && Math.Abs(target - _filled) < 1e-6) return;
 
         animate &= !double.IsNaN(_filled);
         _filled = target;
-        Motion.To(_bar, BarFill.FractionProperty, target, animate);
+        Motion.Move(_bar, target, animate);
     }
 
     /// <summary>
@@ -417,9 +419,6 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
     /// <summary>Between the lowest and the highest.</summary>
     private const double NotesApart = 12;
 
-    /// <summary>The shortest a bar is drawn, as a share of its track — the list's 2%.</summary>
-    private const double LeastBar = 0.02;
-
     /// <summary>The arrow's width, its height and its distance from the number, as shares of the number's size: 7 by 6
     /// and 4 off an 18-pixel number. Shares and not sizes, so a preset with a bigger number has a bigger arrow.</summary>
     private const double ArrowWidth = 7.0 / 18;
@@ -459,13 +458,9 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
         if (_shown != TrendArrow.None) _arrow.Data = _shown == TrendArrow.Up ? _upward : _downward;
         PlaceArrow();
 
-        _bar.Thickness = Math.Max(1, _barThickness * IBarStyle.UnderTextShare);
-        _bar.Corner = _barCorner * IBarStyle.UnderTextShare;
+        DressBar();
         _bar.MarkReach = MarkReach * _figureScale;
         _level.Margin = new Thickness(0, BarGap * _figureScale, 0, 0);
-
-        if (_trackBrush is not null) _bar.Track = _trackBrush;
-        else _bar.SetResourceReference(BarFill.TrackProperty, TrackKey);
 
         _notes.Margin = new Thickness(0, (ShowBar ? NotesGap : BarGap) * _figureScale, 0, 0);
         _highest.Margin = new Thickness(NotesApart * _figureScale, 0, 0, 0);
@@ -586,6 +581,21 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
     {
         get => _trackBrush;
         set { _trackBrush = value; Apply(); }
+    }
+
+    /// <summary>The dashboard's track, followed through the resource so a change of dashboard preset reaches a bar whose
+    /// own preset names none. A look holds a brush, not a resource, so the brush is taken from here each time the look
+    /// is made — and made again when it changes.</summary>
+    private static readonly DependencyProperty SchemeTrackProperty =
+        DependencyProperty.Register("SchemeTrack", typeof(Brush), typeof(NumberTile),
+            new PropertyMetadata(null, (piece, _) => ((NumberTile)piece).DressBar()));
+
+    /// <summary>The bar at two thirds of the preset's, as every bar under text is, never under a pixel thick.</summary>
+    private void DressBar()
+    {
+        var look = new BarLook(_barThickness, _barCorner, _trackBrush ?? (Brush?)GetValue(SchemeTrackProperty))
+            .Scaled(IBarStyle.UnderTextShare);
+        _bar.Look = look with { Thickness = Math.Max(1, look.Thickness) };
     }
 
     /// <summary>For the figure's own gaps: number to bar, bar to notes, between the notes, and the marks' reach.

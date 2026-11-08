@@ -15,23 +15,19 @@ namespace Aquila.Controls.Primitives;
 public static class BarGeometry
 {
     /// <summary>
-    /// The least share a bar with something in it is drawn at.
+    /// The least share a bar is shown at.
     ///
-    /// A reading of half a percent is something, and a bar drawn at its true length shows nothing — the same as a
-    /// reading of nought. At a fiftieth of the track there is always a nub to see; nought stays nought.
+    /// A bar at its true length shows nothing for a reading at rest, and a bare track reads as a bar that is not
+    /// working. At a fiftieth of the track there is always the end of a bar to see — the list's rows and the Number's
+    /// bar were drawn so, each with its own copy of the number, before this was their one home.
     /// </summary>
     public const double Least = 0.02;
 
     /// <summary>The fraction as a share the drawing can use: 0 to 1, and 0 for a NaN.</summary>
     public static double Share(double fraction) => double.IsNaN(fraction) ? 0 : Math.Clamp(fraction, 0, 1);
 
-    /// <summary>The share a reading is shown at: its own, but never under <see cref="Least"/> unless it is nothing.
-    /// </summary>
-    public static double Shown(double fraction)
-    {
-        var share = Share(fraction);
-        return share > 0 ? Math.Max(share, Least) : 0;
-    }
+    /// <summary>The share a reading is shown at: its own, but never under <see cref="Least"/>.</summary>
+    public static double Shown(double fraction) => Math.Max(Share(fraction), Least);
 
     /// <summary>
     /// The track in a room: the whole length, <paramref name="thickness"/> across, centred across the room.

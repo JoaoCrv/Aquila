@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media.Animation;
+using Aquila.Controls.Primitives;
 using Aquila.Models;
 
 namespace Aquila.Controls;
@@ -119,6 +120,16 @@ public static class Motion
 
         target.BeginAnimation(property, sweep, HandoffBehavior.SnapshotAndReplace);
     }
+
+    /// <summary>
+    /// Takes a bar to <paramref name="fraction"/> at the speed, on the curve and at the frame rate in force — at once
+    /// while motion is off or when <paramref name="animate"/> says not to.
+    ///
+    /// The bar itself cannot ask: it is a primitive, and knows WPF and nothing of Aquila's settings. So this is where a
+    /// bar of Aquila's learns how bars move here, once, rather than in each piece that draws one.
+    /// </summary>
+    public static void Move(BarFill bar, double fraction, bool animate = true) =>
+        bar.MoveTo(fraction, animate && Enabled ? Speed : TimeSpan.Zero, WpfEasing, FrameRate);
 
     /// <summary>Puts the frame rate on an animation Aquila makes. Asked of the root of what is begun — WPF reads it
     /// there and nowhere else.</summary>

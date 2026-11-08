@@ -280,8 +280,7 @@ public sealed class RadialGauge : Panel, ISensorPiece, IGaugeStyle
     /// </summary>
     private void Shape()
     {
-        _ring.Thickness = Math.Max(1, _arcThickness);
-        _ring.Caps = _arcCorner > 0 ? PenLineCap.Round : PenLineCap.Flat;
+        _ring.Look = RingLook();
 
         (_ring.StartAngle, _ring.SweepAngle) = _sweep switch
         {
@@ -302,8 +301,13 @@ public sealed class RadialGauge : Panel, ISensorPiece, IGaugeStyle
         var accent = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush ?? FallbackAccent;
         if (!SameColour(_ring.Stroke, accent)) _ring.Stroke = accent;
 
-        _ring.TrackBrush = _trackBrush ?? ArcStyle.DefaultTrack;
+        _ring.Look = RingLook();
     }
+
+    /// <summary>The ring's look, whole: made by both the shape and the paint, each of which changes part of it. The
+    /// same look made twice is equal to itself, so the ring is not drawn again for it.</summary>
+    private ArcLook RingLook() => new(Math.Max(1, _arcThickness),
+        _arcCorner > 0 ? PenLineCap.Round : PenLineCap.Flat, _trackBrush ?? ArcStyle.DefaultTrack);
 
     /// <summary>The number's size, face and whether it is there. Its colour is inherited — the tile's foreground,
     /// which is the preset's value colour — as every other piece's text is.</summary>

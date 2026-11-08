@@ -210,7 +210,7 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     private void Paint()
     {
         string[] stops = [_ramp.Normal, _ramp.Alert, _ramp.Critical];
-        var track = _trackBrush ?? ArcStyle.DefaultTrack;
+        var look = RingLook();
 
         for (var k = 0; k < _hands.Length; k++)
         {
@@ -221,7 +221,7 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
             var colour = HexBrush.From(stops[k]);
             if ((hand.Stroke as SolidColorBrush)?.Color != colour.Color) hand.Stroke = colour;
 
-            hand.TrackBrush = track;
+            hand.Look = look;
         }
 
         var seconds = HexBrush.From(_ramp.Normal);
@@ -241,20 +241,24 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     /// </summary>
     private void Shape()
     {
-        var thickness = RingThickness;
+        var look = RingLook();
+        var thickness = look.Thickness;
         var gap = Math.Max(MinGap, thickness * GapToThickness);
-        var caps = _arcCorner > 0 ? PenLineCap.Round : PenLineCap.Flat;
 
         for (var k = 0; k < _hands.Length; k++)
         {
             var hand = _hands[k];
-            hand.Thickness = thickness;
-            hand.Caps = caps;
+            hand.Look = look;
             hand.Margin = new Thickness(k * (thickness + gap));
         }
 
         FitMiddle();
     }
+
+    /// <summary>The rings' look, whole: made by both the shape and the paint, each of which changes part of it. The
+    /// same look made twice is equal to itself, so no ring is drawn again for it.</summary>
+    private ArcLook RingLook() =>
+        new(RingThickness, _arcCorner > 0 ? PenLineCap.Round : PenLineCap.Flat, _trackBrush ?? ArcStyle.DefaultTrack);
 
     /// <summary>
     /// Sizes the date, the time and the seconds — all three alike — to the middle of the innermost ring.

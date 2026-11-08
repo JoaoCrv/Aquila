@@ -172,17 +172,44 @@ public sealed class PlotProperties
     {
         var values = new double[30];
         var (min, max) = PlotGeometry.Range(values, null, 60, 0, double.NaN);
-        Assert.Equal((0d, 1d), (min, max));
+        Assert.Equal(0, min);
+        Assert.True(max > 0);
         Assert.Equal(Box.Bottom, PlotGeometry.YAt(0, Box, min, max));
     }
 
-    /// <summary>The top typed under the bottom is fitted, never a scale with no height.</summary>
+    /// <summary>The top typed under the bottom is fitted, never a scale with no height — the bottom kept as typed.
+    /// </summary>
     [Fact]
     public void A_top_under_the_bottom_is_fitted_instead()
     {
         var (min, max) = PlotGeometry.Range([10, 40, 25], null, 60, 30, 20);
-        Assert.Equal((30d, 40d), (min, max));
+        Assert.Equal(30, min);
+        Assert.Equal(40 + 10 * PlotGeometry.Headroom, max, 9);
     }
+
+    /// <summary>
+    /// A fitted end reaches <see cref="PlotGeometry.Headroom"/> of the scale past the furthest reading, so no line
+    /// touches the top or the bottom of its box; a fixed end stays exactly where it was given.
+    /// </summary>
+    [Property(MaxTest = 500)]
+    public Property A_fitted_end_keeps_its_headroom() =>
+        Prop.ForAll(Series().ToArbitrary(), Windows().ToArbitrary(), (values, window) =>
+        {
+            var (first, shown) = PlotGeometry.Visible(values.Length, window);
+            var seen = values.Skip(first).Take(shown).ToArray();
+            if (seen.Length == 0 || seen.Max() == seen.Min()) return true;
+
+            var (low, high) = (seen.Min(), seen.Max());
+            var (min, max) = PlotGeometry.Range(values, null, window, double.NaN, double.NaN);
+            var room = (max - min) * PlotGeometry.Headroom / (1 + 2 * PlotGeometry.Headroom);
+
+            var (zeroMin, zeroMax) = PlotGeometry.Range(values, null, window, 0, double.NaN);
+            var keepsNought = zeroMin == 0;
+
+            return Math.Abs(max - high - room) < 1e-6 * Math.Max(1, max - min)
+                && Math.Abs(low - min - room) < 1e-6 * Math.Max(1, max - min)
+                && keepsNought && zeroMax > Math.Max(high, 0);
+        });
 
     /// <summary>
     /// A gap breaks the line: the stretches found cover every reading exactly once, and none crosses a gap. A reading
