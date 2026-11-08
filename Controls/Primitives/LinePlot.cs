@@ -23,7 +23,9 @@ namespace Aquila.Controls.Primitives;
 /// the box's edge.
 ///
 /// Its points are never animated. The X axis is time, and easing a point into place would draw a reading as arriving
-/// between two reads, when nothing was read. What moves is everything else: the end's pulse (<see cref="ShowEnd"/>).
+/// between two reads, when nothing was read. What moves is everything else: the scale, which travels to new ends
+/// rather than jumping (<see cref="Retarget"/>), and the end's pulse (<see cref="ShowEnd"/>), both at the
+/// <see cref="Pace"/> and only while they move.
 /// </summary>
 public class LinePlot : FrameworkElement
 {
@@ -49,7 +51,7 @@ public class LinePlot : FrameworkElement
         set => SetValue(SecondValuesProperty, value);
     }
 
-    public static readonly DependencyProperty WindowProperty = Register(nameof(Window), 60);
+    public static readonly DependencyProperty WindowProperty = RegisterScale(nameof(Window), 60, travels: false);
 
     /// <summary>How many readings fit across the box. The last of them are drawn, however long the series is.</summary>
     public int Window
@@ -58,7 +60,7 @@ public class LinePlot : FrameworkElement
         set => SetValue(WindowProperty, value);
     }
 
-    public static readonly DependencyProperty RangeMinProperty = Register(nameof(RangeMin), double.NaN);
+    public static readonly DependencyProperty RangeMinProperty = RegisterScale(nameof(RangeMin), double.NaN, travels: true);
 
     /// <summary>The bottom of the scale; NaN fits it to the readings shown (<see cref="PlotGeometry.Range"/>).</summary>
     public double RangeMin
@@ -67,7 +69,7 @@ public class LinePlot : FrameworkElement
         set => SetValue(RangeMinProperty, value);
     }
 
-    public static readonly DependencyProperty RangeMaxProperty = Register(nameof(RangeMax), double.NaN);
+    public static readonly DependencyProperty RangeMaxProperty = RegisterScale(nameof(RangeMax), double.NaN, travels: true);
 
     /// <summary>The top of the scale; NaN fits it to the readings shown.</summary>
     public double RangeMax
@@ -189,11 +191,24 @@ public class LinePlot : FrameworkElement
             new FrameworkPropertyMetadata(fallback, FrameworkPropertyMetadataOptions.AffectsRender));
 
     /// <summary>A series: drawn again when it is replaced, and listened to in its place while the plot is on screen.
-    /// </summary>
+    /// A new series is a new scale, put in place at once — it is not the same readings moving.</summary>
     private static DependencyProperty RegisterSeries(string name) =>
         DependencyProperty.Register(name, typeof(IReadOnlyList<double>), typeof(LinePlot),
             new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender,
-                (plot, change) => ((LinePlot)plot).Replace(change.OldValue, change.NewValue)));
+                (plot, change) =>
+                {
+                    var line = (LinePlot)plot;
+                    line.Replace(change.OldValue, change.NewValue);
+                    line.Retarget(travel: false);
+                }));
+
+    /// <summary>A property the scale is worked out from. A change of the scale's own ends travels, as the readings
+    /// do; a change of the window jumps, since it is a different stretch of time and not the same one rescaled.
+    /// </summary>
+    private static DependencyProperty RegisterScale<T>(string name, T fallback, bool travels) =>
+        DependencyProperty.Register(name, typeof(T), typeof(LinePlot),
+            new FrameworkPropertyMetadata(fallback, FrameworkPropertyMetadataOptions.AffectsRender,
+                (plot, _) => ((LinePlot)plot).Retarget(travels)));
 
     public LinePlot()
     {
@@ -218,6 +233,9 @@ public class LinePlot : FrameworkElement
         _hooked = true;
         Listen(Values, true);
         Listen(SecondValues, true);
+
+        // Whatever the readings did while it was off screen, it comes back on their scale, not travelling to it.
+        Retarget(travel: false);
         InvalidateVisual();
     }
 
@@ -249,6 +267,7 @@ public class LinePlot : FrameworkElement
     private void OnSeriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         InvalidateVisual();
+        Retarget(travel: true);
 
         if (ShowEnd && e.Action == NotifyCollectionChangedAction.Add && ReferenceEquals(sender, Values) && Pace.Moves)
         {
@@ -256,6 +275,58 @@ public class LinePlot : FrameworkElement
             Timeline.SetDesiredFrameRate(pulse, Pace.FrameRate);
             BeginAnimation(PulseProperty, pulse);
         }
+    }
+
+    // ── The scale ────────────────────────────────────────────────────────
+
+    /// <summary>How far the scale is through its travel, 0 to 1; 1, its resting value, is the scale arrived.</summary>
+    private static readonly DependencyProperty TravelProperty = Register("Travel", 1d);
+
+    /// <summary>Where the scale's travel started and where it is going. Two numbers, so the travel is a progress the
+    /// plot interpolates rather than a value WPF could animate on its own.</summary>
+    private (double Min, double Max) _from, _to;
+
+    /// <summary>Whether the scale has been put anywhere yet — until then it is worked out where it is drawn.</summary>
+    private bool _scaled;
+
+    /// <summary>The scale as it is drawn now: arrived, or part way from where it was to where it is going.</summary>
+    private (double Min, double Max) Shown()
+    {
+        var progress = (double)GetValue(TravelProperty);
+        if (!(progress < 1)) return _to;
+
+        return (_from.Min + (_to.Min - _from.Min) * progress, _from.Max + (_to.Max - _from.Max) * progress);
+    }
+
+    /// <summary>
+    /// Works the scale out again from the readings and the given ends, and takes the drawing to it: travelling at
+    /// the <see cref="Pace"/> — from wherever the scale is drawn, so a reading arriving mid-way bends the travel
+    /// instead of restarting it — or there at once, when told not to or when nothing moves.
+    ///
+    /// The readings never move; only the ruler they are drawn against. So a spike entering the window raises the top
+    /// smoothly and every point already drawn settles down under it, and one leaving lets the scale back down the
+    /// same way.
+    /// </summary>
+    private void Retarget(bool travel)
+    {
+        var target = PlotGeometry.Range(Values, SecondValues, Window, RangeMin, RangeMax);
+        if (_scaled && target == _to) return;
+
+        var now = _scaled ? Shown() : target;
+        (_from, _to) = (now, target);
+
+        if (travel && _scaled && Pace.Moves && now != target)
+        {
+            BeginAnimation(TravelProperty, Pace.Progress());
+        }
+        else
+        {
+            BeginAnimation(TravelProperty, null);
+            SetValue(TravelProperty, 1d);
+            InvalidateVisual();
+        }
+
+        _scaled = true;
     }
 
     // ── The end ──────────────────────────────────────────────────────────
@@ -320,7 +391,7 @@ public class LinePlot : FrameworkElement
 
         var look = Look;
         var window = Window;
-        var (min, max) = PlotGeometry.Range(values, second, window, RangeMin, RangeMax);
+        var (min, max) = _scaled ? Shown() : PlotGeometry.Range(values, second, window, RangeMin, RangeMax);
 
         // Inset by half the stroke or half a dot, whichever is more, so the line's round ends and the dots at the edges
         // are drawn inside the box rather than cut by it — and, on the three sides the newest reading can touch, by the

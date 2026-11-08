@@ -48,4 +48,13 @@ public static class Pace
         Timeline.SetDesiredFrameRate(move, FrameRate);
         return move;
     }
+
+    /// <summary>A move from nought to one at this pace — the progress of a travel whose two ends the element keeps
+    /// itself, because they are not a single number.</summary>
+    internal static DoubleAnimation Progress()
+    {
+        var move = new DoubleAnimation(0, 1, Duration) { EasingFunction = Easing };
+        Timeline.SetDesiredFrameRate(move, FrameRate);
+        return move;
+    }
 }
