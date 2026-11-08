@@ -22,6 +22,15 @@ public interface IMeterStyle : IBarStyle, IValueStyle, IUnitStyle, IHideableValu
 /// </summary>
 public interface IBarStyle
 {
+    /// <summary>
+    /// How thick a bar drawn under a line of text is against the preset's bar section — a list's rows, a Number's
+    /// level. That section was written for a meter, ONE bar that is the widget's whole reading; a bar under a line of
+    /// text is that line's company. Two thirds of Ember's 6 and 3 is the design's 4 and 2. A share and not a number, so
+    /// a preset with a heavier bar still gets heavier ones, in proportion — the clock's RingShare, for the same reason.
+    /// One home, so the list's bars and the Number's can never come apart.
+    /// </summary>
+    const double UnderTextShare = 2.0 / 3;
+
     double BarThickness { get; set; }
     double BarCorner { get; set; }
 

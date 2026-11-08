@@ -68,6 +68,30 @@ public sealed class RuleProperties
             return low is >= 0 and <= 1 && high is >= 0 and <= 1 && low <= high;
         });
 
+    /// <summary>
+    /// The Number's level bar passes its marks — a third and two thirds — exactly where its colour changes, and is full
+    /// exactly when it is critical: the bar is drawn at Level, and Level's thirds are Role's steps. For any limits a
+    /// person can set and any reading on a grid of half units, so none falls a rounding away from a limit.
+    /// </summary>
+    [Property(MaxTest = 1000)]
+    public Property The_level_bar_passes_a_mark_where_the_colour_changes() =>
+        Prop.ForAll(
+            (from elevated in Gen.Choose(1, 200)
+             from toAlert in Gen.Choose(0, 50)
+             from toCritical in Gen.Choose(0, 50)
+             select new Thresholds(elevated, elevated + toAlert, elevated + toAlert + toCritical)).ToArbitrary(),
+            Gen.Choose(1, 700).Select(halves => halves / 2d).ToArbitrary(),
+            (limits, value) =>
+            {
+                var level = limits.Level(value);
+                var passed = level >= 1 ? "Critical"
+                    : level >= 2d / 3 ? "Alert"
+                    : level >= 1d / 3 ? "Elevated"
+                    : "Normal";
+
+                return passed == limits.Role(value);
+            });
+
     // ── Preset.RampNameFor: which colours a line is drawn in ──────────────────────────────────────────
 
     private static Arbitrary<Preset> PresetsWithRamps() =>

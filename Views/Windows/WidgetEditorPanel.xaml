@@ -1085,6 +1085,35 @@
                         </StackPanel>
 
                         <StackPanel Margin="0,0,0,16"
+                                    Visibility="{Binding ViewModel.ShowsNumber, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Number" Style="{StaticResource Section}"/>
+                            <!-- What a Number draws besides its reading. With the widget, as a list's parts are:
+                                 each is something to read, and trying on a preset must never take one away. The
+                                 bar is the list's own option, BarShown. -->
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon DataBarHorizontal24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Level bar under the number"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Only for readings with limits, like temperatures and loads."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Level bar under the number"
+                                                 IsChecked="{Binding ViewModel.BarShown}"/>
+                            </ui:CardControl>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Session's lowest and highest"
+                                            Icon="{ui:SymbolIcon ArrowSortDownLines24}">
+                                <ui:ToggleSwitch AutomationProperties.Name="Session's lowest and highest"
+                                                 IsChecked="{Binding ViewModel.MinMaxShown}"/>
+                            </ui:CardControl>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Trend arrow"
+                                            Icon="{ui:SymbolIcon ArrowTrending24}">
+                                <ui:ToggleSwitch AutomationProperties.Name="Trend arrow"
+                                                 IsChecked="{Binding ViewModel.TrendShown}"/>
+                            </ui:CardControl>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,16"
                                     Visibility="{Binding ViewModel.ShowsDisplay, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="Display" Style="{StaticResource Section}"/>
                             <!-- What is shown of the reading, beside the readings themselves. Not in the
@@ -1515,9 +1544,9 @@
                                 <controls:SliderField Minimum="6" Maximum="24" Format="{}{0:F0} px"
                                                       Value="{Binding ViewModel.UnitSize}"/>
                             </HeaderedContentControl>
-                            <HeaderedContentControl Style="{StaticResource Line}" Header="Panel behind the number">
-                                <ui:ToggleSwitch AutomationProperties.Name="Panel behind the number"
-                                                 IsChecked="{Binding ViewModel.NumberPanel}"/>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Unit opacity">
+                                <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                      Value="{Binding ViewModel.UnitOpacity}"/>
                             </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>

@@ -1488,6 +1488,14 @@ public sealed class DesktopWidgetService
             list.ShowSparkline = definition.ShowSparkline;
             list.ShowTotal = definition.ShowTotal;
         }
+
+        // What a Number draws besides its reading — each a thing to read, as a list's parts are.
+        if (piece is INumberParts parts)
+        {
+            parts.ShowBar = definition.ShowBar;
+            parts.ShowMinMax = definition.ShowMinMax;
+            parts.ShowTrend = definition.ShowTrend;
+        }
     }
 
     /// <summary>
@@ -1603,10 +1611,14 @@ public sealed class DesktopWidgetService
 
         if (piece is IMeterStyle meter) meter.Layout = preset.Bar.Layout;
 
-        if (piece is IStatStyle stat)
+        // The Number's unit, and the notes that comment on its reading — in the title's colour and at its size, since
+        // they say something about the reading as the title does. Its bar is the bar block's, above.
+        if (piece is INumberStyle number)
         {
-            stat.UnitSize = preset.Number.UnitSize * scale;
-            stat.ShowPanel = preset.Number.Panel;
+            number.UnitSize = preset.Number.UnitSize * scale;
+            number.UnitOpacity = preset.Number.UnitOpacity;
+            number.NoteBrush = HexBrush.From(preset.Title.Color, preset.Title.Opacity);
+            number.NoteSize = preset.Title.Size * scale;
         }
 
         if (piece is ITextStyle text) text.Align = preset.Value.Align;

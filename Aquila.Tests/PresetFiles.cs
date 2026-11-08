@@ -19,7 +19,9 @@ internal static class PresetFiles
         "format", "id", "name", "author", "description", "ramps", "background", "border", "gauge", "line", "bar",
         "number", "title", "value", "normal", "elevated", "alert", "critical", "color", "opacity", "thickness",
         "cornerRadius", "padding", "fontFamily", "size", "weight", "align", "placement", "corner", "sweep", "track",
-        "fill", "fillOpacity", "smoothness", "pointSize", "layout", "unitSize", "panel", "gap", "bleed",
+        // "panel" is no longer read — the Number's own fill is gone — and stays, as the field every file written
+        // before 2.5 still carries, which the reader must pass over.
+        "fill", "fillOpacity", "smoothness", "pointSize", "layout", "unitSize", "unitOpacity", "panel", "gap", "bleed",
     ];
 
     // Ramp names, with the casing traps: the reader matches property names case-insensitively, so "primary" and

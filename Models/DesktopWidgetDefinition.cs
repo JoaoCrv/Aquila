@@ -283,15 +283,23 @@ public class DesktopWidgetDefinition
     public int ItemCount { get; set; } = 5;
 
     /// <summary>
-    /// Whether each row of a list has a bar under it. Off by default, because that is what every list written before
-    /// bars says by saying nothing — those lists load exactly as they were, the precedent of <see cref="Rings"/>. A
-    /// list made in the editor starts with it on, and with the two below: the editor sets them when the kind is
-    /// chosen, not here.
+    /// Whether each row of a list has a bar under it — and whether a Number has one under its reading, filling as the
+    /// reading goes into its limits. Off by default, because that is what every list and Number written before their
+    /// bars says by saying nothing — those load exactly as they were, the precedent of <see cref="Rings"/>. One made in
+    /// the editor starts with it on (<see cref="Services.WidgetKindInfo.MadeNow"/>), not here.
     ///
     /// On the widget rather than in the preset, by the preset's own test: trying one on must never take away a bar
     /// someone was reading. The preset says what the bar looks like.
     /// </summary>
     public bool ShowBar { get; set; }
+
+    /// <summary>Whether a Number writes the lowest and highest readings of this session under its reading. Off by
+    /// default, for the reason <see cref="ShowBar"/> gives; a Number made now starts with it on.</summary>
+    public bool ShowMinMax { get; set; }
+
+    /// <summary>Whether a Number draws an arrow beside its reading while it is rising or falling. Off by default, and
+    /// off in a Number made now too: an arrow is a second thing moving beside a number, and is asked for.</summary>
+    public bool ShowTrend { get; set; }
 
     /// <summary>Whether each row of a list draws its recent history beside its number. Off by default, for the reason
     /// <see cref="ShowBar"/> gives.</summary>

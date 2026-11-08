@@ -350,11 +350,16 @@ public sealed class PresetNumber
     // size that draws it — but the size is the stat's alone and the unit is every reading's, so the two
     // do not in fact belong together. It reads Value.ShowUnit now.
 
-    /// <summary>How big the unit is drawn beside the number. The stat only: it is the one piece that draws
+    // No Panel. It gave the number a rounded fill of its own, in the theme's card colour — a colour no preset could
+    // reach, inside a panel the preset had already coloured. Every built-in had it off. Gone with the Number's own
+    // piece (docs/widget-numero); a file that still says "panel" is read as if it did not, as any field not known is,
+    // so the format did not have to change.
+
+    /// <summary>How big the unit is drawn beside the number. The Number only: it is the one piece that draws
     /// the unit separately, so it is the one piece that can give it a size of its own.</summary>
     public double UnitSize { get; set; } = 13;
 
-    /// <summary>Whether the number carries a rounded fill of its own. Off suits a desktop widget, which
-    /// already has a panel — two of them read as a box inside a box.</summary>
-    public bool Panel { get; set; }
+    /// <summary>How strongly the unit wears the number's colour, from 0 to 1 — the unit is the same reading, so it
+    /// takes the number's colour and stands back from it. Held to that range where it is drawn.</summary>
+    public double UnitOpacity { get; set; } = 0.6;
 }

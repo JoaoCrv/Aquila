@@ -31,7 +31,7 @@ public interface IValueStyle
 /// Matched structurally like the rest, so the answer to "does this show a unit" is the type and not a list
 /// someone maintains.
 ///
-/// It was declared twice before this, on <see cref="ICaptionStyle"/> and <see cref="IStatStyle"/>. Only the
+/// It was declared twice before this, on <see cref="ICaptionStyle"/> and the stat's style. Only the
 /// stat's was ever assigned — the Text piece had the property and nothing set it, so its unit was always
 /// on, and the meter, the sparkline and the dial had no say at all.
 /// </summary>
