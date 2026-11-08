@@ -129,8 +129,9 @@ public class AquilaService(IEnumerable<IHardwareDriver> drivers, AquilaState sta
     /// that happened to move. A drive holding 38 °C kept the old preset's colour, or the old limit's verdict,
     /// until it read 39. The title bar re-raised for itself; every card binding waited.
     ///
-    /// Not done by repainting the brushes in place instead: the charts turn a brush into a Skia colour when
-    /// their brush PROPERTY changes, and a brush changed in place never changes the property.
+    /// Not done by repainting the brushes in place instead: while LiveCharts drew the charts, they turned a brush
+    /// into a Skia colour only when their brush PROPERTY changed, and a brush changed in place never changes the
+    /// property. Re-announcing reaches every binding whatever draws it, which is why it stayed.
     /// </summary>
     public void Reannounce()
     {

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media.Animation;
+using Aquila.Controls.Primitives;
 using Aquila.Models;
 
 namespace Aquila.Controls;
@@ -48,8 +49,8 @@ public static class Motion
     /// The most frames a second anything Aquila animates may ask to be drawn at.
     ///
     /// Beside the speed and for the same reason: a frame is a cost paid on this machine, by the machine being
-    /// measured, and only its owner can say what it is worth. Every WPF animation Aquila makes carries it; the
-    /// charts take it once, at start — see App.OnStartup.
+    /// measured, and only its owner can say what it is worth. Every animation Aquila makes carries it, from the moment
+    /// it changes. (The charts took it once, at start, while LiveCharts drew them.)
     /// </summary>
     public static int FrameRate { get; private set; } = DefaultFrameRate;
 
@@ -67,7 +68,18 @@ public static class Motion
         // Held here and not trusted from the file: the menu offers only rates inside these, but the file is
         // the user's to edit, and a rate of nothing would be refused by every animation that carried it.
         FrameRate = Math.Clamp(settings.MaxFrameRate, LeastFrameRate, MostFrameRate);
+        Slide = settings.SlideCharts;
+        Publish();
     }
+
+    /// <summary>Whether a chart's line slides with time between readings (<see cref="AppSettings.SlideCharts"/>). Only
+    /// while motion is on: the slide is a movement like any other.</summary>
+    public static bool Slide { get; private set; }
+
+    /// <summary>Hands the pace to the drawing primitives, which cannot ask for it: they know WPF and nothing of
+    /// Aquila's settings. Every change of speed, frame rate or slide passes through here, so they never disagree.
+    /// </summary>
+    private static void Publish() => Pace.Set(Speed, WpfEasing, FrameRate, Slide && Enabled);
 
     /// <summary>
     /// The chosen speed, held to nine tenths of the poll interval.
@@ -81,8 +93,11 @@ public static class Motion
     /// that can be told apart. At two fifths the slowest step was 400 ms against Smooth's 300, and the two
     /// looked the same.
     /// </summary>
-    public static void Apply(int speedMs, int pollMs) =>
+    public static void Apply(int speedMs, int pollMs)
+    {
         Speed = TimeSpan.FromMilliseconds(Math.Clamp(speedMs, 0, Math.Max(0, pollMs) * 9 / 10));
+        Publish();
+    }
 
     /// <summary>A reading's sweep to <paramref name="to"/>, as WPF draws it: at the speed and on the curve in
     /// force, and no oftener than the frame rate. One home, so the bars cannot come to move differently from each

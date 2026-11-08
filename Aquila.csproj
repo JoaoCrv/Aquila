@@ -38,6 +38,13 @@
     <Resource Remove="Aquila.Tests\**" />
     <EmbeddedResource Remove="Aquila.Tests\**" />
     <None Remove="Aquila.Tests\**" />
+    <!-- docs\ is local working material, out of git: plans, measurements, and the render harness with a checkout of an
+         older Aquila beside it. None of it is the app, and the default globs would compile all of it in. -->
+    <Compile Remove="docs\**" />
+    <Page Remove="docs\**" />
+    <Resource Remove="docs\**" />
+    <EmbeddedResource Remove="docs\**" />
+    <None Remove="docs\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -65,7 +72,6 @@
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.2" />
     <PackageReference Include="Velopack" Version="1.2.161" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <PackageReference Include="WPF-UI.DependencyInjection" Version="4.3.0" />

@@ -257,12 +257,6 @@ namespace Aquila
             // container.
             Controls.Motion.Apply(settings.Current);
 
-            // The charts' frame rate is the machine's, as every WPF animation's is — but LiveCharts reads it
-            // ONCE, into a static of its canvas when the first chart is made (CoreMotionCanvas's static
-            // constructor, 2.0.2), and never again. So it is set here, before any chart exists, and a change
-            // in Settings reaches the charts at the next start; the rings and bars follow it at once.
-            LiveChartsCore.LiveCharts.RenderingSettings.LiveChartsRenderLoopFPS = Controls.Motion.FrameRate;
-
             // Before StartAsync, which is what shows the first windows: loads the themes and the presets,
             // applies both, and starts watching Windows' light/dark switch. Doing it after would render
             // the first frame undressed and then correct it in view of the user.

@@ -127,9 +127,9 @@ try {
         Line $body.Trim()
     }
 
-    # The notices the packages themselves carry. A native library holds other people's code — SkiaSharp's DLL
-    # contains libpng, zlib, libjpeg-turbo, libwebp, HarfBuzz and more — and its package describes them in a
-    # notices file that NuGet never copies into an application. Each distinct file once, with the packages that
+    # The notices the packages themselves carry. A native library holds other people's code — SkiaSharp's DLL,
+    # while Aquila shipped it, contained libpng, zlib, libjpeg-turbo, libwebp, HarfBuzz and more — and its package
+    # describes them in a notices file that NuGet never copies into an application. Each distinct file once, with the packages that
     # carry it: the .NET one alone travels in 28 packages, identically.
     # Read whole, then picked: piping dotnet into Select-Object -First stops it mid-output and leaves a non-zero
     # exit code behind, which GitHub Actions' pwsh step reports as a failure after the script has succeeded.

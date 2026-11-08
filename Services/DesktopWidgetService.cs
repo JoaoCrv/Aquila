@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using Aquila.Controls;
+using Aquila.Controls.Primitives;
 using Aquila.DesktopSurface;
 using Aquila.Helpers;
 using Aquila.Models;
@@ -1496,6 +1497,13 @@ public sealed class DesktopWidgetService
             parts.ShowMinMax = definition.ShowMinMax;
             parts.ShowTrend = definition.ShowTrend;
         }
+
+        if (piece is ILimitParts limits) limits.ShowLimits = definition.ShowLimits;
+        if (piece is IChartParts chartParts)
+        {
+            chartParts.ShowEnd = definition.ShowEnd;
+            chartParts.ColourByReading = definition.ColourByReading;
+        }
     }
 
     /// <summary>
@@ -1519,7 +1527,7 @@ public sealed class DesktopWidgetService
         border.Height = definition.Height;
 
         // No font is set here. Inheriting one down the tree reached every piece made of TextBlocks and
-        // silently missed the gauge, whose number SkiaSharp paints rather than lays out. Each role now
+        // silently missed the gauge, whose number SkiaSharp painted then rather than laid out. Each role now
         // carries its own face, applied where it is drawn.
 
         if (border.Child is not LabeledTile tile) return;
@@ -1601,13 +1609,11 @@ public sealed class DesktopWidgetService
         // RestyleWidget.
         if (piece is IClockStyle clock) clock.Ramp = preset.RampFor(Ramp.Primary);
 
-        // The meter, the Bars and a list's rows read the same section, as the dial and the rings share theirs.
+        // The meter, the Bars, a list's rows and the Number's bar read the same section, as the dial and the rings
+        // share theirs — as one look, so a change of preset is one assignment.
         if (piece is IBarStyle bar)
-        {
-            bar.BarThickness = preset.Bar.Thickness * scale;
-            bar.BarCorner = preset.Bar.Corner * scale;
-            bar.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
-        }
+            bar.BarLook = new BarLook(preset.Bar.Thickness * scale, preset.Bar.Corner * scale,
+                HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity));
 
         if (piece is IMeterStyle meter) meter.Layout = preset.Bar.Layout;
 
@@ -1620,6 +1626,11 @@ public sealed class DesktopWidgetService
             number.NoteBrush = HexBrush.From(preset.Title.Color, preset.Title.Opacity);
             number.NoteSize = preset.Title.Size * scale;
         }
+
+        // A chart's limit lines and a bar's limit marks: the title's colour at half its strength, as the Number's marks
+        // are — they comment on the reading and must never be read as one.
+        if (piece is ILimitStyle limitStyle)
+            limitStyle.LimitBrush = HexBrush.From(preset.Title.Color, preset.Title.Opacity * 0.5);
 
         if (piece is ITextStyle text) text.Align = preset.Value.Align;
 
@@ -1781,8 +1792,9 @@ public sealed class DesktopWidgetService
         {
             // The piece is still handed over for its lifetime — the subscriptions below tear down on
             // its Unloaded — while WHERE the colour lands now comes from the kind.
+            // A chart coloured by its reading needs its first reading's whole ramp, not only the colour of the moment.
             var repaint = Paint(piece, kind.Accent.For(piece, i), resolved[i], ramps[i],
-                MetricKey.Parse(chosen[i].Metric));
+                MetricKey.Parse(chosen[i].Metric), i == 0 && piece is IReadingRamp ramped ? ramped.UseRamp : null);
 
             // The SERIES is captured — not the ramp, and not its name either.
             //
@@ -1866,7 +1878,7 @@ public sealed class DesktopWidgetService
     /// ends itself and there is no bookkeeping to fall out of step with what is on screen.
     /// </summary>
     private static Action<Ramp> Paint(FrameworkElement piece, Action<Brush> apply,
-        SensorNode sensor, Ramp ramp, MetricKey? metric)
+        SensorNode sensor, Ramp ramp, MetricKey? metric, Action<Ramp>? whole = null)
     {
         var monitor = VitalMonitor.Current;
 
@@ -1908,7 +1920,11 @@ public sealed class DesktopWidgetService
             if (monitor is not null) monitor.Changed -= Repaint;
         }
 
-        void Repaint() => apply(HexBrush.From(current[RoleOf(sensor.Value, metric, monitor)], 1));
+        void Repaint()
+        {
+            apply(HexBrush.From(current[RoleOf(sensor.Value, metric, monitor)], 1));
+            whole?.Invoke(current);
+        }
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
         {

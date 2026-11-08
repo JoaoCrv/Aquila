@@ -40,7 +40,8 @@ namespace Aquila.Controls;
 /// It takes hold on Loaded and lets go on Unloaded, as <see cref="SensorList"/> does, so a widget off screen holds
 /// nothing and one sent to another screen takes hold again when it arrives.
 /// </summary>
-public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumberParts, IBarStyle, IScaledFigure
+public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumberParts, IBarStyle, IScaledFigure,
+    IFollowsSchemeTrack
 {
     private readonly Run _reading = new();
     private readonly Run _unit = new();
@@ -112,6 +113,7 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
         Loaded += (_, _) => Hook();
         Unloaded += (_, _) => Unhook();
 
+        SchemeTrack.Follow(this);
         Apply();
     }
 
@@ -235,8 +237,9 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
 
     /// <summary>
     /// How far the reading is into its limits — those in force now, the user's, the hardware's own or the built-in
-    /// ones — and never shorter than <see cref="LeastBar"/> of its track, so a reading at rest still shows the end of a
-    /// bar rather than a bare track. No bar at all for a reading with no limits, and no room kept for one.
+    /// ones — and never shorter than <see cref="BarGeometry.Least"/> of its track, which the bar holds it to, so a reading
+    /// at rest still shows the end of a bar rather than a bare track. No bar at all for a reading with no limits, and no
+    /// room kept for one.
     /// </summary>
     private void ShowLevel(bool animate)
     {
@@ -253,12 +256,12 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
 
         _level.Visibility = Visibility.Visible;
 
-        var target = Math.Max(LeastBar, within.Level(_sensor?.Value ?? 0));
+        var target = within.Level(_sensor?.Value ?? 0);
         if (animate && Math.Abs(target - _filled) < 1e-6) return;
 
         animate &= !double.IsNaN(_filled);
         _filled = target;
-        Motion.To(_bar, BarFill.FractionProperty, target, animate);
+        _bar.MoveTo(target, animate);
     }
 
     /// <summary>
@@ -417,9 +420,6 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
     /// <summary>Between the lowest and the highest.</summary>
     private const double NotesApart = 12;
 
-    /// <summary>The shortest a bar is drawn, as a share of its track — the list's 2%.</summary>
-    private const double LeastBar = 0.02;
-
     /// <summary>The arrow's width, its height and its distance from the number, as shares of the number's size: 7 by 6
     /// and 4 off an 18-pixel number. Shares and not sizes, so a preset with a bigger number has a bigger arrow.</summary>
     private const double ArrowWidth = 7.0 / 18;
@@ -459,13 +459,9 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
         if (_shown != TrendArrow.None) _arrow.Data = _shown == TrendArrow.Up ? _upward : _downward;
         PlaceArrow();
 
-        _bar.Thickness = Math.Max(1, _barThickness * IBarStyle.UnderTextShare);
-        _bar.Corner = _barCorner * IBarStyle.UnderTextShare;
+        DressBar();
         _bar.MarkReach = MarkReach * _figureScale;
         _level.Margin = new Thickness(0, BarGap * _figureScale, 0, 0);
-
-        if (_trackBrush is not null) _bar.Track = _trackBrush;
-        else _bar.SetResourceReference(BarFill.TrackProperty, TrackKey);
 
         _notes.Margin = new Thickness(0, (ShowBar ? NotesGap : BarGap) * _figureScale, 0, 0);
         _highest.Margin = new Thickness(NotesApart * _figureScale, 0, 0, 0);
@@ -515,9 +511,10 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
     private double _unitOpacity = 0.6;
     private Brush? _noteBrush;
     private double _noteSize = 11;
-    private double _barThickness = 6;
-    private double _barCorner = 3;
-    private Brush? _trackBrush;
+    /// <summary>The bar nobody has dressed is drawn with — the type picker: Ember's bar, the design's.</summary>
+    private static readonly BarLook Undressed = new(6, 3, null);
+
+    private BarLook? _barLook;
     private double _figureScale = 1;
     private bool _showUnit = true;
     private bool _showBar = true;
@@ -567,25 +564,21 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
         set { _noteSize = value; Apply(); }
     }
 
-    public double BarThickness
+    /// <summary>The preset's bar, at the widget's size, with its track; unset, the type picker's default over the
+    /// dashboard's track.</summary>
+    public BarLook? BarLook
     {
-        get => _barThickness;
-        set { _barThickness = value; Apply(); }
+        get => _barLook;
+        set { _barLook = value; Apply(); }
     }
 
-    public double BarCorner
-    {
-        get => _barCorner;
-        set { _barCorner = value; Apply(); }
-    }
+    void IFollowsSchemeTrack.SchemeTrackChanged() => DressBar();
 
-    private const string TrackKey = "Aquila.Scheme.Track";
-
-    /// <summary>The bar's track from the widget's own preset; unset, the dashboard's.</summary>
-    public Brush? TrackBrush
+    /// <summary>The bar at two thirds of the preset's, as every bar under text is, never under a pixel thick.</summary>
+    private void DressBar()
     {
-        get => _trackBrush;
-        set { _trackBrush = value; Apply(); }
+        var look = SchemeTrack.Resolve(this, _barLook, Undressed).Scaled(IBarStyle.UnderTextShare);
+        _bar.Look = look with { Thickness = Math.Max(1, look.Thickness) };
     }
 
     /// <summary>For the figure's own gaps: number to bar, bar to notes, between the notes, and the marks' reach.

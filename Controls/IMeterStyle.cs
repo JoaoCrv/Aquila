@@ -31,12 +31,14 @@ public interface IBarStyle
     /// </summary>
     const double UnderTextShare = 2.0 / 3;
 
-    double BarThickness { get; set; }
-    double BarCorner { get; set; }
-
-    /// <summary>The unfilled part of the bar, from the widget's own preset. Unset, a bar resolves
-    /// Aquila.Scheme.Track — the DASHBOARD'S track, which is right on a card and was wrong on the desktop:
-    /// a widget wearing another preset drew its fill in its own colours over the dashboard's track, while
-    /// a dial beside it, which has always taken its track from its own preset, did not.</summary>
-    System.Windows.Media.Brush? TrackBrush { get; set; }
+    /// <summary>
+    /// The preset's bar section at the widget's size — thickness and corners — with its track, as one value, so a
+    /// change of preset is one assignment.
+    ///
+    /// The track is the widget's own preset's. Unset (null, or a look naming no track), a bar takes the DASHBOARD'S
+    /// (<see cref="SchemeTrack"/>), which is right on a card and was wrong on the desktop: a widget wearing another
+    /// preset drew its fill in its own colours over the dashboard's track, while a dial beside it, which has always
+    /// taken its track from its own preset, did not. Null until the piece is dressed: it then draws its own default.
+    /// </summary>
+    Aquila.Controls.Primitives.BarLook? BarLook { get; set; }
 }

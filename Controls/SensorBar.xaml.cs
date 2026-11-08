@@ -1,23 +1,71 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using Aquila.Controls.Primitives;
 using Aquila.Models;
+using Aquila.Services;
 
 namespace Aquila.Controls;
 
 /// <summary>
-/// Horizontal sensor bar: a single SensorNode rendered through the shared ThinBar progress-bar
-/// template (sibling of <see cref="RadialGauge"/> / <see cref="MiniSparkline"/>). Reuses the
-/// existing template — it only maps the sensor onto Value/Maximum and applies the accent colour.
+/// Horizontal sensor bar: a single SensorNode drawn by <see cref="BarFill"/> (sibling of <see cref="RadialGauge"/> /
+/// <see cref="MiniSparkline"/>). It maps the sensor onto a share of its scale, and applies the accent colour and the
+/// look; the bar travels at the <see cref="Pace"/> and draws again without laying anything out.
 /// </summary>
-public partial class SensorBar : UserControl
+public partial class SensorBar : UserControl, IFollowsSchemeTrack
 {
+    /// <summary>The look of a bar nobody has dressed — a card's meter: the thin bar the cards always drew.</summary>
+    private static readonly BarLook Undressed = new(6, 3, null);
+
     public SensorBar()
     {
         InitializeComponent();
-        Loaded += (_, _) => Render();
+        SchemeTrack.Follow(this);
+        Loaded += (_, _) => Hook();
+        Unloaded += (_, _) => Unhook();
+    }
+
+    // ── Limits ─────────────────────────────────────────────────────
+
+    private bool _showLimits;
+    private Brush? _limitBrush;
+    private double _markReach = LimitMarks.Reach;
+    private VitalMonitor? _monitor;
+
+    /// <summary>Marks across the bar where the reading turns elevated and alert, where its scale reaches them.</summary>
+    public bool ShowLimits
+    {
+        get => _showLimits;
+        set { _showLimits = value; Render(); }
+    }
+
+    public Brush? LimitBrush
+    {
+        get => _limitBrush;
+        set { _limitBrush = value; Render(); }
+    }
+
+    /// <summary>How far the marks reach past the bar either side, at the widget's scale.</summary>
+    public double MarkReach
+    {
+        get => _markReach;
+        set { _markReach = value; Render(); }
+    }
+
+    /// <summary>Draws, and listens for the limits changing while the bar is on screen, and only then.</summary>
+    private void Hook()
+    {
+        Unhook();
+        _monitor = VitalMonitor.Current;
+        if (_monitor is not null) _monitor.Changed += Render;
+        Render();
+    }
+
+    private void Unhook()
+    {
+        if (_monitor is not null) _monitor.Changed -= Render;
+        _monitor = null;
     }
 
     public static readonly DependencyProperty SensorProperty =
@@ -35,6 +83,10 @@ public partial class SensorBar : UserControl
     public static readonly DependencyProperty MaximumProperty =
         DependencyProperty.Register(nameof(Maximum), typeof(double), typeof(SensorBar),
             new PropertyMetadata(double.NaN, (d, _) => ((SensorBar)d).Render()));
+
+    public static readonly DependencyProperty LookProperty =
+        DependencyProperty.Register(nameof(Look), typeof(BarLook), typeof(SensorBar),
+            new PropertyMetadata(null, (d, _) => ((SensorBar)d).Dress()));
 
     /// <summary>Bar scale minimum. Unset (NaN) → 0.</summary>
     public double Minimum
@@ -57,11 +109,19 @@ public partial class SensorBar : UserControl
         set => SetValue(SensorProperty, value);
     }
 
-    /// <summary>Fill colour. Falls back to the CPU accent token when unset.</summary>
+    /// <summary>Fill colour. Falls back to the dashboard's accent when unset.</summary>
     public Brush? Accent
     {
         get => (Brush?)GetValue(AccentProperty);
         set => SetValue(AccentProperty, value);
+    }
+
+    /// <summary>The bar's thickness, corners and track, from the widget's preset. Unset — a card — the thin bar the
+    /// cards always drew, over the dashboard's track.</summary>
+    public BarLook? Look
+    {
+        get => (BarLook?)GetValue(LookProperty);
+        set => SetValue(LookProperty, value);
     }
 
     private static void OnSensorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -76,21 +136,17 @@ public partial class SensorBar : UserControl
         b.Render();
     }
 
-    /// <summary>The value the bar was last sent to. Kept so an update that changes something else — the
-    /// accent, the scale — does not restart a sweep that is already under way.</summary>
+    /// <summary>The share the bar was last sent to. Kept so an update that changes something else — the accent, the
+    /// scale — does not restart a sweep that is already under way.</summary>
     private double _shown = double.NaN;
 
-    private void OnSensorPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        Render();
-    }
+    private void OnSensorPropertyChanged(object? sender, PropertyChangedEventArgs e) => Render();
 
-    /// <summary>Height of the bar itself. Straight through to the ProgressBar: setting Height on this
-    /// UserControl would size the wrapper and leave the 6px bar sitting inside it.</summary>
-    public double BarThickness
+    void IFollowsSchemeTrack.SchemeTrackChanged() => Dress();
+
+    private void Dress()
     {
-        get => Bar.Height;
-        set => Bar.Height = value;
+        if (Bar is not null) Bar.Look = SchemeTrack.Resolve(this, Look, Undressed);
     }
 
     private void Render()
@@ -102,16 +158,21 @@ public partial class SensorBar : UserControl
         double max = SensorScale.Ceiling(Sensor, Maximum);
         if (max <= min) max = min + 1;
 
-        Bar.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;
-        Bar.Minimum = min;
-        Bar.Maximum = max;
+        Bar.Fill = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;
+        Dress();
 
-        var target = System.Math.Clamp(Sensor.Value ?? 0, min, max);
-        if (target.Equals(_shown)) return;
+        // The marks on this bar's own scale, so they move with it — a throughput's top follows its recent peak.
+        var marks = _showLimits ? LimitMarks.On(Sensor, min, max) : null;
+        if (!LimitMarks.Same(Bar.Marks, marks)) Bar.Marks = marks;
+        Bar.MarkBrush = _limitBrush ?? LimitMarks.Unpainted;
+        Bar.MarkReach = _showLimits ? _markReach : 0;
 
-        _shown = target;
+        var share = (System.Math.Clamp(Sensor.Value ?? 0, min, max) - min) / (max - min);
+        if (share.Equals(_shown)) return;
 
-        // From wherever the bar is drawn, or there at once with motion off — see Motion.To.
-        Motion.To(Bar, RangeBase.ValueProperty, target);
+        // A sensor just handed over is drawn at its reading, never swept to it from the last one's.
+        var animate = !double.IsNaN(_shown);
+        _shown = share;
+        Bar.MoveTo(share, animate);
     }
 }

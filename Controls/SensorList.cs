@@ -49,7 +49,7 @@ namespace Aquila.Controls;
 /// share of its time.
 /// </summary>
 public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyle, IBarStyle, IScaledFigure,
-    ITitleAside
+    ITitleAside, IFollowsSchemeTrack
 {
     /// <summary>Where a row stands: on screen; below the rows shown, kept out of sight so it can come back moving;
     /// or dropped by the source, on its way back to the pool.</summary>
@@ -57,16 +57,15 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
 
     /// <summary>One row. Made once and handed from node to node through the pool, so a list that has run for a day
     /// has the rows it had in its first minute.</summary>
-    private sealed class Row(Grid root, TranslateTransform place, TextBlock name, TextBlock reading, TrendLine trend,
-        Border track, Border fill)
+    private sealed class Row(Grid root, TranslateTransform place, TextBlock name, TextBlock reading, LinePlot trend,
+        BarFill bar)
     {
         public Grid Root { get; } = root;
         public TranslateTransform Place { get; } = place;
         public TextBlock Name { get; } = name;
         public TextBlock Reading { get; } = reading;
-        public TrendLine Trend { get; } = trend;
-        public Border Track { get; } = track;
-        public Border Fill { get; } = fill;
+        public LinePlot Trend { get; } = trend;
+        public BarFill Bar { get; } = bar;
 
         /// <summary>The node this row draws, or null while it waits in the pool.</summary>
         public SensorNode? Node { get; set; }
@@ -139,6 +138,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         Loaded += (_, _) => Hook();
         Unloaded += (_, _) => Unhook();
 
+        SchemeTrack.Follow(this);
         Apply();
     }
 
@@ -328,9 +328,6 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         row.Name.Text = node.Name ?? string.Empty;
         row.Reading.Text = node.Reading(ShowUnit, string.Empty);
 
-        // The node's points have moved on by one, in place.
-        if (_showSparkline) row.Trend.Refresh();
-
         Paint(row);
         Bar(row, rows, animate);
     }
@@ -347,7 +344,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         if (brush is not null) row.Reading.Foreground = brush;
 
         row.Trend.Stroke = brush ?? Foreground;
-        row.Fill.Background = brush ?? Foreground;
+        row.Bar.Fill = brush ?? Foreground;
     }
 
     private void PaintTotal()
@@ -358,27 +355,20 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
     /// <summary>
     /// A row's bar, against the list's scale (<see cref="SensorScale.Ceiling(SensorNode, IReadOnlyList{SensorNode})"/>):
     /// the whole machine for a share of the CPU, the largest row for anything with no top of its own — and never
-    /// shorter than <see cref="LeastBar"/> of its track, as the design draws it, so a row at nothing still shows the
-    /// end of a bar rather than a bare track. It travels as every bar does, and a row that has only just appeared is
-    /// drawn at its reading, never swept up from nothing.
+    /// shorter than <see cref="BarGeometry.Least"/> of its track, which the bar holds it to, so a row at nothing still
+    /// shows the end of a bar rather than a bare track. It travels as every bar does, and a row that has only just
+    /// appeared is drawn at its reading, never swept up from nothing.
     /// </summary>
     private void Bar(Row row, IReadOnlyList<SensorNode> rows, bool animate)
     {
         if (!_showBar || row.Node is not { } node) return;
 
-        // A share of a track whose width is only known once laid out, and changes whenever the widget is resized —
-        // which its SizeChanged answers.
-        var room = row.Track.ActualWidth;
-        if (room <= 0) return;
-
-        var ceiling = SensorScale.Ceiling(node, rows);
-        var target = room * Math.Max(LeastBar, Math.Clamp((node.Value ?? 0) / ceiling, 0, 1));
-
-        if (animate && Math.Abs(target - row.Shown) < 0.01) return;
+        var share = Math.Clamp((node.Value ?? 0) / SensorScale.Ceiling(node, rows), 0, 1);
+        if (animate && Math.Abs(share - row.Shown) < 1e-4) return;
 
         animate &= !double.IsNaN(row.Shown);
-        row.Shown = target;
-        Motion.To(row.Fill, WidthProperty, target, animate);
+        row.Shown = share;
+        row.Bar.MoveTo(share, animate);
     }
 
     /// <summary>
@@ -471,35 +461,26 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         Typography.SetNumeralAlignment(reading, FontNumeralAlignment.Tabular);
         Grid.SetColumn(reading, 2);
 
-        var trend = new TrendLine
+        // From nought to the highest of its points: a trend, not a magnitude. No area — it sits beside a number. It
+        // follows its node's history by itself while it is on screen, so a reading needs no word from here.
+        var trend = new LinePlot
         {
-            Count = TrendPoints,
+            Window = TrendPoints,
+            RangeMin = 0,
             Opacity = TrendOpacity,
             VerticalAlignment = VerticalAlignment.Center,
         };
         Grid.SetColumn(trend, 1);
 
-        var fill = new Border { HorizontalAlignment = HorizontalAlignment.Left, Width = 0 };
-        var track = new Border { Child = fill, VerticalAlignment = VerticalAlignment.Top };
-
-        // By reference, as the bars take theirs: read once, it would keep the track it found through every preset
-        // change after.
-        track.SetResourceReference(Border.BackgroundProperty, TrackKey);
-        Grid.SetRow(track, 1);
-        Grid.SetColumnSpan(track, 3);
+        // A share of its track, drawn — so a resize needs nothing from here.
+        var bar = new BarFill { VerticalAlignment = VerticalAlignment.Top };
+        Grid.SetRow(bar, 1);
+        Grid.SetColumnSpan(bar, 3);
 
         root.Children.Add(name);
         root.Children.Add(reading);
 
-        var row = new Row(root, place, name, reading, trend, track, fill);
-
-        // The bar is a share of its track's width, known only once laid out and changed by every resize: answered
-        // here, at once, as the bars answer it.
-        track.SizeChanged += (_, _) =>
-        {
-            row.Shown = double.NaN;
-            Bar(row, Source, animate: false);
-        };
+        var row = new Row(root, place, name, reading, trend, bar);
 
         _stage.Children.Add(root);
         _all.Add(row);
@@ -526,14 +507,26 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         Include(row.Root, row.Trend, _showSparkline);
         row.Trend.Width = TrendWidth * _figureScale;
         row.Trend.Height = Math.Min(TrendHeight * _figureScale, _line);
-        row.Trend.Thickness = TrendThickness * _figureScale;
+        row.Trend.Look = new LineLook(TrendThickness * _figureScale, AreaFill.None, 0, 0, 0);
         row.Trend.Margin = new Thickness(NameGap * _figureScale, 0, 0, 0);
 
-        Include(row.Root, row.Track, _showBar);
-        row.Track.Height = BarHeight;
-        row.Track.CornerRadius = new CornerRadius(_barCorner * BarShare);
-        row.Fill.CornerRadius = new CornerRadius(_barCorner * BarShare);
-        row.Track.Margin = new Thickness(0, BarGap * _figureScale, 0, 0);
+        Include(row.Root, row.Bar, _showBar);
+        row.Bar.Look = RowLook();
+        row.Bar.Margin = new Thickness(0, BarGap * _figureScale, 0, 0);
+    }
+
+    /// <summary>A row's bar: <see cref="BarShare"/> of the preset's — or the type picker's default — and never under a
+    /// pixel thick, since the thickness comes from a preset, which a hand can edit to nothing. Over the dashboard's
+    /// track when the look names none.</summary>
+    private BarLook RowLook()
+    {
+        var look = SchemeTrack.Resolve(this, _barLook, Undressed).Scaled(BarShare);
+        return look with { Thickness = Math.Max(1, look.Thickness) };
+    }
+
+    void IFollowsSchemeTrack.SchemeTrackChanged()
+    {
+        foreach (var row in _all) row.Bar.Look = RowLook();
     }
 
     private static void Include(Panel panel, UIElement part, bool wanted)
@@ -558,7 +551,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
 
         var family = string.IsNullOrWhiteSpace(_valueFont) ? FontFamily : new FontFamily(_valueFont);
         _line = family.LineSpacing * _rowSize;
-        _step = _line + (_showBar ? (BarGap + RowGap) * _figureScale + BarHeight : 0);
+        _step = _line + (_showBar ? (BarGap + RowGap) * _figureScale + RowLook().Thickness : 0);
         _typeface = new Typeface(family, FontStyles.Normal, _valueWeight.ToFontWeight(), FontStretches.Normal);
 
         // Measured again, in the new face.
@@ -617,15 +610,13 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
     private const double BarGap = 6;
     private const double RowGap = 10.7;
 
-    /// <summary>The shortest a bar is drawn, as a share of its track — the design's 2%.</summary>
-    private const double LeastBar = 0.02;
-
     /// <summary>How thick a row's bar is against the preset's bar section — see <see cref="IBarStyle.UnderTextShare"/>.
     /// </summary>
     private const double BarShare = IBarStyle.UnderTextShare;
 
-    /// <summary>At least a pixel: the thickness comes from a preset, which a hand can edit to nothing.</summary>
-    private double BarHeight => Math.Max(1, _barThickness * BarShare);
+    /// <summary>The look of a list nobody has dressed — the type picker: the preset bar the design was drawn at.
+    /// </summary>
+    private static readonly BarLook Undressed = new(6, 3, null);
 
     // ── Style ────────────────────────────────────────────────────────
 
@@ -638,8 +629,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
     private double _valueSize = 20;
     private string? _valueFont;
     private TextWeight _valueWeight = TextWeight.Regular;
-    private double _barThickness = 6;
-    private double _barCorner = 3;
+    private BarLook? _barLook;
 
     // On here, though off in the widget's file: on the desktop every piece is told these from its file, so the piece's
     // own say only ever shows in the type picker — which shows what a list made today looks like.
@@ -706,30 +696,10 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         set { _valueWeight = value; Apply(); }
     }
 
-    /// <summary>The preset's bar thickness, at the widget's scale. A row draws <see cref="BarShare"/> of it.</summary>
-    public double BarThickness
+    /// <summary>The preset's bar, at the widget's scale. A row draws <see cref="BarShare"/> of it.</summary>
+    public BarLook? BarLook
     {
-        get => _barThickness;
-        set { _barThickness = value; Apply(); }
-    }
-
-    public double BarCorner
-    {
-        get => _barCorner;
-        set { _barCorner = value; Apply(); }
-    }
-
-    private const string TrackKey = "Aquila.Scheme.Track";
-
-    /// <summary>Overrides Aquila.Scheme.Track for this piece alone. Its rows draw their track from that key by
-    /// reference, so a resource set here reaches them without each having to be told.</summary>
-    public Brush? TrackBrush
-    {
-        get => Resources[TrackKey] as Brush;
-        set
-        {
-            if (value is null) Resources.Remove(TrackKey);
-            else Resources[TrackKey] = value;
-        }
+        get => _barLook;
+        set { _barLook = value; Apply(); }
     }
 }

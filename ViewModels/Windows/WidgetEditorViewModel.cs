@@ -679,7 +679,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     /// <summary>Whether Customize has anything to say about what is shown of the reading — so its heading is not
     /// left standing over nothing, as it would be for a backdrop.</summary>
-    public bool ShowsDisplay => ShowsUnit || CanHideValue;
+    public bool ShowsDisplay => ShowsUnit || CanHideValue || ShowsLimits;
+
+    /// <summary>Whether this kind can show its reading's limits — every kind drawn as a line or a bar.</summary>
+    public bool ShowsLimits => SelectedKind?.HasLimits == true;
 
     /// <summary>Whether this kind can be turned on its side.</summary>
     public bool ShowsDirection => SelectedKind?.HasDirection == true;
@@ -1550,6 +1553,21 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private bool _minMaxShown;
     [ObservableProperty] private bool _trendShown;
 
+    // Style too: the lines and marks go up and come down in place, as does a chart's end.
+    partial void OnLimitsShownChanged(bool value) => Apply();
+    partial void OnEndShownChanged(bool value) => Apply();
+    partial void OnColouredByReadingChanged(bool value) => Apply();
+
+    /// <summary>A dot on a chart's newest reading, pulsing as each one arrives.</summary>
+    [ObservableProperty] private bool _endShown;
+
+    /// <summary>A chart's line in the colour of each reading's state along the way.</summary>
+    [ObservableProperty] private bool _colouredByReading;
+
+    /// <summary>Lines on a chart and marks on a bar where the reading turns elevated and alert. With the widget, as
+    /// every part that adds to what is on the screen is.</summary>
+    [ObservableProperty] private bool _limitsShown;
+
     [RelayCommand]
     private void RemoveSeries(SeriesRow? row)
     {
@@ -1736,6 +1754,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowTotal = TotalShown;
         _target.ShowMinMax = MinMaxShown;
         _target.ShowTrend = TrendShown;
+        _target.ShowLimits = LimitsShown;
+        _target.ShowEnd = EndShown;
+        _target.ColourByReading = ColouredByReading;
 
         // A widget that has just started drawing a figure of its own shape (made a dial, or a clock given rings) takes
         // that shape now, led by its width: a 200×70 clock given rings would otherwise draw them a third of the size
@@ -1999,6 +2020,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         TotalShown = source.ShowTotal;
         MinMaxShown = source.ShowMinMax;
         TrendShown = source.ShowTrend;
+        LimitsShown = source.ShowLimits;
+        EndShown = source.ShowEnd;
+        ColouredByReading = source.ColourByReading;
     }
 }
 

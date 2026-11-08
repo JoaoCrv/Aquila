@@ -4,7 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using Aquila.Controls.Primitives;
 using Aquila.Models;
+using Aquila.Services;
 
 namespace Aquila.Controls;
 
@@ -12,9 +14,9 @@ namespace Aquila.Controls;
 /// A row of bars, one per reading — an equaliser standing up, or a stack of meters lying down.
 ///
 /// Which way it runs is <see cref="IOrientedBars"/>, and the two are the same drawing with the dimensions
-/// swapped: the reading grows along one axis and the thickness holds the other. The awkward part is not the
-/// layout but the release — a bar turned on its side while still holding the Height it grew to would keep
-/// it, so the measurement that stops being the reading is cleared along with its animation.
+/// swapped: the reading grows along one axis and the thickness holds the other. Each bar is a
+/// <see cref="BarFill"/>, which draws a share of its track rather than being laid out at a size — so turning it on
+/// its side is one property, and a resize needs nothing from here at all.
 ///
 /// The only piece whose count is the hardware's to decide: sixteen CPU cores make sixteen bars. Everything
 /// else in the catalogue draws a number of readings fixed when the kind was written, which is why the
@@ -24,18 +26,23 @@ namespace Aquila.Controls;
 /// interface exists so a piece holding ONE node can be told to let go of it, and this holds a list. It
 /// unsubscribes on Unloaded, by itself.
 ///
-/// It is also the first bar in the app that can animate. <c>BarGroup</c>, the per-core bars on the
+/// It is also the first bar in the app that could animate. <c>BarGroup</c>, the per-core bars on the
 /// dashboard, rebuilds its items from scratch every tick — new records, new containers — so there is
 /// nothing persistent to animate; a sweep would restart from zero every second. Here each bar is built
-/// once and only its height moves, which is the same discipline the gauge already needs.
+/// once and only its share moves, which is the same discipline the gauge already needs.
 /// </summary>
-public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOrientedBars, IScaledFigure
+public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOrientedBars, IScaledFigure, IFollowsSchemeTrack,
+    ILimitParts, ILimitStyle
 {
-    private sealed record Bar(
-        SensorNode Sensor, Border Track, Border Fill, TextBlock Reading, DockPanel Column)
+    private sealed record Bar(SensorNode Sensor, BarFill Fill, TextBlock Reading, DockPanel Column)
     {
+        /// <summary>The share last sent to the bar; NaN until it has been put anywhere, so its first place is a jump.
+        /// </summary>
         public double Shown { get; set; } = double.NaN;
     }
+
+    /// <summary>The look of bars nobody has dressed — the type picker.</summary>
+    private static readonly BarLook Undressed = new(6, 3, null);
 
     private readonly List<Bar> _bars = [];
     private readonly UniformGrid _row = new() { Rows = 1 };
@@ -43,20 +50,11 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     public SensorBars(IReadOnlyList<SensorNode> sensors)
     {
         Content = _row;
+        SchemeTrack.Follow(this);
 
         foreach (var sensor in sensors)
         {
-            var fill = new Border { VerticalAlignment = VerticalAlignment.Bottom, Height = 0 };
-
-            var track = new Border
-            {
-                Child = fill,
-                HorizontalAlignment = HorizontalAlignment.Center,
-            };
-
-            // By reference rather than read once: read at construction, it found the dashboard's track as
-            // it was then and kept it through every preset change after.
-            track.SetResourceReference(Border.BackgroundProperty, TrackKey);
+            var fill = new BarFill();
 
             var reading = new TextBlock
             {
@@ -68,23 +66,48 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
             var column = new DockPanel { Margin = new Thickness(2, 0, 2, 0) };
             DockPanel.SetDock(reading, Dock.Bottom);
             column.Children.Add(reading);
-            column.Children.Add(track);
+            column.Children.Add(fill);
 
-            var bar = new Bar(sensor, track, fill, reading, column);
+            var bar = new Bar(sensor, fill, reading, column);
             _bars.Add(bar);
             _row.Children.Add(column);
-
-            // The fill's height is a fraction of a track whose size is only known once laid out, and it
-            // changes again whenever the widget is resized. Both are answered in the same place.
-            track.SizeChanged += (_, _) => Draw(bar, animate: false);
-            sensor.PropertyChanged += OnSensorChanged;
         }
 
-        Loaded += (_, _) => Apply();
-        Unloaded += (_, _) =>
+        Loaded += (_, _) => Hook();
+        Unloaded += (_, _) => Unhook();
+    }
+
+    private bool _hooked;
+    private VitalMonitor? _monitor;
+
+    /// <summary>Takes hold of the readings and the limits on Loaded and lets go on Unloaded, as every piece does, so a
+    /// piece off screen holds nothing — and one that comes back listens again. (It subscribed once, when it was built,
+    /// and a piece unloaded and loaded again stopped moving.)</summary>
+    private void Hook()
+    {
+        if (!_hooked)
         {
-            foreach (var bar in _bars) bar.Sensor.PropertyChanged -= OnSensorChanged;
-        };
+            _hooked = true;
+            foreach (var bar in _bars) bar.Sensor.PropertyChanged += OnSensorChanged;
+            _monitor = VitalMonitor.Current;
+            if (_monitor is not null) _monitor.Changed += OnLimitsChanged;
+        }
+
+        Apply();
+    }
+
+    private void Unhook()
+    {
+        if (!_hooked) return;
+        _hooked = false;
+        foreach (var bar in _bars) bar.Sensor.PropertyChanged -= OnSensorChanged;
+        if (_monitor is not null) _monitor.Changed -= OnLimitsChanged;
+        _monitor = null;
+    }
+
+    private void OnLimitsChanged()
+    {
+        foreach (var bar in _bars) Mark(bar, SensorScale.Ceiling(bar.Sensor, double.NaN));
     }
 
     private void OnSensorChanged(object? sender, PropertyChangedEventArgs e)
@@ -101,31 +124,44 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     /// ramp and its own reading's state — sixteen cores can go amber one at a time.</summary>
     public void PaintBar(int index, Brush brush)
     {
-        if (index >= 0 && index < _bars.Count) _bars[index].Fill.Background = brush;
+        if (index >= 0 && index < _bars.Count) _bars[index].Fill.Fill = brush;
     }
 
     private void Draw(Bar bar, bool animate)
     {
-        var upright = Direction == BarDirection.Vertical;
-
-        // The dimension the reading grows along is the one the direction chooses; the other is the bar's
-        // thickness and never moves. One property is animated and the other is left alone, which is why
-        // the unused one has to be cleared — a bar turned on its side while holding a Height would keep
-        // it and refuse to fill.
-        var room = upright ? bar.Track.ActualHeight : bar.Track.ActualWidth;
-        if (room <= 0) return;
-
         var ceiling = SensorScale.Ceiling(bar.Sensor, double.NaN);
-        var value = Math.Clamp(bar.Sensor.Value ?? 0, 0, ceiling);
-        var target = ceiling > 0 ? room * value / ceiling : 0;
+        var share = ceiling > 0 ? Math.Clamp(bar.Sensor.Value ?? 0, 0, ceiling) / ceiling : 0;
 
         bar.Reading.Text = ShowValue ? bar.Sensor.Reading(ShowUnit, string.Empty) : string.Empty;
+        Mark(bar, ceiling);
 
-        if (Math.Abs(target - bar.Shown) < 0.01) return;
-        bar.Shown = target;
+        if (Math.Abs(share - bar.Shown) < 1e-4) return;
 
-        // As SensorBar does: from wherever the bar is drawn, or there at once — see Motion.To.
-        Motion.To(bar.Fill, upright ? HeightProperty : WidthProperty, target, animate);
+        animate &= !double.IsNaN(bar.Shown);
+        bar.Shown = share;
+
+        // As every bar does: from wherever it is drawn, or there at once — see BarFill.MoveTo.
+        bar.Fill.MoveTo(share, animate);
+    }
+
+    /// <summary>A bar's limits, on its own scale — each bar its own sensor's, so a core and a drive side by side are
+    /// each marked where they turn.</summary>
+    private void Mark(Bar bar, double ceiling)
+    {
+        var marks = _showLimits ? LimitMarks.On(bar.Sensor, 0, ceiling) : null;
+        if (!LimitMarks.Same(bar.Fill.Marks, marks)) bar.Fill.Marks = marks;
+        bar.Fill.MarkBrush = _limitBrush ?? LimitMarks.Unpainted;
+        bar.Fill.MarkReach = _showLimits ? LimitMarks.Reach * _figureScale : 0;
+    }
+
+    void IFollowsSchemeTrack.SchemeTrackChanged() => Dress();
+
+    /// <summary>Every bar's look: the preset's, or the type picker's default — over the dashboard's track when the
+    /// look names none.</summary>
+    private void Dress()
+    {
+        var look = SchemeTrack.Resolve(this, _barLook, Undressed);
+        foreach (var bar in _bars) bar.Fill.Look = look;
     }
 
     /// <summary>
@@ -175,27 +211,18 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
         _row.Rows = upright ? 1 : 0;
         _row.Columns = upright ? 0 : 1;
 
+        Dress();
+
         foreach (var bar in _bars)
         {
-            // Thickness is always the dimension the reading does NOT grow along, and the other is cleared
-            // to Auto so the track can take all the room there is for the reading to fill.
-            bar.Track.Width = upright ? BarThickness : double.NaN;
-            bar.Track.Height = upright ? double.NaN : BarThickness;
-            bar.Track.HorizontalAlignment = upright ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
-            bar.Track.VerticalAlignment = upright ? VerticalAlignment.Stretch : VerticalAlignment.Center;
+            // Up from the floor, or out from the left wall: the bar is as thick as its look across, and takes all
+            // the room there is along the way the reading grows.
+            bar.Fill.Orientation = upright ? Orientation.Vertical : Orientation.Horizontal;
+            bar.Fill.HorizontalAlignment = upright ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
+            bar.Fill.VerticalAlignment = upright ? VerticalAlignment.Stretch : VerticalAlignment.Center;
 
-            // Up from the floor, or out from the left wall.
-            bar.Fill.VerticalAlignment = upright ? VerticalAlignment.Bottom : VerticalAlignment.Stretch;
-            bar.Fill.HorizontalAlignment = upright ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
-
-            // The measurement that is no longer the reading has to be released, or a bar turned from one
-            // direction to the other keeps the size it grew to in the old one.
-            bar.Fill.BeginAnimation(upright ? WidthProperty : HeightProperty, null);
-            bar.Fill.ClearValue(upright ? WidthProperty : HeightProperty);
+            // Turned or restyled, a bar is put at its reading again rather than swept there.
             bar.Shown = double.NaN;
-
-            bar.Fill.CornerRadius = new CornerRadius(BarCorner);
-            bar.Track.CornerRadius = new CornerRadius(BarCorner);
 
             // Under the bar when standing, after it when lying down — always at the end of the reading. The gaps
             // grow with the widget, as the bars and the numbers do, or sixteen bars made twice as big would
@@ -228,26 +255,34 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
 
     // ── Style ────────────────────────────────────────────────────────
 
-    private double _barThickness = 6;
-    private double _barCorner = 3;
+    private BarLook? _barLook;
+    private bool _showLimits;
+    private Brush? _limitBrush;
     private bool _showValue = true;
+
+    /// <summary>Marks across each bar where its reading turns elevated and alert.</summary>
+    public bool ShowLimits
+    {
+        get => _showLimits;
+        set { _showLimits = value; Apply(); }
+    }
+
+    public Brush? LimitBrush
+    {
+        get => _limitBrush;
+        set { _limitBrush = value; Apply(); }
+    }
     private bool _showUnit = true;
     private double _valueSize = 9;
     private string? _valueFont;
     private TextWeight _valueWeight = TextWeight.Regular;
 
-    /// <summary>Each bar's WIDTH. On a horizontal meter this is the bar's height; turned upright, the
-    /// height is the reading, so thickness can only mean the other dimension.</summary>
-    public double BarThickness
+    /// <summary>The preset's bar, for every bar alike. Its thickness is each bar's WIDTH standing up: turned upright,
+    /// the height is the reading, so thickness can only mean the other dimension.</summary>
+    public BarLook? BarLook
     {
-        get => _barThickness;
-        set { _barThickness = value; Apply(); }
-    }
-
-    public double BarCorner
-    {
-        get => _barCorner;
-        set { _barCorner = value; Apply(); }
+        get => _barLook;
+        set { _barLook = value; Dress(); }
     }
 
     public bool ShowValue
@@ -304,18 +339,4 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     /// Left on the interface rather than split out for one piece — a setting that visibly does nothing is
     /// cheaper than an interface nobody can remember the shape of.</summary>
     public MeterLayout Layout { get; set; } = MeterLayout.Beside;
-
-    private const string TrackKey = "Aquila.Scheme.Track";
-
-    /// <summary>Overrides Aquila.Scheme.Track for this piece alone. Its bars draw their track from that key
-    /// by reference, so a resource set here reaches them without each having to be told.</summary>
-    public Brush? TrackBrush
-    {
-        get => Resources[TrackKey] as Brush;
-        set
-        {
-            if (value is null) Resources.Remove(TrackKey);
-            else Resources[TrackKey] = value;
-        }
-    }
 }

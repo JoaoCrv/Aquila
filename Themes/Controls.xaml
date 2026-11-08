@@ -18,8 +18,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-                    xmlns:controls="clr-namespace:Aquila.Controls"
-                    xmlns:helpers="clr-namespace:Aquila.Helpers">
+                    xmlns:controls="clr-namespace:Aquila.Controls">
 
     <!-- ════════════════════════════════════════════════════════════════
          Surfaces and controls
@@ -408,48 +407,7 @@
         <Setter Property="Margin" Value="0,5"/>
     </Style>
 
-    <!-- ════════════════════════════════════════════════════════════════
-         ThinBar — base progress bar template
-         ════════════════════════════════════════════════════════════════ -->
-
-    <Style x:Key="ThinBar" TargetType="ProgressBar">
-        <Setter Property="Height" Value="6"/>
-        <Setter Property="Minimum" Value="0"/>
-        <Setter Property="Maximum" Value="100"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ProgressBar">
-                    <!-- Track comes from the profile, not from a neutral: a bar reads as one object when
-                         its empty part is a dimmed version of its full part. -->
-                    <Border Background="{DynamicResource Aquila.Scheme.Track}"
-                            Height="{TemplateBinding Height}"
-                            CornerRadius="{Binding Path=(controls:BarShape.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}">
-                        <Border x:Name="PART_Track" HorizontalAlignment="Left"
-                                CornerRadius="{Binding Path=(controls:BarShape.CornerRadius), RelativeSource={RelativeSource TemplatedParent}}"
-                                Background="{TemplateBinding Foreground}">
-                            <Border.Width>
-                                <MultiBinding>
-                                    <MultiBinding.Converter>
-                                        <helpers:ProgressBarWidthConverter/>
-                                    </MultiBinding.Converter>
-                                    <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Value"/>
-                                    <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Minimum"/>
-                                    <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Maximum"/>
-                                    <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ActualWidth"/>
-                                </MultiBinding>
-                            </Border.Width>
-                        </Border>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- A ThinBar in the dashboard's accent. There were three — GpuBar, RamBar and FanBar — identical to
-         the letter and named after the hardware they happened to stand beside, which is how the storage
-         page came to draw its drives with RamBar. The same mistake as the hardware-named colour tokens. -->
-    <Style x:Key="AccentBar" TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-        <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Accent}"/>
-    </Style>
+    <!-- The bars are not styled here any more. The ThinBar progress-bar template and its AccentBar were the cards'
+         bars until docs/graficos-proprios: every bar is now drawn by the drawing framework (BarFill, ValueBar), over
+         the dashboard's track, in the colour its page gives it. -->
 </ResourceDictionary>

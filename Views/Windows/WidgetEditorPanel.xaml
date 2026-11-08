@@ -1051,6 +1051,30 @@
                                     </Grid>
                                 </ui:CardControl.Header>
                             </ui:CardControl>
+
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Pulse24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Dot on the latest reading"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="In the reading's colour. It pulses as each reading arrives, while motion is on."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Dot on the latest reading"
+                                                 IsChecked="{Binding ViewModel.EndShown}"/>
+                            </ui:CardControl>
+
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon ColorLine24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Colour by reading"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Each stretch of the line in its reading's colour: amber where it was elevated, red where it was critical. Only for readings with limits."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Colour by reading"
+                                                 IsChecked="{Binding ViewModel.ColouredByReading}"/>
+                            </ui:CardControl>
                         </StackPanel>
 
                         <StackPanel Margin="0,0,0,16"
@@ -1137,6 +1161,19 @@
                                 </ui:CardControl.Header>
                                 <ui:ToggleSwitch AutomationProperties.Name="Show the reading"
                                                  IsChecked="{Binding ViewModel.ValueShown}"/>
+                            </ui:CardControl>
+
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon LineDashes24}"
+                                            Visibility="{Binding ViewModel.ShowsLimits, Converter={StaticResource BoolToVisibility}}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Show limits"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Lines on a chart, marks on a bar, where the reading turns elevated and alert. Only for readings with limits."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Show limits"
+                                                 IsChecked="{Binding ViewModel.LimitsShown}"/>
                             </ui:CardControl>
                         </StackPanel>
 
