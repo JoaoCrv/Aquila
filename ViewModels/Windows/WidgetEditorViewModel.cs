@@ -654,10 +654,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     public bool ShowsLine => SelectedKind?.HasLine == true;
     public bool ShowsBar => SelectedKind?.HasBar == true;
 
-    /// <summary>Whether the bar section applies — to a meter and to Bars, and to a list drawing a bar under each row,
-    /// which takes two thirds of the section's thickness and corners. Only the bar kinds have a layout: a row's bar is
-    /// always under its line, as only the dial has a sweep.</summary>
-    public bool ShowsBarStyle => ShowsBar || (ShowsList && BarShown);
+    /// <summary>Whether the bar section applies — to a meter and to Bars, and to a list or a Number drawing a bar under
+    /// a line of text, which takes two thirds of the section's thickness and corners. Only the bar kinds have a layout:
+    /// a bar under text is always under it, as only the dial has a sweep.</summary>
+    public bool ShowsBarStyle => ShowsBar || ((ShowsList || ShowsNumber) && BarShown);
 
     public bool ShowsNumber => SelectedKind?.HasNumber == true;
 
@@ -890,10 +890,11 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     // --- Number ---
 
     [ObservableProperty] private double _unitSize = 13;
-    [ObservableProperty] private bool _numberPanel;
+    /// <summary>A percentage, as every opacity in this form is; the preset keeps it from 0 to 1.</summary>
+    [ObservableProperty] private double _unitOpacity = 60;
 
     partial void OnUnitSizeChanged(double value) => Dress();
-    partial void OnNumberPanelChanged(bool value) => Dress();
+    partial void OnUnitOpacityChanged(double value) => Dress();
 
     // --- Words: the typeface, the label, and the reading ---
 
@@ -987,7 +988,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             BarLayout = preset.Bar.Layout;
 
             UnitSize = preset.Number.UnitSize;
-            NumberPanel = preset.Number.Panel;
+            UnitOpacity = preset.Number.UnitOpacity * 100;
 
             ReadRamps(preset);
 
@@ -1060,7 +1061,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Bar.Layout = BarLayout;
 
         preset.Number.UnitSize = UnitSize;
-        preset.Number.Panel = NumberPanel;
+        preset.Number.UnitOpacity = UnitOpacity / 100;
 
         // Null rather than the label, so a preset that defers to the theme says so in the file instead of
         // freezing today's theme font into itself.
@@ -1531,14 +1532,23 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnTotalShownChanged(bool value) => Apply();
 
     /// <summary>What each row of a list draws besides its name and number, and whether the list's total is written on
-    /// the title's line. With the widget, beside the row count: each changes what is on the screen, so a preset never
-    /// carries one.</summary>
+    /// the title's line — and the bar is a Number's level bar too. With the widget, beside the row count: each changes
+    /// what is on the screen, so a preset never carries one.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsBarStyle))]
     private bool _barShown;
 
     [ObservableProperty] private bool _sparklineShown;
     [ObservableProperty] private bool _totalShown;
+
+    // Style, as the list's are: the Number puts its notes and its arrow up and takes them down in place.
+    partial void OnMinMaxShownChanged(bool value) => Apply();
+    partial void OnTrendShownChanged(bool value) => Apply();
+
+    /// <summary>What a Number draws besides its reading and its bar: the session's lowest and highest, and an arrow
+    /// while it rises or falls. With the widget, for the reason the list's parts are.</summary>
+    [ObservableProperty] private bool _minMaxShown;
+    [ObservableProperty] private bool _trendShown;
 
     [RelayCommand]
     private void RemoveSeries(SeriesRow? row)
@@ -1724,6 +1734,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowBar = BarShown;
         _target.ShowSparkline = SparklineShown;
         _target.ShowTotal = TotalShown;
+        _target.ShowMinMax = MinMaxShown;
+        _target.ShowTrend = TrendShown;
 
         // A widget that has just started drawing a figure of its own shape (made a dial, or a clock given rings) takes
         // that shape now, led by its width: a 200×70 clock given rings would otherwise draw them a third of the size
@@ -1985,6 +1997,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         BarShown = source.ShowBar;
         SparklineShown = source.ShowSparkline;
         TotalShown = source.ShowTotal;
+        MinMaxShown = source.ShowMinMax;
+        TrendShown = source.ShowTrend;
     }
 }
 

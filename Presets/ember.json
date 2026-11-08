@@ -52,7 +52,7 @@
   },
   "number": {
     "unitSize": 13,
-    "panel": false
+    "unitOpacity": 0.6
   },
   "title": {
     "color": "#FFFFFF",

@@ -78,6 +78,27 @@ public sealed class ScaleProperties
         Assert.Equal(scale, WidgetScale.Of(list), precision: 6);
     }
 
+    /// <summary>
+    /// A Number written before its notes — none asked for, 150×120 — is drawn exactly as it was, and one made today,
+    /// with them, is at one at its own starting size, 180×120. Turning its notes off there leaves its number the size it
+    /// was; turning them on in the old box draws it all a little smaller, so "min 0  max 980.4 MB/s" still fits.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 150, 120, 1)]
+    [InlineData(false, 300, 240, 2)]
+    [InlineData(false, 180, 120, 1)]
+    [InlineData(true, 180, 120, 1)]
+    [InlineData(true, 150, 120, 150 / 180d)]
+    public void A_number_is_measured_by_the_figure_it_draws(bool notes, double width, double height, double scale)
+    {
+        var number = new DesktopWidgetDefinition
+        {
+            Kind = DesktopWidgetKind.StatBox, ShowMinMax = notes, Width = width, Height = height,
+        };
+
+        Assert.Equal(scale, WidgetScale.Of(number), precision: 6);
+    }
+
     /// <summary>Whatever a file says the size is, the scale stays within its bounds.</summary>
     [Property(MaxTest = 1000)]
     public Property The_scale_is_always_within_its_bounds() =>

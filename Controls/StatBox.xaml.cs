@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using Aquila.Models;
 
 namespace Aquila.Controls;
 
@@ -9,36 +8,17 @@ namespace Aquila.Controls;
 /// Small "stat box": a large value with a small unit suffix and a caption below, on a rounded fill.
 /// Reusable across dashboard cards (CPU, GPU, ...). Set <see cref="Accent"/> to colour the value;
 /// leave it unset to inherit the theme foreground.
+///
+/// The dashboard's alone since the Number widget got a piece of its own (<see cref="NumberTile"/>). It was the
+/// widget's too, which is where its preset sizes, its switchable panel and its switchable unit came from — gone with
+/// that, since no card asks for any of them.
 /// </summary>
-public partial class StatBox : UserControl, IStatStyle, IScaledFigure
+public partial class StatBox : UserControl
 {
     public StatBox()
     {
         InitializeComponent();
         Apply();
-    }
-
-    private double _figureScale = 1;
-
-    /// <summary>
-    /// For the panel's padding and corners, which are the StatBox style's — and stay there: they are read back
-    /// from it and multiplied, so the numbers keep one home. At 1 the style is left to supply them, which is what
-    /// every dashboard card has always drawn.
-    /// </summary>
-    public double FigureScale
-    {
-        get => _figureScale;
-        set
-        {
-            _figureScale = value;
-
-            StatPanel.ClearValue(Border.PaddingProperty);
-            StatPanel.ClearValue(Border.CornerRadiusProperty);
-            if (value == 1) return;
-
-            StatPanel.Padding = StatPanel.Padding.Scaled(value);
-            StatPanel.CornerRadius = StatPanel.CornerRadius.Scaled(value);
-        }
     }
 
     public static readonly DependencyProperty LabelProperty =
@@ -60,83 +40,7 @@ public partial class StatBox : UserControl, IStatStyle, IScaledFigure
 
     public static readonly DependencyProperty UnitProperty =
         DependencyProperty.Register(nameof(Unit), typeof(string), typeof(StatBox),
-            new PropertyMetadata(string.Empty, (d, _) => ((StatBox)d).Apply()));
-
-    public static readonly DependencyProperty ShowUnitProperty =
-        DependencyProperty.Register(nameof(ShowUnit), typeof(bool), typeof(StatBox),
-            new PropertyMetadata(true, (d, _) => ((StatBox)d).Apply()));
-
-    public static readonly DependencyProperty ShowPanelProperty =
-        DependencyProperty.Register(nameof(ShowPanel), typeof(bool), typeof(StatBox),
-            new PropertyMetadata(true, (d, _) => ((StatBox)d).Apply()));
-
-    public static readonly DependencyProperty ValueFontProperty =
-        DependencyProperty.Register(nameof(ValueFont), typeof(string), typeof(StatBox),
-            new PropertyMetadata(null, (d, _) => ((StatBox)d).WearValue()));
-
-    public static readonly DependencyProperty ValueWeightProperty =
-        DependencyProperty.Register(nameof(ValueWeight), typeof(TextWeight), typeof(StatBox),
-            new PropertyMetadata(TextWeight.Regular, (d, _) => ((StatBox)d).WearValue()));
-
-    public string? ValueFont
-    {
-        get => (string?)GetValue(ValueFontProperty);
-        set => SetValue(ValueFontProperty, value);
-    }
-
-    public TextWeight ValueWeight
-    {
-        get => (TextWeight)GetValue(ValueWeightProperty);
-        set => SetValue(ValueWeightProperty, value);
-    }
-
-    private void WearValue() => ValueText.Wear(ValueFont, ValueWeight);
-
-    public static readonly DependencyProperty ValueSizeProperty =
-        DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(StatBox),
-            new PropertyMetadata(20.0));
-
-    /// <summary>
-    /// What the unit Run actually draws — the unit, or nothing when it is switched off.
-    ///
-    /// A property of its own rather than binding the Run straight to Unit and clearing it: the dashboard
-    /// cards all set Unit and must go on working untouched, and code that writes over a binding to hide
-    /// something is code that has to remember to put the binding back.
-    /// </summary>
-    public static readonly DependencyProperty UnitTextProperty =
-        DependencyProperty.Register(nameof(UnitText), typeof(string), typeof(StatBox),
             new PropertyMetadata(string.Empty));
-
-    public string UnitText
-    {
-        get => (string)GetValue(UnitTextProperty);
-        private set => SetValue(UnitTextProperty, value);
-    }
-
-    /// <summary>Whether the unit suffix is drawn at all.</summary>
-    public bool ShowUnit { get => (bool)GetValue(ShowUnitProperty); set => SetValue(ShowUnitProperty, value); }
-
-    /// <summary>Whether the rounded fill behind the number is drawn.</summary>
-    public bool ShowPanel { get => (bool)GetValue(ShowPanelProperty); set => SetValue(ShowPanelProperty, value); }
-
-    /// <summary>Font size of the value (default 20, matching the StatBoxValue style).</summary>
-    public double ValueSize { get => (double)GetValue(ValueSizeProperty); set => SetValue(ValueSizeProperty, value); }
-
-    private void Apply()
-    {
-        UnitText = ShowUnit ? Unit : string.Empty;
-
-        // An empty caption still occupies a line, which pushed the number off centre. Widgets never set one
-        // — they carry their title above the piece — so for them this is always the case.
-        LabelText.Visibility = string.IsNullOrEmpty(Label) ? Visibility.Collapsed : Visibility.Visible;
-
-        // Cleared rather than set back to a colour: the style supplies the fill through a DynamicResource,
-        // so a local value would pin it to whichever theme was current when the panel was last turned on.
-        // Border.BackgroundProperty, qualified: unqualified here would bind to Control.BackgroundProperty,
-        // which this UserControl inherits and which is a different property from the Border's own.
-        if (ShowPanel) StatPanel.ClearValue(Border.BackgroundProperty);
-        else StatPanel.Background = Brushes.Transparent;
-    }
 
     public static readonly DependencyProperty UnitSizeProperty =
         DependencyProperty.Register(nameof(UnitSize), typeof(double), typeof(StatBox),
@@ -160,6 +64,10 @@ public partial class StatBox : UserControl, IStatStyle, IScaledFigure
 
     /// <summary>Optional value colour. Unset → inherits the theme foreground.</summary>
     public Brush? Accent { get => (Brush?)GetValue(AccentProperty); set => SetValue(AccentProperty, value); }
+
+    /// <summary>An empty caption still occupies a line, which pushes the number off centre.</summary>
+    private void Apply() =>
+        LabelText.Visibility = string.IsNullOrEmpty(Label) ? Visibility.Collapsed : Visibility.Visible;
 
     private static void OnAccentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {

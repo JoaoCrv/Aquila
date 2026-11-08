@@ -159,13 +159,22 @@ public static class WidgetCatalog
             SeriesPaint.Properties(SensorMeter.AccentProperty))
             { HasBar = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = "One reading as a bar" },
 
+        // Wider since its notes, which a Number made today starts with: a throughput's "min 0  max 980.4 MB/s" is the
+        // widest line it writes, and at 150 it did not fit. A Number from before them keeps the size it was given, and
+        // is measured as the number alone it is — the clock's argument about its rings, the list's about its bars. The
+        // height is the same either way, so a Number at its starting size keeps its number's size when its notes are
+        // turned off or on.
         new(DesktopWidgetKind.StatBox,
             "Number",
-            "Just the reading, large, with its unit.",
-            150, 120,
-            series => BuildStatBox(series[0]),
-            SeriesPaint.Properties(StatBox.AccentProperty))
-            { HasNumber = true, Icon = Wpf.Ui.Controls.SymbolRegular.NumberSymbol24, Summary = "One reading, large" },
+            "Just the reading, large, with its unit — and how far into its limits, and its lowest and highest.",
+            180, 120,
+            series => new NumberTile { Sensor = series[0] },
+            SeriesPaint.Properties(NumberTile.AccentProperty))
+            {
+                HasNumber = true, Icon = Wpf.Ui.Controls.SymbolRegular.NumberSymbol24, Summary = "One reading, large",
+                Reference = number => number.ShowMinMax ? (180, 120) : (150, 120),
+                MadeNow = number => (number.ShowBar, number.ShowMinMax) = (true, true),
+            },
 
         new(DesktopWidgetKind.SparklineChart,
             "Chart",
@@ -273,9 +282,9 @@ public static class WidgetCatalog
 
     /// <summary>
     /// SensorMeter takes the displayed number as a pre-formatted string — the Sensor property only drives
-    /// the bar — the same convention as StatBox, where the caller decides the format. The dashboard cards
-    /// hardcode both format and unit because each knows its sensor; a generic widget cannot, so it asks
-    /// SensorFormat, through the converter below.
+    /// the bar — the same convention as the dashboard's StatBox, where the caller decides the format. The
+    /// dashboard cards hardcode both format and unit because each knows its sensor; a generic widget cannot,
+    /// so it asks SensorFormat, through the converter below.
     /// </summary>
     private static SensorMeter BuildMeter(SensorNode sensor)
     {
@@ -295,20 +304,6 @@ public static class WidgetCatalog
         Bind(meter, SensorMeter.ValueTextProperty, SensorMeter.UnitProperty, sensor);
 
         return meter;
-    }
-
-    /// <summary>
-    /// StatBox takes its number pre-formatted too, and carries no sensor of its own — so it needs a
-    /// binding rather than an assignment. No Label: the widget already has a title above it, and a second
-    /// caption inside would only repeat it.
-    /// </summary>
-    private static StatBox BuildStatBox(SensorNode sensor)
-    {
-        var box = new StatBox();
-
-        Bind(box, StatBox.ValueProperty, StatBox.UnitProperty, sensor);
-
-        return box;
     }
 
     /// <summary>
@@ -341,7 +336,7 @@ public static class WidgetCatalog
     }
 
     /// <summary>One half of a formatted reading, chosen by the parameter. Private because it exists for
-    /// the two pieces that take their number as a pre-formatted string; everything else asks SensorFormat
+    /// the meter, which takes its number as a pre-formatted string; everything else asks SensorFormat
     /// directly.</summary>
     private sealed class ReadingPart(string? unit) : IValueConverter
     {

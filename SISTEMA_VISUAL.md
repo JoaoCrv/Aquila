@@ -284,7 +284,7 @@ Três saltos, sempre os mesmos.
   "line":       { "thickness": 1.5, "fill": "Gradient", "fillOpacity": 0.30,
                   "smoothness": 0.5, "pointSize": 0 },
   "bar":        { "thickness": 6, "corner": 3, "layout": "Beside" },
-  "number":     { "unitSize": 13, "panel": false },
+  "number":     { "unitSize": 13, "unitOpacity": 0.6 },
   "title":      { "size": 11, "opacity": 0.6, "placement": "Top", "align": "Left", "gap": 12,
                   "background": { "color": "#FFFFFF", "opacity": 0.05 },
                   "border":     { "color": "#FFFFFF", "opacity": 0.1, "thickness": 0, "cornerRadius": 4,

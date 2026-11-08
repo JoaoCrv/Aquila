@@ -620,13 +620,9 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
     /// <summary>The shortest a bar is drawn, as a share of its track — the design's 2%.</summary>
     private const double LeastBar = 0.02;
 
-    /// <summary>
-    /// How thick a row's bar is against the preset's bar section. That section was written for a meter — ONE bar,
-    /// the widget's whole reading — and a list is several readings in a column, each a line of text with a bar under
-    /// it. Two thirds of Ember's 6 and 3 is the design's 4 and 2. A share and not a number, so a preset with a
-    /// heavier bar still gets heavier rows, in proportion — the clock's RingShare, for the same reason.
+    /// <summary>How thick a row's bar is against the preset's bar section — see <see cref="IBarStyle.UnderTextShare"/>.
     /// </summary>
-    private const double BarShare = 2.0 / 3;
+    private const double BarShare = IBarStyle.UnderTextShare;
 
     /// <summary>At least a pixel: the thickness comes from a preset, which a hand can edit to nothing.</summary>
     private double BarHeight => Math.Max(1, _barThickness * BarShare);
