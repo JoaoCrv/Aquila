@@ -28,7 +28,7 @@ namespace Aquila.Controls;
 ///     MaxY="100"/&gt;
 /// </code>
 /// </example>
-public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILimitStyle
+public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILimitStyle, IChartParts
 {
     /// <summary>The colour a series without one is drawn in — the chart's default, kept from when it drew its own.
     /// </summary>
@@ -161,6 +161,13 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         Loaded += (_, _) => Hook();
         Unloaded += (_, _) => Unhook();
         Translate();
+    }
+
+    /// <summary>A dot on the newest reading, in its state's colour, that pulses as each reading arrives.</summary>
+    public bool ShowEnd
+    {
+        get => Plot.ShowEnd;
+        set => Plot.ShowEnd = value;
     }
 
     // ── Limits ─────────────────────────────────────────────────────

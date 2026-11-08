@@ -1051,6 +1051,18 @@
                                     </Grid>
                                 </ui:CardControl.Header>
                             </ui:CardControl>
+
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Pulse24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Dot on the latest reading"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="In the reading's colour. It pulses as each reading arrives, while motion is on."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Dot on the latest reading"
+                                                 IsChecked="{Binding ViewModel.EndShown}"/>
+                            </ui:CardControl>
                         </StackPanel>
 
                         <StackPanel Margin="0,0,0,16"

@@ -1499,6 +1499,7 @@ public sealed class DesktopWidgetService
         }
 
         if (piece is ILimitParts limits) limits.ShowLimits = definition.ShowLimits;
+        if (piece is IChartParts chartParts) chartParts.ShowEnd = definition.ShowEnd;
     }
 
     /// <summary>

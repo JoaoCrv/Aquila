@@ -306,6 +306,10 @@ public class DesktopWidgetDefinition
     /// as it was.</summary>
     public bool ShowLimits { get; set; }
 
+    /// <summary>Whether a chart draws a dot on its newest reading, pulsing as each one arrives. Off when absent.
+    /// </summary>
+    public bool ShowEnd { get; set; }
+
     /// <summary>Whether each row of a list draws its recent history beside its number. Off by default, for the reason
     /// <see cref="ShowBar"/> gives.</summary>
     public bool ShowSparkline { get; set; }
