@@ -1519,7 +1519,7 @@ public sealed class DesktopWidgetService
         border.Height = definition.Height;
 
         // No font is set here. Inheriting one down the tree reached every piece made of TextBlocks and
-        // silently missed the gauge, whose number SkiaSharp paints rather than lays out. Each role now
+        // silently missed the gauge, whose number SkiaSharp painted then rather than laid out. Each role now
         // carries its own face, applied where it is drawn.
 
         if (border.Child is not LabeledTile tile) return;

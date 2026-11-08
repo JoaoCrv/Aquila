@@ -17,9 +17,9 @@ public enum SizeLead { Width, Height }
 /// The tighter axis decides. A meter made only wider is a longer bar, not a bigger one — its number has no more
 /// height to grow into — while a clock made three times bigger both ways is three times bigger.
 ///
-/// Multiplied into each size where it is applied, never laid over the content as a transform. LiveCharts paints
-/// into a bitmap at the size it is laid out at, so a ScaleTransform would magnify those pixels and blur them, and a
-/// widget stretched one way would stretch its text with it.
+/// Multiplied into each size where it is applied, never laid over the content as a transform: a widget stretched one
+/// way would stretch its text with it. (While LiveCharts drew the charts there was a second reason — it painted into
+/// a bitmap at its laid-out size, which a ScaleTransform would have magnified and blurred.)
 /// </summary>
 public static class WidgetScale
 {

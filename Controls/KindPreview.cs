@@ -71,10 +71,10 @@ public sealed class KindPreview : ContentControl
     /// <summary>
     /// A new colour repaints; it never rebuilds.
     ///
-    /// The widget editor's own rule, and for the same reason: rebuilding a chart throws away its series and
-    /// Skia paints and restarts the line from empty. Here it would do that nine times over for every notch
-    /// of a colour being dragged in the preset below — the colour is the one thing that changes often, so it
-    /// is the one thing that must be cheap.
+    /// The widget editor's own rule, and for the same reason: rebuilding makes every element, binding and
+    /// subscription of a piece again (and, while LiveCharts drew the charts, restarted each line from empty).
+    /// Here it would do that nine times over for every notch of a colour being dragged in the preset below — the
+    /// colour is the one thing that changes often, so it is the one thing that must be cheap.
     /// </summary>
     private static void OnAccentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) =>
         ((KindPreview)d).Repaint();
