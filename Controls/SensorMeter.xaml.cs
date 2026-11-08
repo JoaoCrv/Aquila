@@ -191,14 +191,6 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         set => SetValue(ValueWidthProperty, value);
     }
 
-    public static readonly DependencyProperty BarThicknessProperty =
-        DependencyProperty.Register(nameof(BarThickness), typeof(double), typeof(SensorMeter),
-            new PropertyMetadata(6d, (d, _) => ((SensorMeter)d).Apply()));
-
-    public static readonly DependencyProperty BarCornerProperty =
-        DependencyProperty.Register(nameof(BarCorner), typeof(double), typeof(SensorMeter),
-            new PropertyMetadata(3d, (d, _) => ((SensorMeter)d).Apply()));
-
     public static readonly DependencyProperty ShowValueProperty =
         DependencyProperty.Register(nameof(ShowValue), typeof(bool), typeof(SensorMeter),
             new PropertyMetadata(true, (d, _) => ((SensorMeter)d).Apply()));
@@ -227,18 +219,14 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(SensorMeter),
             new PropertyMetadata(13d, (d, _) => ((SensorMeter)d).Apply()));
 
-    /// <summary>Height of the bar in DIPs.</summary>
-    public double BarThickness
-    {
-        get => (double)GetValue(BarThicknessProperty);
-        set => SetValue(BarThicknessProperty, value);
-    }
+    private Primitives.BarLook? _barLook;
 
-    /// <summary>Corner radius of the bar. Half the thickness or more reads as a pill, 0 as square ends.</summary>
-    public double BarCorner
+    /// <summary>The bar's thickness, corners and track, from the widget's preset — handed to the bar as it is. Unset,
+    /// as on a card, the bar draws the cards' thin bar over the dashboard's track.</summary>
+    public Primitives.BarLook? BarLook
     {
-        get => (double)GetValue(BarCornerProperty);
-        set => SetValue(BarCornerProperty, value);
+        get => _barLook;
+        set { _barLook = value; Apply(); }
     }
 
     /// <summary>Whether the reading is drawn beside (or above) the bar.</summary>
@@ -268,20 +256,6 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         set => LabelPlacement = value == MeterLayout.Above ? MeterLabelPlacement.Top : MeterLabelPlacement.Inline;
     }
 
-    private const string TrackKey = "Aquila.Scheme.Track";
-
-    /// <summary>Overrides Aquila.Scheme.Track for this piece alone. Its bars draw their track from that key
-    /// by reference, so a resource set here reaches them without each having to be told.</summary>
-    public Brush? TrackBrush
-    {
-        get => Resources[TrackKey] as Brush;
-        set
-        {
-            if (value is null) Resources.Remove(TrackKey);
-            else Resources[TrackKey] = value;
-        }
-    }
-
     private void Apply()
     {
         bool inline = LabelPlacement == MeterLabelPlacement.Inline;
@@ -305,12 +279,8 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         TopValueText.FontSize = ValueSize;
         TopValueText.Wear(ValueFont, ValueWeight);
 
-        InlineBar.BarThickness = BarThickness;
-        TopBar.BarThickness = BarThickness;
-
-        // Set once, here: the property is inherited, so it reaches the ProgressBar nested inside each
-        // SensorBar without either of them having to know about it.
-        BarShape.SetCornerRadius(this, new CornerRadius(BarCorner));
+        InlineBar.Look = _barLook;
+        TopBar.Look = _barLook;
 
         if (ColorValue)
             TopValueText.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;

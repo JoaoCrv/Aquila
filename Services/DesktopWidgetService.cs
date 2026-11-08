@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using Aquila.Controls;
+using Aquila.Controls.Primitives;
 using Aquila.DesktopSurface;
 using Aquila.Helpers;
 using Aquila.Models;
@@ -1601,13 +1602,11 @@ public sealed class DesktopWidgetService
         // RestyleWidget.
         if (piece is IClockStyle clock) clock.Ramp = preset.RampFor(Ramp.Primary);
 
-        // The meter, the Bars and a list's rows read the same section, as the dial and the rings share theirs.
+        // The meter, the Bars, a list's rows and the Number's bar read the same section, as the dial and the rings
+        // share theirs — as one look, so a change of preset is one assignment.
         if (piece is IBarStyle bar)
-        {
-            bar.BarThickness = preset.Bar.Thickness * scale;
-            bar.BarCorner = preset.Bar.Corner * scale;
-            bar.TrackBrush = HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity);
-        }
+            bar.BarLook = new BarLook(preset.Bar.Thickness * scale, preset.Bar.Corner * scale,
+                HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity));
 
         if (piece is IMeterStyle meter) meter.Layout = preset.Bar.Layout;
 

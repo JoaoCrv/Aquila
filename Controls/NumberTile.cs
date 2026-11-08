@@ -40,7 +40,8 @@ namespace Aquila.Controls;
 /// It takes hold on Loaded and lets go on Unloaded, as <see cref="SensorList"/> does, so a widget off screen holds
 /// nothing and one sent to another screen takes hold again when it arrives.
 /// </summary>
-public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumberParts, IBarStyle, IScaledFigure
+public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumberParts, IBarStyle, IScaledFigure,
+    IFollowsSchemeTrack
 {
     private readonly Run _reading = new();
     private readonly Run _unit = new();
@@ -112,7 +113,7 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
         Loaded += (_, _) => Hook();
         Unloaded += (_, _) => Unhook();
 
-        SetResourceReference(SchemeTrackProperty, TrackKey);
+        SchemeTrack.Follow(this);
         Apply();
     }
 
@@ -510,9 +511,10 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
     private double _unitOpacity = 0.6;
     private Brush? _noteBrush;
     private double _noteSize = 11;
-    private double _barThickness = 6;
-    private double _barCorner = 3;
-    private Brush? _trackBrush;
+    /// <summary>The bar nobody has dressed is drawn with — the type picker: Ember's bar, the design's.</summary>
+    private static readonly BarLook Undressed = new(6, 3, null);
+
+    private BarLook? _barLook;
     private double _figureScale = 1;
     private bool _showUnit = true;
     private bool _showBar = true;
@@ -562,39 +564,20 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
         set { _noteSize = value; Apply(); }
     }
 
-    public double BarThickness
+    /// <summary>The preset's bar, at the widget's size, with its track; unset, the type picker's default over the
+    /// dashboard's track.</summary>
+    public BarLook? BarLook
     {
-        get => _barThickness;
-        set { _barThickness = value; Apply(); }
+        get => _barLook;
+        set { _barLook = value; Apply(); }
     }
 
-    public double BarCorner
-    {
-        get => _barCorner;
-        set { _barCorner = value; Apply(); }
-    }
-
-    private const string TrackKey = "Aquila.Scheme.Track";
-
-    /// <summary>The bar's track from the widget's own preset; unset, the dashboard's.</summary>
-    public Brush? TrackBrush
-    {
-        get => _trackBrush;
-        set { _trackBrush = value; Apply(); }
-    }
-
-    /// <summary>The dashboard's track, followed through the resource so a change of dashboard preset reaches a bar whose
-    /// own preset names none. A look holds a brush, not a resource, so the brush is taken from here each time the look
-    /// is made — and made again when it changes.</summary>
-    private static readonly DependencyProperty SchemeTrackProperty =
-        DependencyProperty.Register("SchemeTrack", typeof(Brush), typeof(NumberTile),
-            new PropertyMetadata(null, (piece, _) => ((NumberTile)piece).DressBar()));
+    void IFollowsSchemeTrack.SchemeTrackChanged() => DressBar();
 
     /// <summary>The bar at two thirds of the preset's, as every bar under text is, never under a pixel thick.</summary>
     private void DressBar()
     {
-        var look = new BarLook(_barThickness, _barCorner, _trackBrush ?? (Brush?)GetValue(SchemeTrackProperty))
-            .Scaled(IBarStyle.UnderTextShare);
+        var look = SchemeTrack.Resolve(this, _barLook, Undressed).Scaled(IBarStyle.UnderTextShare);
         _bar.Look = look with { Thickness = Math.Max(1, look.Thickness) };
     }
 
