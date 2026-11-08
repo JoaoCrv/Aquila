@@ -46,6 +46,11 @@ public class AppSettings
     /// because what a frame is worth depends on the machine paying for it.</summary>
     public int    MaxFrameRate      { get; set; } = 30;
 
+    /// <summary>Whether a chart's line slides steadily left between readings, rather than standing still until the next
+    /// one moves it on a step. Off by default: the one movement that never stops, so it is drawn at the frame rate for
+    /// as long as a chart is on screen. Needs motion on — with motion off nothing moves.</summary>
+    public bool   SlideCharts       { get; set; } = false;
+
     /// <summary>Whether WPF draws with the graphics card instead of the processor. Taken once, at start.
     ///
     /// Off by default (#50, measured 2026-10-22). Drawing with the card costs ~80 MB before a single window shows

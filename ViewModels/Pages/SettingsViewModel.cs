@@ -203,6 +203,9 @@ namespace Aquila.ViewModels.Pages
         private bool _drawWithGraphicsCard;
 
         [ObservableProperty]
+        private bool _slideCharts;
+
+        [ObservableProperty]
         private bool _minimizeToTray;
 
         [ObservableProperty]
@@ -297,6 +300,7 @@ namespace Aquila.ViewModels.Pages
                 ?? FrameRateOptions[2];
 
             DrawWithGraphicsCard = _settings.Current.DrawWithGraphicsCard;
+            SlideCharts      = _settings.Current.SlideCharts;
             MinimizeToTray   = _settings.Current.MinimizeToTray;
             StartMinimized   = _settings.Current.StartMinimized;
             StartWithWindows    = ElevationService.HasLogonTrigger();
@@ -497,6 +501,17 @@ namespace Aquila.ViewModels.Pages
             if (!_isInitialized) return;
 
             _settings.Current.MaxFrameRate = value.Fps;
+            _settings.Save();
+
+            Controls.Motion.Apply(_settings.Current);
+        }
+
+        /// <summary>Applied like the speed: a chart starts or stops sliding at its next reading.</summary>
+        partial void OnSlideChartsChanged(bool value)
+        {
+            if (!_isInitialized) return;
+
+            _settings.Current.SlideCharts = value;
             _settings.Save();
 
             Controls.Motion.Apply(_settings.Current);

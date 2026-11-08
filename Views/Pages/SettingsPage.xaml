@@ -118,6 +118,18 @@
                       DisplayMemberPath="Label" />
         </ui:CardControl>
 
+        <!-- The one movement that never stops, so asked for apart from the speed and off by default: with it, every chart
+             on screen is drawn at the frame rate, all the time. -->
+        <ui:CardControl Icon="{ui:SymbolIcon DataLine24}">
+            <ui:CardControl.Header>
+                <StackPanel>
+                    <TextBlock Text="Slide charts with time" />
+                    <TextBlock Style="{StaticResource SettingHint}" Text="The lines move left steadily between readings instead of a step at each. Draws every chart at the frame rate, all the time. Needs motion on." />
+                </StackPanel>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ViewModel.SlideCharts}" />
+        </ui:CardControl>
+
         <!-- The third part of the same cost: what draws the frames. Off is the processor, which is the default
              (#50): the graphics card's device alone holds more memory than everything Aquila keeps. -->
         <ui:CardControl Icon="{ui:SymbolIcon DeveloperBoard24}">

@@ -245,6 +245,10 @@ public class LinePlot : FrameworkElement
         _hooked = false;
         Listen(Values, false);
         Listen(SecondValues, false);
+
+        // A slide off screen would go on asking for frames nobody sees.
+        Rest();
+        _lastReading = 0;
     }
 
     private void Replace(object? before, object? after)
@@ -268,6 +272,8 @@ public class LinePlot : FrameworkElement
     {
         InvalidateVisual();
         Retarget(travel: true);
+
+        if (e.Action == NotifyCollectionChangedAction.Add && ReferenceEquals(sender, Values)) Slide();
 
         if (ShowEnd && e.Action == NotifyCollectionChangedAction.Add && ReferenceEquals(sender, Values) && Pace.Moves)
         {
@@ -327,6 +333,49 @@ public class LinePlot : FrameworkElement
         }
 
         _scaled = true;
+    }
+
+    // ── Sliding ──────────────────────────────────────────────────────────
+
+    /// <summary>How far the line has slid towards the next reading, 0 to 1 of a step.</summary>
+    private static readonly DependencyProperty SlideProperty = Register("Slide", 0d);
+
+    /// <summary>When the first series last took a reading, and the time between its last two — which is the poll's,
+    /// measured rather than told.</summary>
+    private long _lastReading;
+    private TimeSpan _interval;
+
+    /// <summary>
+    /// With the <see cref="Pace"/>'s slide on, a reading starts the line moving left one step over the time the last
+    /// one took to come, at the pace's frame rate, so the newest reading enters at the right edge and the line has
+    /// moved on by a step when the next arrives — which puts every point back where the step would have. A late
+    /// reading leaves the line held a step short until it comes. Only a full window slides: a series still growing
+    /// across the box has nothing to give up at the left.
+    ///
+    /// The one movement that never stops, which is why it is asked for apart from the motion.
+    /// </summary>
+    private void Slide()
+    {
+        var now = Environment.TickCount64;
+        if (_lastReading > 0) _interval = TimeSpan.FromMilliseconds(Math.Clamp(now - _lastReading, 100, 10_000));
+        _lastReading = now;
+
+        if (Pace.Slide && _interval > TimeSpan.Zero && Values is { } values && values.Count >= Window)
+        {
+            var slide = new DoubleAnimation(0, 1, _interval);
+            Timeline.SetDesiredFrameRate(slide, Pace.FrameRate);
+            BeginAnimation(SlideProperty, slide);
+        }
+        else
+        {
+            Rest();
+        }
+    }
+
+    private void Rest()
+    {
+        BeginAnimation(SlideProperty, null);
+        SetValue(SlideProperty, 0d);
     }
 
     // ── The end ──────────────────────────────────────────────────────────
@@ -411,9 +460,14 @@ public class LinePlot : FrameworkElement
                 _inks.Pen(guideBrush, 1, PenLineCap.Flat, PenLineJoin.Miter, GuideDashes));
         }
 
-        var placed = Series(drawing, values, Stroke, BandBrush(box, min, max), look, look.AreaOpacity, window, box, min,
+        // The series slide left by their share of a step; the scale, the guides and the bands stay where they are.
+        var slid = box;
+        var slide = (double)GetValue(SlideProperty);
+        if (slide > 0) slid.X -= slide * box.Width / (Math.Max(PlotGeometry.LeastWindow, window) - 1);
+
+        var placed = Series(drawing, values, Stroke, BandBrush(box, min, max), look, look.AreaOpacity, window, slid, min,
             max, height, ref _first);
-        Series(drawing, second, SecondStroke, null, look, look.AreaOpacity * SecondArea, window, box, min, max, height,
+        Series(drawing, second, SecondStroke, null, look, look.AreaOpacity * SecondArea, window, slid, min, max, height,
             ref _second);
 
         if (showEnd && Stroke is { } stroke) DrawEnd(drawing, new ReadOnlySpan<Point>(_first, 0, placed), stroke, look);

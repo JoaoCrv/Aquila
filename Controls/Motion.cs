@@ -68,12 +68,18 @@ public static class Motion
         // Held here and not trusted from the file: the menu offers only rates inside these, but the file is
         // the user's to edit, and a rate of nothing would be refused by every animation that carried it.
         FrameRate = Math.Clamp(settings.MaxFrameRate, LeastFrameRate, MostFrameRate);
+        Slide = settings.SlideCharts;
         Publish();
     }
 
+    /// <summary>Whether a chart's line slides with time between readings (<see cref="AppSettings.SlideCharts"/>). Only
+    /// while motion is on: the slide is a movement like any other.</summary>
+    public static bool Slide { get; private set; }
+
     /// <summary>Hands the pace to the drawing primitives, which cannot ask for it: they know WPF and nothing of
-    /// Aquila's settings. Every change of speed or frame rate passes through here, so the two never disagree.</summary>
-    private static void Publish() => Pace.Set(Speed, WpfEasing, FrameRate, slide: false);
+    /// Aquila's settings. Every change of speed, frame rate or slide passes through here, so they never disagree.
+    /// </summary>
+    private static void Publish() => Pace.Set(Speed, WpfEasing, FrameRate, Slide && Enabled);
 
     /// <summary>
     /// The chosen speed, held to nine tenths of the poll interval.
