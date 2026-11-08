@@ -24,24 +24,27 @@ public sealed class Inks
     /// </summary>
     private const int Kept = 8;
 
-    private readonly record struct PenKey(Brush Brush, double Thickness, PenLineCap Caps, PenLineJoin Join);
+    private readonly record struct PenKey(Brush Brush, double Thickness, PenLineCap Caps, PenLineJoin Join,
+        DashStyle? Dash);
 
     private readonly record struct FillKey(Brush Stroke, double Opacity, AreaFill Area);
 
     private readonly List<(PenKey Key, Pen Pen)> _pens = [];
     private readonly List<(FillKey Key, Brush Fill)> _fills = [];
 
-    /// <summary>The pen for a brush, a thickness, its ends and its corners.</summary>
+    /// <summary>The pen for a brush, a thickness, its ends, its corners and — for a line that is not a reading, such as
+    /// a limit — its dashes.</summary>
     public Pen Pen(Brush brush, double thickness, PenLineCap caps = PenLineCap.Flat,
-        PenLineJoin join = PenLineJoin.Miter)
+        PenLineJoin join = PenLineJoin.Miter, DashStyle? dash = null)
     {
-        var key = new PenKey(brush, thickness, caps, join);
+        var key = new PenKey(brush, thickness, caps, join, dash);
         foreach (var (made, pen) in _pens)
             if (made == key)
                 return pen;
 
         var fresh = new Pen(brush, thickness) { StartLineCap = caps, EndLineCap = caps, LineJoin = join };
-        if (brush.IsFrozen) fresh.Freeze();
+        if (dash is not null) fresh.DashStyle = dash;
+        if (brush.IsFrozen && (dash is null || dash.IsFrozen)) fresh.Freeze();
 
         if (_pens.Count == Kept) _pens.Clear();
         _pens.Add((key, fresh));

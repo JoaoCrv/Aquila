@@ -12,7 +12,7 @@ namespace Aquila.Controls;
 /// the dashboard and desktop widgets share one piece (sibling of <see cref="RadialGauge"/>).
 /// </summary>
 public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IValueStyle, IUnitStyle,
-    IHideableValue, IScaledFigure
+    IHideableValue, IScaledFigure, ILimitParts, ILimitStyle
 {
     /// <summary>The number's distance from the corner, as the XAML gives it — which stays its one home; the scale
     /// multiplies it.</summary>
@@ -92,6 +92,8 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
     public Models.ChartScale Scale { get => Spark.Scale; set => Spark.Scale = value; }
     public double ScaleMin { get => Spark.ScaleMin; set => Spark.ScaleMin = value; }
     public double ScaleMax { get => Spark.ScaleMax; set => Spark.ScaleMax = value; }
+    public bool ShowLimits { get => Spark.ShowLimits; set => Spark.ShowLimits = value; }
+    public Brush? LimitBrush { get => Spark.LimitBrush; set => Spark.LimitBrush = value; }
 
     private static void OnSensorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -115,6 +117,7 @@ public partial class MiniSparkline : UserControl, ISensorPiece, IChartStyle, IVa
 
         Spark.SeriesColor = Accent;
         Spark.Values = Sensor.History;
+        Spark.LimitsOf = Sensor;
         UpdateValue();
     }
 

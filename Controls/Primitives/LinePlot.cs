@@ -103,6 +103,35 @@ public class LinePlot : FrameworkElement
         set => SetValue(LookProperty, value);
     }
 
+    public static readonly DependencyProperty GuidesProperty = Register<IReadOnlyList<double>?>(nameof(Guides), null);
+
+    /// <summary>Values on the scale to draw a fine dashed line across at — a reading's limits. Under the series, and
+    /// only where the scale reaches them: a guide never stretches the scale to be seen.</summary>
+    public IReadOnlyList<double>? Guides
+    {
+        get => (IReadOnlyList<double>?)GetValue(GuidesProperty);
+        set => SetValue(GuidesProperty, value);
+    }
+
+    public static readonly DependencyProperty GuideBrushProperty = Register<Brush?>(nameof(GuideBrush), null);
+
+    /// <summary>The guides' colour. Null draws none.</summary>
+    public Brush? GuideBrush
+    {
+        get => (Brush?)GetValue(GuideBrushProperty);
+        set => SetValue(GuideBrushProperty, value);
+    }
+
+    /// <summary>The guides' dashes: three on, three off, in strokes of one pixel — fine enough never to be read as a
+    /// series.</summary>
+    private static readonly DashStyle GuideDashes = Frozen(new DashStyle([3, 3], 0));
+
+    private static DashStyle Frozen(DashStyle dashes)
+    {
+        dashes.Freeze();
+        return dashes;
+    }
+
     private static DependencyProperty Register<T>(string name, T fallback) =>
         DependencyProperty.Register(name, typeof(T), typeof(LinePlot),
             new FrameworkPropertyMetadata(fallback, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -188,6 +217,14 @@ public class LinePlot : FrameworkElement
         // are drawn inside the box rather than cut by it.
         var inset = Math.Max(0, Math.Max(look.Thickness, look.PointSize)) / 2;
         var box = new Rect(inset, inset, Math.Max(0, width - 2 * inset), Math.Max(0, height - 2 * inset));
+
+        if (Guides is { Count: > 0 } guides && GuideBrush is { } guideBrush)
+        {
+            var ys = new double[guides.Count];
+            for (var i = 0; i < ys.Length; i++) ys[i] = PlotGeometry.YAt(guides[i], box, min, max);
+            Draw.Guides(drawing, new Rect(0, 0, width, height), ys,
+                _inks.Pen(guideBrush, 1, PenLineCap.Flat, PenLineJoin.Miter, GuideDashes));
+        }
 
         Series(drawing, values, Stroke, look, look.AreaOpacity, window, box, min, max, height, ref _first);
         Series(drawing, second, SecondStroke, look, look.AreaOpacity * SecondArea, window, box, min, max, height,

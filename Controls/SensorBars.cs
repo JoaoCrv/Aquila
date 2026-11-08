@@ -6,6 +6,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Aquila.Controls.Primitives;
 using Aquila.Models;
+using Aquila.Services;
 
 namespace Aquila.Controls;
 
@@ -30,7 +31,8 @@ namespace Aquila.Controls;
 /// nothing persistent to animate; a sweep would restart from zero every second. Here each bar is built
 /// once and only its share moves, which is the same discipline the gauge already needs.
 /// </summary>
-public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOrientedBars, IScaledFigure, IFollowsSchemeTrack
+public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOrientedBars, IScaledFigure, IFollowsSchemeTrack,
+    ILimitParts, ILimitStyle
 {
     private sealed record Bar(SensorNode Sensor, BarFill Fill, TextBlock Reading, DockPanel Column)
     {
@@ -69,15 +71,43 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
             var bar = new Bar(sensor, fill, reading, column);
             _bars.Add(bar);
             _row.Children.Add(column);
-
-            sensor.PropertyChanged += OnSensorChanged;
         }
 
-        Loaded += (_, _) => Apply();
-        Unloaded += (_, _) =>
+        Loaded += (_, _) => Hook();
+        Unloaded += (_, _) => Unhook();
+    }
+
+    private bool _hooked;
+    private VitalMonitor? _monitor;
+
+    /// <summary>Takes hold of the readings and the limits on Loaded and lets go on Unloaded, as every piece does, so a
+    /// piece off screen holds nothing — and one that comes back listens again. (It subscribed once, when it was built,
+    /// and a piece unloaded and loaded again stopped moving.)</summary>
+    private void Hook()
+    {
+        if (!_hooked)
         {
-            foreach (var bar in _bars) bar.Sensor.PropertyChanged -= OnSensorChanged;
-        };
+            _hooked = true;
+            foreach (var bar in _bars) bar.Sensor.PropertyChanged += OnSensorChanged;
+            _monitor = VitalMonitor.Current;
+            if (_monitor is not null) _monitor.Changed += OnLimitsChanged;
+        }
+
+        Apply();
+    }
+
+    private void Unhook()
+    {
+        if (!_hooked) return;
+        _hooked = false;
+        foreach (var bar in _bars) bar.Sensor.PropertyChanged -= OnSensorChanged;
+        if (_monitor is not null) _monitor.Changed -= OnLimitsChanged;
+        _monitor = null;
+    }
+
+    private void OnLimitsChanged()
+    {
+        foreach (var bar in _bars) Mark(bar, SensorScale.Ceiling(bar.Sensor, double.NaN));
     }
 
     private void OnSensorChanged(object? sender, PropertyChangedEventArgs e)
@@ -103,6 +133,7 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
         var share = ceiling > 0 ? Math.Clamp(bar.Sensor.Value ?? 0, 0, ceiling) / ceiling : 0;
 
         bar.Reading.Text = ShowValue ? bar.Sensor.Reading(ShowUnit, string.Empty) : string.Empty;
+        Mark(bar, ceiling);
 
         if (Math.Abs(share - bar.Shown) < 1e-4) return;
 
@@ -111,6 +142,16 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
 
         // As every bar does: from wherever it is drawn, or there at once — see BarFill.MoveTo.
         bar.Fill.MoveTo(share, animate);
+    }
+
+    /// <summary>A bar's limits, on its own scale — each bar its own sensor's, so a core and a drive side by side are
+    /// each marked where they turn.</summary>
+    private void Mark(Bar bar, double ceiling)
+    {
+        var marks = _showLimits ? LimitMarks.On(bar.Sensor, 0, ceiling) : null;
+        if (!LimitMarks.Same(bar.Fill.Marks, marks)) bar.Fill.Marks = marks;
+        bar.Fill.MarkBrush = _limitBrush ?? LimitMarks.Unpainted;
+        bar.Fill.MarkReach = _showLimits ? LimitMarks.Reach * _figureScale : 0;
     }
 
     void IFollowsSchemeTrack.SchemeTrackChanged() => Dress();
@@ -215,7 +256,22 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     // ── Style ────────────────────────────────────────────────────────
 
     private BarLook? _barLook;
+    private bool _showLimits;
+    private Brush? _limitBrush;
     private bool _showValue = true;
+
+    /// <summary>Marks across each bar where its reading turns elevated and alert.</summary>
+    public bool ShowLimits
+    {
+        get => _showLimits;
+        set { _showLimits = value; Apply(); }
+    }
+
+    public Brush? LimitBrush
+    {
+        get => _limitBrush;
+        set { _limitBrush = value; Apply(); }
+    }
     private bool _showUnit = true;
     private double _valueSize = 9;
     private string? _valueFont;

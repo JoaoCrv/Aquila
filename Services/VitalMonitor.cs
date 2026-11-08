@@ -207,6 +207,10 @@ public sealed class VitalMonitor(SettingsService settings, AquilaState state)
     /// or the built-in one, in that order — or null when the reading cannot be judged.</summary>
     public double? CriticalFor(SensorNode sensor) => KeyFor(sensor) is { } key ? For(key)?.Critical : null;
 
+    /// <summary>The limits in force for a sensor's kind of reading — the same order — or null when it has none: what
+    /// a bar's level, its marks and a chart's limit lines are drawn from.</summary>
+    public Thresholds? LimitsOf(SensorNode sensor) => KeyFor(sensor) is { } key ? For(key) : null;
+
     /// <summary>
     /// The colour a reading has earned.
     ///

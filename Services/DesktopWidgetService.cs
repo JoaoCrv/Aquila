@@ -1497,6 +1497,8 @@ public sealed class DesktopWidgetService
             parts.ShowMinMax = definition.ShowMinMax;
             parts.ShowTrend = definition.ShowTrend;
         }
+
+        if (piece is ILimitParts limits) limits.ShowLimits = definition.ShowLimits;
     }
 
     /// <summary>
@@ -1619,6 +1621,11 @@ public sealed class DesktopWidgetService
             number.NoteBrush = HexBrush.From(preset.Title.Color, preset.Title.Opacity);
             number.NoteSize = preset.Title.Size * scale;
         }
+
+        // A chart's limit lines and a bar's limit marks: the title's colour at half its strength, as the Number's marks
+        // are — they comment on the reading and must never be read as one.
+        if (piece is ILimitStyle limitStyle)
+            limitStyle.LimitBrush = HexBrush.From(preset.Title.Color, preset.Title.Opacity * 0.5);
 
         if (piece is ITextStyle text) text.Align = preset.Value.Align;
 

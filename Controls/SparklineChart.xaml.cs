@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Aquila.Controls.Primitives;
 using Aquila.Models;
+using Aquila.Services;
 
 namespace Aquila.Controls;
 
@@ -27,7 +28,7 @@ namespace Aquila.Controls;
 ///     MaxY="100"/&gt;
 /// </code>
 /// </example>
-public partial class SparklineChart : UserControl, IChartStyle
+public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILimitStyle
 {
     /// <summary>The colour a series without one is drawn in — the chart's default, kept from when it drew its own.
     /// </summary>
@@ -157,7 +158,62 @@ public partial class SparklineChart : UserControl, IChartStyle
     public SparklineChart()
     {
         InitializeComponent();
+        Loaded += (_, _) => Hook();
+        Unloaded += (_, _) => Unhook();
         Translate();
+    }
+
+    // ── Limits ─────────────────────────────────────────────────────
+
+    private bool _showLimits;
+    private SensorNode? _limitsOf;
+    private Brush? _limitBrush;
+    private VitalMonitor? _monitor;
+
+    /// <summary>Fine dashed lines where the reading turns elevated and alert, where the scale reaches them.</summary>
+    public bool ShowLimits
+    {
+        get => _showLimits;
+        set { _showLimits = value; Guide(); }
+    }
+
+    /// <summary>The reading whose limits are drawn — the first the chart draws. Told by whoever builds the chart, since
+    /// the chart itself holds only the series.</summary>
+    public SensorNode? LimitsOf
+    {
+        get => _limitsOf;
+        set { _limitsOf = value; Guide(); }
+    }
+
+    public Brush? LimitBrush
+    {
+        get => _limitBrush;
+        set { _limitBrush = value; Guide(); }
+    }
+
+    /// <summary>Listens for the limits changing — in Settings, say — while the chart is on screen, and only then.
+    /// </summary>
+    private void Hook()
+    {
+        Unhook();
+        _monitor = VitalMonitor.Current;
+        if (_monitor is not null) _monitor.Changed += Guide;
+        Guide();
+    }
+
+    private void Unhook()
+    {
+        if (_monitor is not null) _monitor.Changed -= Guide;
+        _monitor = null;
+    }
+
+    private void Guide()
+    {
+        if (Plot is null) return;
+
+        var guides = _showLimits ? LimitMarks.Of(_limitsOf) : null;
+        if (!LimitMarks.Same(Plot.Guides, guides)) Plot.Guides = guides;
+        Plot.GuideBrush = _limitBrush ?? LimitMarks.Unpainted;
     }
 
     /// <summary>

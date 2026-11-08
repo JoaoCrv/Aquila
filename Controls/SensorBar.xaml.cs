@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Aquila.Controls.Primitives;
 using Aquila.Models;
+using Aquila.Services;
 
 namespace Aquila.Controls;
 
@@ -21,7 +22,50 @@ public partial class SensorBar : UserControl, IFollowsSchemeTrack
     {
         InitializeComponent();
         SchemeTrack.Follow(this);
-        Loaded += (_, _) => Render();
+        Loaded += (_, _) => Hook();
+        Unloaded += (_, _) => Unhook();
+    }
+
+    // ── Limits ─────────────────────────────────────────────────────
+
+    private bool _showLimits;
+    private Brush? _limitBrush;
+    private double _markReach = LimitMarks.Reach;
+    private VitalMonitor? _monitor;
+
+    /// <summary>Marks across the bar where the reading turns elevated and alert, where its scale reaches them.</summary>
+    public bool ShowLimits
+    {
+        get => _showLimits;
+        set { _showLimits = value; Render(); }
+    }
+
+    public Brush? LimitBrush
+    {
+        get => _limitBrush;
+        set { _limitBrush = value; Render(); }
+    }
+
+    /// <summary>How far the marks reach past the bar either side, at the widget's scale.</summary>
+    public double MarkReach
+    {
+        get => _markReach;
+        set { _markReach = value; Render(); }
+    }
+
+    /// <summary>Draws, and listens for the limits changing while the bar is on screen, and only then.</summary>
+    private void Hook()
+    {
+        Unhook();
+        _monitor = VitalMonitor.Current;
+        if (_monitor is not null) _monitor.Changed += Render;
+        Render();
+    }
+
+    private void Unhook()
+    {
+        if (_monitor is not null) _monitor.Changed -= Render;
+        _monitor = null;
     }
 
     public static readonly DependencyProperty SensorProperty =
@@ -116,6 +160,12 @@ public partial class SensorBar : UserControl, IFollowsSchemeTrack
 
         Bar.Fill = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;
         Dress();
+
+        // The marks on this bar's own scale, so they move with it — a throughput's top follows its recent peak.
+        var marks = _showLimits ? LimitMarks.On(Sensor, min, max) : null;
+        if (!LimitMarks.Same(Bar.Marks, marks)) Bar.Marks = marks;
+        Bar.MarkBrush = _limitBrush ?? LimitMarks.Unpainted;
+        Bar.MarkReach = _showLimits ? _markReach : 0;
 
         var share = (System.Math.Clamp(Sensor.Value ?? 0, min, max) - min) / (max - min);
         if (share.Equals(_shown)) return;

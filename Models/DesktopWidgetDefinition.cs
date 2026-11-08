@@ -301,6 +301,11 @@ public class DesktopWidgetDefinition
     /// off in a Number made now too: an arrow is a second thing moving beside a number, and is asked for.</summary>
     public bool ShowTrend { get; set; }
 
+    /// <summary>Whether a chart draws fine dashed lines, and a Meter or Bars marks across its bars, where the reading
+    /// turns elevated and alert — only where a reading has limits. Off when absent, so a widget made before it is drawn
+    /// as it was.</summary>
+    public bool ShowLimits { get; set; }
+
     /// <summary>Whether each row of a list draws its recent history beside its number. Off by default, for the reason
     /// <see cref="ShowBar"/> gives.</summary>
     public bool ShowSparkline { get; set; }

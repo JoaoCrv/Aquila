@@ -74,6 +74,10 @@ public sealed record WidgetKindInfo(
     /// <summary>Whether this kind is drawn as a bar, and so has bar settings worth showing.</summary>
     public bool HasBar { get; init; }
 
+    /// <summary>Whether this kind can show its reading's limits (<see cref="Controls.ILimitParts"/>) — lines on a chart,
+    /// marks on a bar. Every kind drawn as a line or a bar, and only those: the Number marks its own bar always.</summary>
+    public bool HasLimits => HasLine || HasBar;
+
     /// <summary>Whether this kind is just a number, and so has number settings worth showing.</summary>
     public bool HasNumber { get; init; }
 
@@ -363,6 +367,7 @@ public static class WidgetCatalog
         Values = series[0].History,
         SecondValues = series.Count > 1 ? series[1].History : null,
         MaxY = SensorScale.Fixed(series[0]) ?? double.NaN,
+        LimitsOf = series[0],
     };
 
 }

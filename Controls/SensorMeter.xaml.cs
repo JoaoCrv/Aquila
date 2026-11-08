@@ -15,7 +15,7 @@ public enum MeterLabelPlacement { Inline, Top }
 /// below (Top, e.g. StorageCard). <see cref="Label"/>/<see cref="ValueText"/> are plain strings the
 /// caller formats, the same convention as <see cref="StatBox"/>.
 /// </summary>
-public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScaledFigure
+public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScaledFigure, ILimitParts, ILimitStyle
 {
     /// <summary>The spacing of the Above layout, as the XAML gives it — which stays its one home; the scale
     /// multiplies it.</summary>
@@ -219,6 +219,22 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(SensorMeter),
             new PropertyMetadata(13d, (d, _) => ((SensorMeter)d).Apply()));
 
+    private bool _showLimits;
+    private Brush? _limitBrush;
+
+    /// <summary>Marks across the bar where the reading turns elevated and alert. A card never asks for them.</summary>
+    public bool ShowLimits
+    {
+        get => _showLimits;
+        set { _showLimits = value; Apply(); }
+    }
+
+    public Brush? LimitBrush
+    {
+        get => _limitBrush;
+        set { _limitBrush = value; Apply(); }
+    }
+
     private Primitives.BarLook? _barLook;
 
     /// <summary>The bar's thickness, corners and track, from the widget's preset — handed to the bar as it is. Unset,
@@ -279,8 +295,13 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         TopValueText.FontSize = ValueSize;
         TopValueText.Wear(ValueFont, ValueWeight);
 
-        InlineBar.Look = _barLook;
-        TopBar.Look = _barLook;
+        foreach (var bar in new[] { InlineBar, TopBar })
+        {
+            bar.Look = _barLook;
+            bar.ShowLimits = _showLimits;
+            bar.LimitBrush = _limitBrush;
+            bar.MarkReach = LimitMarks.Reach * _figureScale;
+        }
 
         if (ColorValue)
             TopValueText.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;
