@@ -109,8 +109,8 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
         animate &= !double.IsNaN(bar.Shown);
         bar.Shown = share;
 
-        // As every bar does: from wherever it is drawn, or there at once — see Motion.Move.
-        Motion.Move(bar.Fill, share, animate);
+        // As every bar does: from wherever it is drawn, or there at once — see BarFill.MoveTo.
+        bar.Fill.MoveTo(share, animate);
     }
 
     void IFollowsSchemeTrack.SchemeTrackChanged() => Dress();

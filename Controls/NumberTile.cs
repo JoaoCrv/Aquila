@@ -261,7 +261,7 @@ public sealed class NumberTile : UserControl, ISensorPiece, INumberStyle, INumbe
 
         animate &= !double.IsNaN(_filled);
         _filled = target;
-        Motion.Move(_bar, target, animate);
+        _bar.MoveTo(target, animate);
     }
 
     /// <summary>

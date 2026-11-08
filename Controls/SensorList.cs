@@ -368,7 +368,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
 
         animate &= !double.IsNaN(row.Shown);
         row.Shown = share;
-        Motion.Move(row.Bar, share, animate);
+        row.Bar.MoveTo(share, animate);
     }
 
     /// <summary>

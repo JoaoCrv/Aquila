@@ -10,7 +10,7 @@ namespace Aquila.Controls;
 /// <summary>
 /// Horizontal sensor bar: a single SensorNode drawn by <see cref="BarFill"/> (sibling of <see cref="RadialGauge"/> /
 /// <see cref="MiniSparkline"/>). It maps the sensor onto a share of its scale, and applies the accent colour and the
-/// look; the bar travels by <see cref="Motion.Move"/> and draws again without laying anything out.
+/// look; the bar travels at the <see cref="Pace"/> and draws again without laying anything out.
 /// </summary>
 public partial class SensorBar : UserControl, IFollowsSchemeTrack
 {
@@ -123,6 +123,6 @@ public partial class SensorBar : UserControl, IFollowsSchemeTrack
         // A sensor just handed over is drawn at its reading, never swept to it from the last one's.
         var animate = !double.IsNaN(_shown);
         _shown = share;
-        Motion.Move(Bar, share, animate);
+        Bar.MoveTo(share, animate);
     }
 }

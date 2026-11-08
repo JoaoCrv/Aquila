@@ -68,7 +68,12 @@ public static class Motion
         // Held here and not trusted from the file: the menu offers only rates inside these, but the file is
         // the user's to edit, and a rate of nothing would be refused by every animation that carried it.
         FrameRate = Math.Clamp(settings.MaxFrameRate, LeastFrameRate, MostFrameRate);
+        Publish();
     }
+
+    /// <summary>Hands the pace to the drawing primitives, which cannot ask for it: they know WPF and nothing of
+    /// Aquila's settings. Every change of speed or frame rate passes through here, so the two never disagree.</summary>
+    private static void Publish() => Pace.Set(Speed, WpfEasing, FrameRate, slide: false);
 
     /// <summary>
     /// The chosen speed, held to nine tenths of the poll interval.
@@ -82,8 +87,11 @@ public static class Motion
     /// that can be told apart. At two fifths the slowest step was 400 ms against Smooth's 300, and the two
     /// looked the same.
     /// </summary>
-    public static void Apply(int speedMs, int pollMs) =>
+    public static void Apply(int speedMs, int pollMs)
+    {
         Speed = TimeSpan.FromMilliseconds(Math.Clamp(speedMs, 0, Math.Max(0, pollMs) * 9 / 10));
+        Publish();
+    }
 
     /// <summary>A reading's sweep to <paramref name="to"/>, as WPF draws it: at the speed and on the curve in
     /// force, and no oftener than the frame rate. One home, so the bars cannot come to move differently from each
@@ -120,16 +128,6 @@ public static class Motion
 
         target.BeginAnimation(property, sweep, HandoffBehavior.SnapshotAndReplace);
     }
-
-    /// <summary>
-    /// Takes a bar to <paramref name="fraction"/> at the speed, on the curve and at the frame rate in force — at once
-    /// while motion is off or when <paramref name="animate"/> says not to.
-    ///
-    /// The bar itself cannot ask: it is a primitive, and knows WPF and nothing of Aquila's settings. So this is where a
-    /// bar of Aquila's learns how bars move here, once, rather than in each piece that draws one.
-    /// </summary>
-    public static void Move(BarFill bar, double fraction, bool animate = true) =>
-        bar.MoveTo(fraction, animate && Enabled ? Speed : TimeSpan.Zero, WpfEasing, FrameRate);
 
     /// <summary>Puts the frame rate on an animation Aquila makes. Asked of the root of what is begun — WPF reads it
     /// there and nowhere else.</summary>

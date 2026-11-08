@@ -11,7 +11,7 @@ namespace Aquila.Controls.Primitives;
 /// Drawn by WPF itself, in OnRender, as <see cref="RingArc"/> is, and for a reason of its own as well: the fill is a
 /// number this draws, not a size it is laid out at. A bar that animates the Width of a Border lays the whole widget out
 /// again on every frame of the sweep; this one only draws again. Like the ring it knows WPF and nothing of Aquila:
-/// whatever wraps it decides the colours, the look and how long a move takes.
+/// whatever wraps it decides the colours and the look, and the <see cref="Pace"/> its host sets how it moves.
 ///
 /// Lying down it fills from the left and is as tall as its look and its marks' reach; standing up it fills from the
 /// bottom and is as wide. Along its length it takes what it is given.
@@ -116,20 +116,19 @@ public class BarFill : FrameworkElement
 
     /// <summary>
     /// Takes the bar to <paramref name="fraction"/> — never shown shorter than <see cref="BarGeometry.Least"/> of its
-    /// track — over <paramref name="duration"/>, on <paramref name="easing"/>, at no more than
-    /// <paramref name="frameRate"/> frames a second. How long, on what curve and how often are the caller's to say; the
-    /// bar knows nothing of settings.
+    /// track — at the <see cref="Pace"/> in force: its duration, its curve, its frame rate.
     ///
-    /// It jumps instead the first time, and for a duration of nought or less. The jump lets go of any animation first:
-    /// a value held by one ignores what it is set to, so a bar moved once and then told to jump would freeze where it
-    /// last went. A move has no From and is handed off by snapshot, so it starts where the bar is DRAWN: a reading
-    /// arriving mid-way redirects instead of jumping back to begin again.
+    /// It jumps instead the first time, when <paramref name="animate"/> says not to — a sensor just handed over, a bar
+    /// just turned — and when nothing moves. The jump lets go of any animation first: a value held by one ignores what
+    /// it is set to, so a bar moved once and then told to jump would freeze where it last went. A move has no From and
+    /// is handed off by snapshot, so it starts where the bar is DRAWN: a reading arriving mid-way redirects instead of
+    /// jumping back to begin again.
     /// </summary>
-    public void MoveTo(double fraction, TimeSpan duration, IEasingFunction? easing = null, int? frameRate = null)
+    public void MoveTo(double fraction, bool animate = true)
     {
         var target = BarGeometry.Shown(fraction);
 
-        if (!_placed || duration <= TimeSpan.Zero)
+        if (!_placed || !animate || !Pace.Moves)
         {
             _placed = true;
             BeginAnimation(FractionProperty, null);
@@ -137,9 +136,6 @@ public class BarFill : FrameworkElement
             return;
         }
 
-        var move = new DoubleAnimation(target, duration) { EasingFunction = easing };
-        if (frameRate is > 0) Timeline.SetDesiredFrameRate(move, frameRate);
-
-        BeginAnimation(FractionProperty, move, HandoffBehavior.SnapshotAndReplace);
+        BeginAnimation(FractionProperty, Pace.To(target), HandoffBehavior.SnapshotAndReplace);
     }
 }
