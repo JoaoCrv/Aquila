@@ -310,6 +310,11 @@ public class DesktopWidgetDefinition
     /// </summary>
     public bool ShowEnd { get; set; }
 
+    /// <summary>Whether a chart's line takes the colour of each reading's state along the way — amber where it was
+    /// elevated, red where it was critical — rather than the newest reading's colour throughout. Off when absent.
+    /// </summary>
+    public bool ColourByReading { get; set; }
+
     /// <summary>Whether each row of a list draws its recent history beside its number. Off by default, for the reason
     /// <see cref="ShowBar"/> gives.</summary>
     public bool ShowSparkline { get; set; }

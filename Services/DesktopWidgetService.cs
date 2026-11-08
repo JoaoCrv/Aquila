@@ -1499,7 +1499,11 @@ public sealed class DesktopWidgetService
         }
 
         if (piece is ILimitParts limits) limits.ShowLimits = definition.ShowLimits;
-        if (piece is IChartParts chartParts) chartParts.ShowEnd = definition.ShowEnd;
+        if (piece is IChartParts chartParts)
+        {
+            chartParts.ShowEnd = definition.ShowEnd;
+            chartParts.ColourByReading = definition.ColourByReading;
+        }
     }
 
     /// <summary>
@@ -1788,8 +1792,9 @@ public sealed class DesktopWidgetService
         {
             // The piece is still handed over for its lifetime — the subscriptions below tear down on
             // its Unloaded — while WHERE the colour lands now comes from the kind.
+            // A chart coloured by its reading needs its first reading's whole ramp, not only the colour of the moment.
             var repaint = Paint(piece, kind.Accent.For(piece, i), resolved[i], ramps[i],
-                MetricKey.Parse(chosen[i].Metric));
+                MetricKey.Parse(chosen[i].Metric), i == 0 && piece is IReadingRamp ramped ? ramped.UseRamp : null);
 
             // The SERIES is captured — not the ramp, and not its name either.
             //
@@ -1873,7 +1878,7 @@ public sealed class DesktopWidgetService
     /// ends itself and there is no bookkeeping to fall out of step with what is on screen.
     /// </summary>
     private static Action<Ramp> Paint(FrameworkElement piece, Action<Brush> apply,
-        SensorNode sensor, Ramp ramp, MetricKey? metric)
+        SensorNode sensor, Ramp ramp, MetricKey? metric, Action<Ramp>? whole = null)
     {
         var monitor = VitalMonitor.Current;
 
@@ -1915,7 +1920,11 @@ public sealed class DesktopWidgetService
             if (monitor is not null) monitor.Changed -= Repaint;
         }
 
-        void Repaint() => apply(HexBrush.From(current[RoleOf(sensor.Value, metric, monitor)], 1));
+        void Repaint()
+        {
+            apply(HexBrush.From(current[RoleOf(sensor.Value, metric, monitor)], 1));
+            whole?.Invoke(current);
+        }
 
         void OnSensorChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
         {

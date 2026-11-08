@@ -123,6 +123,57 @@ public class LinePlot : FrameworkElement
         set => SetValue(GuideBrushProperty, value);
     }
 
+    public static readonly DependencyProperty BandsProperty =
+        Register<IReadOnlyList<(double From, Color Color)>?>(nameof(Bands), null);
+
+    /// <summary>
+    /// A colour for each stretch of the scale, each from its value up to the next one's — the first from below
+    /// anything: the first series' line, area and dots are painted in the colour of the height they are drawn at,
+    /// which is the colour of the value. Null paints the series in <see cref="Stroke"/>, one colour throughout.
+    ///
+    /// One stroke, never a line broken into pieces: a vertical brush with a hard edge at each band, laid over the box
+    /// as it is drawn, so a segment crossing a limit changes colour exactly where it crosses. Made again only when the
+    /// scale or the bands change.
+    /// </summary>
+    public IReadOnlyList<(double From, Color Color)>? Bands
+    {
+        get => (IReadOnlyList<(double From, Color Color)>?)GetValue(BandsProperty);
+        set => SetValue(BandsProperty, value);
+    }
+
+    private (IReadOnlyList<(double From, Color Color)> Bands, double Min, double Max, double Top, double Bottom) _banded;
+    private Brush? _bandBrush;
+
+    private Brush? BandBrush(Rect box, double min, double max)
+    {
+        if (Bands is not { Count: > 0 } bands || !(max > min) || !(box.Height > 0)) return null;
+
+        var made = (bands, min, max, box.Top, box.Bottom);
+        if (_bandBrush is not null && made.Equals(_banded)) return _bandBrush;
+
+        double Offset(double value) => Math.Clamp((value - min) / (max - min), 0, 1);
+
+        var colour = bands[0].Color;
+        var stops = new GradientStopCollection { new(colour, 0) };
+        for (var i = 1; i < bands.Count; i++)
+        {
+            var at = Offset(bands[i].From);
+            stops.Add(new GradientStop(colour, at));
+            colour = bands[i].Color;
+            stops.Add(new GradientStop(colour, at));
+        }
+        stops.Add(new GradientStop(colour, 1));
+
+        var brush = new LinearGradientBrush(stops, new Point(0, box.Bottom), new Point(0, box.Top))
+        {
+            MappingMode = BrushMappingMode.Absolute,
+        };
+        brush.Freeze();
+
+        _banded = made;
+        return _bandBrush = brush;
+    }
+
     /// <summary>The guides' dashes: three on, three off, in strokes of one pixel — fine enough never to be read as a
     /// series.</summary>
     private static readonly DashStyle GuideDashes = Frozen(new DashStyle([3, 3], 0));
@@ -289,17 +340,20 @@ public class LinePlot : FrameworkElement
                 _inks.Pen(guideBrush, 1, PenLineCap.Flat, PenLineJoin.Miter, GuideDashes));
         }
 
-        var placed = Series(drawing, values, Stroke, look, look.AreaOpacity, window, box, min, max, height, ref _first);
-        Series(drawing, second, SecondStroke, look, look.AreaOpacity * SecondArea, window, box, min, max, height,
+        var placed = Series(drawing, values, Stroke, BandBrush(box, min, max), look, look.AreaOpacity, window, box, min,
+            max, height, ref _first);
+        Series(drawing, second, SecondStroke, null, look, look.AreaOpacity * SecondArea, window, box, min, max, height,
             ref _second);
 
         if (showEnd && Stroke is { } stroke) DrawEnd(drawing, new ReadOnlySpan<Point>(_first, 0, placed), stroke, look);
     }
 
-    /// <summary>One series: its area to the bottom of the plot, its line over that, its dots over both. How many of its
-    /// points were placed, in <paramref name="buffer"/>.</summary>
-    private int Series(DrawingContext drawing, IReadOnlyList<double>? values, Brush? stroke, LineLook look,
-        double areaOpacity, int window, Rect box, double min, double max, double floor, ref Point[] buffer)
+    /// <summary>One series: its area to the bottom of the plot, its line over that, its dots over both — in its colour,
+    /// or in the colour of each height when it is <paramref name="banded"/>. How many of its points were placed, in
+    /// <paramref name="buffer"/>.</summary>
+    private int Series(DrawingContext drawing, IReadOnlyList<double>? values, Brush? stroke, Brush? banded,
+        LineLook look, double areaOpacity, int window, Rect box, double min, double max, double floor,
+        ref Point[] buffer)
     {
         if (values is null || stroke is null) return 0;
 
@@ -309,14 +363,25 @@ public class LinePlot : FrameworkElement
         var placed = PlotGeometry.Place(values, window, box, min, max, buffer);
         var points = new ReadOnlySpan<Point>(buffer, 0, placed);
 
-        if (_inks.Area(stroke, areaOpacity, look.Area) is { } fill)
-            Draw.Area(drawing, points, look.Smoothness, floor, fill);
+        if (banded is null)
+        {
+            if (_inks.Area(stroke, areaOpacity, look.Area) is { } fill)
+                Draw.Area(drawing, points, look.Smoothness, floor, fill);
+        }
+        else if (_inks.AreaMask(areaOpacity, look.Area) is { } mask)
+        {
+            // The bands' colours under the line, with the area's opacity — even or fading — laid over them as a mask.
+            drawing.PushOpacityMask(mask);
+            Draw.Area(drawing, points, look.Smoothness, floor, banded);
+            drawing.Pop();
+        }
 
+        var ink = banded ?? stroke;
         if (look.Thickness > 0)
             Draw.Line(drawing, points, look.Smoothness,
-                _inks.Pen(stroke, look.Thickness, PenLineCap.Round, PenLineJoin.Round));
+                _inks.Pen(ink, look.Thickness, PenLineCap.Round, PenLineJoin.Round));
 
-        Draw.Dots(drawing, points, look.PointSize, stroke);
+        Draw.Dots(drawing, points, look.PointSize, ink);
         return placed;
     }
 }

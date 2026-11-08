@@ -28,7 +28,7 @@ namespace Aquila.Controls;
 ///     MaxY="100"/&gt;
 /// </code>
 /// </example>
-public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILimitStyle, IChartParts
+public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILimitStyle, IChartParts, IReadingRamp
 {
     /// <summary>The colour a series without one is drawn in — the chart's default, kept from when it drew its own.
     /// </summary>
@@ -170,6 +170,31 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         set => Plot.ShowEnd = value;
     }
 
+    private bool _colourByReading;
+
+    /// <summary>The first series coloured by its reading along the way: each stretch between the limits in the ramp's
+    /// colour for it. Needs limits and the ramp, and draws in one colour while either is missing.</summary>
+    public bool ColourByReading
+    {
+        get => _colourByReading;
+        set { _colourByReading = value; Guide(); }
+    }
+
+    /// <summary>The ramp of the first reading, Normal to Critical, as the bands are painted.</summary>
+    private Color[]? _ramp;
+
+    public void UseRamp(Ramp ramp)
+    {
+        Color[] colours = [Colour(ramp.Normal), Colour(ramp.Elevated), Colour(ramp.Alert), Colour(ramp.Critical)];
+        if (_ramp is not null && _ramp.SequenceEqual(colours)) return;
+
+        _ramp = colours;
+        Guide();
+    }
+
+    private static Color Colour(string hex) =>
+        Helpers.HexBrush.From(hex, 1) is SolidColorBrush solid ? solid.Color : Colors.Transparent;
+
     // ── Limits ─────────────────────────────────────────────────────
 
     private bool _showLimits;
@@ -214,6 +239,8 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         _monitor = null;
     }
 
+    /// <summary>What the limits draw: the lines across the chart, and the bands the line is coloured in — both from the
+    /// limits in force, so both follow a change of them.</summary>
     private void Guide()
     {
         if (Plot is null) return;
@@ -221,6 +248,16 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         var guides = _showLimits ? LimitMarks.Of(_limitsOf) : null;
         if (!LimitMarks.Same(Plot.Guides, guides)) Plot.Guides = guides;
         Plot.GuideBrush = _limitBrush ?? LimitMarks.Unpainted;
+
+        IReadOnlyList<(double From, Color Color)>? bands =
+            _colourByReading && _ramp is { } ramp && _limitsOf is not null
+            && VitalMonitor.Current?.LimitsOf(_limitsOf) is { } limits
+                ? [(double.NegativeInfinity, ramp[0]), (limits.Elevated, ramp[1]), (limits.Alert, ramp[2]),
+                    (limits.Critical, ramp[3])]
+                : null;
+
+        var same = Plot.Bands is null ? bands is null : bands is not null && Plot.Bands.SequenceEqual(bands);
+        if (!same) Plot.Bands = bands;
     }
 
     /// <summary>

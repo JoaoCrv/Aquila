@@ -75,6 +75,26 @@ public sealed class Inks
         return fresh;
     }
 
+    private readonly List<((double Opacity, AreaFill Area) Key, Brush Mask)> _masks = [];
+
+    /// <summary>The area's opacity on its own, as a mask — even, or fading to nothing at the bottom — for an area whose
+    /// colours vary with height and so cannot be a single colour at an opacity. Null when there is no area.</summary>
+    public Brush? AreaMask(double opacity, AreaFill area)
+    {
+        if (area == AreaFill.None || !(opacity > 0)) return null;
+
+        var key = (opacity, area);
+        foreach (var (made, mask) in _masks)
+            if (made == key)
+                return mask;
+
+        var fresh = FillFor(Brushes.Black, Math.Min(opacity, 1), area);
+
+        if (_masks.Count == Kept) _masks.Clear();
+        _masks.Add((key, fresh));
+        return fresh;
+    }
+
     private static Brush FillFor(Brush stroke, double opacity, AreaFill area)
     {
         Brush fill;

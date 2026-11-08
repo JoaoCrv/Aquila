@@ -1556,9 +1556,13 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     // Style too: the lines and marks go up and come down in place, as does a chart's end.
     partial void OnLimitsShownChanged(bool value) => Apply();
     partial void OnEndShownChanged(bool value) => Apply();
+    partial void OnColouredByReadingChanged(bool value) => Apply();
 
     /// <summary>A dot on a chart's newest reading, pulsing as each one arrives.</summary>
     [ObservableProperty] private bool _endShown;
+
+    /// <summary>A chart's line in the colour of each reading's state along the way.</summary>
+    [ObservableProperty] private bool _colouredByReading;
 
     /// <summary>Lines on a chart and marks on a bar where the reading turns elevated and alert. With the widget, as
     /// every part that adds to what is on the screen is.</summary>
@@ -1752,6 +1756,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowTrend = TrendShown;
         _target.ShowLimits = LimitsShown;
         _target.ShowEnd = EndShown;
+        _target.ColourByReading = ColouredByReading;
 
         // A widget that has just started drawing a figure of its own shape (made a dial, or a clock given rings) takes
         // that shape now, led by its width: a 200×70 clock given rings would otherwise draw them a third of the size
@@ -2017,6 +2022,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         TrendShown = source.ShowTrend;
         LimitsShown = source.ShowLimits;
         EndShown = source.ShowEnd;
+        ColouredByReading = source.ColourByReading;
     }
 }
 
