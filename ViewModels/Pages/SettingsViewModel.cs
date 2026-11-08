@@ -490,9 +490,8 @@ namespace Aquila.ViewModels.Pages
             Controls.Motion.Apply(_settings.Current);
         }
 
-        /// <summary>Applied like the speed: every animation made after this carries the new rate. The charts are
-        /// the exception — LiveCharts takes its rate once, at start (see App.OnStartup) — and the hint says so.
-        /// </summary>
+        /// <summary>Applied like the speed: every animation made after this carries the new rate, the charts' included
+        /// — they are drawn by Aquila now, and no longer take a rate once at start as LiveCharts did.</summary>
         partial void OnSelectedFrameRateChanged(FrameRateOption value)
         {
             if (!_isInitialized) return;

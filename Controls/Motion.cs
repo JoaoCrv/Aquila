@@ -49,8 +49,8 @@ public static class Motion
     /// The most frames a second anything Aquila animates may ask to be drawn at.
     ///
     /// Beside the speed and for the same reason: a frame is a cost paid on this machine, by the machine being
-    /// measured, and only its owner can say what it is worth. Every WPF animation Aquila makes carries it; the
-    /// charts take it once, at start — see App.OnStartup.
+    /// measured, and only its owner can say what it is worth. Every animation Aquila makes carries it, from the moment
+    /// it changes. (The charts took it once, at start, while LiveCharts drew them.)
     /// </summary>
     public static int FrameRate { get; private set; } = DefaultFrameRate;
 

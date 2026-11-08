@@ -57,14 +57,14 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
 
     /// <summary>One row. Made once and handed from node to node through the pool, so a list that has run for a day
     /// has the rows it had in its first minute.</summary>
-    private sealed class Row(Grid root, TranslateTransform place, TextBlock name, TextBlock reading, TrendLine trend,
+    private sealed class Row(Grid root, TranslateTransform place, TextBlock name, TextBlock reading, LinePlot trend,
         Border track, Border fill)
     {
         public Grid Root { get; } = root;
         public TranslateTransform Place { get; } = place;
         public TextBlock Name { get; } = name;
         public TextBlock Reading { get; } = reading;
-        public TrendLine Trend { get; } = trend;
+        public LinePlot Trend { get; } = trend;
         public Border Track { get; } = track;
         public Border Fill { get; } = fill;
 
@@ -328,9 +328,6 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         row.Name.Text = node.Name ?? string.Empty;
         row.Reading.Text = node.Reading(ShowUnit, string.Empty);
 
-        // The node's points have moved on by one, in place.
-        if (_showSparkline) row.Trend.Refresh();
-
         Paint(row);
         Bar(row, rows, animate);
     }
@@ -471,9 +468,12 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         Typography.SetNumeralAlignment(reading, FontNumeralAlignment.Tabular);
         Grid.SetColumn(reading, 2);
 
-        var trend = new TrendLine
+        // From nought to the highest of its points: a trend, not a magnitude. No area — it sits beside a number. It
+        // follows its node's history by itself while it is on screen, so a reading needs no word from here.
+        var trend = new LinePlot
         {
-            Count = TrendPoints,
+            Window = TrendPoints,
+            RangeMin = 0,
             Opacity = TrendOpacity,
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -526,7 +526,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         Include(row.Root, row.Trend, _showSparkline);
         row.Trend.Width = TrendWidth * _figureScale;
         row.Trend.Height = Math.Min(TrendHeight * _figureScale, _line);
-        row.Trend.Thickness = TrendThickness * _figureScale;
+        row.Trend.Look = new LineLook(TrendThickness * _figureScale, AreaFill.None, 0, 0, 0);
         row.Trend.Margin = new Thickness(NameGap * _figureScale, 0, 0, 0);
 
         Include(row.Root, row.Track, _showBar);
