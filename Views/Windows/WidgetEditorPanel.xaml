@@ -224,6 +224,38 @@
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
+        <!-- One option on a line, as Windows 11's Settings draws it and our own Settings page does: its name on the
+             left, its control on the right. Tighter than the page's, because this panel is a third as wide. Not
+             focusable: to the kit it is a button, and here there is nothing to press, so Tab goes straight to the
+             control it holds. -->
+        <Style x:Key="Row" TargetType="ui:CardControl" BasedOn="{StaticResource {x:Type ui:CardControl}}">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="MinHeight" Value="50"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
+
+        <!-- The same thing inside a card that opens: a Row within a card would be a card inside a card, so here a
+             rule between lines does what the gap between cards does outside. The rule is on top, and a section's
+             first line takes it off with BorderThickness="0": that line is known, and it is never one that hides. -->
+        <Style x:Key="Line" TargetType="HeaderedContentControl">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DividerStrokeColorDefaultBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="HeaderedContentControl">
+                        <Border MinHeight="44" Padding="0,8" BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <DockPanel>
+                                <ContentPresenter DockPanel.Dock="Right" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- A step of the header's path back: the text's own colour, underlined, rather than a web page's blue. -->
         <Style x:Key="Crumb" TargetType="Hyperlink">
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
@@ -887,258 +919,309 @@
                      catalog's flags: a kind that is not a clock cannot be shown clock options. -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Visibility="{Binding ViewModel.SelectedTab, Converter={StaticResource Match}, ConverterParameter=Customize}">
-                    <StackPanel Margin="2,16,6,16">
+                    <StackPanel Margin="2,16,12,16">
                         <!-- First of the kind's options, because it is about the shape the widget takes:
                              having picked bars, the next thing to say is which way they run. -->
-                        <StackPanel Margin="0,0,0,16"
-                                    Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="Bars run" Style="{StaticResource FieldLabel}"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.BarDirections}"
+                        <ui:CardControl Style="{StaticResource Row}" Margin="0,0,0,16" Header="Bars run"
+                                        Icon="{ui:SymbolIcon ArrowSwap24}"
+                                        Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
+                            <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.BarDirections}"
                                       SelectedItem="{Binding ViewModel.BarDirection}"/>
-                        </StackPanel>
+                        </ui:CardControl>
 
-                        <StackPanel Margin="0,0,0,20"
+                        <StackPanel Margin="0,0,0,16"
                                     Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="Clock" Style="{StaticResource Section}"/>
-                            <StackPanel Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
-                                <!-- Rings first, because they decide which of the two below applies: without
-                                     rings a clock writes one of the formats, with them the time is always in
-                                     the middle and the choice is what goes with it. -->
-                                <TextBlock Text="Rings" Style="{StaticResource FieldLabel}"/>
-                                <ComboBox ItemsSource="{Binding ViewModel.RingChoices}"
+                            <!-- Rings first, because they decide which of the rows below applies: without
+                                 rings a clock writes one of the formats, with them the time is always in
+                                 the middle and the choice is what goes with it. -->
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Circle24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Rings"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Coloured by the preset's primary ramp."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.RingChoices}"
                                           DisplayMemberPath="Label"
                                           SelectedValuePath="Value"
                                           SelectedValue="{Binding ViewModel.SelectedRings}"/>
+                            </ui:CardControl>
 
-                                <StackPanel Visibility="{Binding ViewModel.ShowsClockFormat, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Text="Shows" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                                    <ComboBox ItemsSource="{Binding ViewModel.ClockFormats}"
-                                              SelectedItem="{Binding ViewModel.SelectedClockFormat}"/>
-                                </StackPanel>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Shows" Icon="{ui:SymbolIcon Clock24}"
+                                            Visibility="{Binding ViewModel.ShowsClockFormat, Converter={StaticResource BoolToVisibility}}">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.ClockFormats}"
+                                          SelectedItem="{Binding ViewModel.SelectedClockFormat}"/>
+                            </ui:CardControl>
 
-                                <StackPanel Visibility="{Binding ViewModel.ShowsRingOptions, Converter={StaticResource BoolToVisibility}}">
-                                    <CheckBox Margin="0,10,0,0" Content="Show the date"
-                                              IsChecked="{Binding ViewModel.DateShown}"/>
-                                    <CheckBox Margin="0,10,0,0" Content="Show the seconds"
-                                              IsChecked="{Binding ViewModel.SecondsShown}"/>
-                                    <CheckBox Margin="0,10,0,0" Content="Text fills the rings"
-                                              IsChecked="{Binding ViewModel.TextFillsRings}"/>
-                                    <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                               Opacity="0.5" TextWrapping="Wrap"
-                                               Text="Written above and below the time, in this machine's own format. Off, the text takes the preset's reading size. The rings take their colours from the preset's primary ramp."/>
-                                </StackPanel>
+                            <StackPanel Visibility="{Binding ViewModel.ShowsRingOptions, Converter={StaticResource BoolToVisibility}}">
+                                <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon CalendarLtr24}">
+                                    <ui:CardControl.Header>
+                                        <StackPanel>
+                                            <TextBlock Text="Show the date"/>
+                                            <TextBlock Style="{StaticResource SettingHint}"
+                                                       Text="Above the time, in this machine's own format."/>
+                                        </StackPanel>
+                                    </ui:CardControl.Header>
+                                    <ui:ToggleSwitch AutomationProperties.Name="Show the date"
+                                                     IsChecked="{Binding ViewModel.DateShown}"/>
+                                </ui:CardControl>
+                                <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Timer24}">
+                                    <ui:CardControl.Header>
+                                        <StackPanel>
+                                            <TextBlock Text="Show the seconds"/>
+                                            <TextBlock Style="{StaticResource SettingHint}" Text="Below the time."/>
+                                        </StackPanel>
+                                    </ui:CardControl.Header>
+                                    <ui:ToggleSwitch AutomationProperties.Name="Show the seconds"
+                                                     IsChecked="{Binding ViewModel.SecondsShown}"/>
+                                </ui:CardControl>
+                                <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon TextFontSize24}">
+                                    <ui:CardControl.Header>
+                                        <StackPanel>
+                                            <TextBlock Text="Text fills the rings"/>
+                                            <TextBlock Style="{StaticResource SettingHint}"
+                                                       Text="Off, the text takes the preset's reading size."/>
+                                        </StackPanel>
+                                    </ui:CardControl.Header>
+                                    <ui:ToggleSwitch AutomationProperties.Name="Text fills the rings"
+                                                     IsChecked="{Binding ViewModel.TextFillsRings}"/>
+                                </ui:CardControl>
                             </StackPanel>
                         </StackPanel>
 
                         <!-- How much data a chart shows, and against what scale. Both are questions about the
                              readings rather than about the look, so they stay with the widget. -->
-                        <StackPanel Margin="0,0,0,20"
+                        <StackPanel Margin="0,0,0,16"
                                     Visibility="{Binding ViewModel.ShowsChartData, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="Chart" Style="{StaticResource Section}"/>
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.WindowLabel}"/>
-                                <TextBlock Text="Time window" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="20" Maximum="600" TickFrequency="10" IsSnapToTickEnabled="True"
-                                    Value="{Binding ViewModel.PointCount}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Only the sensors this widget draws keep a longer history. A widened window fills from the right."/>
+                            <!-- The one slider that keeps the card's width: 20 to 600 in steps of ten is too fine
+                                 for the short one a row has room for. -->
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Timer24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Margin="8,0,0,0"
+                                                       VerticalAlignment="Center" Text="{Binding ViewModel.WindowLabel}"/>
+                                            <TextBlock Text="Time window"/>
+                                        </DockPanel>
+                                        <Slider Margin="0,6,0,0" Minimum="20" Maximum="600" TickFrequency="10"
+                                                IsSnapToTickEnabled="True" AutomationProperties.Name="Time window"
+                                                Value="{Binding ViewModel.PointCount}"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Only the sensors this widget draws keep a longer history. A widened window fills from the right."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                            </ui:CardControl>
 
-                            <TextBlock Text="Scale" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Scales}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Value"
-                                      SelectedValue="{Binding ViewModel.SelectedScale}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="From zero keeps widgets comparable. Fit to data uses the full height, but the scale moves."/>
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon ArrowAutofitHeight24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Scale"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="From zero keeps widgets comparable. Fit to data uses the full height, but the scale moves."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Scales}"
+                                          DisplayMemberPath="Label"
+                                          SelectedValuePath="Value"
+                                          SelectedValue="{Binding ViewModel.SelectedScale}"/>
+                            </ui:CardControl>
 
-                            <Grid Margin="0,10,0,0"
-                                  Visibility="{Binding ViewModel.ScaleIsManual, Converter={StaticResource BoolToVisibility}}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Min" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Max" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                                <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" ClearButtonEnabled="False"
-                                              Value="{Binding ViewModel.ScaleMin, Mode=TwoWay}"/>
-                                <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" ClearButtonEnabled="False"
-                                              Value="{Binding ViewModel.ScaleMax, Mode=TwoWay}"/>
-                            </Grid>
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Ruler24}"
+                                            Visibility="{Binding ViewModel.ScaleIsManual, Converter={StaticResource BoolToVisibility}}">
+                                <ui:CardControl.Header>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Min" Style="{StaticResource FieldLabel}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Max" Style="{StaticResource FieldLabel}"/>
+                                        <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" ClearButtonEnabled="False"
+                                                      Value="{Binding ViewModel.ScaleMin, Mode=TwoWay}"/>
+                                        <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" ClearButtonEnabled="False"
+                                                      Value="{Binding ViewModel.ScaleMax, Mode=TwoWay}"/>
+                                    </Grid>
+                                </ui:CardControl.Header>
+                            </ui:CardControl>
                         </StackPanel>
 
-                        <StackPanel Margin="0,0,0,20"
+                        <StackPanel Margin="0,0,0,16"
                                     Visibility="{Binding ViewModel.ShowsList, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="List" Style="{StaticResource Section}"/>
                             <!-- How many of a list's rows are shown, under the list it counts. With the widget
                                  and not in the preset, like a chart's window: it decides how much of the data is
                                  on the screen, not how the data looks. -->
-                            <StackPanel Margin="0,14,0,0"
-                                        Visibility="{Binding ViewModel.ShowsList, Converter={StaticResource BoolToVisibility}}">
-                                <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                               Text="{Binding ViewModel.ItemCount, StringFormat={}{0:F0}}"/>
-                                    <TextBlock Text="Rows" Style="{StaticResource FieldLabel}"/>
-                                </DockPanel>
-                                <Slider Minimum="1" Maximum="{Binding ViewModel.MaxItemCount}"
-                                        TickFrequency="1" IsSnapToTickEnabled="True"
-                                        Value="{Binding ViewModel.ItemCount}"/>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Rows" Icon="{ui:SymbolIcon TextBulletListLtr24}">
+                                <controls:SliderField Minimum="1" Maximum="{Binding ViewModel.MaxItemCount}" Step="1"
+                                                      Value="{Binding ViewModel.ItemCount}"/>
+                            </ui:CardControl>
 
-                                <!-- What each row draws besides its name and number, and the total. Here for
-                                     the same reason as the count: they are things to read, and trying on a
-                                     preset must never take one away. How they look is the preset's. -->
-                                <CheckBox Margin="0,10,0,0" Content="Bar under each row"
-                                          IsChecked="{Binding ViewModel.BarShown}"/>
-                                <CheckBox Margin="0,10,0,0" Content="Trend beside each reading"
-                                          IsChecked="{Binding ViewModel.SparklineShown}"/>
-                                <CheckBox Margin="0,10,0,0" Content="Total beside the title"
-                                          IsChecked="{Binding ViewModel.TotalShown}"/>
-                            </StackPanel>
+                            <!-- What each row draws besides its name and number, and the total. Here for
+                                 the same reason as the count: they are things to read, and trying on a
+                                 preset must never take one away. How they look is the preset's. -->
+                            <ui:CardControl Style="{StaticResource Row}" Header="Bar under each row"
+                                            Icon="{ui:SymbolIcon DataBarHorizontal24}">
+                                <ui:ToggleSwitch AutomationProperties.Name="Bar under each row"
+                                                 IsChecked="{Binding ViewModel.BarShown}"/>
+                            </ui:CardControl>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Trend beside each reading"
+                                            Icon="{ui:SymbolIcon DataTrending24}">
+                                <ui:ToggleSwitch AutomationProperties.Name="Trend beside each reading"
+                                                 IsChecked="{Binding ViewModel.SparklineShown}"/>
+                            </ui:CardControl>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Total beside the title"
+                                            Icon="{ui:SymbolIcon NumberSymbol24}">
+                                <ui:ToggleSwitch AutomationProperties.Name="Total beside the title"
+                                                 IsChecked="{Binding ViewModel.TotalShown}"/>
+                            </ui:CardControl>
                         </StackPanel>
 
-                        <StackPanel Margin="0,0,0,20"
+                        <StackPanel Margin="0,0,0,16"
                                     Visibility="{Binding ViewModel.ShowsDisplay, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="Display" Style="{StaticResource Section}"/>
                             <!-- What is shown of the reading, beside the readings themselves. Not in the
                                  preset: a preset has to be safe to try on, and these two change what is on
                                  the screen rather than how it looks. -->
-                            <CheckBox Margin="0,14,0,0" Content="Show the unit"
-                                      Visibility="{Binding ViewModel.ShowsUnit, Converter={StaticResource BoolToVisibility}}"
-                                      IsChecked="{Binding ViewModel.UnitShown}"/>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Show the unit"
+                                            Icon="{ui:SymbolIcon TextNumberFormat24}"
+                                            Visibility="{Binding ViewModel.ShowsUnit, Converter={StaticResource BoolToVisibility}}">
+                                <ui:ToggleSwitch AutomationProperties.Name="Show the unit"
+                                                 IsChecked="{Binding ViewModel.UnitShown}"/>
+                            </ui:CardControl>
 
-                            <StackPanel Visibility="{Binding ViewModel.CanHideValue, Converter={StaticResource BoolToVisibility}}">
-                                <CheckBox Margin="0,10,0,0" Content="Show the reading"
-                                          IsChecked="{Binding ViewModel.ValueShown}"/>
-                                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                           Opacity="0.5" TextWrapping="Wrap"
-                                           Text="Off leaves the dial or bar drawing on its own, with the title above it."/>
-                            </StackPanel>
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Eye24}"
+                                            Visibility="{Binding ViewModel.CanHideValue, Converter={StaticResource BoolToVisibility}}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Show the reading"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Off leaves the dial or bar drawing on its own, with the title above it."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Show the reading"
+                                                 IsChecked="{Binding ViewModel.ValueShown}"/>
+                            </ui:CardControl>
                         </StackPanel>
 
                         <!-- Where it sits and how big it is, in exact numbers. Dragging and the wheel are the
                              quick way; these are for lining widgets up deliberately, and for fetching one back
-                             when it has ended up somewhere off-screen. -->
+                             when it has ended up somewhere off-screen. Two by two in one card, because a number
+                             box needs more room than the right of a row has. -->
                         <TextBlock Text="Position and size" Style="{StaticResource Section}"/>
 
-                        <TextBlock Text="Position" Style="{StaticResource FieldLabel}"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="10"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="X" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Y" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                            <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                          Value="{Binding ViewModel.WidgetX, Mode=TwoWay}"/>
-                            <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                          Value="{Binding ViewModel.WidgetY, Mode=TwoWay}"/>
-                        </Grid>
+                        <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon ArrowMove24}">
+                            <ui:CardControl.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="X" Style="{StaticResource FieldLabel}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Y" Style="{StaticResource FieldLabel}"/>
+                                    <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                                  Value="{Binding ViewModel.WidgetX, Mode=TwoWay}"/>
+                                    <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                                  Value="{Binding ViewModel.WidgetY, Mode=TwoWay}"/>
 
-                        <TextBlock Text="Size" Style="{StaticResource FieldLabel}" Margin="0,16,0,4"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Width" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Height" Style="{StaticResource FieldValue}" Margin="0,0,0,4"/>
-                            <!-- Free by default, every kind alike. The lock keeps the ratio the widget has:
-                                 typing either box sets the other, and the desktop's corners keep it too. The
-                                 range is the view model's, which holds both sides inside it. -->
-                            <ui:NumberBox Grid.Row="1" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                          Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
-                                          Value="{Binding ViewModel.WidgetWidth, Mode=TwoWay}"/>
-                            <ToggleButton Grid.Row="1" Grid.Column="1" Margin="6,0" Padding="7,0"
-                                          VerticalAlignment="Stretch"
-                                          ToolTip="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag." AutomationProperties.Name="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag."
-                                          IsChecked="{Binding ViewModel.KeepsProportions, Mode=TwoWay}">
-                                <ToggleButton.Style>
-                                    <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}">
-                                        <Setter Property="Content">
-                                            <Setter.Value>
-                                                <ui:SymbolIcon Symbol="LockOpen24" FontSize="16"/>
-                                            </Setter.Value>
-                                        </Setter>
-                                        <Style.Triggers>
-                                            <Trigger Property="IsChecked" Value="True">
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Width" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="2" Text="Height" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                    <!-- Free by default, every kind alike. The lock keeps the ratio the widget has:
+                                         typing either box sets the other, and the desktop's corners keep it too. The
+                                         range is the view model's, which holds both sides inside it. -->
+                                    <ui:NumberBox Grid.Row="3" Grid.Column="0" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                                  Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
+                                                  Value="{Binding ViewModel.WidgetWidth, Mode=TwoWay}"/>
+                                    <ToggleButton Grid.Row="3" Grid.Column="1" Margin="6,0" Padding="7,0"
+                                                  VerticalAlignment="Stretch"
+                                                  ToolTip="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag." AutomationProperties.Name="Keep proportions. On the desktop, hold Shift while pulling a corner to keep them for that drag."
+                                                  IsChecked="{Binding ViewModel.KeepsProportions, Mode=TwoWay}">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}">
                                                 <Setter Property="Content">
                                                     <Setter.Value>
-                                                        <ui:SymbolIcon Symbol="LockClosed24" FontSize="16"/>
+                                                        <ui:SymbolIcon Symbol="LockOpen24" FontSize="16"/>
                                                     </Setter.Value>
                                                 </Setter>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ToggleButton.Style>
-                            </ToggleButton>
-                            <ui:NumberBox Grid.Row="1" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
-                                          Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
-                                          Value="{Binding ViewModel.WidgetHeight, Mode=TwoWay}"/>
-                        </Grid>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter Property="Content">
+                                                            <Setter.Value>
+                                                                <ui:SymbolIcon Symbol="LockClosed24" FontSize="16"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                    </ToggleButton>
+                                    <ui:NumberBox Grid.Row="3" Grid.Column="2" MaxDecimalPlaces="0" SmallChange="1" LargeChange="10"
+                                                  Minimum="{Binding ViewModel.LeastSize}" Maximum="{Binding ViewModel.MostSize}"
+                                                  Value="{Binding ViewModel.WidgetHeight, Mode=TwoWay}"/>
+                                </Grid>
+                            </ui:CardControl.Header>
+                        </ui:CardControl>
 
                         <!-- Which screen it is shown on. Pointing at a name lights up that monitor, as the desktop
                              menu's "Send to" does: a name alone does not say which piece of hardware it is. -->
-                        <TextBlock Text="Screen" Style="{StaticResource Section}" Margin="0,20,0,8"/>
-                        <Border Style="{StaticResource Card}">
-                            <DockPanel>
-                                <ComboBox DockPanel.Dock="Right" MinWidth="200"
-                                          ItemsSource="{Binding ViewModel.Screens}"
-                                          SelectedItem="{Binding ViewModel.SelectedScreen}"
-                                          DisplayMemberPath="Label"
-                                          IsEnabled="{Binding ViewModel.CanChooseScreen}"
-                                          DropDownClosed="OnScreenPickerClosed">
-                                    <ComboBox.ItemContainerStyle>
-                                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
-                                            <EventSetter Event="MouseEnter" Handler="OnScreenPointed"/>
-                                        </Style>
-                                    </ComboBox.ItemContainerStyle>
-                                </ComboBox>
-                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Desktop24" FontSize="16" Margin="0,0,10,0"
-                                               VerticalAlignment="Center"/>
-                                <TextBlock Text="Shown on" VerticalAlignment="Center"/>
-                            </DockPanel>
-                        </Border>
+                        <ui:CardControl Style="{StaticResource Row}" Header="Shown on" Icon="{ui:SymbolIcon Desktop24}">
+                            <ComboBox MinWidth="200"
+                                      ItemsSource="{Binding ViewModel.Screens}"
+                                      SelectedItem="{Binding ViewModel.SelectedScreen}"
+                                      DisplayMemberPath="Label"
+                                      IsEnabled="{Binding ViewModel.CanChooseScreen}"
+                                      DropDownClosed="OnScreenPickerClosed">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                        <EventSetter Event="MouseEnter" Handler="OnScreenPointed"/>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                        </ui:CardControl>
 
                         <!-- Which widget draws on top where two overlap — said in words, with a step each way.
                              A slider from −5 to 10 said a number, and moving it from 0 to 1 could change nothing
                              anyone could see; each press here passes one widget that overlaps this one. -->
-                        <DockPanel Margin="0,20,0,8">
-                            <TextBlock DockPanel.Dock="Right" FontSize="12" Opacity="0.7" VerticalAlignment="Bottom"
-                                       Text="{Binding ViewModel.LayerDescription}"/>
-                            <TextBlock Text="Layer" Style="{StaticResource Section}" Margin="0"/>
-                        </DockPanel>
-                        <UniformGrid Rows="1">
-                            <ui:Button Margin="0,0,4,0" HorizontalAlignment="Stretch" Height="36"
-                                       Icon="{ui:SymbolIcon PositionBackward24}" Content="Send backward"
-                                       IsEnabled="{Binding ViewModel.CanSendBackward}"
-                                       Command="{Binding ViewModel.SendBackwardCommand}"/>
-                            <ui:Button Margin="4,0,0,0" HorizontalAlignment="Stretch" Height="36"
-                                       Icon="{ui:SymbolIcon PositionForward24}" Content="Bring forward"
-                                       IsEnabled="{Binding ViewModel.CanBringForward}"
-                                       Command="{Binding ViewModel.BringForwardCommand}"/>
-                        </UniformGrid>
-                        <TextBlock FontSize="12" Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,0"
-                                   Text="Where two widgets overlap, the one in front draws on top. A backdrop sits behind everything."/>
+                        <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Layer24}">
+                            <ui:CardControl.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Layer"/>
+                                    <TextBlock Style="{StaticResource SettingHint}" Text="{Binding ViewModel.LayerDescription}"/>
+                                    <TextBlock Style="{StaticResource SettingHint}"
+                                               Text="Where two widgets overlap, the one in front draws on top. A backdrop sits behind everything."/>
+                                </StackPanel>
+                            </ui:CardControl.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:Button Style="{StaticResource IconButton}" Margin="0,0,4,0"
+                                           Icon="{ui:SymbolIcon PositionBackward24}"
+                                           ToolTip="Send backward" AutomationProperties.Name="Send backward"
+                                           ToolTipService.ShowOnDisabled="True"
+                                           IsEnabled="{Binding ViewModel.CanSendBackward}"
+                                           Command="{Binding ViewModel.SendBackwardCommand}"/>
+                                <ui:Button Style="{StaticResource IconButton}"
+                                           Icon="{ui:SymbolIcon PositionForward24}"
+                                           ToolTip="Bring forward" AutomationProperties.Name="Bring forward"
+                                           ToolTipService.ShowOnDisabled="True"
+                                           IsEnabled="{Binding ViewModel.CanBringForward}"
+                                           Command="{Binding ViewModel.BringForwardCommand}"/>
+                            </StackPanel>
+                        </ui:CardControl>
 
-                        <Grid Margin="0,16,0,0">
+                        <Grid Margin="0,12,0,0">
                             <Border CornerRadius="6" Opacity="0.12" Background="{DynamicResource Aquila.Chrome.Accent}"/>
                             <Border CornerRadius="6" BorderThickness="1" Opacity="0.35"
                                     BorderBrush="{DynamicResource Aquila.Chrome.Accent}"/>
@@ -1158,7 +1241,7 @@
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           Visibility="{Binding ViewModel.ShowsPresetView, Converter={StaticResource BoolToVisibility}}">
-                <StackPanel Expander.Expanded="OnCardExpanded">
+                <StackPanel Margin="2,0,12,0" Expander.Expanded="OnCardExpanded">
 
                     <!-- How far an edit here reaches, said before anything is touched, on a wash of the accent: this
                          is the one place in the panel where a change is not this widget's alone. No preview here:
@@ -1178,55 +1261,35 @@
                             <TextBlock Text="Panel" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
-                        <StackPanel Margin="0,12,0,0">
-                        <TextBlock Text="Background" Style="{StaticResource FieldLabel}"/>
-                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.BackgroundColor, Mode=TwoWay}"
-
-                                             Swatches="{Binding ViewModel.Swatches}"/>
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.BackgroundOpacity, StringFormat={}{0:F0}%}"/>
-                            <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="100"
-                                Value="{Binding ViewModel.BackgroundOpacity}"/>
-
-                        <TextBlock Text="Border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.BorderColor, Mode=TwoWay}"
-
-                                             Swatches="{Binding ViewModel.Swatches}"/>
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.BorderOpacity, StringFormat={}{0:F0}%}"/>
-                            <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="100"
-                                Value="{Binding ViewModel.BorderOpacity}"/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.BorderThickness, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True"
-                                Value="{Binding ViewModel.BorderThickness}"/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.CornerRadius, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="24"
-                                Value="{Binding ViewModel.CornerRadius}"/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.Padding, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Padding" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="32"
-                                Value="{Binding ViewModel.Padding}"/>
-
+                        <StackPanel>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Background" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <controls:ColorField Color="{Binding ViewModel.BackgroundColor, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                    <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                          Value="{Binding ViewModel.BackgroundOpacity}"/>
+                                </StackPanel>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Border">
+                                <StackPanel Orientation="Horizontal">
+                                    <controls:ColorField Color="{Binding ViewModel.BorderColor, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                    <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                          Value="{Binding ViewModel.BorderOpacity}"/>
+                                </StackPanel>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Border thickness">
+                                <controls:SliderField Minimum="0" Maximum="4" Step="1" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.BorderThickness}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Corners">
+                                <controls:SliderField Minimum="0" Maximum="24" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.CornerRadius}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Padding">
+                                <controls:SliderField Minimum="0" Maximum="32" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.Padding}"/>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -1359,38 +1422,28 @@
                             <TextBlock Text="Dial" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
-                        <StackPanel Margin="0,12,0,0">
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.ArcThickness, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Arc thickness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="2" Maximum="40"
-                                    Value="{Binding ViewModel.ArcThickness}"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.ArcCorner, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Arc ends" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="20"
-                                    Value="{Binding ViewModel.ArcCorner}"/>
-                            <StackPanel Visibility="{Binding ViewModel.ShowsDial, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Sweep" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                                <ComboBox ItemsSource="{Binding ViewModel.Sweeps}"
+                        <StackPanel>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Arc thickness" BorderThickness="0">
+                                <controls:SliderField Minimum="2" Maximum="40" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.ArcThickness}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Arc ends">
+                                <controls:SliderField Minimum="0" Maximum="20" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.ArcCorner}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Sweep"
+                                                    Visibility="{Binding ViewModel.ShowsDial, Converter={StaticResource BoolToVisibility}}">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Sweeps}"
                                           SelectedItem="{Binding ViewModel.Sweep}"/>
-                            </StackPanel>
-
-                                <TextBlock Text="Track" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                                <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TrackColor, Mode=TwoWay}"
-
-                                                     Swatches="{Binding ViewModel.Swatches}"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.TrackOpacity, StringFormat={}{0:F0}%}"/>
-                                <TextBlock Text="Track opacity" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="100"
-                                    Value="{Binding ViewModel.TrackOpacity}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Track">
+                                <StackPanel Orientation="Horizontal">
+                                    <controls:ColorField Color="{Binding ViewModel.TrackColor, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                    <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                          Value="{Binding ViewModel.TrackOpacity}"/>
+                                </StackPanel>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -1401,38 +1454,27 @@
                             <TextBlock Text="Line" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
-                        <StackPanel Margin="0,12,0,0">
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.LineThickness, StringFormat={}{0:F1} px}"/>
-                                <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0.5" Maximum="6"
-                                    Value="{Binding ViewModel.LineThickness}"/>
-                            <TextBlock Text="Fill" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Fills}"
-                                      SelectedItem="{Binding ViewModel.LineFill}"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.FillOpacity, StringFormat={}{0:F0}%}"/>
-                                <TextBlock Text="Fill opacity" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="100"
-                                    Value="{Binding ViewModel.FillOpacity}"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.Smoothness, StringFormat={}{0:F0}%}"/>
-                                <TextBlock Text="Smoothness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="100"
-                                    Value="{Binding ViewModel.Smoothness}"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.PointSize, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Points" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="10"
-                                    Value="{Binding ViewModel.PointSize}"/>
+                        <StackPanel>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Thickness" BorderThickness="0">
+                                <controls:SliderField Minimum="0.5" Maximum="6" Format="{}{0:F1} px"
+                                                      Value="{Binding ViewModel.LineThickness}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Fill">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Fills}"
+                                          SelectedItem="{Binding ViewModel.LineFill}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Fill opacity">
+                                <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                      Value="{Binding ViewModel.FillOpacity}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Smoothness">
+                                <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                      Value="{Binding ViewModel.Smoothness}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Points">
+                                <controls:SliderField Minimum="0" Maximum="10" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.PointSize}"/>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -1443,27 +1485,21 @@
                             <TextBlock Text="Bar" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
-                        <StackPanel Margin="0,12,0,0">
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BarThickness, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="2" Maximum="40"
-                                    Value="{Binding ViewModel.BarThickness}"/>
-                            <DockPanel Margin="0,10,0,0">
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.BarCorner, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="0" Maximum="20"
-                                    Value="{Binding ViewModel.BarCorner}"/>
+                        <StackPanel>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Thickness" BorderThickness="0">
+                                <controls:SliderField Minimum="2" Maximum="40" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.BarThickness}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Corners">
+                                <controls:SliderField Minimum="0" Maximum="20" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.BarCorner}"/>
+                            </HeaderedContentControl>
                             <!-- A list's row bar is always under its line, so only the bar kinds are asked. -->
-                            <StackPanel Visibility="{Binding ViewModel.ShowsBar, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Layout" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                                <ComboBox ItemsSource="{Binding ViewModel.Layouts}"
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Layout"
+                                                    Visibility="{Binding ViewModel.ShowsBar, Converter={StaticResource BoolToVisibility}}">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Layouts}"
                                           SelectedItem="{Binding ViewModel.BarLayout}"/>
-                            </StackPanel>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -1474,16 +1510,15 @@
                             <TextBlock Text="Number" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
-                        <StackPanel Margin="0,12,0,0">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.UnitSize, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Unit size" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="6" Maximum="24"
-                                    Value="{Binding ViewModel.UnitSize}"/>
-                            <CheckBox Margin="0,10,0,0" Content="Panel behind the number"
-                                      IsChecked="{Binding ViewModel.NumberPanel}"/>
+                        <StackPanel>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Unit size" BorderThickness="0">
+                                <controls:SliderField Minimum="6" Maximum="24" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.UnitSize}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Panel behind the number">
+                                <ui:ToggleSwitch AutomationProperties.Name="Panel behind the number"
+                                                 IsChecked="{Binding ViewModel.NumberPanel}"/>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -1493,111 +1528,96 @@
                             <TextBlock Text="Title" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
-                        <StackPanel Margin="0,12,0,0">
-                        <TextBlock Text="Colour" Style="{StaticResource FieldLabel}"/>
-                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TitleColor, Mode=TwoWay}"
-                                             Swatches="{Binding ViewModel.Swatches}"/>
+                        <StackPanel>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Colour" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <controls:ColorField Color="{Binding ViewModel.TitleColor, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                    <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                          Value="{Binding ViewModel.TitleOpacity}"/>
+                                </StackPanel>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Typeface">
+                                <ComboBox Width="200" ItemsSource="{Binding ViewModel.FontFamilies}"
+                                          SelectedItem="{Binding ViewModel.TitleFont}">
+                                    <!-- Every name set in its own face, so the list is a specimen sheet rather than a
+                                         list of words. -->
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Weight">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Weights}"
+                                          SelectedItem="{Binding ViewModel.TitleWeight}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Size">
+                                <controls:SliderField Minimum="6" Maximum="24" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.TitleSize}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Side">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Placements}"
+                                          SelectedItem="{Binding ViewModel.TitlePlacement}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}">
+                                <HeaderedContentControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Align"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Applies with the title above or below. Docked to a side it is already as narrow as its text."/>
+                                    </StackPanel>
+                                </HeaderedContentControl.Header>
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Alignments}"
+                                          SelectedItem="{Binding ViewModel.TitleAlign}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Distance to content">
+                                <controls:SliderField Minimum="0" Maximum="24" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.TitleGap}"/>
+                            </HeaderedContentControl>
 
-                        <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                        <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
-                                  SelectedItem="{Binding ViewModel.TitleFont}">
-                            <!-- Every name set in its own face, so the list is a specimen sheet rather than a
-                                 list of words. -->
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <TextBlock Text="Weight" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                        <ComboBox ItemsSource="{Binding ViewModel.Weights}"
-                                  SelectedItem="{Binding ViewModel.TitleWeight}"/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitleSize, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Title size" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="6" Maximum="24"
-                                Value="{Binding ViewModel.TitleSize}"/>
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitleOpacity, StringFormat={}{0:F0}%}"/>
-                            <TextBlock Text="Title opacity" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="100"
-                                Value="{Binding ViewModel.TitleOpacity}"/>
-                        <TextBlock Text="Title side" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                        <ComboBox ItemsSource="{Binding ViewModel.Placements}"
-                                  SelectedItem="{Binding ViewModel.TitlePlacement}"/>
-
-                        <TextBlock Text="Title align" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                        <ComboBox ItemsSource="{Binding ViewModel.Alignments}"
-                                  SelectedItem="{Binding ViewModel.TitleAlign}"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                   Opacity="0.5" TextWrapping="Wrap"
-                                   Text="Applies with the title above or below. Docked to a side it is already as narrow as its text."/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitleGap, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Distance to content" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="24"
-                                Value="{Binding ViewModel.TitleGap}"/>
-
-                        <!-- The title's own box: the panel's controls again, for the line the title sits on. -->
-                        <TextBlock Text="Box background" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TitleBackgroundColor, Mode=TwoWay}"
-                                             Swatches="{Binding ViewModel.Swatches}"/>
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitleBackgroundOpacity, StringFormat={}{0:F0}%}"/>
-                            <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="100"
-                                Value="{Binding ViewModel.TitleBackgroundOpacity}"/>
-
-                        <TextBlock Text="Box border" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                        <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.TitleBorderColor, Mode=TwoWay}"
-                                             Swatches="{Binding ViewModel.Swatches}"/>
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitleBorderOpacity, StringFormat={}{0:F0}%}"/>
-                            <TextBlock Text="Opacity" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="100"
-                                Value="{Binding ViewModel.TitleBorderOpacity}"/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitleBorderThickness, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Thickness" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="4" TickFrequency="1" IsSnapToTickEnabled="True"
-                                Value="{Binding ViewModel.TitleBorderThickness}"/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitleCornerRadius, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Corners" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="24"
-                                Value="{Binding ViewModel.TitleCornerRadius}"/>
-
-                        <DockPanel Margin="0,10,0,0">
-                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                       Text="{Binding ViewModel.TitlePadding, StringFormat={}{0:F0} px}"/>
-                            <TextBlock Text="Padding" Style="{StaticResource FieldLabel}"/>
-                        </DockPanel>
-                        <Slider Minimum="0" Maximum="16"
-                                Value="{Binding ViewModel.TitlePadding}"/>
-
-                        <CheckBox Margin="0,10,0,0" Content="Box reaches the panel's edges"
-                                  IsChecked="{Binding ViewModel.TitleBleed}"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                   Opacity="0.5" TextWrapping="Wrap"
-                                   Text="Past the panel's padding on the outer sides, with the panel's corners there — a title bar."/>
+                            <!-- The title's own box: the panel's controls again, for the line the title sits on. -->
+                            <TextBlock Text="Box" Style="{StaticResource Section}" Margin="0,16,0,4"/>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Background" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <controls:ColorField Color="{Binding ViewModel.TitleBackgroundColor, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                    <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                          Value="{Binding ViewModel.TitleBackgroundOpacity}"/>
+                                </StackPanel>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Border">
+                                <StackPanel Orientation="Horizontal">
+                                    <controls:ColorField Color="{Binding ViewModel.TitleBorderColor, Mode=TwoWay}"
+                                                         Swatches="{Binding ViewModel.Swatches}"/>
+                                    <controls:SliderField Minimum="0" Maximum="100" Format="{}{0:F0}%"
+                                                          Value="{Binding ViewModel.TitleBorderOpacity}"/>
+                                </StackPanel>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Border thickness">
+                                <controls:SliderField Minimum="0" Maximum="4" Step="1" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.TitleBorderThickness}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Corners">
+                                <controls:SliderField Minimum="0" Maximum="24" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.TitleCornerRadius}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Padding">
+                                <controls:SliderField Minimum="0" Maximum="16" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.TitlePadding}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}">
+                                <HeaderedContentControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Reaches the panel's edges"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Past the panel's padding on the outer sides, with the panel's corners there — a title bar."/>
+                                    </StackPanel>
+                                </HeaderedContentControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Box reaches the panel's edges"
+                                                 IsChecked="{Binding ViewModel.TitleBleed}"/>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -1608,40 +1628,42 @@
                             <TextBlock Text="Reading" FontWeight="SemiBold"/>
                         </ui:CardExpander.Header>
 
-                        <StackPanel Margin="0,12,0,0">
-                            <TextBlock Text="Colour" Style="{StaticResource FieldLabel}"/>
-                            <controls:ColorField HorizontalAlignment="Left" Color="{Binding ViewModel.ValueColor, Mode=TwoWay}"
-                                                 Swatches="{Binding ViewModel.Swatches}"/>
-                            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,4,0,0" FontSize="11"
-                                       Opacity="0.5" TextWrapping="Wrap"
-                                       Text="Shows where nothing is judging the number — a clock, a caption. A reading with a sensor behind it takes its ramp's colour instead."/>
-
-                            <TextBlock Text="Typeface" Style="{StaticResource FieldLabel}" Margin="0,20,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.FontFamilies}"
-                                      SelectedItem="{Binding ViewModel.ValueFont}">
-                                <!-- Every name set in its own face, so the list is a specimen sheet rather than a
-                                     list of words. -->
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                            <TextBlock Text="Weight" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Weights}"
-                                      SelectedItem="{Binding ViewModel.ValueWeight}"/>
-
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
-                                           Text="{Binding ViewModel.ValueSize, StringFormat={}{0:F0} px}"/>
-                                <TextBlock Text="Reading size" Style="{StaticResource FieldLabel}"/>
-                            </DockPanel>
-                            <Slider Minimum="8" Maximum="64"
-                                    Value="{Binding ViewModel.ValueSize}"/>
-                            <TextBlock Text="Reading align" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
-                            <ComboBox ItemsSource="{Binding ViewModel.Alignments}"
-                                      SelectedItem="{Binding ViewModel.ValueAlign}"/>
-
+                        <StackPanel>
+                            <HeaderedContentControl Style="{StaticResource Line}" BorderThickness="0">
+                                <HeaderedContentControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Colour"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Shows where nothing is judging the number — a clock, a caption. A reading with a sensor behind it takes its ramp's colour instead."/>
+                                    </StackPanel>
+                                </HeaderedContentControl.Header>
+                                <controls:ColorField Color="{Binding ViewModel.ValueColor, Mode=TwoWay}"
+                                                     Swatches="{Binding ViewModel.Swatches}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Typeface">
+                                <ComboBox Width="200" ItemsSource="{Binding ViewModel.FontFamilies}"
+                                          SelectedItem="{Binding ViewModel.ValueFont}">
+                                    <!-- Every name set in its own face, so the list is a specimen sheet rather than a
+                                         list of words. -->
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontFamily="{Binding}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Weight">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Weights}"
+                                          SelectedItem="{Binding ViewModel.ValueWeight}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Size">
+                                <controls:SliderField Minimum="8" Maximum="64" Format="{}{0:F0} px"
+                                                      Value="{Binding ViewModel.ValueSize}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Align">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Alignments}"
+                                          SelectedItem="{Binding ViewModel.ValueAlign}"/>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
                 </StackPanel>
