@@ -116,6 +116,52 @@ public sealed class BarProperties
         Assert.Equal(new Rect(8, 0, 4, 90), BarGeometry.Track(new Size(20, 90), 4, Orientation.Vertical));
     }
 
+    /// <summary>
+    /// A bar's parts lie end to end from where it fills, each its share of the length, never outside the track — and
+    /// they stop where the track does, so shares adding up to more than the whole never draw past it. A share below
+    /// nothing is nothing.
+    /// </summary>
+    [Property(MaxTest = 500)]
+    public Property Segments_lie_end_to_end_inside_the_track() =>
+        Prop.ForAll(
+            (from track in Tracks()
+             from orientation in Orientations()
+             from count in Gen.Choose(1, 6)
+             from shares in Gen.Choose(-100, 700).Select(v => v / 1000d).ArrayOf(count)
+             select (track, orientation, shares)).ToArbitrary(),
+            bar =>
+            {
+                var (track, orientation, shares) = bar;
+                var parts = BarGeometry.Segments(track, shares, orientation);
+                var horizontal = orientation == Orientation.Horizontal;
+                var length = horizontal ? track.Width : track.Height;
+
+                var at = 0d;
+                for (var i = 0; i < parts.Length; i++)
+                {
+                    var part = parts[i];
+                    var size = horizontal ? part.Width : part.Height;
+                    var start = horizontal ? part.Left - track.Left : track.Bottom - part.Bottom;
+                    var want = Math.Min(at + Math.Max(0, shares[i]) * length, length) - Math.Min(at, length);
+
+                    if (Math.Abs(start - Math.Min(at, length)) > 1e-6 || Math.Abs(size - want) > 1e-6) return false;
+                    if (part.Left < track.Left - Tolerance || part.Right > track.Right + Tolerance
+                        || part.Top < track.Top - Tolerance || part.Bottom > track.Bottom + Tolerance) return false;
+
+                    at += Math.Max(0, shares[i]) * length;
+                }
+
+                return true;
+            });
+
+    /// <summary>A bar whose thickness is NaN is as thick as its room — a core's bar, as wide as its column.</summary>
+    [Fact]
+    public void A_bar_without_a_thickness_takes_its_room()
+    {
+        Assert.Equal(new Rect(0, 0, 30, 92), BarGeometry.Track(new Size(30, 92), double.NaN, Orientation.Vertical));
+        Assert.Equal(new Rect(0, 0, 200, 8), BarGeometry.Track(new Size(200, 8), double.NaN, Orientation.Horizontal));
+    }
+
     /// <summary>A look scaled keeps its track and scales its size — the bar under a number, at two thirds.</summary>
     [Fact]
     public void A_scaled_look_keeps_its_track()

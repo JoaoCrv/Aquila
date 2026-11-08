@@ -43,6 +43,42 @@ public static class Draw
         drawing.DrawRoundedRectangle(fill, null, filled, round, round);
     }
 
+    /// <summary>
+    /// A bar split into parts — several shares of one whole, end to end (<see cref="BarGeometry.Segments"/>) — over
+    /// its track, each part in its own brush at its own opacity. The bar's ends are rounded as a whole, never each
+    /// part's: the parts are cut to the track's rounded outline, so a part that meets an end takes its curve and the
+    /// joins between parts stay square.
+    /// </summary>
+    public static void Segments(DrawingContext drawing, Rect track, IReadOnlyList<(double Share, Brush Fill, double Opacity)> parts,
+        BarLook look, Orientation orientation = Orientation.Horizontal)
+    {
+        if (!(track.Width > 0) || !(track.Height > 0)) return;
+
+        var corner = BarGeometry.Corner(look.Corner, track);
+        if (look.Track is { } under) drawing.DrawRoundedRectangle(under, null, track, corner, corner);
+
+        var outline = new RectangleGeometry(track, corner, corner);
+        outline.Freeze();
+        drawing.PushClip(outline);
+
+        var shares = new double[parts.Count];
+        for (var i = 0; i < shares.Length; i++) shares[i] = parts[i].Share;
+        var rects = BarGeometry.Segments(track, shares, orientation);
+
+        for (var i = 0; i < rects.Length; i++)
+        {
+            if (!(rects[i].Width > 0) || !(rects[i].Height > 0)) continue;
+
+            var (_, fill, opacity) = parts[i];
+            var faded = opacity < 1;
+            if (faded) drawing.PushOpacity(Math.Max(0, opacity));
+            drawing.DrawRectangle(fill, null, rects[i]);
+            if (faded) drawing.Pop();
+        }
+
+        drawing.Pop();
+    }
+
     /// <summary>Marks across a track at shares of its length (<see cref="BarGeometry.Mark"/>), reaching
     /// <paramref name="reach"/> past it either side. Marks outside the track are not drawn.</summary>
     public static void Marks(DrawingContext drawing, Rect track, IReadOnlyList<double> marks, Pen pen, double reach,

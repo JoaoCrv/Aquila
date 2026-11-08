@@ -86,11 +86,12 @@ public class BarFill : FrameworkElement
                 ? FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender
                 : FrameworkPropertyMetadataOptions.AffectsRender));
 
-    /// <summary>No length of its own — it takes the length it is given — and across, the track and the marks' reach.
-    /// </summary>
+    /// <summary>No length of its own — it takes the length it is given — and across, the track and the marks' reach; or
+    /// nothing across either, for a look whose thickness is NaN: a bar as thick as it is given.</summary>
     protected override Size MeasureOverride(Size available)
     {
-        var across = Math.Max(0, Look.Thickness) + 2 * Math.Max(0, MarkReach);
+        var thickness = Look.Thickness;
+        var across = double.IsNaN(thickness) ? 0 : Math.Max(0, thickness) + 2 * Math.Max(0, MarkReach);
         return Orientation == Orientation.Horizontal ? new Size(0, across) : new Size(across, 0);
     }
 

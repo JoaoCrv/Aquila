@@ -105,9 +105,9 @@
                         <StackPanel Margin="50,4,0,4">
 
                             <!-- Capacity bar -->
-                            <ProgressBar Style="{StaticResource AccentBar}"
-                                         Value="{Binding UsedPercent}"
-                                         Margin="0,0,0,6"/>
+                            <controls:ValueBar Fill="{DynamicResource Aquila.Scheme.Accent}"
+                                               Value="{Binding UsedPercent}"
+                                               Margin="0,0,0,6"/>
 
                             <!-- Used / Total / Free text row -->
                             <Grid Margin="0,0,0,14">

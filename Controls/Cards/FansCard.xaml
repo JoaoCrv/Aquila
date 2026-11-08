@@ -69,13 +69,13 @@
                                      reports true PWM duty; one without is measured against the highest RPM
                                      seen this session, so on the first tick it reads 100% and would paint
                                      itself critical for nothing. Those rows keep a plain accent. -->
-                                <ProgressBar Grid.Column="1"
-                                             VerticalAlignment="Center"
-                                             Value="{Binding BarValue, Mode=OneWay}"
-                                             Maximum="{Binding BarMaximum, Mode=OneWay}">
-                                    <ProgressBar.Style>
-                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource AccentBar}">
-                                            <Setter Property="Foreground"
+                                <controls:ValueBar Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   Value="{Binding BarValue, Mode=OneWay}"
+                                                   Maximum="{Binding BarMaximum, Mode=OneWay}">
+                                    <controls:ValueBar.Style>
+                                        <Style TargetType="controls:ValueBar">
+                                            <Setter Property="Fill"
                                                     Value="{Binding BarPercent, Converter={StaticResource Intensity}, ConverterParameter=Motherboard.Duty}"/>
                                             <Style.Triggers>
                                                 <!-- Normal, not Accent. A profile is free to put its accent
@@ -84,12 +84,12 @@
                                                      never meant to give. Normal says what is true: nothing
                                                      here is being claimed. -->
                                                 <DataTrigger Binding="{Binding Control}" Value="{x:Null}">
-                                                    <Setter Property="Foreground" Value="{DynamicResource Aquila.Scheme.Normal}"/>
+                                                    <Setter Property="Fill" Value="{DynamicResource Aquila.Scheme.Normal}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </ProgressBar.Style>
-                                </ProgressBar>
+                                    </controls:ValueBar.Style>
+                                </controls:ValueBar>
                                 <TextBlock Grid.Column="2"
                                            Style="{StaticResource RowValue}" FontSize="11"
                                            Opacity="0.55" Margin="6,0,4,0"

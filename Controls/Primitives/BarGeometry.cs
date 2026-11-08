@@ -30,16 +30,20 @@ public static class BarGeometry
     public static double Shown(double fraction) => Math.Max(Share(fraction), Least);
 
     /// <summary>
-    /// The track in a room: the whole length, <paramref name="thickness"/> across, centred across the room.
+    /// The track in a room: the whole length, <paramref name="thickness"/> across, centred across the room — or the
+    /// whole room across for a thickness of NaN, a bar as thick as it is given (a CPU card's core, as wide as its
+    /// column).
     ///
     /// Centred rather than at the start, so a bar given more room than it needs — a column of Bars wider than its bar —
     /// sits in the middle of it, and one given exactly its thickness and its marks' reach either side sits between them.
     /// </summary>
     public static Rect Track(Size room, double thickness, Orientation orientation)
     {
-        var across = Math.Max(0, double.IsNaN(thickness) ? 0 : thickness);
         var width = Math.Max(0, room.Width);
         var height = Math.Max(0, room.Height);
+        var across = double.IsNaN(thickness)
+            ? (orientation == Orientation.Horizontal ? height : width)
+            : Math.Max(0, thickness);
 
         return orientation == Orientation.Horizontal
             ? new Rect(0, (height - across) / 2, width, across)
@@ -67,6 +71,33 @@ public static class BarGeometry
     {
         if (!(corner > 0) || part.IsEmpty) return 0;
         return Math.Min(corner, Math.Min(part.Width, part.Height) / 2);
+    }
+
+    /// <summary>
+    /// A bar split into consecutive parts, one per share, from where the bar fills: each the share of the track's
+    /// length, laid end to end and held to the track — a share below nothing is nothing, and the parts stop where the
+    /// track does, so shares that add up to more than the whole never draw past it.
+    /// </summary>
+    public static Rect[] Segments(Rect track, IReadOnlyList<double> shares, Orientation orientation)
+    {
+        var parts = new Rect[shares.Count];
+        var horizontal = orientation == Orientation.Horizontal;
+        var length = horizontal ? track.Width : track.Height;
+        var done = 0d;
+
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var share = double.IsNaN(shares[i]) ? 0 : Math.Max(0, shares[i]);
+            var from = Math.Min(done, length);
+            var to = Math.Min(done + share * length, length);
+            done += share * length;
+
+            parts[i] = horizontal
+                ? new Rect(track.X + from, track.Y, to - from, track.Height)
+                : new Rect(track.X, track.Bottom - to, track.Width, to - from);
+        }
+
+        return parts;
     }
 
     /// <summary>Whether a mark falls on the track at all.</summary>
