@@ -208,8 +208,9 @@ public record SensorOption(string Component, string Name, string Identifier, Sen
 public partial class WidgetEditorViewModel(PresetService presets) : ObservableObject
 {
     /// <summary>Straight from the catalog, so a widget added there appears here with no second edit —
-    /// this list used to be a copy, and a copy is a list that goes out of date.</summary>
-    public IReadOnlyList<WidgetKindInfo> Kinds { get; } = WidgetCatalog.All;
+    /// this list used to be a copy, and a copy is a list that goes out of date. Only the kinds a widget can be
+    /// made: the old two-reading chart is shown as the Chart (<see cref="WidgetCatalog.Shown"/>).</summary>
+    public IReadOnlyList<WidgetKindInfo> Kinds { get; } = WidgetCatalog.Listed;
 
     /// <summary>
     /// Every preset a widget can wear. Straight from the service, so one written into the folder by hand
@@ -666,12 +667,17 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     /// <summary>
     /// Whether the reading can be turned off: there has to be a reading, and something has to be left when
-    /// it goes. A dial becomes a ring, a bar a bar, a sparkline a trend.
+    /// it goes. A dial becomes a ring, a bar a bar.
     ///
-    /// The full Chart is excluded by <see cref="ShowsValue"/> — it draws no number to hide — and the stat
-    /// and the two word kinds by having no graphic, so hiding the reading would leave an empty widget.
+    /// The Number and the two word kinds are excluded by having no graphic, so hiding the reading would leave an
+    /// empty widget — and the Chart because it is asked a better question, where its numbers go
+    /// (<see cref="ShowsReadingPlace"/>), of which "nowhere" is one answer.
     /// </summary>
-    public bool CanHideValue => ShowsValue && (ShowsDial || ShowsBar || ShowsLine);
+    public bool CanHideValue => ShowsValue && (ShowsDial || ShowsBar);
+
+    /// <summary>Whether this kind writes its readings' numbers in one of several places — every kind drawn as a line,
+    /// which is the Chart.</summary>
+    public bool ShowsReadingPlace => ShowsLine;
 
     /// <summary>Whether this kind's reading has a unit to hide. The clock draws a reading and has none.
     /// </summary>
@@ -679,7 +685,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     /// <summary>Whether Customize has anything to say about what is shown of the reading — so its heading is not
     /// left standing over nothing, as it would be for a backdrop.</summary>
-    public bool ShowsDisplay => ShowsUnit || CanHideValue || ShowsLimits;
+    public bool ShowsDisplay => ShowsUnit || CanHideValue || ShowsReadingPlace || ShowsLimits;
 
     /// <summary>Whether this kind can show its reading's limits — every kind drawn as a line or a bar.</summary>
     public bool ShowsLimits => SelectedKind?.HasLimits == true;
@@ -1553,16 +1559,40 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private bool _minMaxShown;
     [ObservableProperty] private bool _trendShown;
 
-    // Style too: the lines and marks go up and come down in place, as does a chart's end.
+    // Style too: the lines and marks go up and come down in place, as do a chart's ends, its scale's labels, its peak
+    // and its numbers.
     partial void OnLimitsShownChanged(bool value) => Apply();
     partial void OnEndShownChanged(bool value) => Apply();
     partial void OnColouredByReadingChanged(bool value) => Apply();
+    partial void OnScaleLabelsShownChanged(bool value) => Apply();
+    partial void OnPeakShownChanged(bool value) => Apply();
+    partial void OnReadingsAtChanged(ReadingPlace value) => Apply();
 
-    /// <summary>A dot on a chart's newest reading, pulsing as each one arrives.</summary>
+    /// <summary>A dot on each of a chart's lines at its newest reading, pulsing as each one arrives.</summary>
     [ObservableProperty] private bool _endShown;
 
-    /// <summary>A chart's line in the colour of each reading's state along the way.</summary>
+    /// <summary>Each of a chart's lines in the colour of its reading's state along the way.</summary>
     [ObservableProperty] private bool _colouredByReading;
+
+    /// <summary>The top and bottom of a chart's scale, written at its left edge.</summary>
+    [ObservableProperty] private bool _scaleLabelsShown;
+
+    /// <summary>The highest point of a chart's first reading in its window, marked and written.</summary>
+    [ObservableProperty] private bool _peakShown;
+
+    /// <summary>Where a chart writes its readings' numbers — or nowhere.</summary>
+    [ObservableProperty] private ReadingPlace _readingsAt;
+
+    /// <summary>One choice in the numbers' picker, named as a phrase, as <see cref="ScaleChoice"/> is.</summary>
+    public sealed record ReadingPlaceChoice(ReadingPlace Value, string Label);
+
+    public IReadOnlyList<ReadingPlaceChoice> ReadingPlaces { get; } =
+    [
+        new(ReadingPlace.None, "Off"),
+        new(ReadingPlace.Title, "In the title"),
+        new(ReadingPlace.LineEnds, "At the line ends"),
+        new(ReadingPlace.Legend, "In a legend"),
+    ];
 
     /// <summary>Lines on a chart and marks on a bar where the reading turns elevated and alert. With the widget, as
     /// every part that adds to what is on the screen is.</summary>
@@ -1713,7 +1743,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         var shapeBefore = WidgetScale.ShapeOf(_target);
         var kindBefore = _target.Kind;
 
-        _target.Kind = SelectedKind?.Kind ?? _target.Kind;
+        // Only a kind the user picked. A chart saved before the Chart took over is SHOWN as one, and writing that back
+        // on the first edit — a title typed — would make it one, measured at the Chart's size instead of its own.
+        if (SelectedKind is { } kind && kind != WidgetCatalog.Shown(_target.Kind)) _target.Kind = kind.Kind;
         _target.Series = [.. Chosen.Select(row => new WidgetSeries
         {
             SensorIdentifier = row.Sensor.Identifier,
@@ -1757,6 +1789,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowLimits = LimitsShown;
         _target.ShowEnd = EndShown;
         _target.ColourByReading = ColouredByReading;
+        _target.ShowScaleLabels = ScaleLabelsShown;
+        _target.ShowPeak = PeakShown;
+        _target.ReadingsAt = ReadingsAt;
 
         // A widget that has just started drawing a figure of its own shape (made a dial, or a clock given rings) takes
         // that shape now, led by its width: a 200×70 clock given rings would otherwise draw them a third of the size
@@ -1952,8 +1987,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         Screens = ScreenList?.Invoke() ?? [];
         SelectedScreen = Screens.FirstOrDefault(screen => screen.Key == ScreenKeyOf?.Invoke(target));
 
-        // The form is filled from the definition itself, so "default" is defined in exactly one place.
-        SelectedKind = Kinds.FirstOrDefault(k => k.Kind == target.Kind) ?? Kinds[0];
+        // The form is filled from the definition itself, so "default" is defined in exactly one place. As the kind it is
+        // shown as: an old chart is the Chart here, which before fell through to the first kind, the dial.
+        SelectedKind = WidgetCatalog.Shown(target.Kind);
 
         Title = target.Title;
 
@@ -2023,6 +2059,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         LimitsShown = source.ShowLimits;
         EndShown = source.ShowEnd;
         ColouredByReading = source.ColourByReading;
+        ScaleLabelsShown = source.ShowScaleLabels;
+        PeakShown = source.ShowPeak;
+        ReadingsAt = source.ReadingsAt;
     }
 }
 

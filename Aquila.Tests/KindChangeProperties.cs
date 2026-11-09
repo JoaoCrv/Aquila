@@ -18,7 +18,8 @@ public sealed class KindChangeProperties
         from lists in Gen.Elements(false, true).ArrayOf(count)
         select lists.Select((isList, id) => (id, isList)).ToArray();
 
-    private static Gen<WidgetKindInfo> Kinds() => Gen.Elements(WidgetCatalog.All.ToArray());
+    /// <summary>The kinds a widget can be changed TO — the listed ones; the old two-reading chart is never picked.</summary>
+    private static Gen<WidgetKindInfo> Kinds() => Gen.Elements(WidgetCatalog.Listed.ToArray());
 
     /// <summary>Whatever the kind and the readings, what is kept is never more than the kind draws, all of the sort it
     /// draws, and in the order the widget had them.</summary>

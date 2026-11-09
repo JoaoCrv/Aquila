@@ -242,7 +242,7 @@
                VerticalOffset="6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                Closed="Menu_Closed">
             <controls:SensorPicker x:Name="AddPicker" Width="360" MaxHeight="640"
-                                   Footer="A percentage starts as a gauge, any other reading as a sparkline. Change the type afterwards in the panel.">
+                                   Footer="A percentage starts as a gauge, any other reading as a chart. Change the type afterwards in the panel.">
                 <controls:SensorPicker.Extra>
                     <StackPanel Margin="10,2,10,8">
                         <TextBlock Text="Without a reading" FontSize="12" Opacity="0.7" Margin="4,0,0,6"/>
