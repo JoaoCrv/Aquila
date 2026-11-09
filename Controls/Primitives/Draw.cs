@@ -21,12 +21,26 @@ public static class Draw
 {
     // ── Bars ─────────────────────────────────────────────────────────────
 
-    /// <summary>A bar: its track, under the filled share of it (<see cref="BarGeometry.Filled"/>). Each part's ends are
-    /// rounded as far as it allows (<see cref="BarGeometry.Corner"/>), so a nearly empty bar ends in a dot.</summary>
+    /// <summary>
+    /// A bar: its track, under the filled share of it (<see cref="BarGeometry.Filled"/>). Each part's ends are rounded
+    /// as far as it allows (<see cref="BarGeometry.Corner"/>), so a nearly empty bar ends in a dot.
+    ///
+    /// With <paramref name="bands"/> — each a share of the track where the colour changes, in ascending order — the
+    /// filled part is painted band by band (<see cref="BarGeometry.Banded"/>), cut to the same rounded outline, so its
+    /// ends are the ends a bar of one colour has. With blocks in the look it is drawn as an LED meter instead
+    /// (<see cref="Blocks"/>).
+    /// </summary>
     public static void Bar(DrawingContext drawing, Rect track, double fraction, Brush? fill, BarLook look,
-        Orientation orientation = Orientation.Horizontal)
+        Orientation orientation = Orientation.Horizontal, IReadOnlyList<(double From, Brush Fill)>? bands = null)
     {
         if (!(track.Width > 0) || !(track.Height > 0)) return;
+
+        var banded = bands is { Count: > 0 } ? bands : null;
+        if (look.Block > 0)
+        {
+            Blocks(drawing, track, fraction, fill, look, orientation, banded);
+            return;
+        }
 
         if (look.Track is { } under)
         {
@@ -34,13 +48,87 @@ public static class Draw
             drawing.DrawRoundedRectangle(under, null, track, corner, corner);
         }
 
-        if (fill is null) return;
+        if (fill is null && banded is null) return;
 
         var filled = BarGeometry.Filled(track, fraction, orientation);
         if (!(filled.Width > 0) || !(filled.Height > 0)) return;
 
         var round = BarGeometry.Corner(look.Corner, filled);
-        drawing.DrawRoundedRectangle(fill, null, filled, round, round);
+        if (banded is null)
+        {
+            drawing.DrawRoundedRectangle(fill, null, filled, round, round);
+            return;
+        }
+
+        var outline = new RectangleGeometry(filled, round, round);
+        outline.Freeze();
+        drawing.PushClip(outline);
+
+        var parts = BarGeometry.Banded(track, fraction, Froms(banded), orientation);
+        for (var i = 0; i < parts.Length; i++)
+            if (parts[i].Width > 0 && parts[i].Height > 0)
+                drawing.DrawRectangle(banded[i].Fill, null, parts[i]);
+
+        drawing.Pop();
+    }
+
+    /// <summary>
+    /// A bar as blocks (<see cref="BarGeometry.Blocks"/>): every block in the track's colour, and those the reading
+    /// lights (<see cref="BarGeometry.Lit"/>) in the fill's — or, with bands, each in the colour of the band its middle
+    /// falls in, so a block is wholly one state. Each block's corners are its own, and small
+    /// (<see cref="BarGeometry.BlockCorner"/>).
+    /// </summary>
+    private static void Blocks(DrawingContext drawing, Rect track, double fraction, Brush? fill, BarLook look,
+        Orientation orientation, IReadOnlyList<(double From, Brush Fill)>? bands)
+    {
+        var blocks = BarGeometry.Blocks(track, look.Block, look.BlockGap, orientation);
+        var lit = BarGeometry.Lit(blocks.Length, fraction);
+        var froms = bands is null ? null : Froms(bands);
+
+        for (var i = 0; i < blocks.Length; i++)
+        {
+            var brush = i >= lit ? look.Track
+                : froms is not null && BarGeometry.BandAt(froms, (i + 0.5) / blocks.Length) is >= 0 and var band
+                    ? bands![band].Fill
+                    : fill;
+
+            if (brush is null) continue;
+
+            var corner = BarGeometry.BlockCorner(look.Corner, blocks[i]);
+            drawing.DrawRoundedRectangle(brush, null, blocks[i], corner, corner);
+        }
+    }
+
+    /// <summary>
+    /// A bar's highest recent reading, over the bar: a line across it (<see cref="BarGeometry.PeakLine"/>) — or, in
+    /// blocks, the block it would light (<see cref="BarGeometry.PeakBlock"/>). Only above the filled part: where the
+    /// reading has reached it already, the bar itself says as much.
+    /// </summary>
+    public static void Peak(DrawingContext drawing, Rect track, double peak, double fraction, Brush brush, BarLook look,
+        double reach, Orientation orientation = Orientation.Horizontal)
+    {
+        if (!(track.Width > 0) || !(track.Height > 0) || double.IsNaN(peak)) return;
+
+        if (look.Block > 0)
+        {
+            var blocks = BarGeometry.Blocks(track, look.Block, look.BlockGap, orientation);
+            var at = BarGeometry.PeakBlock(blocks.Length, peak);
+            if (at < 0 || at < BarGeometry.Lit(blocks.Length, fraction)) return;
+
+            var corner = BarGeometry.BlockCorner(look.Corner, blocks[at]);
+            drawing.DrawRoundedRectangle(brush, null, blocks[at], corner, corner);
+            return;
+        }
+
+        if (!(BarGeometry.Share(peak) > BarGeometry.Share(fraction))) return;
+        drawing.DrawRectangle(brush, null, BarGeometry.PeakLine(track, peak, reach, orientation));
+    }
+
+    private static double[] Froms(IReadOnlyList<(double From, Brush Fill)> bands)
+    {
+        var froms = new double[bands.Count];
+        for (var i = 0; i < froms.Length; i++) froms[i] = bands[i].From;
+        return froms;
     }
 
     /// <summary>

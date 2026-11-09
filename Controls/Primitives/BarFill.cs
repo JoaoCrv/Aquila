@@ -6,7 +6,8 @@ using System.Windows.Media.Animation;
 namespace Aquila.Controls.Primitives;
 
 /// <summary>
-/// A bar: its track, how much of it is filled, and marks across it at fixed shares of its length.
+/// A bar: its track, how much of it is filled — in one colour or in bands — marks across it at fixed shares of its
+/// length, and the highest recent reading held over it. Drawn whole or, as the look says, in blocks.
 ///
 /// Drawn by WPF itself, in OnRender, as <see cref="RingArc"/> is, and for a reason of its own as well: the fill is a
 /// number this draws, not a size it is laid out at. A bar that animates the Width of a Border lays the whole widget out
@@ -80,6 +81,39 @@ public class BarFill : FrameworkElement
         set => SetValue(MarkReachProperty, value);
     }
 
+    public static readonly DependencyProperty BandsProperty =
+        Register<IReadOnlyList<(double From, Color Color)>?>(nameof(Bands), null);
+
+    /// <summary>
+    /// The filled part in the colour of each stretch a reading has passed, a VU meter's: each band a share of the length
+    /// from where the bar fills, in ascending order, and its colour from there on. Null, or empty, fills with
+    /// <see cref="Fill"/>.
+    /// </summary>
+    public IReadOnlyList<(double From, Color Color)>? Bands
+    {
+        get => (IReadOnlyList<(double From, Color Color)>?)GetValue(BandsProperty);
+        set => SetValue(BandsProperty, value);
+    }
+
+    public static readonly DependencyProperty PeakProperty = Register(nameof(Peak), double.NaN);
+
+    /// <summary>The highest recent reading, a share of the length; NaN draws none. Set, never travelled to: it holds a
+    /// reading that was read, and moves only when another is.</summary>
+    public double Peak
+    {
+        get => (double)GetValue(PeakProperty);
+        set => SetValue(PeakProperty, value);
+    }
+
+    public static readonly DependencyProperty PeakBrushProperty = Register<Brush?>(nameof(PeakBrush), null);
+
+    /// <summary>The peak's colour. Null draws none.</summary>
+    public Brush? PeakBrush
+    {
+        get => (Brush?)GetValue(PeakBrushProperty);
+        set => SetValue(PeakBrushProperty, value);
+    }
+
     private static DependencyProperty Register<T>(string name, T fallback, bool measures = false) =>
         DependencyProperty.Register(name, typeof(T), typeof(BarFill),
             new FrameworkPropertyMetadata(fallback, measures
@@ -103,10 +137,23 @@ public class BarFill : FrameworkElement
         var orientation = Orientation;
         var track = BarGeometry.Track(RenderSize, look.Thickness, orientation);
 
-        Draw.Bar(drawing, track, Fraction, Fill, look, orientation);
+        Draw.Bar(drawing, track, Fraction, Fill, look, orientation, Painted(Bands));
 
         if (Marks is { Count: > 0 } marks && MarkBrush is { } markBrush)
             Draw.Marks(drawing, track, marks, _inks.Pen(markBrush, 1), MarkReach, orientation);
+
+        if (PeakBrush is { } peakBrush)
+            Draw.Peak(drawing, track, Peak, Fraction, peakBrush, look, MarkReach, orientation);
+    }
+
+    /// <summary>The bands as fills, each colour's brush kept between frames.</summary>
+    private (double From, Brush Fill)[]? Painted(IReadOnlyList<(double From, Color Color)>? bands)
+    {
+        if (bands is not { Count: > 0 }) return null;
+
+        var painted = new (double From, Brush Fill)[bands.Count];
+        for (var i = 0; i < painted.Length; i++) painted[i] = (bands[i].From, _inks.Solid(bands[i].Color));
+        return painted;
     }
 
     // ── Motion ───────────────────────────────────────────────────────────

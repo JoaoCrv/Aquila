@@ -75,6 +75,23 @@ public sealed class Inks
         return fresh;
     }
 
+    private readonly List<(Color Key, Brush Fill)> _solids = [];
+
+    /// <summary>A colour as a fill — a bar's band, say — frozen.</summary>
+    public Brush Solid(Color colour)
+    {
+        foreach (var (made, fill) in _solids)
+            if (made == colour)
+                return fill;
+
+        var fresh = new SolidColorBrush(colour);
+        fresh.Freeze();
+
+        if (_solids.Count == Kept) _solids.Clear();
+        _solids.Add((colour, fresh));
+        return fresh;
+    }
+
     private readonly List<((double Opacity, AreaFill Area) Key, Brush Mask)> _masks = [];
 
     /// <summary>The area's opacity on its own, as a mask — even, or fading to nothing at the bottom — for an area whose

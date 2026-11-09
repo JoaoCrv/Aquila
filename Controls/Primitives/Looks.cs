@@ -26,19 +26,26 @@ public enum AreaFill
 // makes the look. Brushes in them are best frozen, since a frozen brush makes a frozen pen (see Inks), but that is the
 // maker's to decide — a brush from a resource may still be changing.
 
-/// <summary>How a bar looks: how thick, how round its ends, and what its track is drawn in.</summary>
+/// <summary>How a bar looks: how thick, how round its ends, what its track is drawn in, and whether it is drawn whole or
+/// as blocks.</summary>
 /// <param name="Thickness">Across the bar, in pixels.</param>
-/// <param name="Corner">The radius of its ends, held where it is drawn to half the bar — past that a corner has nothing
-/// left to round.</param>
+/// <param name="Corner">The radius of its ends — of each block's, in blocks — held where it is drawn to half the part:
+/// past that a corner has nothing left to round.</param>
 /// <param name="Track">The whole length, under the fill. Null draws none.</param>
-public sealed record BarLook(double Thickness, double Corner, Brush? Track)
+/// <param name="Block">How long each block is, in pixels, an LED meter's; 0 draws the bar whole
+/// (<see cref="BarGeometry.Blocks"/>).</param>
+/// <param name="BlockGap">The space between two blocks, in pixels.</param>
+public sealed record BarLook(double Thickness, double Corner, Brush? Track, double Block = 0, double BlockGap = 2)
 {
     /// <summary>What a bar is drawn as before anything dresses it.</summary>
     public static BarLook Default { get; } = new(4, 0, null);
 
     /// <summary>The same look at a share of its size — a bar under a number, at two thirds of the preset's bar. The
     /// track is kept: it is a colour, not a size.</summary>
-    public BarLook Scaled(double share) => this with { Thickness = Thickness * share, Corner = Corner * share };
+    public BarLook Scaled(double share) => this with
+    {
+        Thickness = Thickness * share, Corner = Corner * share, Block = Block * share, BlockGap = BlockGap * share,
+    };
 }
 
 /// <summary>How a line looks.</summary>
