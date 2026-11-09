@@ -16,8 +16,8 @@ namespace Aquila.Controls;
 /// under the chart, or nowhere (docs/widget-grafico).
 ///
 /// It took over from the sparkline, whose one number sat in the chart's corner over its newest readings, and from the
-/// two-reading chart, which wrote none. The dashboard's cards keep their own <see cref="SparklineChart"/>; both turn
-/// the preset into what the plot draws through <see cref="PlotDress"/>, so they cannot come to disagree.
+/// two-reading chart, which wrote none. The dashboard's cards keep their own <see cref="SparklineChart"/>, whose fixed
+/// look comes from the same translation (<see cref="PlotDress"/>), so the two cannot come to disagree.
 ///
 /// Each reading is coloured by its own state, through its own ramp, and with <see cref="ColourByReading"/> each line is
 /// painted in its states along the way. The scale and the limit lines are the first reading's, as they always were.

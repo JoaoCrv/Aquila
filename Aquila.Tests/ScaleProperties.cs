@@ -99,6 +99,43 @@ public sealed class ScaleProperties
         Assert.Equal(scale, WidgetScale.Of(number), precision: 6);
     }
 
+    /// <summary>
+    /// A Chart is measured against 240×100 whatever it writes and however many readings it draws: a number moved from
+    /// the title to a legend, a second reading or the scale's labels never resize what is already drawn — they take
+    /// their room from the plot (docs/widget-grafico). Its old two-reading sibling keeps the 300×160 it always had.
+    /// </summary>
+    [Property(MaxTest = 500)]
+    public Property A_chart_is_measured_at_its_reference_with_any_numbers() =>
+        Prop.ForAll(
+            (from place in Gen.Elements(Enum.GetValues<ReadingPlace>())
+             from readings in Gen.Choose(1, 4)
+             from parts in Gen.Choose(0, 31)
+             from width in Sizes()
+             from height in Sizes()
+             select (place, readings, parts, width, height))
+            .ToArbitrary(),
+            chart =>
+            {
+                var (place, readings, parts, width, height) = chart;
+                var widget = new DesktopWidgetDefinition
+                {
+                    Kind = DesktopWidgetKind.Chart, Width = width, Height = height, ReadingsAt = place,
+                    Series = [.. Enumerable.Range(0, readings).Select(i => new WidgetSeries { SensorIdentifier = $"/s/{i}" })],
+                    ShowScaleLabels = (parts & 1) != 0, ShowPeak = (parts & 2) != 0, ShowEnd = (parts & 4) != 0,
+                    ShowLimits = (parts & 8) != 0, ColourByReading = (parts & 16) != 0,
+                };
+
+                return WidgetScale.ReferenceOf(widget) == (240d, 100d)
+                    && WidgetScale.Of(widget) == Math.Clamp(Math.Min(width / 240, height / 100), WidgetScale.Least, WidgetScale.Most);
+            });
+
+    [Fact]
+    public void An_old_chart_keeps_its_reference()
+    {
+        Assert.Equal((300d, 160d),
+            WidgetScale.ReferenceOf(new DesktopWidgetDefinition { Kind = DesktopWidgetKind.SparklineChart }));
+    }
+
     /// <summary>Whatever a file says the size is, the scale stays within its bounds.</summary>
     [Property(MaxTest = 1000)]
     public Property The_scale_is_always_within_its_bounds() =>

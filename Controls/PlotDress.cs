@@ -9,8 +9,8 @@ namespace Aquila.Controls;
 /// How a chart's settings — a preset's line section, a widget's scale, a reading's ramp and limits — become what a
 /// <see cref="LinePlot"/> draws: its look, its scale's ends, a line's bands and the guides.
 ///
-/// One home, because two pieces translate them: the dashboard's <see cref="SparklineChart"/> and the Chart widget.
-/// Written out in each, the two would come to disagree about what "fit to data" or a flat fill means.
+/// One home, so the Chart widget (<see cref="ChartTile"/>) and the dashboard's <see cref="SparklineChart"/>, which takes
+/// its fixed look from here, cannot come to disagree about what a gradient fill or a smoothness means.
 /// </summary>
 public static class PlotDress
 {
