@@ -529,7 +529,9 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     private string? _titleFont;
     private TextWeight _titleWeight = TextWeight.Regular;
     private double _figureScale = 1;
-    private BarDirection _direction = BarDirection.Vertical;
+    /// <summary>Lying down until the widget says otherwise — as new Bars start, so the type picker's picture, which
+    /// nothing tells, shows them so.</summary>
+    private BarDirection _direction = BarDirection.Horizontal;
 
     private bool _showLimits;
     private Brush? _limitBrush;

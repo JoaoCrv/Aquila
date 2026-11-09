@@ -888,13 +888,12 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     [ObservableProperty] private double _barThickness = 6;
     [ObservableProperty] private double _barCorner = 3;
-    [ObservableProperty] private BarLayout _barLayout = BarLayout.Beside;
 
-    public IReadOnlyList<BarLayout> Layouts { get; } = Enum.GetValues<BarLayout>();
+    // No layout: where a bar's number goes is what is on screen, so the widget says it (docs/widget-barras). A preset
+    // that still says "layout" keeps it, unread.
 
     partial void OnBarThicknessChanged(double value) => Dress();
     partial void OnBarCornerChanged(double value) => Dress();
-    partial void OnBarLayoutChanged(BarLayout value) => Dress();
 
     // --- Number ---
 
@@ -994,7 +993,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
             BarThickness = preset.Bar.Thickness;
             BarCorner = preset.Bar.Corner;
-            BarLayout = preset.Bar.Layout;
 
             UnitSize = preset.Number.UnitSize;
             UnitOpacity = preset.Number.UnitOpacity * 100;
@@ -1067,7 +1065,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         preset.Bar.Thickness = BarThickness;
         preset.Bar.Corner = BarCorner;
-        preset.Bar.Layout = BarLayout;
 
         preset.Number.UnitSize = UnitSize;
         preset.Number.UnitOpacity = UnitOpacity / 100;
@@ -1577,8 +1574,35 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>The top and bottom of a chart's scale, written at its left edge.</summary>
     [ObservableProperty] private bool _scaleLabelsShown;
 
-    /// <summary>The highest point of a chart's first reading in its window, marked and written.</summary>
-    [ObservableProperty] private bool _peakShown;
+    /// <summary>The highest point of a chart's first reading in its window, marked and written — and the highest of
+    /// each bar's window, held over the bar.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsBarWindow))]
+    private bool _peakShown;
+
+    /// <summary>Where a bars widget writes each bar's name and number.</summary>
+    [ObservableProperty] private BarLayout _barLayout;
+
+    /// <summary>Whether a bars widget writes each bar's name.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsReadingNames))]
+    private bool _namesShown;
+
+    partial void OnBarLayoutChanged(BarLayout value) => Apply();
+    partial void OnNamesShownChanged(bool value) => Apply();
+
+    /// <summary>One choice in the bars' text picker, named as a phrase, as <see cref="ReadingPlaceChoice"/> is.
+    /// </summary>
+    public sealed record BarLayoutChoice(BarLayout Value, string Label);
+
+    public IReadOnlyList<BarLayoutChoice> BarLayouts { get; } =
+    [
+        new(BarLayout.Beside, "Beside the bar"),
+        new(BarLayout.Above, "Above the bar"),
+    ];
+
+    /// <summary>The time window, for bars: only while they hold a peak, which is all it is for there.</summary>
+    public bool ShowsBarWindow => ShowsDirection && PeakShown;
 
     /// <summary>Where a chart writes its readings' numbers — or nowhere.</summary>
     [ObservableProperty]
@@ -1655,9 +1679,10 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     private void OnReadingRenamed() => Apply();
 
     /// <summary>Whether this widget writes its readings' names, and so whether each can be given one: a Chart with its
-    /// legend on. Only then, as a scale's ends are offered only when Manual — a box that changes nothing on the screen
-    /// reads as broken.</summary>
-    public bool ShowsReadingNames => ShowsReadingPlace && ReadingsAt == ReadingPlace.Legend;
+    /// legend on, or Bars with their names on and two bars or more — one bar's name is the title. Only then, as a
+    /// scale's ends are offered only when Manual — a box that changes nothing on the screen reads as broken.</summary>
+    public bool ShowsReadingNames =>
+        ShowsReadingPlace && ReadingsAt == ReadingPlace.Legend || ShowsDirection && NamesShown && Chosen.Count > 1;
 
     /// <summary>
     /// Everything the chosen kind and the series list decide together. Raised from every place that changes
@@ -1807,6 +1832,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowScaleLabels = ScaleLabelsShown;
         _target.ShowPeak = PeakShown;
         _target.ReadingsAt = ReadingsAt;
+        _target.BarLayout = BarLayout;
+        _target.ShowNames = NamesShown;
 
         // A widget that has just started drawing a figure of its own shape (made a dial, or a clock given rings) takes
         // that shape now, led by its width: a 200×70 clock given rings would otherwise draw them a third of the size
@@ -2077,6 +2104,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         ScaleLabelsShown = source.ShowScaleLabels;
         PeakShown = source.ShowPeak;
         ReadingsAt = source.ReadingsAt;
+        BarLayout = source.BarLayout;
+        NamesShown = source.ShowNames;
     }
 }
 
