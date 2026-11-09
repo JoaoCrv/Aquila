@@ -945,33 +945,6 @@
                                           SelectedItem="{Binding ViewModel.BarDirection}"/>
                             </ui:CardControl>
 
-                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon TextPositionLine24}">
-                                <ui:CardControl.Header>
-                                    <StackPanel>
-                                        <TextBlock Text="Text"/>
-                                        <TextBlock Style="{StaticResource SettingHint}"
-                                                   Text="Where each bar's name and number are written. With one reading and the text above, the number goes to the title."/>
-                                    </StackPanel>
-                                </ui:CardControl.Header>
-                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.BarLayouts}"
-                                          AutomationProperties.Name="Text"
-                                          DisplayMemberPath="Label"
-                                          SelectedValuePath="Value"
-                                          SelectedValue="{Binding ViewModel.BarLayout}"/>
-                            </ui:CardControl>
-
-                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Rename24}">
-                                <ui:CardControl.Header>
-                                    <StackPanel>
-                                        <TextBlock Text="Names"/>
-                                        <TextBlock Style="{StaticResource SettingHint}"
-                                                   Text="Each bar's name: its reading's, or the sensor's. A single bar takes the title as its name."/>
-                                    </StackPanel>
-                                </ui:CardControl.Header>
-                                <ui:ToggleSwitch AutomationProperties.Name="Names"
-                                                 IsChecked="{Binding ViewModel.NamesShown}"/>
-                            </ui:CardControl>
-
                             <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon ColorLine24}">
                                 <ui:CardControl.Header>
                                     <StackPanel>
@@ -1275,14 +1248,15 @@
                                                  IsChecked="{Binding ViewModel.ValueShown}"/>
                             </ui:CardControl>
 
-                            <!-- A chart's answer to "Show the reading": where its numbers go, nowhere included. -->
+                            <!-- The chart's and the bars' answer to "Show the reading": where their numbers and names go,
+                                 nowhere included — each kind offering the places it has. -->
                             <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon NumberSymbol24}"
                                             Visibility="{Binding ViewModel.ShowsReadingPlace, Converter={StaticResource BoolToVisibility}}">
                                 <ui:CardControl.Header>
                                     <StackPanel>
                                         <TextBlock Text="Readings"/>
                                         <TextBlock Style="{StaticResource SettingHint}"
-                                                   Text="Where each reading's number is written. In the title, several readings are written smaller, each in its line's colour."/>
+                                                   Text="Where each reading's name and number are written. In the title, several readings are written smaller, each in its own colour."/>
                                     </StackPanel>
                                 </ui:CardControl.Header>
                                 <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.ReadingPlaces}"

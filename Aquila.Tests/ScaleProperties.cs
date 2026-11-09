@@ -145,24 +145,24 @@ public sealed class ScaleProperties
     [Property(MaxTest = 500)]
     public Property Bars_are_measured_at_their_reference_with_any_text() =>
         Prop.ForAll(
-            (from layout in Gen.Elements(Enum.GetValues<BarLayout>())
+            (from place in Gen.Elements(ReadingPlace.None, ReadingPlace.Title, ReadingPlace.Beside, ReadingPlace.Above,
+                 ReadingPlace.Legend)
              from direction in Gen.Elements(Enum.GetValues<BarDirection>())
              from readings in Gen.Choose(1, 16)
-             from parts in Gen.Choose(0, 15)
+             from parts in Gen.Choose(0, 7)
              from width in Sizes()
              from height in Sizes()
-             select (layout, direction, readings, parts, width, height))
+             select (place, direction, readings, parts, width, height))
             .ToArbitrary(),
             bars =>
             {
-                var (layout, direction, readings, parts, width, height) = bars;
+                var (place, direction, readings, parts, width, height) = bars;
                 var widget = new DesktopWidgetDefinition
                 {
                     Kind = DesktopWidgetKind.BarChart, Width = width, Height = height,
-                    BarLayout = layout, BarDirection = direction,
+                    ReadingsAt = place, BarDirection = direction,
                     Series = [.. Enumerable.Range(0, readings).Select(i => new WidgetSeries { SensorIdentifier = $"/s/{i}" })],
-                    ShowNames = (parts & 1) != 0, ShowPeak = (parts & 2) != 0, ColourByReading = (parts & 4) != 0,
-                    ShowLimits = (parts & 8) != 0,
+                    ShowPeak = (parts & 1) != 0, ColourByReading = (parts & 2) != 0, ShowLimits = (parts & 4) != 0,
                 };
 
                 return WidgetScale.ReferenceOf(widget) == (240d, 80d)

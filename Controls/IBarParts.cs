@@ -8,11 +8,9 @@ namespace Aquila.Controls;
 /// </summary>
 public interface IBarParts
 {
-    /// <summary>Where each bar's name and number are written: beside the bar or above it.</summary>
-    BarLayout BarLayout { get; set; }
-
-    /// <summary>Whether each bar's name is written — only with two bars or more: one bar's name is the title.</summary>
-    bool ShowNames { get; set; }
+    /// <summary>Where the readings' names and numbers are written: nowhere, in the title, beside or above each bar, or in
+    /// a legend under the bars — the chart's own choice, with the places bars have.</summary>
+    ReadingPlace ReadingsAt { get; set; }
 
     /// <summary>Whether a bar is painted in the colour of each limit its reading has passed, a VU meter's.</summary>
     bool ColourByReading { get; set; }

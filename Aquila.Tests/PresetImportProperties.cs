@@ -55,7 +55,8 @@ public sealed class PresetImportProperties : IDisposable
 
     /// <summary>Bars share one ramp (docs/widget-barras): sixteen cores are sixteen of the same thing, so every bar that
     /// names no ramp is in the first — the colour of a bar says its state, not which bar it is — and one that names a
-    /// ramp keeps it. A chart's lines go on taking the ramp of their place.</summary>
+    /// ramp keeps it. In a legend, where a swatch's colour tells one reading from the next, each takes the ramp of its
+    /// place again, as a chart's lines always do.</summary>
     [Fact]
     public void Every_bar_takes_the_first_ramp_unless_it_names_one()
     {
@@ -68,10 +69,16 @@ public sealed class PresetImportProperties : IDisposable
             Assert.NotNull(preset);
             var each = Enumerable.Range(0, BarsTileReadings).ToList();
 
-            Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, bars.RampPlace(i))));
-            Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, old.RampPlace(i))));
-            Assert.Equal("secondary", preset!.RampNameFor("secondary", bars.RampPlace(5)));
-            Assert.Equal("tertiary", preset.RampNameFor(null, chart.RampPlace(2)));
+            foreach (var place in new[] { ReadingPlace.None, ReadingPlace.Title, ReadingPlace.Beside, ReadingPlace.Above })
+            {
+                Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, bars.RampPlace(i, place))));
+                Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, old.RampPlace(i, place))));
+            }
+
+            Assert.Equal("secondary", preset!.RampNameFor("secondary", bars.RampPlace(5, ReadingPlace.Above)));
+            Assert.Equal(["primary", "secondary", "tertiary", "quaternary"],
+                Enumerable.Range(0, 4).Select(i => preset.RampNameFor(null, bars.RampPlace(i, ReadingPlace.Legend))));
+            Assert.Equal("tertiary", preset.RampNameFor(null, chart.RampPlace(2, ReadingPlace.Title)));
         }
     }
 

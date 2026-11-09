@@ -1,9 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using Aquila.Controls.Primitives;
 using Aquila.Models;
 using Aquila.Services;
@@ -35,25 +33,14 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
     /// <summary>The notes' colour when nothing has dressed the piece — the type picker.</summary>
     private static readonly Brush QuietUnpainted = Frozen(Color.FromArgb(0x8C, 0xFF, 0xFF, 0xFF));
 
-    /// <summary>Between two numbers in the title, and between two readings of the legend.</summary>
-    private const double Apart = 10;
-
-    /// <summary>From the chart down to its legend, and between the legend's lines.</summary>
-    private const double LegendGap = 4, LegendLineGap = 2;
-
     /// <summary>The most of the chart's height its legend may take; past it, the names are cut rather than folded.
     /// </summary>
     private const double LegendShare = 0.5;
 
-    /// <summary>A legend's swatch of its line's colour, and the gap after it.</summary>
-    private const double SwatchWidth = 10, SwatchHeight = 2, SwatchGap = 5;
-
     private readonly SensorNode[] _sensors;
     private readonly LinePlot _plot = new();
-    private readonly StackPanel _aside = new() { Orientation = Orientation.Horizontal };
-    private readonly LegendPanel _legend = new();
-    private readonly TextBlock[] _titleNumbers;
-    private readonly (TextBlock Name, TextBlock Number, Rectangle Swatch)[] _legendRows;
+    private readonly TitleNumbers _aside;
+    private readonly ReadingLegend _legend;
 
     private readonly Brush?[] _strokes;
     private readonly Color[]?[] _ramps;
@@ -71,38 +58,8 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
         _ramps = new Color[]?[count];
         _bands = new IReadOnlyList<(double, Color)>?[count];
         _formats = new Func<double, string>?[count];
-        _titleNumbers = new TextBlock[count];
-        _legendRows = new (TextBlock, TextBlock, Rectangle)[count];
-
-        for (var i = 0; i < count; i++)
-        {
-            var number = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-            Typography.SetNumeralAlignment(number, FontNumeralAlignment.Tabular);
-            _titleNumbers[i] = number;
-            _aside.Children.Add(number);
-
-            var swatch = new Rectangle
-            {
-                Width = SwatchWidth, Height = SwatchHeight, VerticalAlignment = VerticalAlignment.Center,
-            };
-            var name = new TextBlock
-            {
-                Text = _sensors[i].Name ?? string.Empty, TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            var reading = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-            Typography.SetNumeralAlignment(reading, FontNumeralAlignment.Tabular);
-
-            var row = new DockPanel();
-            DockPanel.SetDock(swatch, Dock.Left);
-            DockPanel.SetDock(reading, Dock.Right);
-            row.Children.Add(swatch);
-            row.Children.Add(reading);
-            row.Children.Add(name);
-
-            _legendRows[i] = (name, reading, swatch);
-            _legend.Children.Add(row);
-        }
+        _aside = new TitleNumbers(count);
+        _legend = new ReadingLegend([.. _sensors.Select(sensor => sensor.Name ?? string.Empty)]);
 
         var root = new Grid();
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -151,7 +108,7 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
     public void NameReadings(IReadOnlyList<(string Identifier, string Label)> names)
     {
         var written = ReadingNames.Of(_sensors, names);
-        for (var i = 0; i < _sensors.Length; i++) _legendRows[i].Name.Text = written[i];
+        for (var i = 0; i < _sensors.Length; i++) _legend.NameAt(i, written[i]);
     }
 
     /// <summary>Each line's bands: its ramp's colours between its own reading's limits, or one colour throughout.
@@ -239,14 +196,8 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
             var reading = _sensors[i].Reading(_showUnit, string.Empty);
             var ink = _strokes[i] ?? Unpainted;
 
-            var title = _titleNumbers[i];
-            title.Text = reading;
-            title.Foreground = ink;
-
-            var (_, number, swatch) = _legendRows[i];
-            number.Text = reading;
-            number.Foreground = ink;
-            swatch.Fill = ink;
+            _aside.Write(i, reading, ink);
+            _legend.Write(i, reading, ink);
         }
 
         _aside.Visibility = _readingsAt == ReadingPlace.Title && _sensors.Length > 0
@@ -260,30 +211,10 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
     /// <summary>Lays the numbers out at the sizes and in the faces they have now.</summary>
     private void Letter()
     {
-        var single = _sensors.Length == 1;
         var notes = _noteBrush ?? QuietUnpainted;
 
-        for (var i = 0; i < _sensors.Length; i++)
-        {
-            var title = _titleNumbers[i];
-            title.FontSize = single ? Math.Max(1, _valueSize) : Math.Max(1, _noteSize);
-            title.Wear(_valueFont, single ? _valueWeight : TextWeight.Regular);
-            title.Margin = new Thickness(i == 0 ? 0 : Apart * _figureScale, 0, 0, 0);
-
-            var (name, number, swatch) = _legendRows[i];
-            name.FontSize = Math.Max(1, _noteSize);
-            name.Wear(_titleFont, _titleWeight);
-            name.Foreground = notes;
-            number.FontSize = Math.Max(1, _noteSize);
-            number.Wear(_valueFont, TextWeight.Regular);
-            number.Margin = new Thickness(SwatchGap * _figureScale, 0, 0, 0);
-            swatch.Width = SwatchWidth * _figureScale;
-            swatch.Height = Math.Max(1, SwatchHeight * _figureScale);
-            swatch.Margin = new Thickness(0, 0, SwatchGap * _figureScale, 0);
-        }
-
-        _legend.Margin = new Thickness(0, LegendGap * _figureScale, 0, 0);
-        (_legend.Gap, _legend.LineGap) = (Apart * _figureScale, LegendLineGap * _figureScale);
+        _aside.Letter(_valueSize, _valueFont, _valueWeight, _noteSize, _figureScale);
+        _legend.Letter(_noteSize, _titleFont, _titleWeight, _valueFont, notes, _figureScale);
 
         // What the plot writes — its line ends, its peak and its scale — in the notes' face, size and colour.
         var family = string.IsNullOrWhiteSpace(_valueFont) ? FontFamily : new FontFamily(_valueFont);

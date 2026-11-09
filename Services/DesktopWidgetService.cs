@@ -1516,8 +1516,7 @@ public sealed class DesktopWidgetService
 
         if (piece is IBarParts barParts)
         {
-            barParts.BarLayout = definition.BarLayout;
-            barParts.ShowNames = definition.ShowNames;
+            barParts.ReadingsAt = definition.ReadingsAt;
             barParts.ColourByReading = definition.ColourByReading;
             barParts.ShowPeak = definition.ShowPeak;
             barParts.PointCount = definition.PointCount;
@@ -1808,7 +1807,7 @@ public sealed class DesktopWidgetService
 
             // The ramp a reading is drawn in, by the rule the editor's picker asks too — so the picker
             // shows what is drawn here. A kind whose readings share a ramp asks for the first's.
-            ramps.Add(preset.RampFor(series.Ramp, kind.RampPlace(ramps.Count)));
+            ramps.Add(preset.RampFor(series.Ramp, kind.RampPlace(ramps.Count, definition.ReadingsAt)));
         }
 
         // A kind that does not need a reading draws anyway — a backdrop has none to lose, and a text is a
@@ -1844,11 +1843,12 @@ public sealed class DesktopWidgetService
             // brought them back, because a rebuild captures the name again.
             //
             // Reading the series at dress time keeps both ends current: a series that names nothing still
-            // follows the new preset's own default, and one that was renamed follows the rename.
+            // follows the new preset's own default, and one that was renamed follows the rename. Its place too: bars
+            // moved into a legend take the ramps of their places, and that is a re-dress, not a rebuild.
             var reading = chosen[i];
-            var index = kind.RampPlace(i);
+            var index = i;
 
-            repaints.Add(dressed => repaint(dressed.RampFor(reading.Ramp, index)));
+            repaints.Add(dressed => repaint(dressed.RampFor(reading.Ramp, kind.RampPlace(index, definition.ReadingsAt))));
         }
 
         KeepEnoughHistory(definition, resolved);

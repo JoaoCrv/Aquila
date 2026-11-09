@@ -12,22 +12,25 @@ using Aquila.Services;
 namespace Aquila.Controls;
 
 /// <summary>
-/// The Bars widget: one to sixteen readings as bars, lying down or standing up, each with its name and its number
-/// beside it or above it (docs/widget-barras). It took over from the meter — one bar lying down, its number beside —
-/// and from the old Bars, whose layouts open as they were; the dashboard's cards keep their own <see cref="SensorMeter"/>.
+/// The Bars widget: one to sixteen readings as bars, lying down or standing up, their names and numbers where the
+/// widget says (<see cref="ReadingsAt"/>) — beside or above each bar, at the end of the title's line, in a legend under
+/// the bars, or nowhere: the chart's own choice, with the places bars have (docs/widget-barras). It took over from the
+/// meter — one bar lying down, its number beside — and from the old Bars, whose layouts open as they were; the
+/// dashboard's cards keep their own <see cref="SensorMeter"/>.
 ///
 /// Each bar is a <see cref="BarFill"/> on its own reading's scale, coloured by its own state through its own ramp. With
 /// <see cref="ColourByReading"/> it is painted in the colour of each limit it has passed, a VU meter's; with
 /// <see cref="ShowPeak"/> it holds its highest reading of the time window. Names and numbers are the widget's
-/// (<see cref="IBarParts"/>), never the preset's.
+/// (<see cref="IBarParts"/>), never the preset's; the title's numbers and the legend are the chart's own
+/// (<see cref="TitleNumbers"/>, <see cref="ReadingLegend"/>).
 ///
 /// Standing up, a number or a name that does not fit its column is not written, and its room goes to the bars — for
 /// every column at once (<see cref="Fit"/>), so none is left with text and its neighbour without. It takes hold of its
 /// readings and the limits on Loaded and lets go on Unloaded.
 /// </summary>
-public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, IHideableValue, IOrientedBars,
-    IScaledFigure, IFollowsSchemeTrack, ILimitParts, ILimitStyle, INoteStyle, IPlotTextStyle, IReadingRamp,
-    IReadingNames, ITitleAside, IBarParts
+public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, IOrientedBars, IScaledFigure,
+    IFollowsSchemeTrack, ILimitParts, ILimitStyle, INoteStyle, IPlotTextStyle, IReadingRamp, IReadingNames, ITitleAside,
+    IBarParts
 {
     /// <summary>The most readings the widget draws — this machine's sixteen cores, and a ceiling, not a shape.</summary>
     public const int MostReadings = 16;
@@ -41,6 +44,10 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
 
     /// <summary>The most of the width a name takes before its bar; past it, the name is cut.</summary>
     private const double NameShare = 0.35;
+
+    /// <summary>The most of the height a legend may take; past it, its names are cut rather than folded — the chart's
+    /// own share.</summary>
+    private const double LegendShare = 0.5;
 
     /// <summary>The gaps, at a scale of one: between two bars, from a name to its bar, from a bar to its number, from a
     /// line of text down to its bar, and from a standing bar to what is written under it.</summary>
@@ -64,7 +71,8 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
 
     private readonly Bar[] _bars;
     private readonly UniformGrid _cells = new();
-    private readonly TextBlock _aside = new() { VerticalAlignment = VerticalAlignment.Center };
+    private readonly TitleNumbers _aside;
+    private readonly ReadingLegend _legend;
     private readonly Inks _inks = new();
 
     private VitalMonitor? _monitor;
@@ -73,7 +81,8 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     public BarsTile(IReadOnlyList<SensorNode> sensors)
     {
         _bars = [.. sensors.Take(MostReadings).Select(sensor => new Bar(sensor))];
-        Typography.SetNumeralAlignment(_aside, FontNumeralAlignment.Tabular);
+        _aside = new TitleNumbers(_bars.Length);
+        _legend = new ReadingLegend([.. _bars.Select(bar => bar.Sensor.Name ?? string.Empty)]);
 
         foreach (var bar in _bars)
         {
@@ -85,7 +94,14 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
             _cells.Children.Add(bar.Cell);
         }
 
-        Content = _cells;
+        var root = new Grid();
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(_legend, 1);
+        root.Children.Add(_cells);
+        root.Children.Add(_legend);
+        Content = root;
+
         SchemeTrack.Follow(this);
 
         Loaded += (_, _) => Hook();
@@ -98,7 +114,7 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
 
     // ── Colours ──────────────────────────────────────────────────────
 
-    /// <summary>Paints one bar — its fill, its number and, with no limits to judge it by, its peak — in the colour of
+    /// <summary>Paints one bar — its fill, its numbers and, with no limits to judge it by, its peak — in the colour of
     /// its state. Reached from the catalogue's painter, so each bar follows its own ramp and its own reading.</summary>
     public void PaintBar(int index, Brush brush)
     {
@@ -108,7 +124,7 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
         bar.Paint = brush;
         bar.Fill.Fill = brush;
         Hold(bar, Ceiling(bar));
-        Write(bar);
+        Write(index);
     }
 
     /// <summary>A reading's whole ramp: its bands when the bar is coloured by its reading, and its peak's colour.
@@ -127,11 +143,15 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
         Hold(bar, ceiling);
     }
 
-    /// <summary>Each bar's name (<see cref="ReadingNames.Of"/>).</summary>
+    /// <summary>Each bar's name (<see cref="ReadingNames.Of"/>), beside or above it and in the legend.</summary>
     public void NameReadings(IReadOnlyList<(string Identifier, string Label)> names)
     {
         var written = ReadingNames.Of([.. _bars.Select(bar => bar.Sensor)], names);
-        for (var i = 0; i < _bars.Length; i++) _bars[i].Name.Text = written[i];
+        for (var i = 0; i < _bars.Length; i++)
+        {
+            _bars[i].Name.Text = written[i];
+            _legend.NameAt(i, written[i]);
+        }
 
         MeasureWords();
     }
@@ -206,18 +226,25 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
 
     // ── Words ────────────────────────────────────────────────────────
 
-    /// <summary>One bar lying down with its text above it writes its number at the end of the title's line, at the
-    /// reading's size — the line it would have had over the bar is the title's.</summary>
-    private bool InTitle => _bars.Length == 1 && _direction == BarDirection.Horizontal && _barLayout == BarLayout.Above;
-
     private bool Lying => _direction == BarDirection.Horizontal;
+
+    /// <summary>The numbers go to the title's line: when the widget says so, and for one bar lying down with its text
+    /// above it — the line it would have had over the bar is the title's.</summary>
+    private bool InTitle => _readingsAt == ReadingPlace.Title
+                            || _readingsAt == ReadingPlace.Above && _bars.Length == 1 && Lying;
+
+    /// <summary>The words are written with each bar, beside it or above it.</summary>
+    private bool WithBars => _readingsAt is ReadingPlace.Beside or ReadingPlace.Above && !InTitle;
 
     /// <summary>What fits standing up, decided for every column at once; lying down, everything does.</summary>
     private (bool Numbers, bool Unit, bool Names) _fits = (true, true, true);
 
-    private bool NamesShown => _showNames && _bars.Length > 1 && (Lying || _fits.Names);
+    /// <summary>Names with the bars only with two bars or more — one bar's name is the title — and only when there is a
+    /// name to write: readings with none would keep a line of nothing under every bar.</summary>
+    private bool NamesShown => WithBars && _bars.Length > 1 && (Lying || _fits.Names)
+                               && _bars.Any(bar => !string.IsNullOrWhiteSpace(bar.Name.Text));
 
-    private bool NumbersShown => _showValue && !InTitle && (Lying || _fits.Numbers);
+    private bool NumbersShown => WithBars && (Lying || _fits.Numbers);
 
     /// <summary>
     /// Whether standing columns <paramref name="column"/> wide write their numbers — with their unit if the widest fits
@@ -232,19 +259,21 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
 
     private void Write()
     {
-        foreach (var bar in _bars) Write(bar);
+        for (var i = 0; i < _bars.Length; i++) Write(i);
     }
 
-    /// <summary>A bar's number, in its colour — dropping the unit where a standing column cannot hold it — and the
-    /// title's, for the first.</summary>
-    private void Write(Bar bar)
+    /// <summary>A bar's numbers, in its colour, wherever they are written: with the bar — dropping the unit where a
+    /// standing column cannot hold it — on the title's line, and in the legend.</summary>
+    private void Write(int index)
     {
-        bar.Number.Text = bar.Sensor.Reading(_showUnit && (Lying || _fits.Unit), string.Empty);
-        bar.Number.Foreground = bar.Paint ?? Unpainted;
+        var bar = _bars[index];
+        var ink = bar.Paint ?? Unpainted;
+        var reading = bar.Sensor.Reading(_showUnit, string.Empty);
 
-        if (!ReferenceEquals(bar, _bars[0])) return;
-        _aside.Text = bar.Sensor.Reading(_showUnit, string.Empty);
-        _aside.Foreground = bar.Paint ?? Unpainted;
+        bar.Number.Text = Lying || _fits.Unit ? reading : bar.Sensor.Reading(false, string.Empty);
+        bar.Number.Foreground = ink;
+        _aside.Write(index, reading, ink);
+        _legend.Write(index, reading, ink);
     }
 
     /// <summary>Which words are on screen now.</summary>
@@ -256,7 +285,10 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
             bar.Number.Visibility = NumbersShown ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        _aside.Visibility = _showValue && InTitle ? Visibility.Visible : Visibility.Collapsed;
+        _aside.Visibility = InTitle && _bars.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        _legend.Visibility = _readingsAt == ReadingPlace.Legend && _bars.Length > 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     /// <summary>The words at the sizes and in the faces they have now: one bar's number at the reading's size, several
@@ -264,6 +296,7 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     private void Letter()
     {
         var single = _bars.Length == 1;
+        var notes = _noteBrush ?? QuietUnpainted;
 
         foreach (var bar in _bars)
         {
@@ -272,11 +305,11 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
 
             bar.Name.FontSize = Math.Max(1, _noteSize);
             bar.Name.Wear(_titleFont, _titleWeight);
-            bar.Name.Foreground = _noteBrush ?? QuietUnpainted;
+            bar.Name.Foreground = notes;
         }
 
-        _aside.FontSize = Math.Max(1, _valueSize);
-        _aside.Wear(_valueFont, _valueWeight);
+        _aside.Letter(_valueSize, _valueFont, _valueWeight, _noteSize, _figureScale);
+        _legend.Letter(_noteSize, _titleFont, _titleWeight, _valueFont, notes, _figureScale);
 
         MeasureWords();
     }
@@ -319,17 +352,20 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     }
 
     /// <summary>
-    /// The room the words take, decided where the width is known. Lying down with the text beside, the names' column
-    /// (no more than <see cref="NameShare"/> of the width) and the numbers' column, the same for every row. Standing up,
-    /// whether the numbers and the names fit their columns at all (<see cref="Fit"/>).
+    /// The room the words take, decided where the size is known. The legend may fold into as many lines as half the
+    /// height holds, as the chart's does. Lying down with the text beside, the names' column (no more than
+    /// <see cref="NameShare"/> of the width) and the numbers' column, the same for every row. Standing up, whether the
+    /// numbers and the names fit their columns at all (<see cref="Fit"/>).
     /// </summary>
     protected override Size MeasureOverride(Size constraint)
     {
+        _legend.Room = constraint.Height * LegendShare;
+
         if (Lying)
         {
             _fits = (true, true, true);
 
-            if (_barLayout == BarLayout.Beside)
+            if (_readingsAt != ReadingPlace.Above)
             {
                 var names = NamesShown ? _widest.Name + NameGap * _figureScale : 0;
                 if (double.IsFinite(constraint.Width)) names = Math.Min(names, constraint.Width * NameShare);
@@ -365,12 +401,13 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     /// <summary>
     /// Where each bar and its words sit. Lying down, a row each, stacked: beside — name, bar, number on one line — or
     /// above — name and number on a line over the bar. Standing up, a column each, side by side: the number over the bar
-    /// or under it, and the name under everything.
+    /// or under it, and the name under everything. Words written elsewhere — the title, a legend — or nowhere leave the
+    /// bars the whole of their room.
     /// </summary>
     private void Lay()
     {
         var lying = Lying;
-        var above = _barLayout == BarLayout.Above;
+        var above = _readingsAt == ReadingPlace.Above;
         var scale = _figureScale;
 
         _cells.Rows = lying ? 0 : 1;
@@ -454,7 +491,7 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     private void Dress()
     {
         var look = SchemeTrack.Resolve(this, _barLook, Undressed);
-        if (Lying && _barLayout == BarLayout.Above && _bars.Length > 1) look = look.Scaled(IBarStyle.UnderTextShare);
+        if (Lying && WithBars && _readingsAt == ReadingPlace.Above) look = look.Scaled(IBarStyle.UnderTextShare);
         foreach (var bar in _bars) bar.Fill.Look = look;
     }
 
@@ -496,11 +533,11 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     {
         if (e.PropertyName != nameof(SensorNode.Value) || sender is not SensorNode node) return;
 
-        foreach (var bar in _bars)
+        for (var i = 0; i < _bars.Length; i++)
         {
-            if (!ReferenceEquals(bar.Sensor, node)) continue;
-            Draw(bar, animate: true);
-            Write(bar);
+            if (!ReferenceEquals(_bars[i].Sensor, node)) continue;
+            Draw(_bars[i], animate: true);
+            Write(i);
         }
     }
 
@@ -523,20 +560,19 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     private string? _valueFont;
     private TextWeight _valueWeight = TextWeight.Regular;
     private bool _showUnit = true;
-    private bool _showValue = true;
     private Brush? _noteBrush;
     private double _noteSize = 11;
     private string? _titleFont;
     private TextWeight _titleWeight = TextWeight.Regular;
     private double _figureScale = 1;
-    /// <summary>Lying down until the widget says otherwise — as new Bars start, so the type picker's picture, which
-    /// nothing tells, shows them so.</summary>
+
+    /// <summary>Lying down, numbers beside, until the widget says otherwise — so the type picker's picture, which
+    /// nothing tells, shows the Bars as a meter would be.</summary>
     private BarDirection _direction = BarDirection.Horizontal;
+    private ReadingPlace _readingsAt = ReadingPlace.Beside;
 
     private bool _showLimits;
     private Brush? _limitBrush;
-    private BarLayout _barLayout;
-    private bool _showNames;
     private bool _colourByReading;
     private bool _showPeak;
     private int _pointCount = 60;
@@ -549,7 +585,6 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     public string? ValueFont { get => _valueFont; set { _valueFont = value; Letter(); } }
     public TextWeight ValueWeight { get => _valueWeight; set { _valueWeight = value; Letter(); } }
     public bool ShowUnit { get => _showUnit; set { _showUnit = value; MeasureWords(); Write(); } }
-    public bool ShowValue { get => _showValue; set { _showValue = value; Show(); InvalidateMeasure(); } }
     public Brush? NoteBrush { get => _noteBrush; set { _noteBrush = value; Letter(); } }
     public double NoteSize { get => _noteSize; set { _noteSize = value; Letter(); } }
 
@@ -568,8 +603,7 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
 
     public bool ShowLimits { get => _showLimits; set { _showLimits = value; Apply(); } }
     public Brush? LimitBrush { get => _limitBrush; set { _limitBrush = value; Apply(); } }
-    public BarLayout BarLayout { get => _barLayout; set { _barLayout = value; Apply(); } }
-    public bool ShowNames { get => _showNames; set { _showNames = value; Show(); MeasureWords(); } }
+    public ReadingPlace ReadingsAt { get => _readingsAt; set { _readingsAt = value; Apply(); } }
     public bool ColourByReading { get => _colourByReading; set { _colourByReading = value; Apply(); } }
     public bool ShowPeak { get => _showPeak; set { _showPeak = value; Apply(); } }
     public int PointCount { get => _pointCount; set { _pointCount = value; Apply(); } }

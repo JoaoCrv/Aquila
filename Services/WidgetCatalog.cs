@@ -144,10 +144,14 @@ public sealed record WidgetKindInfo(
     /// </summary>
     public bool OneRamp { get; init; }
 
-    /// <summary>The place a reading's ramp is chosen by (<see cref="Preset.RampNameFor"/>): its own, or the first for a
-    /// kind whose readings share one. Asked by the desktop and the editor alike, so the picker shows what is drawn.
+    /// <summary>
+    /// The place a reading's ramp is chosen by (<see cref="Preset.RampNameFor"/>): its own, or the first for a kind whose
+    /// readings share one — unless the widget writes them in a legend, where a swatch's colour is what tells one
+    /// reading from the next, and each takes the ramp of its place again. Asked by the desktop and the editor alike, so
+    /// the picker shows what is drawn.
     /// </summary>
-    public int RampPlace(int index) => OneRamp ? 0 : index;
+    public int RampPlace(int index, ReadingPlace readingsAt) =>
+        OneRamp && readingsAt != ReadingPlace.Legend ? 0 : index;
 }
 
 public static class WidgetCatalog
@@ -187,8 +191,8 @@ public static class WidgetCatalog
             {
                 HasBar = true, HasDirection = true, OneRamp = true,
                 Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = BarsSummary,
-                MadeNow = bars => (bars.BarDirection, bars.BarLayout, bars.ShowNames, bars.ColourByReading, bars.ShowPeak) =
-                    (BarDirection.Horizontal, BarLayout.Above, true, true, true),
+                MadeNow = bars => (bars.BarDirection, bars.ReadingsAt, bars.ColourByReading, bars.ShowPeak) =
+                    (BarDirection.Horizontal, ReadingPlace.Above, true, true),
             },
 
         // Wider since its notes, which a Number made today starts with: a throughput's "min 0  max 980.4 MB/s" is the

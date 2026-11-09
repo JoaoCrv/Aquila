@@ -9,7 +9,7 @@ namespace Aquila.Controls;
 /// many lines that the legend takes more than <see cref="Room"/>, which leaves the chart its line: past that the names
 /// are cut instead. The columns are equal, as a grid's, and a line holds as many as the others.
 /// </summary>
-public sealed class LegendPanel : Panel
+public class LegendPanel : Panel
 {
     private const double Tolerance = 0.01;
 

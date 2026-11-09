@@ -49,21 +49,33 @@ public enum DesktopWidgetKind
     BarChart,
 }
 
-/// <summary>Where a chart writes its readings' numbers.</summary>
+/// <summary>
+/// Where a chart or a bars widget writes its readings' numbers — and names, where it writes them. One choice for both
+/// kinds (docs/widget-grafico, docs/widget-barras), each offering the places it has: a chart its line ends, bars a place
+/// beside or above each bar. Persisted by name, so places are added at the end.
+/// </summary>
 public enum ReadingPlace
 {
-    /// <summary>Nowhere: the lines alone.</summary>
+    /// <summary>Nowhere: the lines or the bars alone.</summary>
     None,
 
     /// <summary>At the end of the title's line — one reading at the reading's size, several smaller, each in its
-    /// line's colour.</summary>
+    /// own colour.</summary>
     Title,
 
-    /// <summary>Right of each line's end, in its colour, set apart where they would touch.</summary>
+    /// <summary>Right of each line's end, in its colour, set apart where they would touch. A chart's.</summary>
     LineEnds,
 
-    /// <summary>A row under the chart: each reading's colour, its name and its number.</summary>
+    /// <summary>Under the chart or the bars: each reading's colour, its name and its number.</summary>
     Legend,
+
+    /// <summary>Beside each bar: lying down, the name before it and the number after it, on its line; standing up, the
+    /// number under the bar and the name under that. How the meter and the old Bars drew their numbers. Bars'.</summary>
+    Beside,
+
+    /// <summary>Above each bar, which leaves the bar the whole width: lying down, name and number on a line over it;
+    /// standing up, the number over the bar. One bar lying down sends its number to the title instead. Bars'.</summary>
+    Above,
 }
 
 /// <summary>
@@ -187,18 +199,13 @@ public enum ClockRings
 }
 
 /// <summary>
-/// Where a bar's name and number are written. Persisted by name — in a widget, and in presets written while it was
-/// theirs (the meter's <c>bar.layout</c>), which still read.
+/// Where the meter wrote its number, when presets said so (<c>bar.layout</c>). Read by nothing since the Bars, whose
+/// widget says it (<see cref="ReadingPlace.Beside"/>, <see cref="ReadingPlace.Above"/>); kept so presets written with
+/// it still read. Persisted by name.
 /// </summary>
 public enum BarLayout
 {
-    /// <summary>Beside the bar: lying down, the name before it and the number after it, on its line; standing up, the
-    /// number under the bar. How the meter and the old Bars were drawn, and so what a layout saying nothing means.
-    /// </summary>
     Beside,
-
-    /// <summary>Above the bar, which leaves the bar the whole width: lying down, name and number on a line over it;
-    /// standing up, the number over the bar. One bar lying down sends its number to the title instead.</summary>
     Above,
 }
 
@@ -283,15 +290,6 @@ public class DesktopWidgetDefinition
     /// declares who can be asked.</summary>
     public BarDirection BarDirection { get; set; } = BarDirection.Vertical;
 
-    /// <summary>Where a bars widget writes each bar's name and number. Beside when absent, as the meter and the old Bars
-    /// drew them. The preset once said this for the meter (<c>bar.layout</c>); it is what is on screen, so it is the
-    /// widget's now — trying on a preset must not move a number.</summary>
-    public BarLayout BarLayout { get; set; }
-
-    /// <summary>Whether a bars widget writes each bar's name — its reading's <see cref="WidgetSeries.Label"/>, or the
-    /// sensor's. Only with two bars or more: one bar's name is the title. Off when absent.</summary>
-    public bool ShowNames { get; set; }
-
     public string Text { get; set; } = string.Empty;
 
     /// <summary>What a Clock widget shows. Which of time or date is content; how big it is drawn is not.</summary>
@@ -364,9 +362,11 @@ public class DesktopWidgetDefinition
     /// </summary>
     public bool ColourByReading { get; set; }
 
-    /// <summary>Where a chart writes its readings' numbers. None when absent — the old two-reading chart wrote none; a
-    /// sparkline wrote its one in a corner, and a layout loads it with <see cref="ReadingPlace.Title"/> unless it had
-    /// turned it off.</summary>
+    /// <summary>Where a chart or a bars widget writes its readings' numbers, and their names. None when absent — the old
+    /// two-reading chart wrote none; a sparkline wrote its one in a corner, and a layout loads it with
+    /// <see cref="ReadingPlace.Title"/> unless it had turned it off; a meter or old Bars wrote theirs beside each bar,
+    /// and a layout loads them with <see cref="ReadingPlace.Beside"/> unless they had turned it off. It is what is on
+    /// screen, so the widget's — the preset once said where the meter's number went (<c>bar.layout</c>).</summary>
     public ReadingPlace ReadingsAt { get; set; }
 
     /// <summary>Whether a chart writes the top and the bottom of its scale at its left edge. Off when absent.</summary>

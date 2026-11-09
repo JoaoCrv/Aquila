@@ -670,14 +670,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// it goes. A dial becomes a ring, a bar a bar.
     ///
     /// The Number and the two word kinds are excluded by having no graphic, so hiding the reading would leave an
-    /// empty widget — and the Chart because it is asked a better question, where its numbers go
+    /// empty widget — and the Chart and the Bars because they are asked a better question, where their numbers go
     /// (<see cref="ShowsReadingPlace"/>), of which "nowhere" is one answer.
     /// </summary>
-    public bool CanHideValue => ShowsValue && (ShowsDial || ShowsBar);
+    public bool CanHideValue => ShowsValue && ShowsDial;
 
-    /// <summary>Whether this kind writes its readings' numbers in one of several places — every kind drawn as a line,
-    /// which is the Chart.</summary>
-    public bool ShowsReadingPlace => ShowsLine;
+    /// <summary>Whether this kind writes its readings' numbers in one of several places — the Chart and the Bars, each
+    /// offering the places it has (<see cref="ReadingPlaces"/>).</summary>
+    public bool ShowsReadingPlace => ShowsLine || ShowsDirection;
 
     /// <summary>Whether this kind's reading has a unit to hide. The clock draws a reading and has none.
     /// </summary>
@@ -1588,7 +1588,20 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnColouredByReadingChanged(bool value) => Apply();
     partial void OnScaleLabelsShownChanged(bool value) => Apply();
     partial void OnPeakShownChanged(bool value) => Apply();
-    partial void OnReadingsAtChanged(ReadingPlace value) => Apply();
+    /// <summary>
+    /// Bars moved into a legend, or out of one, change the ramp a reading takes when it names none of its own
+    /// (<see cref="WidgetKindInfo.RampPlace"/>): in a legend each bar is told apart by its colour. The rows hold what they
+    /// were given, so a row still on the old default moves to the new one; a ramp somebody chose stays.
+    /// </summary>
+    partial void OnReadingsAtChanged(ReadingPlace oldValue, ReadingPlace newValue)
+    {
+        if (_loaded && SelectedKind is { OneRamp: true } kind && SelectedPreset is { } preset)
+            for (var i = 0; i < Chosen.Count; i++)
+                if (Chosen[i].Ramp == preset.RampNameFor(null, kind.RampPlace(i, oldValue)))
+                    Chosen[i].SetRampQuietly(preset.RampNameFor(null, kind.RampPlace(i, newValue)) ?? Ramp.Primary);
+
+        Apply();
+    }
 
     /// <summary>A dot on each of a chart's lines at its newest reading, pulsing as each one arrives.</summary>
     [ObservableProperty] private bool _endShown;
@@ -1605,27 +1618,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [NotifyPropertyChangedFor(nameof(ShowsBarWindow))]
     private bool _peakShown;
 
-    /// <summary>Where a bars widget writes each bar's name and number.</summary>
-    [ObservableProperty] private BarLayout _barLayout;
-
-    /// <summary>Whether a bars widget writes each bar's name.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsReadingNames))]
-    private bool _namesShown;
-
-    partial void OnBarLayoutChanged(BarLayout value) => Apply();
-    partial void OnNamesShownChanged(bool value) => Apply();
-
-    /// <summary>One choice in the bars' text picker, named as a phrase, as <see cref="ReadingPlaceChoice"/> is.
-    /// </summary>
-    public sealed record BarLayoutChoice(BarLayout Value, string Label);
-
-    public IReadOnlyList<BarLayoutChoice> BarLayouts { get; } =
-    [
-        new(BarLayout.Beside, "Beside the bar"),
-        new(BarLayout.Above, "Above the bar"),
-    ];
-
     /// <summary>The time window, for bars: only while they hold a peak, which is all it is for there.</summary>
     public bool ShowsBarWindow => ShowsDirection && PeakShown;
 
@@ -1637,11 +1629,24 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>One choice in the numbers' picker, named as a phrase, as <see cref="ScaleChoice"/> is.</summary>
     public sealed record ReadingPlaceChoice(ReadingPlace Value, string Label);
 
-    public IReadOnlyList<ReadingPlaceChoice> ReadingPlaces { get; } =
+    /// <summary>The places this kind has: a chart its line ends, bars a place beside or above each bar — the same
+    /// choice otherwise, so the two are learnt once.</summary>
+    public IReadOnlyList<ReadingPlaceChoice> ReadingPlaces => ShowsDirection ? BarReadingPlaces : ChartReadingPlaces;
+
+    private static readonly IReadOnlyList<ReadingPlaceChoice> ChartReadingPlaces =
     [
         new(ReadingPlace.None, "Off"),
         new(ReadingPlace.Title, "In the title"),
         new(ReadingPlace.LineEnds, "At the line ends"),
+        new(ReadingPlace.Legend, "In a legend"),
+    ];
+
+    private static readonly IReadOnlyList<ReadingPlaceChoice> BarReadingPlaces =
+    [
+        new(ReadingPlace.None, "Off"),
+        new(ReadingPlace.Title, "In the title"),
+        new(ReadingPlace.Beside, "Beside each bar"),
+        new(ReadingPlace.Above, "Above each bar"),
         new(ReadingPlace.Legend, "In a legend"),
     ];
 
@@ -1679,7 +1684,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             ? preset.RampNameFor(row.Ramp, RampPlace(Math.Max(0, Chosen.IndexOf(row))))
             : Ramp.Primary;
 
-    private int RampPlace(int index) => SelectedKind?.RampPlace(index) ?? index;
+    private int RampPlace(int index) => SelectedKind?.RampPlace(index, ReadingsAt) ?? index;
 
     /// <summary>The entry in the picker's own list for what a row is drawn in. Looked up by name in a list
     /// built afresh, which is fine: the picker matches records by value, and this one is equal to its own.</summary>
@@ -1703,11 +1708,12 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// again for a word in its legend.</summary>
     private void OnReadingRenamed() => Apply();
 
-    /// <summary>Whether this widget writes its readings' names, and so whether each can be given one: a Chart with its
-    /// legend on, or Bars with their names on and two bars or more — one bar's name is the title. Only then, as a
+    /// <summary>Whether this widget writes its readings' names, and so whether each can be given one: in a legend, or
+    /// with the bars, beside or above them, when there are two or more — one bar's name is the title. Only then, as a
     /// scale's ends are offered only when Manual — a box that changes nothing on the screen reads as broken.</summary>
     public bool ShowsReadingNames =>
-        ShowsReadingPlace && ReadingsAt == ReadingPlace.Legend || ShowsDirection && NamesShown && Chosen.Count > 1;
+        ShowsReadingPlace && ReadingsAt == ReadingPlace.Legend
+        || ShowsDirection && ReadingsAt is ReadingPlace.Beside or ReadingPlace.Above && Chosen.Count > 1;
 
     /// <summary>
     /// Everything the chosen kind and the series list decide together. Raised from every place that changes
@@ -1857,8 +1863,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowScaleLabels = ScaleLabelsShown;
         _target.ShowPeak = PeakShown;
         _target.ReadingsAt = ReadingsAt;
-        _target.BarLayout = BarLayout;
-        _target.ShowNames = NamesShown;
 
         // A widget that has just started drawing a figure of its own shape (made a dial, or a clock given rings) takes
         // that shape now, led by its width: a 200×70 clock given rings would otherwise draw them a third of the size
@@ -2129,8 +2133,6 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         ScaleLabelsShown = source.ShowScaleLabels;
         PeakShown = source.ShowPeak;
         ReadingsAt = source.ReadingsAt;
-        BarLayout = source.BarLayout;
-        NamesShown = source.ShowNames;
     }
 }
 
