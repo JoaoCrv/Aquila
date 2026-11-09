@@ -54,22 +54,44 @@ public static class Draw
         if (!(filled.Width > 0) || !(filled.Height > 0)) return;
 
         var round = BarGeometry.Corner(look.Corner, filled);
+        if (look.Fade) drawing.PushOpacityMask(Fading(orientation));
+
         if (banded is null)
         {
             drawing.DrawRoundedRectangle(fill, null, filled, round, round);
-            return;
+        }
+        else
+        {
+            var outline = new RectangleGeometry(filled, round, round);
+            outline.Freeze();
+            drawing.PushClip(outline);
+
+            var parts = BarGeometry.Banded(track, fraction, Froms(banded), orientation);
+            for (var i = 0; i < parts.Length; i++)
+                if (parts[i].Width > 0 && parts[i].Height > 0)
+                    drawing.DrawRectangle(banded[i].Fill, null, parts[i]);
+
+            drawing.Pop();
         }
 
-        var outline = new RectangleGeometry(filled, round, round);
-        outline.Freeze();
-        drawing.PushClip(outline);
+        if (look.Fade) drawing.Pop();
+    }
 
-        var parts = BarGeometry.Banded(track, fraction, Froms(banded), orientation);
-        for (var i = 0; i < parts.Length; i++)
-            if (parts[i].Width > 0 && parts[i].Height > 0)
-                drawing.DrawRectangle(banded[i].Fill, null, parts[i]);
+    /// <summary>The mask a fading bar's fill is drawn through: <see cref="BarGeometry.FadeFrom"/> where the bar starts,
+    /// whole at its tip. Over the bounds of what is drawn under it, so it runs along the filled part — or the lit blocks
+    /// — wherever they end.</summary>
+    private static Brush Fading(Orientation orientation) =>
+        orientation == Orientation.Horizontal ? FadeAlong : FadeUp;
 
-        drawing.Pop();
+    private static readonly Brush FadeAlong = FadeMask(new Point(0, 0.5), new Point(1, 0.5));
+    private static readonly Brush FadeUp = FadeMask(new Point(0.5, 1), new Point(0.5, 0));
+
+    private static Brush FadeMask(Point from, Point to)
+    {
+        var mask = new LinearGradientBrush(
+            Color.FromArgb((byte)Math.Round(255 * BarGeometry.FadeFrom), 0, 0, 0), Colors.Black, from, to);
+        mask.Freeze();
+        return mask;
     }
 
     /// <summary>
@@ -85,17 +107,22 @@ public static class Draw
         var lit = BarGeometry.Lit(blocks.Length, fraction);
         var froms = bands is null ? null : Froms(bands);
 
-        for (var i = 0; i < blocks.Length; i++)
+        // The dark ones first, then the lit ones together — through the fade, if the look fades, so it runs along the
+        // lit blocks as it would along a whole bar's fill.
+        for (var i = lit; i < blocks.Length; i++) Block(look.Track, blocks[i]);
+
+        if (look.Fade && lit > 0) drawing.PushOpacityMask(Fading(orientation));
+        for (var i = 0; i < lit; i++)
+            Block(froms is not null && BarGeometry.BandAt(froms, (i + 0.5) / blocks.Length) is >= 0 and var band
+                ? bands![band].Fill
+                : fill, blocks[i]);
+        if (look.Fade && lit > 0) drawing.Pop();
+
+        void Block(Brush? brush, Rect block)
         {
-            var brush = i >= lit ? look.Track
-                : froms is not null && BarGeometry.BandAt(froms, (i + 0.5) / blocks.Length) is >= 0 and var band
-                    ? bands![band].Fill
-                    : fill;
-
-            if (brush is null) continue;
-
-            var corner = BarGeometry.BlockCorner(look.Corner, blocks[i]);
-            drawing.DrawRoundedRectangle(brush, null, blocks[i], corner, corner);
+            if (brush is null) return;
+            var corner = BarGeometry.BlockCorner(look.Corner, block);
+            drawing.DrawRoundedRectangle(brush, null, block, corner, corner);
         }
     }
 

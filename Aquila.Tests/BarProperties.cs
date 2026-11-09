@@ -167,11 +167,12 @@ public sealed class BarProperties
     [Fact]
     public void A_scaled_look_keeps_its_track()
     {
-        var look = new BarLook(6, 3, null, Block: 6, BlockGap: 3).Scaled(2.0 / 3);
+        var look = new BarLook(6, 3, null, Block: 6, BlockGap: 3, Fade: true).Scaled(2.0 / 3);
         Assert.Equal(4, look.Thickness, 9);
         Assert.Equal(2, look.Corner, 9);
         Assert.Equal((4d, 2d), (Math.Round(look.Block, 9), Math.Round(look.BlockGap, 9)));
-        Assert.Equal(0, BarLook.Default.Block);
+        Assert.True(look.Fade);
+        Assert.Equal((0d, false), (BarLook.Default.Block, BarLook.Default.Fade));
     }
 
     // ── Bands, blocks and the peak (docs/widget-barras) ─────────────────────

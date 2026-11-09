@@ -61,7 +61,8 @@
     "thickness": 6,
     "corner": 3,
     "block": 0,
-    "blockGap": 2
+    "blockGap": 2,
+    "fill": "Solid"
   },
   "number": {
     "unitSize": 13,

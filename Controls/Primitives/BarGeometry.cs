@@ -100,6 +100,13 @@ public static class BarGeometry
         return parts;
     }
 
+    /// <summary>
+    /// How strong a fading bar is where it starts (<see cref="BarLook.Fade"/>); its tip has its whole colour. A quarter
+    /// and not nothing: faded to nothing, a short bar would seem to start halfway along, and a reading at rest would
+    /// show no bar at all — what <see cref="Least"/> exists to prevent.
+    /// </summary>
+    public const double FadeFrom = 0.25;
+
     // ── Bands ────────────────────────────────────────────────────────────
 
     /// <summary>

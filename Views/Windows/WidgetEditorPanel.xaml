@@ -1689,8 +1689,20 @@
                                 <controls:SliderField Minimum="0" Maximum="20" Format="{}{0:F0} px"
                                                       Value="{Binding ViewModel.BarCorner}"/>
                             </HeaderedContentControl>
-                            <!-- No Layout: where a bar's words go is the widget's now, in Customize → Bars. Blocks
-                                 are how the bar looks, so they are the preset's (docs/widget-barras). -->
+                            <!-- No Layout: where a bar's words go is the widget's now, in Customize → Bars. The fill
+                                 and the blocks are how the bar looks, so they are the preset's (docs/widget-barras). -->
+                            <HeaderedContentControl Style="{StaticResource Line}">
+                                <HeaderedContentControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Fill"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Gradient fades the bar in along its length, as a chart's area fades to its line."/>
+                                    </StackPanel>
+                                </HeaderedContentControl.Header>
+                                <ComboBox MinWidth="120" ItemsSource="{Binding ViewModel.BarFills}"
+                                          AutomationProperties.Name="Fill"
+                                          SelectedItem="{Binding ViewModel.BarFill}"/>
+                            </HeaderedContentControl>
                             <HeaderedContentControl Style="{StaticResource Line}">
                                 <HeaderedContentControl.Header>
                                     <StackPanel>

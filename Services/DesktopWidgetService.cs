@@ -1639,7 +1639,7 @@ public sealed class DesktopWidgetService
         if (piece is IBarStyle bar)
             bar.BarLook = new BarLook(preset.Bar.Thickness * scale, preset.Bar.Corner * scale,
                 HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity),
-                preset.Bar.Block * scale, preset.Bar.BlockGap * scale);
+                preset.Bar.Block * scale, preset.Bar.BlockGap * scale, preset.Bar.Fill == BarShade.Gradient);
 
         // The Number's unit, and the notes that comment on its reading — in the title's colour and at its size, since
         // they say something about the reading as the title does. Its bar is the bar block's, above.

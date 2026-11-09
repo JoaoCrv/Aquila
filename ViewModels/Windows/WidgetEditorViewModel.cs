@@ -896,6 +896,13 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     [ObservableProperty] private double _barBlockGap = 2;
 
+    /// <summary>A bar's fill, solid or fading in along it.</summary>
+    [ObservableProperty] private BarShade _barFill;
+
+    public IReadOnlyList<BarShade> BarFills { get; } = Enum.GetValues<BarShade>();
+
+    partial void OnBarFillChanged(BarShade value) => Dress();
+
     /// <summary>The gap between blocks, only when there are blocks to space.</summary>
     public bool ShowsBlockGap => BarBlock > 0;
 
@@ -1007,6 +1014,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             BarCorner = preset.Bar.Corner;
             BarBlock = preset.Bar.Block;
             BarBlockGap = preset.Bar.BlockGap;
+            BarFill = preset.Bar.Fill;
 
             UnitSize = preset.Number.UnitSize;
             UnitOpacity = preset.Number.UnitOpacity * 100;
@@ -1081,6 +1089,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         preset.Bar.Corner = BarCorner;
         preset.Bar.Block = Math.Max(0, BarBlock);
         preset.Bar.BlockGap = Math.Max(0, BarBlockGap);
+        preset.Bar.Fill = BarFill;
 
         preset.Number.UnitSize = UnitSize;
         preset.Number.UnitOpacity = UnitOpacity / 100;

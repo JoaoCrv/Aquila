@@ -140,7 +140,7 @@ public sealed class PresetImportProperties : IDisposable
     [Fact]
     public void A_bar_s_blocks_survive_an_export_and_an_old_layout_still_reads()
     {
-        var led = Import("""{"id":"led","bar":{"thickness":14,"block":5,"blockGap":2,"layout":"Above"}}""");
+        var led = Import("""{"id":"led","bar":{"thickness":14,"block":5,"blockGap":2,"layout":"Above","fill":"Gradient"}}""");
         Assert.NotNull(led);
 
         var path = Path.Combine(_folder, "led-out.json");
@@ -148,11 +148,12 @@ public sealed class PresetImportProperties : IDisposable
         var again = NewService().Import(path);
 
         Assert.NotNull(again);
-        Assert.Equal((5d, 2d, BarLayout.Above), (again!.Bar.Block, again.Bar.BlockGap, again.Bar.Layout));
+        Assert.Equal((5d, 2d, BarLayout.Above, BarShade.Gradient),
+            (again!.Bar.Block, again.Bar.BlockGap, again.Bar.Layout, again.Bar.Fill));
         Assert.True(Drawable(again));
 
         var plain = Import("""{"id":"plain","bar":{"thickness":6}}""")!;
-        Assert.Equal((0d, 2d), (plain.Bar.Block, plain.Bar.BlockGap));
+        Assert.Equal((0d, 2d, BarShade.Solid), (plain.Bar.Block, plain.Bar.BlockGap, plain.Bar.Fill));
         Assert.All(BuiltIns(), builtIn => Assert.Equal(0d, builtIn.Preset!.Bar.Block));
     }
 

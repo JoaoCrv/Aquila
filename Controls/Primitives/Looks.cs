@@ -35,7 +35,10 @@ public enum AreaFill
 /// <param name="Block">How long each block is, in pixels, an LED meter's; 0 draws the bar whole
 /// (<see cref="BarGeometry.Blocks"/>).</param>
 /// <param name="BlockGap">The space between two blocks, in pixels.</param>
-public sealed record BarLook(double Thickness, double Corner, Brush? Track, double Block = 0, double BlockGap = 2)
+/// <param name="Fade">Whether the filled part fades in along its length — faint where the bar starts, its whole colour
+/// at the tip (<see cref="BarGeometry.FadeFrom"/>), as a chart's area fades to its line.</param>
+public sealed record BarLook(double Thickness, double Corner, Brush? Track, double Block = 0, double BlockGap = 2,
+    bool Fade = false)
 {
     /// <summary>What a bar is drawn as before anything dresses it.</summary>
     public static BarLook Default { get; } = new(4, 0, null);
