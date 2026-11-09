@@ -132,6 +132,30 @@ public sealed class PresetImportProperties : IDisposable
         Assert.Equal(0, title.Border.Padding);
     }
 
+    /// <summary>
+    /// A bar's blocks survive an export and an import (docs/widget-barras), and a preset written when it said where the
+    /// meter's number went still reads — "layout" is kept, unread. Absent, a bar is drawn whole, two pixels apart if it
+    /// is ever given blocks; the built-ins draw theirs whole.
+    /// </summary>
+    [Fact]
+    public void A_bar_s_blocks_survive_an_export_and_an_old_layout_still_reads()
+    {
+        var led = Import("""{"id":"led","bar":{"thickness":14,"block":5,"blockGap":2,"layout":"Above"}}""");
+        Assert.NotNull(led);
+
+        var path = Path.Combine(_folder, "led-out.json");
+        NewService().Export(led!, path);
+        var again = NewService().Import(path);
+
+        Assert.NotNull(again);
+        Assert.Equal((5d, 2d, BarLayout.Above), (again!.Bar.Block, again.Bar.BlockGap, again.Bar.Layout));
+        Assert.True(Drawable(again));
+
+        var plain = Import("""{"id":"plain","bar":{"thickness":6}}""")!;
+        Assert.Equal((0d, 2d), (plain.Bar.Block, plain.Bar.BlockGap));
+        Assert.All(BuiltIns(), builtIn => Assert.Equal(0d, builtIn.Preset!.Bar.Block));
+    }
+
     private Preset? Import(string json)
     {
         var path = Path.Combine(_folder, $"{Guid.NewGuid():N}.json");

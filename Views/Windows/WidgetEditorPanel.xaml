@@ -1689,7 +1689,28 @@
                                 <controls:SliderField Minimum="0" Maximum="20" Format="{}{0:F0} px"
                                                       Value="{Binding ViewModel.BarCorner}"/>
                             </HeaderedContentControl>
-                            <!-- No Layout: where a bar's words go is the widget's now, in Customize → Bars. -->
+                            <!-- No Layout: where a bar's words go is the widget's now, in Customize → Bars. Blocks
+                                 are how the bar looks, so they are the preset's (docs/widget-barras). -->
+                            <HeaderedContentControl Style="{StaticResource Line}">
+                                <HeaderedContentControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Block"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Draws the bar as blocks of this length, like an LED meter. 0 draws it whole."/>
+                                    </StackPanel>
+                                </HeaderedContentControl.Header>
+                                <ui:NumberBox MinWidth="120" Minimum="0" Maximum="40" MaxDecimalPlaces="0"
+                                              SmallChange="1" LargeChange="5" ClearButtonEnabled="False"
+                                              AutomationProperties.Name="Block"
+                                              Value="{Binding ViewModel.BarBlock, Mode=TwoWay}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Gap"
+                                                    Visibility="{Binding ViewModel.ShowsBlockGap, Converter={StaticResource BoolToVisibility}}">
+                                <ui:NumberBox MinWidth="120" Minimum="0" Maximum="20" MaxDecimalPlaces="0"
+                                              SmallChange="1" LargeChange="5" ClearButtonEnabled="False"
+                                              AutomationProperties.Name="Gap"
+                                              Value="{Binding ViewModel.BarBlockGap, Mode=TwoWay}"/>
+                            </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>
 

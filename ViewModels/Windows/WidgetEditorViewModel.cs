@@ -889,11 +889,23 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private double _barThickness = 6;
     [ObservableProperty] private double _barCorner = 3;
 
+    /// <summary>The length of a bar's blocks, an LED meter's; 0 draws it whole.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsBlockGap))]
+    private double _barBlock;
+
+    [ObservableProperty] private double _barBlockGap = 2;
+
+    /// <summary>The gap between blocks, only when there are blocks to space.</summary>
+    public bool ShowsBlockGap => BarBlock > 0;
+
     // No layout: where a bar's number goes is what is on screen, so the widget says it (docs/widget-barras). A preset
     // that still says "layout" keeps it, unread.
 
     partial void OnBarThicknessChanged(double value) => Dress();
     partial void OnBarCornerChanged(double value) => Dress();
+    partial void OnBarBlockChanged(double value) => Dress();
+    partial void OnBarBlockGapChanged(double value) => Dress();
 
     // --- Number ---
 
@@ -993,6 +1005,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
             BarThickness = preset.Bar.Thickness;
             BarCorner = preset.Bar.Corner;
+            BarBlock = preset.Bar.Block;
+            BarBlockGap = preset.Bar.BlockGap;
 
             UnitSize = preset.Number.UnitSize;
             UnitOpacity = preset.Number.UnitOpacity * 100;
@@ -1065,6 +1079,8 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         preset.Bar.Thickness = BarThickness;
         preset.Bar.Corner = BarCorner;
+        preset.Bar.Block = Math.Max(0, BarBlock);
+        preset.Bar.BlockGap = Math.Max(0, BarBlockGap);
 
         preset.Number.UnitSize = UnitSize;
         preset.Number.UnitOpacity = UnitOpacity / 100;

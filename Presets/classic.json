@@ -60,7 +60,8 @@
   "bar": {
     "thickness": 6,
     "corner": 3,
-    "layout": "Beside"
+    "block": 0,
+    "blockGap": 2
   },
   "number": {
     "unitSize": 13,

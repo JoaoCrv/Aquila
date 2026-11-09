@@ -1634,9 +1634,12 @@ public sealed class DesktopWidgetService
 
         // The meter, the Bars, a list's rows and the Number's bar read the same section, as the dial and the rings
         // share theirs — as one look, so a change of preset is one assignment.
+        // Its blocks too, at the widget's size as the thickness is: an LED preset is drawn in blocks by every bar it
+        // dresses.
         if (piece is IBarStyle bar)
             bar.BarLook = new BarLook(preset.Bar.Thickness * scale, preset.Bar.Corner * scale,
-                HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity));
+                HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity),
+                preset.Bar.Block * scale, preset.Bar.BlockGap * scale);
 
         if (piece is IMeterStyle meter) meter.Layout = preset.Bar.Layout;
 
