@@ -55,6 +55,15 @@ public sealed record LineLook(double Thickness, AreaFill Area, double AreaOpacit
     public static LineLook Default { get; } = new(1.5, AreaFill.Fade, 0.30, 0.5, 0);
 }
 
+/// <summary>How a plot writes: the face and size of what it writes, the colour of what belongs to no line — the
+/// scale's ends, the peak — and the halo kept round those, so a line never runs through a number.</summary>
+/// <param name="Face">The typeface — a widget's notes, in its reading's face.</param>
+/// <param name="Size">The size, in pixels.</param>
+/// <param name="Quiet">The colour of a label that is no line's.</param>
+/// <param name="Halo">Drawn round a label over the lines — the panel's own colour, so the lines seem to pass behind it.
+/// Null draws none.</param>
+public sealed record TextLook(Typeface Face, double Size, Brush Quiet, Brush? Halo);
+
 /// <summary>How an arc looks.</summary>
 /// <param name="Thickness">The stroke, in pixels, shared by the arc and its track.</param>
 /// <param name="Caps">The ends of the arc, and of the track when it stops short of a whole turn.</param>

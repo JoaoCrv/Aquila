@@ -237,6 +237,57 @@ public sealed class PlotProperties
                 return Enumerable.Range(0, points.Length).All(i => covered[i] != gaps[i]);
             });
 
+    /// <summary>
+    /// Labels set apart keep their order, stand at least a label's height apart, stay inside the box when they fit,
+    /// and labels that never touched are left exactly where they wanted to be.
+    /// </summary>
+    [Property(MaxTest = 1000)]
+    public Property Labels_are_set_apart_by_the_least_that_clears_them() =>
+        Prop.ForAll(
+            (from count in Gen.Choose(1, 6)
+             from wanted in Gen.Choose(0, 2000).Select(v => v / 10d).ArrayOf(count)
+             from tall in Gen.Choose(5, 30)
+             select (wanted, (double)tall)).ToArbitrary(),
+            labels =>
+            {
+                var (wanted, tall) = labels;
+                const double top = 0, bottom = 200;
+                var placed = PlotGeometry.Spread(wanted, tall, top, bottom);
+                var order = Enumerable.Range(0, wanted.Length).OrderBy(i => wanted[i]).ThenBy(i => i).ToArray();
+
+                for (var k = 1; k < order.Length; k++)
+                    if (placed[order[k]] - placed[order[k - 1]] < tall - 1e-6) return false;
+
+                var fits = wanted.Length * tall <= bottom - top;
+                if (fits && placed.Any(y => y < top + tall / 2 - 1e-6 || y > bottom - tall / 2 + 1e-6)) return false;
+
+                var apart = Enumerable.Range(1, order.Length - 1).All(k => wanted[order[k]] - wanted[order[k - 1]] >= tall)
+                    && wanted.All(y => y >= top + tall / 2 && y <= bottom - tall / 2);
+                return !apart || placed.SequenceEqual(wanted);
+            });
+
+    /// <summary>Two labels wanting the same place share the move — one up, one down, by half a label each — rather than
+    /// one staying and the other taking it all.</summary>
+    [Fact]
+    public void Two_labels_on_one_place_move_half_each()
+    {
+        Assert.Equal([95d, 105d], PlotGeometry.Spread([100d, 100d], 10, 0, 200));
+        Assert.Equal([175d, 185d, 195d], PlotGeometry.Spread([198d, 198d, 199d], 10, 0, 200));
+    }
+
+    /// <summary>The peak is the highest reading the window shows — the first of them when several share it — and none
+    /// when nothing shown is a number.</summary>
+    [Property(MaxTest = 500)]
+    public Property The_peak_is_the_highest_reading_shown() =>
+        Prop.ForAll(Series().ToArbitrary(), Windows().ToArbitrary(), (values, window) =>
+        {
+            var (first, shown) = PlotGeometry.Visible(values.Length, window);
+            var seen = values.Skip(first).Take(shown).ToArray();
+            var at = PlotGeometry.Peak(values, window);
+
+            return seen.Length == 0 ? at == -1 : at == Array.IndexOf(seen, seen.Max());
+        });
+
     /// <summary>The window of the bug that started this: 300 readings in a window of 60 show the last 60.</summary>
     [Fact]
     public void Three_hundred_readings_in_a_window_of_sixty_show_the_last_sixty() =>

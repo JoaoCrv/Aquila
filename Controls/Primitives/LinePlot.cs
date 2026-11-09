@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -105,6 +106,56 @@ public class LinePlot : FrameworkElement
         set => SetValue(GuideBrushProperty, value);
     }
 
+    public static readonly DependencyProperty TextProperty = Register<TextLook?>(nameof(Text), null);
+
+    /// <summary>How the plot writes, when it writes anything — the face, the size, the quiet colour and the halo. Null
+    /// writes nothing, whatever is asked for.</summary>
+    public TextLook? Text
+    {
+        get => (TextLook?)GetValue(TextProperty);
+        set => SetValue(TextProperty, value);
+    }
+
+    public static readonly DependencyProperty ShowEndLabelsProperty = Register(nameof(ShowEndLabels), false);
+
+    /// <summary>
+    /// Each line's newest reading, written right of its end in its colour, as its <see cref="PlotLine.Format"/> writes
+    /// it. Labels that would touch are set apart by the least that clears them (<see cref="PlotGeometry.Spread"/>), each
+    /// joined to its line's end by a fine stroke.
+    ///
+    /// The room they take on the right only grows while the plot is on screen — the widest label it has had to hold —
+    /// so the lines do not shift left and right as the readings change width.
+    /// </summary>
+    public bool ShowEndLabels
+    {
+        get => (bool)GetValue(ShowEndLabelsProperty);
+        set => SetValue(ShowEndLabelsProperty, value);
+    }
+
+    public static readonly DependencyProperty ShowPeakProperty = Register(nameof(ShowPeak), false);
+
+    /// <summary>
+    /// The first line's highest reading in the window (<see cref="PlotGeometry.Peak"/>): a ring on it and its value
+    /// in the quiet colour — above it, beside it where there is no room above, on its left at the right edge. Where the
+    /// peak is the newest reading and the ends are shown, the end's dot is ring enough, and only the value is written.
+    /// </summary>
+    public bool ShowPeak
+    {
+        get => (bool)GetValue(ShowPeakProperty);
+        set => SetValue(ShowPeakProperty, value);
+    }
+
+    public static readonly DependencyProperty ShowScaleLabelsProperty = Register(nameof(ShowScaleLabels), false);
+
+    /// <summary>The top and the bottom of the scale, in the box's left corners, in the quiet colour and over a halo —
+    /// written as the first line writes its readings, but nought always as a bare 0. They follow the scale as it
+    /// travels.</summary>
+    public bool ShowScaleLabels
+    {
+        get => (bool)GetValue(ShowScaleLabelsProperty);
+        set => SetValue(ShowScaleLabelsProperty, value);
+    }
+
     /// <summary>The guides' dashes: three on, three off, in strokes of one pixel — fine enough never to be read as a
     /// series.</summary>
     private static readonly DashStyle GuideDashes = Frozen(new DashStyle([3, 3], 0));
@@ -169,6 +220,9 @@ public class LinePlot : FrameworkElement
         // A slide off screen would go on asking for frames nobody sees.
         Rest();
         _lastReading = 0;
+
+        // The labels' room is the widest they have needed on screen; back on screen, it is measured afresh.
+        _labelRoom = 0;
     }
 
     /// <summary>The lines replaced: listened to in their place, and — only when their readings differ — a new scale,
@@ -388,7 +442,14 @@ public class LinePlot : FrameworkElement
         var reach = showEnd
             ? Math.Max(inset, EndRadius(look) * (1 + PulseGrowth) + Math.Max(1, look.Thickness) / 2)
             : inset;
-        var box = new Rect(inset, reach, Math.Max(0, width - inset - reach), Math.Max(0, height - 2 * reach));
+
+        // The newest readings, written, and the room they take on the right — never less than the widest so far.
+        var text = Text;
+        var labels = text is not null && ShowEndLabels ? EndLabels(lines, window, text) : null;
+        if (labels is not null) _labelRoom = Math.Max(_labelRoom, LabelGap + labels.Max(label => label?.Width ?? 0));
+        var right = reach + (labels is not null ? _labelRoom : 0);
+
+        var box = new Rect(inset, reach, Math.Max(0, width - inset - right), Math.Max(0, height - 2 * reach));
 
         if (Guides is { Count: > 0 } guides && GuideBrush is { } guideBrush)
         {
@@ -417,11 +478,159 @@ public class LinePlot : FrameworkElement
             areaOpacity *= NextArea;
         }
 
-        if (!showEnd) return;
+        if (showEnd)
+            for (var i = 0; i < lines.Count; i++)
+                if (lines[i].Stroke is { } stroke)
+                    DrawEnd(drawing, new ReadOnlySpan<Point>(_points[i], 0, placed[i]), stroke, look);
 
+        if (text is null) return;
+
+        if (labels is not null) DrawEndLabels(drawing, lines, labels, placed, look, showEnd, height);
+        if (ShowPeak) DrawPeak(drawing, lines[0], window, placed[0], text, look, showEnd, width, height);
+        if (ShowScaleLabels) DrawScale(drawing, lines[0], text, box, min, max);
+    }
+
+    // ── Writing ──────────────────────────────────────────────────────────
+
+    /// <summary>Between a line's end and its label.</summary>
+    private const double LabelGap = 4;
+
+    /// <summary>The widest the end labels have needed while on screen, which is the room they keep.</summary>
+    private double _labelRoom;
+
+    private FormattedText Write(string words, Brush brush, TextLook text) =>
+        new(words, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, text.Face, text.Size, brush,
+            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+    /// <summary>The newest reading of a window that is a number, or NaN.</summary>
+    private static double Latest(IReadOnlyList<double> values, int window)
+    {
+        var (first, shown) = PlotGeometry.Visible(values.Count, window);
+        for (var i = first + shown - 1; i >= first; i--)
+            if (double.IsFinite(values[i]))
+                return values[i];
+
+        return double.NaN;
+    }
+
+    /// <summary>The newest placed point of a line — its end — if it has one.</summary>
+    private static int LastPlaced(Point[] points, int placed)
+    {
+        for (var i = placed - 1; i >= 0; i--)
+            if (PlotGeometry.IsPlaced(points[i]))
+                return i;
+
+        return -1;
+    }
+
+    /// <summary>Each line's newest reading, written in its colour — none for a line with no way to write it, no colour
+    /// or no reading.</summary>
+    private FormattedText?[] EndLabels(IReadOnlyList<PlotLine> lines, int window, TextLook text)
+    {
+        var labels = new FormattedText?[lines.Count];
         for (var i = 0; i < lines.Count; i++)
-            if (lines[i].Stroke is { } stroke)
-                DrawEnd(drawing, new ReadOnlySpan<Point>(_points[i], 0, placed[i]), stroke, look);
+        {
+            var line = lines[i];
+            if (line.Format is not { } format || line.Stroke is not { } stroke) continue;
+
+            var value = Latest(line.Values, window);
+            if (double.IsFinite(value)) labels[i] = Write(format(value), stroke, text);
+        }
+
+        return labels;
+    }
+
+    private void DrawEndLabels(DrawingContext drawing, IReadOnlyList<PlotLine> lines, FormattedText?[] labels,
+        int[] placed, LineLook look, bool showEnd, double height)
+    {
+        var ends = new List<(int Line, Point End)>();
+        for (var i = 0; i < lines.Count; i++)
+            if (labels[i] is not null && LastPlaced(_points[i], placed[i]) is var at and >= 0)
+                ends.Add((i, _points[i][at]));
+
+        if (ends.Count == 0) return;
+
+        var tall = ends.Max(end => labels[end.Line]!.Height);
+        var centres = PlotGeometry.Spread(ends.Select(end => end.End.Y).ToArray(), tall, 0, height);
+        var dot = showEnd ? EndRadius(look) : look.Thickness / 2;
+
+        for (var k = 0; k < ends.Count; k++)
+        {
+            var (i, end) = ends[k];
+            var label = labels[i]!;
+            var x = end.X + dot + LabelGap;
+            var y = centres[k];
+
+            // A label set apart from its line is joined to the line's end, so it is never read as another line's.
+            if (Math.Abs(y - end.Y) > 0.5)
+            {
+                drawing.PushOpacity(0.6);
+                drawing.DrawLine(_inks.Pen(lines[i].Stroke!, 1), new Point(end.X + dot, end.Y), new Point(x - 1, y));
+                drawing.Pop();
+            }
+
+            drawing.DrawText(label, new Point(x, y - label.Height / 2));
+        }
+    }
+
+    private void DrawPeak(DrawingContext drawing, PlotLine line, int window, int placed, TextLook text, LineLook look,
+        bool showEnd, double width, double height)
+    {
+        var index = PlotGeometry.Peak(line.Values, window);
+        if (index < 0 || index >= placed || !PlotGeometry.IsPlaced(_points[0][index])) return;
+
+        var point = _points[0][index];
+        var atEnd = showEnd && index == LastPlaced(_points[0], placed);
+        var radius = atEnd ? EndRadius(look) : Math.Max(2.5, look.Thickness * 1.5);
+
+        if (!atEnd) drawing.DrawEllipse(null, _inks.Pen(text.Quiet, 1), point, radius, radius);
+        if (line.Format is not { } format) return;
+
+        var (first, _) = PlotGeometry.Visible(line.Values.Count, window);
+        var label = Write(format(line.Values[first + index]), text.Quiet, text);
+        var gap = radius + 2;
+
+        // Above it; with no room above, beside it on the right; at the right edge, on its left.
+        Point origin;
+        var above = point.Y - gap - label.Height;
+        if (above >= 0)
+        {
+            origin = new Point(Math.Clamp(point.X - label.Width / 2, 0, Math.Max(0, width - label.Width)), above);
+        }
+        else
+        {
+            var beside = point.X + gap;
+            var x = beside + label.Width <= width ? beside : point.X - gap - label.Width;
+            origin = new Point(Math.Max(0, x),
+                Math.Clamp(point.Y - label.Height / 2, 0, Math.Max(0, height - label.Height)));
+        }
+
+        Halo(drawing, label, origin, text);
+        drawing.DrawText(label, origin);
+    }
+
+    private void DrawScale(DrawingContext drawing, PlotLine line, TextLook text, Rect box, double min, double max)
+    {
+        string Words(double value) =>
+            value == 0 ? "0" : line.Format?.Invoke(value) ?? value.ToString("0.#", CultureInfo.CurrentCulture);
+
+        var top = Write(Words(max), text.Quiet, text);
+        var bottom = Write(Words(min), text.Quiet, text);
+        var topAt = new Point(box.Left + 2, box.Top);
+        var bottomAt = new Point(box.Left + 2, box.Bottom - bottom.Height);
+
+        Halo(drawing, top, topAt, text);
+        drawing.DrawText(top, topAt);
+        Halo(drawing, bottom, bottomAt, text);
+        drawing.DrawText(bottom, bottomAt);
+    }
+
+    /// <summary>The halo round a label written over the lines: its outline, stroked thick in the panel's colour.
+    /// </summary>
+    private void Halo(DrawingContext drawing, FormattedText label, Point origin, TextLook text)
+    {
+        if (text.Halo is not { } halo) return;
+        drawing.DrawGeometry(null, _inks.Pen(halo, 3, PenLineCap.Round, PenLineJoin.Round), label.BuildGeometry(origin));
     }
 
     /// <summary>

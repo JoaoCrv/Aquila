@@ -135,6 +135,81 @@ public static class PlotGeometry
         return count;
     }
 
+    /// <summary>
+    /// Where the highest reading of a window falls: its index among the readings shown (<see cref="Visible"/>), the
+    /// first of them when several share the top, or -1 when nothing shown is a number.
+    /// </summary>
+    public static int Peak(IReadOnlyList<double> values, int window)
+    {
+        var (first, shown) = Visible(values.Count, window);
+        var (best, at) = (double.NegativeInfinity, -1);
+
+        for (var i = 0; i < shown; i++)
+        {
+            var value = values[first + i];
+            if (double.IsFinite(value) && value > best) (best, at) = (value, i);
+        }
+
+        return at;
+    }
+
+    /// <summary>
+    /// Labels set apart along one axis: each wants to sit centred at <paramref name="wanted"/>, is
+    /// <paramref name="height"/> tall, and must stay between <paramref name="top"/> and <paramref name="bottom"/>.
+    /// Returns where each one goes, in the order given.
+    ///
+    /// Labels that do not touch stay exactly where they want to be. Those that do are moved apart by the least that
+    /// sets them a label's height apart: a run of touching labels becomes one block, centred on the average of where
+    /// its labels wanted to be — the arrangement that moves them least in all — and pushed back inside the edges. Their
+    /// order never changes. With more labels than there is room for, they run past the bottom rather than overlap.
+    /// </summary>
+    public static double[] Spread(IReadOnlyList<double> wanted, double height, double top, double bottom)
+    {
+        var count = wanted.Count;
+        var placed = new double[count];
+        if (count == 0) return placed;
+
+        var order = Enumerable.Range(0, count).OrderBy(i => wanted[i]).ThenBy(i => i).ToArray();
+
+        // Each block: how many labels, and the sum of where each wants its block's first label to be — its own wish less
+        // the heights of the labels above it in the block — whose average is the least-moving place for the block.
+        var blocks = new List<(int Count, double Sum)>();
+        foreach (var index in order)
+        {
+            blocks.Add((1, wanted[index]));
+
+            while (blocks.Count > 1)
+            {
+                var (above, below) = (blocks[^2], blocks[^1]);
+                if (Start(above, height, top, bottom) + above.Count * height
+                    <= Start(below, height, top, bottom) + Tolerance) break;
+
+                blocks.RemoveAt(blocks.Count - 1);
+                blocks[^1] = (above.Count + below.Count, above.Sum + below.Sum - below.Count * above.Count * height);
+            }
+        }
+
+        var at = 0;
+        foreach (var block in blocks)
+        {
+            var start = Start(block, height, top, bottom);
+            for (var j = 0; j < block.Count; j++) placed[order[at++]] = start + j * height;
+        }
+
+        return placed;
+    }
+
+    private const double Tolerance = 1e-9;
+
+    /// <summary>A block's first centre: the average of its wishes, held so the whole block lies inside the edges —
+    /// the top winning when it cannot.</summary>
+    private static double Start((int Count, double Sum) block, double height, double top, double bottom)
+    {
+        var lowest = top + height / 2;
+        var highest = bottom - height / 2 - (block.Count - 1) * height;
+        return Math.Max(lowest, Math.Min(block.Sum / block.Count, highest));
+    }
+
     /// <summary>Whether a point was placed — a reading, not a gap.</summary>
     public static bool IsPlaced(Point point) => double.IsFinite(point.X) && double.IsFinite(point.Y);
 
