@@ -7,7 +7,7 @@
              mc:Ignorable="d"
              d:DesignWidth="160">
     <!-- Horizontal bar for one sensor, drawn by BarFill; the code-behind maps the SensorNode onto a share of the
-         scale and applies the accent colour and the look (sibling of RadialGauge / MiniSparkline — all take a live
+         scale and applies the accent colour and the look (sibling of RadialGauge / ChartTile — all take a live
          SensorNode). -->
     <primitives:BarFill x:Name="Bar"/>
 </UserControl>

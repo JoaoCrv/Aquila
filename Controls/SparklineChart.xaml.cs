@@ -4,21 +4,21 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Aquila.Controls.Primitives;
 using Aquila.Models;
-using Aquila.Services;
 
 namespace Aquila.Controls;
 
 /// <summary>
-/// A sparkline with the area under it: one series, or two on one scale (a download and its upload). The trend in the
-/// dashboard's cards, the storage page and the Sparkline and Chart widgets.
+/// A sparkline with the area under it: one series, or two on one scale (a download and its upload) — the trend in the
+/// dashboard's cards and the storage page. The Chart widget is <see cref="ChartTile"/>; this piece is the cards' alone,
+/// and takes its look from the same translation (<see cref="PlotDress"/>).
 ///
-/// Drawn by <see cref="LinePlot"/>. This piece only says, in the terms its callers and presets already use — a fill, a
-/// scale, a window — what the plot should draw; it draws nothing itself and keeps nothing of its own. It was a
-/// LiveCharts chart until docs/graficos-proprios, and its properties are the ones that chart had, so no card, preset or
-/// editor changed when it stopped being one.
+/// Drawn by <see cref="LinePlot"/>. This piece only says, in the terms the cards already use — the readings, their
+/// colours, the top of the scale — what the plot should draw; it draws nothing itself and keeps nothing of its own. It
+/// was a LiveCharts chart until docs/graficos-proprios. Its style properties went when the widgets stopped wearing it
+/// (docs/widget-grafico): no card ever set one, so the look is the one the cards always had.
 ///
-/// Every property is applied in place, the series and the window included: nothing is rebuilt, so a line never
-/// restarts from empty because a colour or a slider changed.
+/// Every property is applied in place, the series included: nothing is rebuilt, so a line never restarts from empty
+/// because a colour changed.
 /// </summary>
 /// <example>
 /// <code>
@@ -28,27 +28,24 @@ namespace Aquila.Controls;
 ///     MaxY="100"/&gt;
 /// </code>
 /// </example>
-public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILimitStyle, IChartParts, IReadingRamp
+public partial class SparklineChart : UserControl
 {
     /// <summary>The colour a series without one is drawn in — the chart's default, kept from when it drew its own.
     /// </summary>
     private static readonly Brush Unpainted = Frozen(Color.FromRgb(0x60, 0xCD, 0xFF));
+
+    /// <summary>The cards' look: a 1.5 px line over an area fading from 30%, half smoothed, no dots.</summary>
+    private static readonly LineLook Look = PlotDress.Look(1.5, ChartFill.Gradient, 0.30, 0.5, 0);
+
+    /// <summary>How many readings fit across — the last of them are drawn: a sensor's whole default history.</summary>
+    private const int Window = 60;
 
     // ── Dependency properties ──────────────────────────────────────
 
     public static readonly DependencyProperty ValuesProperty = Register<IReadOnlyCollection<double>?>(nameof(Values), null);
     public static readonly DependencyProperty SeriesColorProperty = Register<Brush?>(nameof(SeriesColor), null);
     public static readonly DependencyProperty MaxYProperty = Register(nameof(MaxY), double.NaN);
-    public static readonly DependencyProperty PointCountProperty = Register(nameof(PointCount), 60);
     public static readonly DependencyProperty SecondValuesProperty = Register<IReadOnlyCollection<double>?>(nameof(SecondValues), null);
-    public static readonly DependencyProperty LineThicknessProperty = Register(nameof(LineThickness), 1.5);
-    public static readonly DependencyProperty FillProperty = Register(nameof(Fill), ChartFill.Gradient);
-    public static readonly DependencyProperty FillOpacityProperty = Register(nameof(FillOpacity), 0.30);
-    public static readonly DependencyProperty SmoothnessProperty = Register(nameof(Smoothness), 0.5);
-    public static readonly DependencyProperty ScaleProperty = Register(nameof(Scale), ChartScale.FromZero);
-    public static readonly DependencyProperty ScaleMinProperty = Register(nameof(ScaleMin), 0d);
-    public static readonly DependencyProperty ScaleMaxProperty = Register(nameof(ScaleMax), 100d);
-    public static readonly DependencyProperty PointSizeProperty = Register(nameof(PointSize), 0d);
     public static readonly DependencyProperty SecondColorProperty = Register<Brush?>(nameof(SecondColor), null);
 
     private static DependencyProperty Register<T>(string name, T fallback) =>
@@ -64,7 +61,7 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         set => SetValue(ValuesProperty, value);
     }
 
-    /// <summary>The series' colour: its line, its area and its dots.</summary>
+    /// <summary>The series' colour: its line and its area.</summary>
     public Brush? SeriesColor
     {
         get => (Brush?)GetValue(SeriesColorProperty);
@@ -78,74 +75,11 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         set => SetValue(MaxYProperty, value);
     }
 
-    /// <summary>How many readings fit across — the last of them are drawn (default 60).</summary>
-    public int PointCount
-    {
-        get => (int)GetValue(PointCountProperty);
-        set => SetValue(PointCountProperty, value);
-    }
-
     /// <summary>An optional second series, on the same scale.</summary>
     public IReadOnlyCollection<double>? SecondValues
     {
         get => (IReadOnlyCollection<double>?)GetValue(SecondValuesProperty);
         set => SetValue(SecondValuesProperty, value);
-    }
-
-    /// <summary>Line width in DIPs.</summary>
-    public double LineThickness
-    {
-        get => (double)GetValue(LineThicknessProperty);
-        set => SetValue(LineThicknessProperty, value);
-    }
-
-    /// <summary>How the area under the line is filled.</summary>
-    public ChartFill Fill
-    {
-        get => (ChartFill)GetValue(FillProperty);
-        set => SetValue(FillProperty, value);
-    }
-
-    /// <summary>How opaque the area under the line starts, at the line itself.</summary>
-    public double FillOpacity
-    {
-        get => (double)GetValue(FillOpacityProperty);
-        set => SetValue(FillOpacityProperty, value);
-    }
-
-    /// <summary>0 = straight segments between readings, 1 = the full curve, which never passes a reading.</summary>
-    public double Smoothness
-    {
-        get => (double)GetValue(SmoothnessProperty);
-        set => SetValue(SmoothnessProperty, value);
-    }
-
-    /// <summary>How the vertical scale is decided.</summary>
-    public ChartScale Scale
-    {
-        get => (ChartScale)GetValue(ScaleProperty);
-        set => SetValue(ScaleProperty, value);
-    }
-
-    /// <summary>Bottom of the scale in <see cref="ChartScale.Manual"/>.</summary>
-    public double ScaleMin
-    {
-        get => (double)GetValue(ScaleMinProperty);
-        set => SetValue(ScaleMinProperty, value);
-    }
-
-    /// <summary>Top of the scale in <see cref="ChartScale.Manual"/>.</summary>
-    public double ScaleMax
-    {
-        get => (double)GetValue(ScaleMaxProperty);
-        set => SetValue(ScaleMaxProperty, value);
-    }
-
-    /// <summary>Diameter of the dot at each reading; 0 hides them.</summary>
-    public double PointSize
-    {
-        get => (double)GetValue(PointSizeProperty);
-        set => SetValue(PointSizeProperty, value);
     }
 
     /// <summary>The second series' colour.</summary>
@@ -158,142 +92,25 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
     public SparklineChart()
     {
         InitializeComponent();
-        Loaded += (_, _) => Hook();
-        Unloaded += (_, _) => Unhook();
+        (Plot.Window, Plot.Look) = (Window, Look);
         Translate();
     }
 
-    /// <summary>A dot on the newest reading, in its state's colour, that pulses as each reading arrives.</summary>
-    public bool ShowEnd
-    {
-        get => Plot.ShowEnd;
-        set => Plot.ShowEnd = value;
-    }
-
-    private bool _colourByReading;
-
-    /// <summary>The first series coloured by its reading along the way: each stretch between the limits in the ramp's
-    /// colour for it. Needs limits and the ramp, and draws in one colour while either is missing.</summary>
-    public bool ColourByReading
-    {
-        get => _colourByReading;
-        set { _colourByReading = value; Guide(); }
-    }
-
-    /// <summary>The ramp of the first reading, Normal to Critical, as the bands are painted.</summary>
-    private Color[]? _ramp;
-
-    public void UseRamp(Ramp ramp)
-    {
-        Color[] colours = [Colour(ramp.Normal), Colour(ramp.Elevated), Colour(ramp.Alert), Colour(ramp.Critical)];
-        if (_ramp is not null && _ramp.SequenceEqual(colours)) return;
-
-        _ramp = colours;
-        Guide();
-    }
-
-    private static Color Colour(string hex) =>
-        Helpers.HexBrush.From(hex, 1) is SolidColorBrush solid ? solid.Color : Colors.Transparent;
-
-    // ── Limits ─────────────────────────────────────────────────────
-
-    private bool _showLimits;
-    private SensorNode? _limitsOf;
-    private Brush? _limitBrush;
-    private VitalMonitor? _monitor;
-
-    /// <summary>Fine dashed lines where the reading turns elevated and alert, where the scale reaches them.</summary>
-    public bool ShowLimits
-    {
-        get => _showLimits;
-        set { _showLimits = value; Guide(); }
-    }
-
-    /// <summary>The reading whose limits are drawn — the first the chart draws. Told by whoever builds the chart, since
-    /// the chart itself holds only the series.</summary>
-    public SensorNode? LimitsOf
-    {
-        get => _limitsOf;
-        set { _limitsOf = value; Guide(); }
-    }
-
-    public Brush? LimitBrush
-    {
-        get => _limitBrush;
-        set { _limitBrush = value; Guide(); }
-    }
-
-    /// <summary>Listens for the limits changing — in Settings, say — while the chart is on screen, and only then.
-    /// </summary>
-    private void Hook()
-    {
-        Unhook();
-        _monitor = VitalMonitor.Current;
-        if (_monitor is not null) _monitor.Changed += Guide;
-        Guide();
-    }
-
-    private void Unhook()
-    {
-        if (_monitor is not null) _monitor.Changed -= Guide;
-        _monitor = null;
-    }
-
-    /// <summary>What the limits draw: the lines across the chart, and the bands the line is coloured in — both from the
-    /// limits in force, so both follow a change of them.</summary>
-    private void Guide()
-    {
-        if (Plot is null) return;
-
-        var guides = _showLimits ? LimitMarks.Of(_limitsOf) : null;
-        if (!LimitMarks.Same(Plot.Guides, guides)) Plot.Guides = guides;
-        Plot.GuideBrush = _limitBrush ?? LimitMarks.Unpainted;
-
-        IReadOnlyList<(double From, Color Color)>? bands =
-            _colourByReading && _ramp is { } ramp && _limitsOf is not null
-            && VitalMonitor.Current?.LimitsOf(_limitsOf) is { } limits
-                ? [(double.NegativeInfinity, ramp[0]), (limits.Elevated, ramp[1]), (limits.Alert, ramp[2]),
-                    (limits.Critical, ramp[3])]
-                : null;
-
-        var same = Plot.Bands is null ? bands is null : bands is not null && Plot.Bands.SequenceEqual(bands);
-        if (!same) Plot.Bands = bands;
-    }
-
     /// <summary>
-    /// Says it all to the plot again, in the plot's terms. Every property lands here, because each is a plain
-    /// assignment: the plot draws again for what changed and never rebuilds anything.
-    ///
-    /// The scale: fitted at both ends; manual between its two numbers, but only while the top is above the bottom —
-    /// the editor lets the two be typed in any order, and passing through the moment they cross must not collapse the
-    /// chart — and otherwise from nought, up to <see cref="MaxY"/> or fitted when there is none.
+    /// Says the lines and the scale to the plot again. Every property lands here, because each is a plain assignment:
+    /// the plot draws again for what changed and never rebuilds anything — new lines of the same readings are the same
+    /// lines repainted.
     /// </summary>
     private void Translate()
     {
         if (Plot is null) return;
 
-        Plot.Values = ListOf(Values);
-        Plot.SecondValues = ListOf(SecondValues);
-        Plot.Window = PointCount;
-        Plot.Stroke = SeriesColor ?? Unpainted;
-        Plot.SecondStroke = SecondColor ?? Unpainted;
+        var lines = new List<PlotLine>(2);
+        if (ListOf(Values) is { } first) lines.Add(new PlotLine(first, SeriesColor ?? Unpainted));
+        if (ListOf(SecondValues) is { } second) lines.Add(new PlotLine(second, SecondColor ?? Unpainted));
+        if (Plot.Lines is not { } drawn || !drawn.SequenceEqual(lines)) Plot.Lines = lines;
 
-        (Plot.RangeMin, Plot.RangeMax) = Scale switch
-        {
-            ChartScale.FitToData => (double.NaN, double.NaN),
-            ChartScale.Manual when ScaleMax > ScaleMin => (ScaleMin, ScaleMax),
-            _ => (0d, MaxY),
-        };
-
-        var look = new LineLook(LineThickness, Fill switch
-        {
-            ChartFill.None => AreaFill.None,
-            ChartFill.Flat => AreaFill.Flat,
-            _ => AreaFill.Fade,
-        }, FillOpacity, Smoothness, PointSize);
-
-        // Equal looks are left alone, so a restyle that changed nothing here draws nothing.
-        if (!Equals(Plot.Look, look)) Plot.Look = look;
+        (Plot.RangeMin, Plot.RangeMax) = (0d, MaxY);
     }
 
     /// <summary>The series as the plot reads it. Every caller hands over a sensor's history, which is a list already

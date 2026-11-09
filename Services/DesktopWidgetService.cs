@@ -112,7 +112,7 @@ public sealed class DesktopWidgetService
         // in one flat colour teaches the wrong thing about what these are for.
         (DesktopWidgetKind.RadialGauge,   "CPU Load",  h => h.Cpus.Count > 0 ? h.Cpus[0].Load.Total : null,
             32, 150, 170, 190),
-        (DesktopWidgetKind.MiniSparkline, "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
+        (DesktopWidgetKind.Chart,         "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
             32, 360, 240, 100),
         (DesktopWidgetKind.SensorMeter,   "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
             32, 480, 240,  80),
@@ -259,14 +259,18 @@ public sealed class DesktopWidgetService
             var identifier = lookup(hardware)?.Identifier;
             if (string.IsNullOrEmpty(identifier)) continue;
 
-            seeded.Add(new DesktopWidgetDefinition
+            var widget = new DesktopWidgetDefinition
             {
                 Kind = kind,
                 Title = title,
                 Series = [new WidgetSeries { SensorIdentifier = identifier }],
                 Surface = screen,
                 X = x, Y = y, Width = width, Height = height,
-            });
+            };
+
+            // Made now, as Add widget makes one: the chart with its number in the title, its dot and its states.
+            WidgetCatalog.For(kind).MadeNow?.Invoke(widget);
+            seeded.Add(widget);
         }
 
         _layout.Save(seeded);
@@ -1503,7 +1507,15 @@ public sealed class DesktopWidgetService
         {
             chartParts.ShowEnd = definition.ShowEnd;
             chartParts.ColourByReading = definition.ColourByReading;
+            chartParts.ShowPeak = definition.ShowPeak;
+            chartParts.ShowScaleLabels = definition.ShowScaleLabels;
+            chartParts.ReadingsAt = definition.ReadingsAt;
         }
+
+        // What the widget calls each reading, where the piece writes names — a chart's legend. Words on the screen, as
+        // a caption's are, so here and not with the colours.
+        if (piece is IReadingNames named)
+            named.NameReadings([.. definition.Series.Select(series => (series.SensorIdentifier, series.Label))]);
     }
 
     /// <summary>
@@ -1623,8 +1635,21 @@ public sealed class DesktopWidgetService
         {
             number.UnitSize = preset.Number.UnitSize * scale;
             number.UnitOpacity = preset.Number.UnitOpacity;
-            number.NoteBrush = HexBrush.From(preset.Title.Color, preset.Title.Opacity);
-            number.NoteSize = preset.Title.Size * scale;
+        }
+
+        if (piece is INoteStyle note)
+        {
+            note.NoteBrush = HexBrush.From(preset.Title.Color, preset.Title.Opacity);
+            note.NoteSize = preset.Title.Size * scale;
+        }
+
+        // What a chart writes over its lines keeps a halo of the panel's own colour, so a line seems to pass behind
+        // a number; and a legend names its readings in the title's face.
+        if (piece is IPlotTextStyle plotText)
+        {
+            plotText.HaloBrush = HexBrush.From(preset.Background.Color, preset.Background.Opacity);
+            plotText.TitleFont = preset.Title.FontFamily;
+            plotText.TitleWeight = preset.Title.Weight;
         }
 
         // A chart's limit lines and a bar's limit marks: the title's colour at half its strength, as the Number's marks
@@ -1792,9 +1817,10 @@ public sealed class DesktopWidgetService
         {
             // The piece is still handed over for its lifetime — the subscriptions below tear down on
             // its Unloaded — while WHERE the colour lands now comes from the kind.
-            // A chart coloured by its reading needs its first reading's whole ramp, not only the colour of the moment.
+            // A chart coloured by its readings needs each reading's whole ramp, not only the colour of the moment.
+            var at = i;
             var repaint = Paint(piece, kind.Accent.For(piece, i), resolved[i], ramps[i],
-                MetricKey.Parse(chosen[i].Metric), i == 0 && piece is IReadingRamp ramped ? ramped.UseRamp : null);
+                MetricKey.Parse(chosen[i].Metric), piece is IReadingRamp ramped ? ramp => ramped.UseRamp(at, ramp) : null);
 
             // The SERIES is captured — not the ramp, and not its name either.
             //

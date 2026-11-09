@@ -16,6 +16,18 @@
       "elevated": "#F5A623",
       "alert": "#FF6B35",
       "critical": "#FF4444"
+    },
+    "tertiary": {
+      "normal": "#6BCB77",
+      "elevated": "#F5A623",
+      "alert": "#FF6B35",
+      "critical": "#FF4444"
+    },
+    "quaternary": {
+      "normal": "#6BCB77",
+      "elevated": "#F5A623",
+      "alert": "#FF6B35",
+      "critical": "#FF4444"
     }
   },
   "background": {

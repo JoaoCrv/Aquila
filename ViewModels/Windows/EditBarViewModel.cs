@@ -163,7 +163,7 @@ public sealed partial class EditBarViewModel(DesktopWidgetService widgets, Setti
     /// Asked of the catalogue, so a kind added there that reads nothing arrives here too; a plate last, as it is
     /// the one made to go behind the others.</summary>
     public IReadOnlyList<WidgetKindInfo> Unread { get; } =
-        [.. WidgetCatalog.All.Where(kind => !kind.NeedsReading).OrderBy(kind => kind.SitsBehind)];
+        [.. WidgetCatalog.Listed.Where(kind => !kind.NeedsReading).OrderBy(kind => kind.SitsBehind)];
 
     /// <summary>What a widget can be made from: every sensor, then the lists.</summary>
     public IReadOnlyList<SensorOption> Readings() => widgets.AddableReadings();

@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -6,8 +7,8 @@ using System.Windows.Media.Animation;
 namespace Aquila.Controls.Primitives;
 
 /// <summary>
-/// One or two series as lines over time, with the area under each and a dot at each reading when the look asks for
-/// them — what every chart in Aquila is drawn with.
+/// Up to four lines over time on one scale (<see cref="Lines"/>), with the area under each and a dot at each reading
+/// when the look asks for them — what every chart in Aquila is drawn with.
 ///
 /// Drawn by WPF itself, in OnRender, as <see cref="RingArc"/> and <see cref="BarFill"/> are: a line of sixty readings
 /// has no axes, no legend and no hit-testing, and a chart library carries all of that plus a render loop of its own.
@@ -20,35 +21,33 @@ namespace Aquila.Controls.Primitives;
 /// It always draws the LAST <see cref="Window"/> readings (<see cref="PlotGeometry.Visible"/>), from the left, at the
 /// whole window's spacing, so a series still shorter than its window grows across the box. A reading that is not a
 /// number breaks the line there. The line keeps half its stroke inside the box, and anything past the scale is cut at
-/// the box's edge.
+/// the box's edge. The lines are drawn in order, so a later one lies over an earlier one where they cross.
 ///
 /// Its points are never animated. The X axis is time, and easing a point into place would draw a reading as arriving
 /// between two reads, when nothing was read. What moves is everything else: the scale, which travels to new ends
-/// rather than jumping (<see cref="Retarget"/>), and the end's pulse (<see cref="ShowEnd"/>), both at the
+/// rather than jumping (<see cref="Retarget"/>), and the ends' pulse (<see cref="ShowEnd"/>), both at the
 /// <see cref="Pace"/> and only while they move.
 /// </summary>
 public class LinePlot : FrameworkElement
 {
-    /// <summary>How opaque the second series' area is next to the first's: lighter, so where they overlap the first
-    /// still reads as the first.</summary>
-    private const double SecondArea = 0.7;
+    /// <summary>How opaque each line's area is next to the one before: lighter, so where they overlap the first still
+    /// reads as the first — the second at 0.7 of the look's opacity, the third at 0.49, the fourth at 0.34.</summary>
+    private const double NextArea = 0.7;
 
-    public static readonly DependencyProperty ValuesProperty = RegisterSeries(nameof(Values));
+    public static readonly DependencyProperty LinesProperty =
+        DependencyProperty.Register(nameof(Lines), typeof(IReadOnlyList<PlotLine>), typeof(LinePlot),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender,
+                (plot, change) => ((LinePlot)plot).Replace(
+                    change.OldValue as IReadOnlyList<PlotLine>, change.NewValue as IReadOnlyList<PlotLine>)));
 
-    /// <summary>The first series, oldest first.</summary>
-    public IReadOnlyList<double>? Values
+    /// <summary>
+    /// The lines, first to last, on one scale. A new list of the same readings — a colour changed, a line repainted on
+    /// every reading — is the same lines in new clothes; a list whose readings differ is new lines, and a new scale.
+    /// </summary>
+    public IReadOnlyList<PlotLine>? Lines
     {
-        get => (IReadOnlyList<double>?)GetValue(ValuesProperty);
-        set => SetValue(ValuesProperty, value);
-    }
-
-    public static readonly DependencyProperty SecondValuesProperty = RegisterSeries(nameof(SecondValues));
-
-    /// <summary>A second series on the same scale, drawn over the first — a download beside its upload.</summary>
-    public IReadOnlyList<double>? SecondValues
-    {
-        get => (IReadOnlyList<double>?)GetValue(SecondValuesProperty);
-        set => SetValue(SecondValuesProperty, value);
+        get => (IReadOnlyList<PlotLine>?)GetValue(LinesProperty);
+        set => SetValue(LinesProperty, value);
     }
 
     public static readonly DependencyProperty WindowProperty = RegisterScale(nameof(Window), 60, travels: false);
@@ -78,24 +77,6 @@ public class LinePlot : FrameworkElement
         set => SetValue(RangeMaxProperty, value);
     }
 
-    public static readonly DependencyProperty StrokeProperty = Register<Brush?>(nameof(Stroke), null);
-
-    /// <summary>The first series' colour: its line, its area and its dots. Null draws nothing of it.</summary>
-    public Brush? Stroke
-    {
-        get => (Brush?)GetValue(StrokeProperty);
-        set => SetValue(StrokeProperty, value);
-    }
-
-    public static readonly DependencyProperty SecondStrokeProperty = Register<Brush?>(nameof(SecondStroke), null);
-
-    /// <summary>The second series' colour. Null draws nothing of it.</summary>
-    public Brush? SecondStroke
-    {
-        get => (Brush?)GetValue(SecondStrokeProperty);
-        set => SetValue(SecondStrokeProperty, value);
-    }
-
     public static readonly DependencyProperty LookProperty = Register(nameof(Look), LineLook.Default);
 
     /// <summary>The line's thickness, its area, its smoothness and its dots, as one value — changing preset is one
@@ -108,7 +89,7 @@ public class LinePlot : FrameworkElement
 
     public static readonly DependencyProperty GuidesProperty = Register<IReadOnlyList<double>?>(nameof(Guides), null);
 
-    /// <summary>Values on the scale to draw a fine dashed line across at — a reading's limits. Under the series, and
+    /// <summary>Values on the scale to draw a fine dashed line across at — a reading's limits. Under the lines, and
     /// only where the scale reaches them: a guide never stretches the scale to be seen.</summary>
     public IReadOnlyList<double>? Guides
     {
@@ -125,55 +106,54 @@ public class LinePlot : FrameworkElement
         set => SetValue(GuideBrushProperty, value);
     }
 
-    public static readonly DependencyProperty BandsProperty =
-        Register<IReadOnlyList<(double From, Color Color)>?>(nameof(Bands), null);
+    public static readonly DependencyProperty TextProperty = Register<TextLook?>(nameof(Text), null);
 
-    /// <summary>
-    /// A colour for each stretch of the scale, each from its value up to the next one's — the first from below
-    /// anything: the first series' line, area and dots are painted in the colour of the height they are drawn at,
-    /// which is the colour of the value. Null paints the series in <see cref="Stroke"/>, one colour throughout.
-    ///
-    /// One stroke, never a line broken into pieces: a vertical brush with a hard edge at each band, laid over the box
-    /// as it is drawn, so a segment crossing a limit changes colour exactly where it crosses. Made again only when the
-    /// scale or the bands change.
-    /// </summary>
-    public IReadOnlyList<(double From, Color Color)>? Bands
+    /// <summary>How the plot writes, when it writes anything — the face, the size, the quiet colour and the halo. Null
+    /// writes nothing, whatever is asked for.</summary>
+    public TextLook? Text
     {
-        get => (IReadOnlyList<(double From, Color Color)>?)GetValue(BandsProperty);
-        set => SetValue(BandsProperty, value);
+        get => (TextLook?)GetValue(TextProperty);
+        set => SetValue(TextProperty, value);
     }
 
-    private (IReadOnlyList<(double From, Color Color)> Bands, double Min, double Max, double Top, double Bottom) _banded;
-    private Brush? _bandBrush;
+    public static readonly DependencyProperty ShowEndLabelsProperty = Register(nameof(ShowEndLabels), false);
 
-    private Brush? BandBrush(Rect box, double min, double max)
+    /// <summary>
+    /// Each line's newest reading, written right of its end in its colour, as its <see cref="PlotLine.Format"/> writes
+    /// it. Labels that would touch are set apart by the least that clears them (<see cref="PlotGeometry.Spread"/>), each
+    /// joined to its line's end by a fine stroke.
+    ///
+    /// The room they take on the right only grows while the plot is on screen — the widest label it has had to hold —
+    /// so the lines do not shift left and right as the readings change width.
+    /// </summary>
+    public bool ShowEndLabels
     {
-        if (Bands is not { Count: > 0 } bands || !(max > min) || !(box.Height > 0)) return null;
+        get => (bool)GetValue(ShowEndLabelsProperty);
+        set => SetValue(ShowEndLabelsProperty, value);
+    }
 
-        var made = (bands, min, max, box.Top, box.Bottom);
-        if (_bandBrush is not null && made.Equals(_banded)) return _bandBrush;
+    public static readonly DependencyProperty ShowPeakProperty = Register(nameof(ShowPeak), false);
 
-        double Offset(double value) => Math.Clamp((value - min) / (max - min), 0, 1);
+    /// <summary>
+    /// The first line's highest reading in the window (<see cref="PlotGeometry.Peak"/>): a ring on it and its value
+    /// in the quiet colour — above it, beside it where there is no room above, on its left at the right edge. Where the
+    /// peak is the newest reading and the ends are shown, the end's dot is ring enough, and only the value is written.
+    /// </summary>
+    public bool ShowPeak
+    {
+        get => (bool)GetValue(ShowPeakProperty);
+        set => SetValue(ShowPeakProperty, value);
+    }
 
-        var colour = bands[0].Color;
-        var stops = new GradientStopCollection { new(colour, 0) };
-        for (var i = 1; i < bands.Count; i++)
-        {
-            var at = Offset(bands[i].From);
-            stops.Add(new GradientStop(colour, at));
-            colour = bands[i].Color;
-            stops.Add(new GradientStop(colour, at));
-        }
-        stops.Add(new GradientStop(colour, 1));
+    public static readonly DependencyProperty ShowScaleLabelsProperty = Register(nameof(ShowScaleLabels), false);
 
-        var brush = new LinearGradientBrush(stops, new Point(0, box.Bottom), new Point(0, box.Top))
-        {
-            MappingMode = BrushMappingMode.Absolute,
-        };
-        brush.Freeze();
-
-        _banded = made;
-        return _bandBrush = brush;
+    /// <summary>The top and the bottom of the scale, in the box's left corners, in the quiet colour and over a halo —
+    /// written as the first line writes its readings, but nought always as a bare 0. They follow the scale as it
+    /// travels.</summary>
+    public bool ShowScaleLabels
+    {
+        get => (bool)GetValue(ShowScaleLabelsProperty);
+        set => SetValue(ShowScaleLabelsProperty, value);
     }
 
     /// <summary>The guides' dashes: three on, three off, in strokes of one pixel — fine enough never to be read as a
@@ -189,18 +169,6 @@ public class LinePlot : FrameworkElement
     private static DependencyProperty Register<T>(string name, T fallback) =>
         DependencyProperty.Register(name, typeof(T), typeof(LinePlot),
             new FrameworkPropertyMetadata(fallback, FrameworkPropertyMetadataOptions.AffectsRender));
-
-    /// <summary>A series: drawn again when it is replaced, and listened to in its place while the plot is on screen.
-    /// A new series is a new scale, put in place at once — it is not the same readings moving.</summary>
-    private static DependencyProperty RegisterSeries(string name) =>
-        DependencyProperty.Register(name, typeof(IReadOnlyList<double>), typeof(LinePlot),
-            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender,
-                (plot, change) =>
-                {
-                    var line = (LinePlot)plot;
-                    line.Replace(change.OldValue, change.NewValue);
-                    line.Retarget(travel: false);
-                }));
 
     /// <summary>A property the scale is worked out from. A change of the scale's own ends travels, as the readings
     /// do; a change of the window jumps, since it is a different stretch of time and not the same one rescaled.
@@ -221,6 +189,11 @@ public class LinePlot : FrameworkElement
     /// </summary>
     public void Refresh() => InvalidateVisual();
 
+    /// <summary>The first line's readings: the line whose readings pace the slide and the pulse.</summary>
+    private IReadOnlyList<double>? Lead => Lines is { Count: > 0 } lines ? lines[0].Values : null;
+
+    private IEnumerable<IReadOnlyList<double>?> Readings => Lines?.Select(line => line.Values) ?? [];
+
     // ── Listening ────────────────────────────────────────────────────────
 
     /// <summary>Whether the plot is listening to its series — from Loaded to Unloaded, so a plot off screen holds on to
@@ -231,8 +204,7 @@ public class LinePlot : FrameworkElement
     {
         if (_hooked) return;
         _hooked = true;
-        Listen(Values, true);
-        Listen(SecondValues, true);
+        foreach (var series in Readings.Distinct()) Listen(series, true);
 
         // Whatever the readings did while it was off screen, it comes back on their scale, not travelling to it.
         Retarget(travel: false);
@@ -243,19 +215,32 @@ public class LinePlot : FrameworkElement
     {
         if (!_hooked) return;
         _hooked = false;
-        Listen(Values, false);
-        Listen(SecondValues, false);
+        foreach (var series in Readings.Distinct()) Listen(series, false);
 
         // A slide off screen would go on asking for frames nobody sees.
         Rest();
         _lastReading = 0;
+
+        // The labels' room is the widest they have needed on screen; back on screen, it is measured afresh.
+        _labelRoom = 0;
     }
 
-    private void Replace(object? before, object? after)
+    /// <summary>The lines replaced: listened to in their place, and — only when their readings differ — a new scale,
+    /// put in place at once, since it is not the same readings moving.</summary>
+    private void Replace(IReadOnlyList<PlotLine>? before, IReadOnlyList<PlotLine>? after)
     {
-        if (!_hooked) return;
-        Listen(before, false);
-        Listen(after, true);
+        var old = before?.Select(line => line.Values).ToArray() ?? [];
+        var now = after?.Select(line => line.Values).ToArray() ?? [];
+        var same = old.Length == now.Length && old.Zip(now).All(pair => ReferenceEquals(pair.First, pair.Second));
+        if (same) return;
+
+        if (_hooked)
+        {
+            foreach (var series in old.Distinct()) Listen(series, false);
+            foreach (var series in now.Distinct()) Listen(series, true);
+        }
+
+        Retarget(travel: false);
     }
 
     private void Listen(object? series, bool on)
@@ -267,15 +252,17 @@ public class LinePlot : FrameworkElement
 
     /// <summary>A reading arrived. The series raise their changes on the UI thread — the poll is a DispatcherTimer — and
     /// a reading that adds one and drops the oldest raises two, which WPF draws as one frame. A new reading on the first
-    /// series pulses its end, when the end is shown and anything moves.</summary>
+    /// line slides the lines and pulses their ends, when those are asked for and anything moves.</summary>
     private void OnSeriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         InvalidateVisual();
         Retarget(travel: true);
 
-        if (e.Action == NotifyCollectionChangedAction.Add && ReferenceEquals(sender, Values)) Slide();
+        if (e.Action != NotifyCollectionChangedAction.Add || !ReferenceEquals(sender, Lead)) return;
 
-        if (ShowEnd && e.Action == NotifyCollectionChangedAction.Add && ReferenceEquals(sender, Values) && Pace.Moves)
+        Slide();
+
+        if (ShowEnd && Pace.Moves)
         {
             var pulse = new DoubleAnimation(0, 1, Pace.Duration) { FillBehavior = FillBehavior.Stop };
             Timeline.SetDesiredFrameRate(pulse, Pace.FrameRate);
@@ -315,7 +302,7 @@ public class LinePlot : FrameworkElement
     /// </summary>
     private void Retarget(bool travel)
     {
-        var target = PlotGeometry.Range(Values, SecondValues, Window, RangeMin, RangeMax);
+        var target = PlotGeometry.Range(Readings, Window, RangeMin, RangeMax);
         if (_scaled && target == _to) return;
 
         var now = _scaled ? Shown() : target;
@@ -337,19 +324,19 @@ public class LinePlot : FrameworkElement
 
     // ── Sliding ──────────────────────────────────────────────────────────
 
-    /// <summary>How far the line has slid towards the next reading, 0 to 1 of a step.</summary>
+    /// <summary>How far the lines have slid towards the next reading, 0 to 1 of a step.</summary>
     private static readonly DependencyProperty SlideProperty = Register("Slide", 0d);
 
-    /// <summary>When the first series last took a reading, and the time between its last two — which is the poll's,
+    /// <summary>When the first line last took a reading, and the time between its last two — which is the poll's,
     /// measured rather than told.</summary>
     private long _lastReading;
     private TimeSpan _interval;
 
     /// <summary>
-    /// With the <see cref="Pace"/>'s slide on, a reading starts the line moving left one step over the time the last
-    /// one took to come, at the pace's frame rate, so the newest reading enters at the right edge and the line has
+    /// With the <see cref="Pace"/>'s slide on, a reading starts the lines moving left one step over the time the last
+    /// one took to come, at the pace's frame rate, so the newest reading enters at the right edge and the lines have
     /// moved on by a step when the next arrives — which puts every point back where the step would have. A late
-    /// reading leaves the line held a step short until it comes. Only a full window slides: a series still growing
+    /// reading leaves the lines held a step short until it comes. Only a full window slides: a series still growing
     /// across the box has nothing to give up at the left.
     ///
     /// The one movement that never stops, which is why it is asked for apart from the motion.
@@ -360,7 +347,7 @@ public class LinePlot : FrameworkElement
         if (_lastReading > 0) _interval = TimeSpan.FromMilliseconds(Math.Clamp(now - _lastReading, 100, 10_000));
         _lastReading = now;
 
-        if (Pace.Slide && _interval > TimeSpan.Zero && Values is { } values && values.Count >= Window)
+        if (Pace.Slide && _interval > TimeSpan.Zero && Lead is { } values && values.Count >= Window)
         {
             var slide = new DoubleAnimation(0, 1, _interval);
             Timeline.SetDesiredFrameRate(slide, Pace.FrameRate);
@@ -378,14 +365,14 @@ public class LinePlot : FrameworkElement
         SetValue(SlideProperty, 0d);
     }
 
-    // ── The end ──────────────────────────────────────────────────────────
+    // ── The ends ─────────────────────────────────────────────────────────
 
     public static readonly DependencyProperty ShowEndProperty = Register(nameof(ShowEnd), false);
 
     /// <summary>
-    /// A dot on the newest reading of the first series, in its colour — which is the colour of the reading's state, as
-    /// whoever wraps the plot paints it. While anything moves it pulses once as each reading arrives: a ring leaving
-    /// the dot and fading, over the <see cref="Pace"/>'s duration, and then nothing until the next.
+    /// A dot on the newest reading of each line, in its colour — which is the colour of the reading's state, as
+    /// whoever wraps the plot paints it. While anything moves they pulse together once as each reading arrives: a ring
+    /// leaving each dot and fading, over the <see cref="Pace"/>'s duration, and then nothing until the next.
     ///
     /// A pulse is drawn by the plot alone, at the frame rate of the pace, and only while it lasts.
     /// </summary>
@@ -395,10 +382,10 @@ public class LinePlot : FrameworkElement
         set => SetValue(ShowEndProperty, value);
     }
 
-    /// <summary>How far through its pulse the end is, 0 to 1; 1, its resting value, draws no pulse.</summary>
+    /// <summary>How far through its pulse the ends are, 0 to 1; 1, its resting value, draws no pulse.</summary>
     private static readonly DependencyProperty PulseProperty = Register("Pulse", 1d);
 
-    /// <summary>How large the end's dot is against the line: four strokes across, and never under six pixels.
+    /// <summary>How large an end's dot is against the line: four strokes across, and never under six pixels.
     /// </summary>
     private static double EndRadius(LineLook look) => Math.Max(3, look.Thickness * 2);
 
@@ -427,30 +414,42 @@ public class LinePlot : FrameworkElement
     // ── Drawing ──────────────────────────────────────────────────────────
 
     private readonly Inks _inks = new();
-    private Point[] _first = [];
-    private Point[] _second = [];
+
+    /// <summary>Each line's placed points, kept from frame to frame so drawing allocates nothing at rest.</summary>
+    private readonly List<Point[]> _points = [];
+
+    /// <summary>Each line's band brush and what it was made for — made again only when the bands or the scale change.
+    /// </summary>
+    private readonly List<((IReadOnlyList<(double From, Color Color)> Bands, double Min, double Max, double Top,
+        double Bottom) Made, Brush Brush)?> _bands = [];
 
     protected override void OnRender(DrawingContext drawing)
     {
         var (width, height) = (RenderSize.Width, RenderSize.Height);
         if (!(width > 0) || !(height > 0)) return;
 
-        var (values, second) = (Values, SecondValues);
-        if (values is null && second is null) return;
+        if (Lines is not { Count: > 0 } lines) return;
 
         var look = Look;
         var window = Window;
-        var (min, max) = _scaled ? Shown() : PlotGeometry.Range(values, second, window, RangeMin, RangeMax);
+        var (min, max) = _scaled ? Shown() : PlotGeometry.Range(Readings, window, RangeMin, RangeMax);
 
         // Inset by half the stroke or half a dot, whichever is more, so the line's round ends and the dots at the edges
         // are drawn inside the box rather than cut by it — and, on the three sides the newest reading can touch, by the
-        // end's dot and the reach of its pulse, when shown.
+        // ends' dots and the reach of their pulse, when shown.
         var showEnd = ShowEnd;
         var inset = Math.Max(0, Math.Max(look.Thickness, look.PointSize)) / 2;
         var reach = showEnd
             ? Math.Max(inset, EndRadius(look) * (1 + PulseGrowth) + Math.Max(1, look.Thickness) / 2)
             : inset;
-        var box = new Rect(inset, reach, Math.Max(0, width - inset - reach), Math.Max(0, height - 2 * reach));
+
+        // The newest readings, written, and the room they take on the right — never less than the widest so far.
+        var text = Text;
+        var labels = text is not null && ShowEndLabels ? EndLabels(lines, window, text) : null;
+        if (labels is not null) _labelRoom = Math.Max(_labelRoom, LabelGap + labels.Max(label => label?.Width ?? 0));
+        var right = reach + (labels is not null ? _labelRoom : 0);
+
+        var box = new Rect(inset, reach, Math.Max(0, width - inset - right), Math.Max(0, height - 2 * reach));
 
         if (Guides is { Count: > 0 } guides && GuideBrush is { } guideBrush)
         {
@@ -460,28 +459,225 @@ public class LinePlot : FrameworkElement
                 _inks.Pen(guideBrush, 1, PenLineCap.Flat, PenLineJoin.Miter, GuideDashes));
         }
 
-        // The series slide left by their share of a step; the scale, the guides and the bands stay where they are.
+        // The lines slide left by their share of a step; the scale, the guides and the bands stay where they are.
         var slid = box;
         var slide = (double)GetValue(SlideProperty);
         if (slide > 0) slid.X -= slide * box.Width / (Math.Max(PlotGeometry.LeastWindow, window) - 1);
 
-        var placed = Series(drawing, values, Stroke, BandBrush(box, min, max), look, look.AreaOpacity, window, slid, min,
-            max, height, ref _first);
-        Series(drawing, second, SecondStroke, null, look, look.AreaOpacity * SecondArea, window, slid, min, max, height,
-            ref _second);
+        while (_points.Count < lines.Count) _points.Add([]);
+        while (_bands.Count < lines.Count) _bands.Add(null);
 
-        if (showEnd && Stroke is { } stroke) DrawEnd(drawing, new ReadOnlySpan<Point>(_first, 0, placed), stroke, look);
+        var placed = new int[lines.Count];
+        var areaOpacity = look.AreaOpacity;
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var buffer = _points[i];
+            placed[i] = Series(drawing, lines[i], BandBrush(i, lines[i].Bands, box, min, max), look, areaOpacity,
+                window, slid, min, max, height, ref buffer);
+            _points[i] = buffer;
+            areaOpacity *= NextArea;
+        }
+
+        if (showEnd)
+            for (var i = 0; i < lines.Count; i++)
+                if (lines[i].Stroke is { } stroke)
+                    DrawEnd(drawing, new ReadOnlySpan<Point>(_points[i], 0, placed[i]), stroke, look);
+
+        if (text is null) return;
+
+        if (labels is not null) DrawEndLabels(drawing, lines, labels, placed, look, showEnd, height);
+        if (ShowPeak) DrawPeak(drawing, lines[0], window, placed[0], text, look, showEnd, width, height);
+        if (ShowScaleLabels) DrawScale(drawing, lines[0], text, box, min, max);
     }
 
-    /// <summary>One series: its area to the bottom of the plot, its line over that, its dots over both — in its colour,
+    // ── Writing ──────────────────────────────────────────────────────────
+
+    /// <summary>Between a line's end and its label.</summary>
+    private const double LabelGap = 4;
+
+    /// <summary>The widest the end labels have needed while on screen, which is the room they keep.</summary>
+    private double _labelRoom;
+
+    private FormattedText Write(string words, Brush brush, TextLook text) =>
+        new(words, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, text.Face, text.Size, brush,
+            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+    /// <summary>The newest reading of a window that is a number, or NaN.</summary>
+    private static double Latest(IReadOnlyList<double> values, int window)
+    {
+        var (first, shown) = PlotGeometry.Visible(values.Count, window);
+        for (var i = first + shown - 1; i >= first; i--)
+            if (double.IsFinite(values[i]))
+                return values[i];
+
+        return double.NaN;
+    }
+
+    /// <summary>The newest placed point of a line — its end — if it has one.</summary>
+    private static int LastPlaced(Point[] points, int placed)
+    {
+        for (var i = placed - 1; i >= 0; i--)
+            if (PlotGeometry.IsPlaced(points[i]))
+                return i;
+
+        return -1;
+    }
+
+    /// <summary>Each line's newest reading, written in its colour — none for a line with no way to write it, no colour
+    /// or no reading.</summary>
+    private FormattedText?[] EndLabels(IReadOnlyList<PlotLine> lines, int window, TextLook text)
+    {
+        var labels = new FormattedText?[lines.Count];
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            if (line.Format is not { } format || line.Stroke is not { } stroke) continue;
+
+            var value = Latest(line.Values, window);
+            if (double.IsFinite(value)) labels[i] = Write(format(value), stroke, text);
+        }
+
+        return labels;
+    }
+
+    private void DrawEndLabels(DrawingContext drawing, IReadOnlyList<PlotLine> lines, FormattedText?[] labels,
+        int[] placed, LineLook look, bool showEnd, double height)
+    {
+        var ends = new List<(int Line, Point End)>();
+        for (var i = 0; i < lines.Count; i++)
+            if (labels[i] is not null && LastPlaced(_points[i], placed[i]) is var at and >= 0)
+                ends.Add((i, _points[i][at]));
+
+        if (ends.Count == 0) return;
+
+        var tall = ends.Max(end => labels[end.Line]!.Height);
+        var centres = PlotGeometry.Spread(ends.Select(end => end.End.Y).ToArray(), tall, 0, height);
+        var dot = showEnd ? EndRadius(look) : look.Thickness / 2;
+
+        for (var k = 0; k < ends.Count; k++)
+        {
+            var (i, end) = ends[k];
+            var label = labels[i]!;
+            var x = end.X + dot + LabelGap;
+            var y = centres[k];
+
+            // A label set apart from its line is joined to the line's end, so it is never read as another line's.
+            if (Math.Abs(y - end.Y) > 0.5)
+            {
+                drawing.PushOpacity(0.6);
+                drawing.DrawLine(_inks.Pen(lines[i].Stroke!, 1), new Point(end.X + dot, end.Y), new Point(x - 1, y));
+                drawing.Pop();
+            }
+
+            drawing.DrawText(label, new Point(x, y - label.Height / 2));
+        }
+    }
+
+    private void DrawPeak(DrawingContext drawing, PlotLine line, int window, int placed, TextLook text, LineLook look,
+        bool showEnd, double width, double height)
+    {
+        var index = PlotGeometry.Peak(line.Values, window);
+        if (index < 0 || index >= placed || !PlotGeometry.IsPlaced(_points[0][index])) return;
+
+        var point = _points[0][index];
+        var atEnd = showEnd && index == LastPlaced(_points[0], placed);
+        var radius = atEnd ? EndRadius(look) : Math.Max(2.5, look.Thickness * 1.5);
+
+        if (!atEnd) drawing.DrawEllipse(null, _inks.Pen(text.Quiet, 1), point, radius, radius);
+        if (line.Format is not { } format) return;
+
+        var (first, _) = PlotGeometry.Visible(line.Values.Count, window);
+        var label = Write(format(line.Values[first + index]), text.Quiet, text);
+        var gap = radius + 2;
+
+        // Above it; with no room above, beside it on the right; at the right edge, on its left.
+        Point origin;
+        var above = point.Y - gap - label.Height;
+        if (above >= 0)
+        {
+            origin = new Point(Math.Clamp(point.X - label.Width / 2, 0, Math.Max(0, width - label.Width)), above);
+        }
+        else
+        {
+            var beside = point.X + gap;
+            var x = beside + label.Width <= width ? beside : point.X - gap - label.Width;
+            origin = new Point(Math.Max(0, x),
+                Math.Clamp(point.Y - label.Height / 2, 0, Math.Max(0, height - label.Height)));
+        }
+
+        Halo(drawing, label, origin, text);
+        drawing.DrawText(label, origin);
+    }
+
+    private void DrawScale(DrawingContext drawing, PlotLine line, TextLook text, Rect box, double min, double max)
+    {
+        string Words(double value) =>
+            value == 0 ? "0" : line.Format?.Invoke(value) ?? value.ToString("0.#", CultureInfo.CurrentCulture);
+
+        var top = Write(Words(max), text.Quiet, text);
+        var bottom = Write(Words(min), text.Quiet, text);
+        var topAt = new Point(box.Left + 2, box.Top);
+        var bottomAt = new Point(box.Left + 2, box.Bottom - bottom.Height);
+
+        Halo(drawing, top, topAt, text);
+        drawing.DrawText(top, topAt);
+        Halo(drawing, bottom, bottomAt, text);
+        drawing.DrawText(bottom, bottomAt);
+    }
+
+    /// <summary>The halo round a label written over the lines: its outline, stroked thick in the panel's colour.
+    /// </summary>
+    private void Halo(DrawingContext drawing, FormattedText label, Point origin, TextLook text)
+    {
+        if (text.Halo is not { } halo) return;
+        drawing.DrawGeometry(null, _inks.Pen(halo, 3, PenLineCap.Round, PenLineJoin.Round), label.BuildGeometry(origin));
+    }
+
+    /// <summary>
+    /// The brush that paints line <paramref name="index"/> in the colour of each height: a vertical brush with a hard
+    /// edge at each band, laid over the box, so a segment crossing a limit changes colour exactly where it crosses.
+    /// Null for a line with no bands.
+    /// </summary>
+    private Brush? BandBrush(int index, IReadOnlyList<(double From, Color Color)>? bands, Rect box, double min,
+        double max)
+    {
+        if (bands is not { Count: > 0 } || !(max > min) || !(box.Height > 0)) return null;
+
+        var made = (bands, min, max, box.Top, box.Bottom);
+        if (_bands[index] is { } kept && kept.Made.Equals(made)) return kept.Brush;
+
+        double Offset(double value) => Math.Clamp((value - min) / (max - min), 0, 1);
+
+        var colour = bands[0].Color;
+        var stops = new GradientStopCollection { new(colour, 0) };
+        for (var i = 1; i < bands.Count; i++)
+        {
+            var at = Offset(bands[i].From);
+            stops.Add(new GradientStop(colour, at));
+            colour = bands[i].Color;
+            stops.Add(new GradientStop(colour, at));
+        }
+        stops.Add(new GradientStop(colour, 1));
+
+        var brush = new LinearGradientBrush(stops, new Point(0, box.Bottom), new Point(0, box.Top))
+        {
+            MappingMode = BrushMappingMode.Absolute,
+        };
+        brush.Freeze();
+
+        _bands[index] = (made, brush);
+        return brush;
+    }
+
+    /// <summary>One line: its area to the bottom of the plot, its line over that, its dots over both — in its colour,
     /// or in the colour of each height when it is <paramref name="banded"/>. How many of its points were placed, in
     /// <paramref name="buffer"/>.</summary>
-    private int Series(DrawingContext drawing, IReadOnlyList<double>? values, Brush? stroke, Brush? banded,
-        LineLook look, double areaOpacity, int window, Rect box, double min, double max, double floor,
-        ref Point[] buffer)
+    private int Series(DrawingContext drawing, PlotLine line, Brush? banded, LineLook look, double areaOpacity,
+        int window, Rect box, double min, double max, double floor, ref Point[] buffer)
     {
-        if (values is null || stroke is null) return 0;
+        if (line.Stroke is not { } stroke) return 0;
 
+        var values = line.Values;
         var (_, shown) = PlotGeometry.Visible(values.Count, window);
         if (buffer.Length < shown) buffer = new Point[shown];
 

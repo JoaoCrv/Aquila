@@ -56,4 +56,50 @@ public sealed class LayoutProperties
     {
         Assert.ThrowsAny<JsonException>(() => DesktopLayoutService.Parse(text));
     }
+
+    /// <summary>
+    /// A sparkline is read as the Chart it became, its number in the title — or nowhere, if it had been turned off —
+    /// and everything else as it was. The old two-reading chart keeps its own kind, and writes no numbers, as it never
+    /// did (docs/widget-grafico).
+    /// </summary>
+    [Theory]
+    [InlineData(true, ReadingPlace.Title)]
+    [InlineData(false, ReadingPlace.None)]
+    public void A_sparkline_is_read_as_a_chart(bool showValue, ReadingPlace expected)
+    {
+        var (widgets, _) = DesktopLayoutService.Parse($$"""
+            [ { "Kind": "MiniSparkline", "Title": "CPU Temp", "Width": 240, "Height": 100, "PointCount": 120,
+                "ShowValue": {{(showValue ? "true" : "false")}}, "Series": [ { "SensorIdentifier": "/cpu/0/temperature/0" } ] } ]
+            """);
+
+        var chart = Assert.Single(widgets);
+        Assert.Equal(DesktopWidgetKind.Chart, chart.Kind);
+        Assert.Equal(expected, chart.ReadingsAt);
+        Assert.Equal(("CPU Temp", 240d, 100d, 120), (chart.Title, chart.Width, chart.Height, chart.PointCount));
+        Assert.Equal("/cpu/0/temperature/0", Assert.Single(chart.Series).SensorIdentifier);
+    }
+
+    /// <summary>A reading's name is kept through a save, and a reading written before names existed has none — the
+    /// sensor's own is written in its place.</summary>
+    [Fact]
+    public void A_reading_s_name_survives_a_save()
+    {
+        var (widgets, unread) = DesktopLayoutService.Parse("""
+            [ { "Kind": "Chart", "Series": [ { "SensorIdentifier": "/nvme/0/temperature/0", "Label": "System drive" },
+                                             { "SensorIdentifier": "/nvme/1/temperature/0" } ] } ]
+            """);
+        var (again, _) = DesktopLayoutService.Parse(DesktopLayoutService.Write(widgets, unread));
+
+        Assert.Equal(["System drive", ""], Assert.Single(again).Series.Select(series => series.Label));
+    }
+
+    [Fact]
+    public void An_old_chart_keeps_its_kind_and_writes_no_numbers()
+    {
+        var (widgets, _) = DesktopLayoutService.Parse("""[ { "Kind": "SparklineChart", "Width": 300, "Height": 160 } ]""");
+
+        var chart = Assert.Single(widgets);
+        Assert.Equal(DesktopWidgetKind.SparklineChart, chart.Kind);
+        Assert.Equal(ReadingPlace.None, chart.ReadingsAt);
+    }
 }

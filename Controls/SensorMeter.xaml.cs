@@ -10,7 +10,7 @@ public enum MeterLabelPlacement { Inline, Top }
 
 /// <summary>
 /// One sensor as a labeled bar with a value (sibling of <see cref="RadialGauge"/> /
-/// <see cref="MiniSparkline"/> — wraps <see cref="SensorBar"/>). <see cref="LabelPlacement"/> picks
+/// <see cref="ChartTile"/> — wraps <see cref="SensorBar"/>). <see cref="LabelPlacement"/> picks
 /// between label|bar|value in a row (Inline, e.g. PowerCard) and label/value on top with the bar
 /// below (Top, e.g. StorageCard). <see cref="Label"/>/<see cref="ValueText"/> are plain strings the
 /// caller formats, the same convention as <see cref="StatBox"/>.
