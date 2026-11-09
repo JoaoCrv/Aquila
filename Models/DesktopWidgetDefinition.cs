@@ -39,6 +39,14 @@ public enum DesktopWidgetKind
     /// its own reference size — so a widget saved as one opens exactly as large as it was.
     /// </summary>
     Chart,
+
+    /// <summary>
+    /// Bars: one to sixteen readings, lying down or standing up, each bar's name and number beside it or above it
+    /// (docs/widget-barras). It took over from the meter, which a layout loads as one lying down with its number
+    /// beside (<c>DesktopLayoutService.Migrate</c>), and from the old Bars, which keep their own name — and their own
+    /// reference size — so a widget saved as one opens exactly as large as it was.
+    /// </summary>
+    BarChart,
 }
 
 /// <summary>Where a chart writes its readings' numbers.</summary>
@@ -178,13 +186,19 @@ public enum ClockRings
     All,
 }
 
-/// <summary>Where the meter's reading sits relative to its bar.</summary>
-public enum MeterLayout
+/// <summary>
+/// Where a bar's name and number are written. Persisted by name — in a widget, and in presets written while it was
+/// theirs (the meter's <c>bar.layout</c>), which still read.
+/// </summary>
+public enum BarLayout
 {
-    /// <summary>Value to the right of the bar, on the same line.</summary>
+    /// <summary>Beside the bar: lying down, the name before it and the number after it, on its line; standing up, the
+    /// number under the bar. How the meter and the old Bars were drawn, and so what a layout saying nothing means.
+    /// </summary>
     Beside,
 
-    /// <summary>Value above the bar, which leaves the bar the full width.</summary>
+    /// <summary>Above the bar, which leaves the bar the whole width: lying down, name and number on a line over it;
+    /// standing up, the number over the bar. One bar lying down sends its number to the title instead.</summary>
     Above,
 }
 
@@ -269,6 +283,15 @@ public class DesktopWidgetDefinition
     /// declares who can be asked.</summary>
     public BarDirection BarDirection { get; set; } = BarDirection.Vertical;
 
+    /// <summary>Where a bars widget writes each bar's name and number. Beside when absent, as the meter and the old Bars
+    /// drew them. The preset once said this for the meter (<c>bar.layout</c>); it is what is on screen, so it is the
+    /// widget's now — trying on a preset must not move a number.</summary>
+    public BarLayout BarLayout { get; set; }
+
+    /// <summary>Whether a bars widget writes each bar's name — its reading's <see cref="WidgetSeries.Label"/>, or the
+    /// sensor's. Only with two bars or more: one bar's name is the title. Off when absent.</summary>
+    public bool ShowNames { get; set; }
+
     public string Text { get; set; } = string.Empty;
 
     /// <summary>What a Clock widget shows. Which of time or date is content; how big it is drawn is not.</summary>
@@ -336,7 +359,8 @@ public class DesktopWidgetDefinition
     public bool ShowEnd { get; set; }
 
     /// <summary>Whether a chart's line takes the colour of each reading's state along the way — amber where it was
-    /// elevated, red where it was critical — rather than the newest reading's colour throughout. Off when absent.
+    /// elevated, red where it was critical — rather than the newest reading's colour throughout; and whether a bar is
+    /// painted in the colour of each limit it has passed, a VU meter's. Off when absent.
     /// </summary>
     public bool ColourByReading { get; set; }
 
@@ -348,8 +372,9 @@ public class DesktopWidgetDefinition
     /// <summary>Whether a chart writes the top and the bottom of its scale at its left edge. Off when absent.</summary>
     public bool ShowScaleLabels { get; set; }
 
-    /// <summary>Whether a chart rings its first reading's highest point in the window and writes it. Off when absent.
-    /// </summary>
+    /// <summary>Whether a chart rings its first reading's highest point in the window and writes it — and whether each
+    /// bar holds its reading's highest of the last <see cref="PointCount"/> readings, letting it fall when that reading
+    /// leaves the window. Off when absent.</summary>
     public bool ShowPeak { get; set; }
 
     /// <summary>Whether each row of a list draws its recent history beside its number. Off by default, for the reason

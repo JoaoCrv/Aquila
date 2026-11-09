@@ -147,20 +147,11 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
         Band();
     }
 
-    /// <summary>The legend's names: the widget's for a reading it named, the sensor's for the rest. The n-th reading of
-    /// a sensor takes the n-th name given to it, should a chart read one sensor twice.</summary>
+    /// <summary>The legend's names (<see cref="ReadingNames.Of"/>).</summary>
     public void NameReadings(IReadOnlyList<(string Identifier, string Label)> names)
     {
-        var taken = new Dictionary<string, int>();
-        for (var i = 0; i < _sensors.Length; i++)
-        {
-            var identifier = _sensors[i].Identifier ?? string.Empty;
-            var nth = taken.GetValueOrDefault(identifier);
-            taken[identifier] = nth + 1;
-
-            var label = names.Where(n => n.Identifier == identifier).Select(n => n.Label).ElementAtOrDefault(nth);
-            _legendRows[i].Name.Text = string.IsNullOrWhiteSpace(label) ? _sensors[i].Name ?? string.Empty : label;
-        }
+        var written = ReadingNames.Of(_sensors, names);
+        for (var i = 0; i < _sensors.Length; i++) _legendRows[i].Name.Text = written[i];
     }
 
     /// <summary>Each line's bands: its ramp's colours between its own reading's limits, or one colour throughout.

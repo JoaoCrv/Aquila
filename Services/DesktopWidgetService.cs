@@ -114,7 +114,7 @@ public sealed class DesktopWidgetService
             32, 150, 170, 190),
         (DesktopWidgetKind.Chart,         "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
             32, 360, 240, 100),
-        (DesktopWidgetKind.SensorMeter,   "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
+        (DesktopWidgetKind.BarChart,      "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
             32, 480, 240,  80),
     ];
 
@@ -1429,7 +1429,9 @@ public sealed class DesktopWidgetService
     /// </summary>
     private static void KeepEnoughHistory(DesktopWidgetDefinition definition, IReadOnlyList<SensorNode> sensors)
     {
-        if (!WidgetCatalog.For(definition.Kind).HasLine) return;
+        // A chart draws its window; bars holding their peaks look back over theirs.
+        var kind = WidgetCatalog.For(definition.Kind);
+        if (!kind.HasLine && !(kind.HasDirection && definition.ShowPeak)) return;
 
         foreach (var sensor in sensors)
             if (sensor.HistoryDepth < definition.PointCount)
@@ -1512,8 +1514,17 @@ public sealed class DesktopWidgetService
             chartParts.ReadingsAt = definition.ReadingsAt;
         }
 
-        // What the widget calls each reading, where the piece writes names — a chart's legend. Words on the screen, as
-        // a caption's are, so here and not with the colours.
+        if (piece is IBarParts barParts)
+        {
+            barParts.BarLayout = definition.BarLayout;
+            barParts.ShowNames = definition.ShowNames;
+            barParts.ColourByReading = definition.ColourByReading;
+            barParts.ShowPeak = definition.ShowPeak;
+            barParts.PointCount = definition.PointCount;
+        }
+
+        // What the widget calls each reading, where the piece writes names — a chart's legend, a bar's label. Words on
+        // the screen, as a caption's are, so here and not with the colours.
         if (piece is IReadingNames named)
             named.NameReadings([.. definition.Series.Select(series => (series.SensorIdentifier, series.Label))]);
     }
@@ -1795,8 +1806,8 @@ public sealed class DesktopWidgetService
             chosen.Add(series);
 
             // The ramp a reading is drawn in, by the rule the editor's picker asks too — so the picker
-            // shows what is drawn here.
-            ramps.Add(preset.RampFor(series.Ramp, ramps.Count));
+            // shows what is drawn here. A kind whose readings share a ramp asks for the first's.
+            ramps.Add(preset.RampFor(series.Ramp, kind.RampPlace(ramps.Count)));
         }
 
         // A kind that does not need a reading draws anyway — a backdrop has none to lose, and a text is a
@@ -1834,7 +1845,7 @@ public sealed class DesktopWidgetService
             // Reading the series at dress time keeps both ends current: a series that names nothing still
             // follows the new preset's own default, and one that was renamed follows the rename.
             var reading = chosen[i];
-            var index = i;
+            var index = kind.RampPlace(i);
 
             repaints.Add(dressed => repaint(dressed.RampFor(reading.Ramp, index)));
         }

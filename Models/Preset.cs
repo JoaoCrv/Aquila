@@ -338,7 +338,10 @@ public sealed class PresetBar
 {
     public double Thickness { get; set; } = 6;
     public double Corner { get; set; } = 3;
-    public MeterLayout Layout { get; set; } = MeterLayout.Beside;
+    /// <summary>Where the meter wrote its number, when the preset said so. Read by nothing on the desktop since the bars
+    /// widget (docs/widget-barras) — where a number goes is what is on screen, so the widget says it now — and kept so
+    /// presets written with it, and the editor until it lets go of it, go on reading.</summary>
+    public BarLayout Layout { get; set; } = BarLayout.Beside;
 }
 
 public sealed class PresetNumber

@@ -338,5 +338,5 @@ public sealed class SensorBars : UserControl, IMeterStyle, IUnitStyle, IOriented
     /// describe where a label sits beside a horizontal bar, and these bars have no label beside them.
     /// Left on the interface rather than split out for one piece — a setting that visibly does nothing is
     /// cheaper than an interface nobody can remember the shape of.</summary>
-    public MeterLayout Layout { get; set; } = MeterLayout.Beside;
+    public BarLayout Layout { get; set; } = BarLayout.Beside;
 }

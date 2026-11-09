@@ -266,10 +266,10 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
     /// Inline/Top because they are placing a label; a widget has its title elsewhere and is only choosing
     /// where the number goes, so it says Beside/Above.
     /// </summary>
-    public MeterLayout Layout
+    public BarLayout Layout
     {
-        get => LabelPlacement == MeterLabelPlacement.Top ? MeterLayout.Above : MeterLayout.Beside;
-        set => LabelPlacement = value == MeterLayout.Above ? MeterLabelPlacement.Top : MeterLabelPlacement.Inline;
+        get => LabelPlacement == MeterLabelPlacement.Top ? BarLayout.Above : BarLayout.Beside;
+        set => LabelPlacement = value == BarLayout.Above ? MeterLabelPlacement.Top : MeterLabelPlacement.Inline;
     }
 
     private void Apply()

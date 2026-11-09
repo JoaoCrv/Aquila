@@ -8,7 +8,7 @@ namespace Aquila.Controls;
 /// </summary>
 public interface IMeterStyle : IBarStyle, IValueStyle, IUnitStyle, IHideableValue
 {
-    MeterLayout Layout { get; set; }
+    BarLayout Layout { get; set; }
 }
 
 /// <summary>

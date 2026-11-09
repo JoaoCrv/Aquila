@@ -93,6 +93,40 @@ public sealed class LayoutProperties
         Assert.Equal(["System drive", ""], Assert.Single(again).Series.Select(series => series.Label));
     }
 
+    /// <summary>A meter is read as the Bars it became — one bar lying down, its number beside it, as every built-in
+    /// preset drew it — with its number and its limits as they were (docs/widget-barras).</summary>
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void A_meter_is_read_as_bars(bool showValue, bool showLimits)
+    {
+        var (widgets, _) = DesktopLayoutService.Parse($$"""
+            [ { "Kind": "SensorMeter", "Title": "CPU Power", "Width": 240, "Height": 80,
+                "ShowValue": {{(showValue ? "true" : "false")}}, "ShowLimits": {{(showLimits ? "true" : "false")}},
+                "Series": [ { "SensorIdentifier": "/cpu/0/power/0" } ] } ]
+            """);
+
+        var bars = Assert.Single(widgets);
+        Assert.Equal(DesktopWidgetKind.BarChart, bars.Kind);
+        Assert.Equal((BarDirection.Horizontal, BarLayout.Beside), (bars.BarDirection, bars.BarLayout));
+        Assert.Equal((showValue, showLimits), (bars.ShowValue, bars.ShowLimits));
+        Assert.Equal((false, false, false), (bars.ShowNames, bars.ColourByReading, bars.ShowPeak));
+        Assert.Equal(("CPU Power", 240d, 80d), (bars.Title, bars.Width, bars.Height));
+    }
+
+    /// <summary>The old Bars keep their kind and are drawn as they were: their direction, their numbers beside — under
+    /// standing bars — and no names, bands or peak.</summary>
+    [Fact]
+    public void Old_bars_keep_their_kind()
+    {
+        var (widgets, _) = DesktopLayoutService.Parse("""[ { "Kind": "Bars", "BarDirection": "Horizontal", "Width": 260, "Height": 140 } ]""");
+
+        var bars = Assert.Single(widgets);
+        Assert.Equal(DesktopWidgetKind.Bars, bars.Kind);
+        Assert.Equal((BarDirection.Horizontal, BarLayout.Beside), (bars.BarDirection, bars.BarLayout));
+        Assert.Equal((false, false, false), (bars.ShowNames, bars.ColourByReading, bars.ShowPeak));
+    }
+
     [Fact]
     public void An_old_chart_keeps_its_kind_and_writes_no_numbers()
     {

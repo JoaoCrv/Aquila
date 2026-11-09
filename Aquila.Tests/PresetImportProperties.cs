@@ -53,6 +53,30 @@ public sealed class PresetImportProperties : IDisposable
         }
     }
 
+    /// <summary>Bars share one ramp (docs/widget-barras): sixteen cores are sixteen of the same thing, so every bar that
+    /// names no ramp is in the first — the colour of a bar says its state, not which bar it is — and one that names a
+    /// ramp keeps it. A chart's lines go on taking the ramp of their place.</summary>
+    [Fact]
+    public void Every_bar_takes_the_first_ramp_unless_it_names_one()
+    {
+        var bars = WidgetCatalog.For(DesktopWidgetKind.BarChart);
+        var old = WidgetCatalog.For(DesktopWidgetKind.Bars);
+        var chart = WidgetCatalog.For(DesktopWidgetKind.Chart);
+
+        foreach (var (name, preset) in BuiltIns())
+        {
+            Assert.NotNull(preset);
+            var each = Enumerable.Range(0, BarsTileReadings).ToList();
+
+            Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, bars.RampPlace(i))));
+            Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, old.RampPlace(i))));
+            Assert.Equal("secondary", preset!.RampNameFor("secondary", bars.RampPlace(5)));
+            Assert.Equal("tertiary", preset.RampNameFor(null, chart.RampPlace(2)));
+        }
+    }
+
+    private const int BarsTileReadings = Aquila.Controls.BarsTile.MostReadings;
+
     /// <summary>The built-in presets, as the app ships them, each imported.</summary>
     private IEnumerable<(string Name, Preset? Preset)> BuiltIns()
     {

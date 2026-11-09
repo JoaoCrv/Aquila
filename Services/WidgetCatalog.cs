@@ -86,8 +86,8 @@ public sealed record WidgetKindInfo(
     /// they never draw.</summary>
     public bool HasValue { get; init; } = true;
 
-    /// <summary>Whether this kind can be turned on its side. The meter is a bar and cannot: its label and
-    /// its value sit beside it in a layout that reads one way only.</summary>
+    /// <summary>Whether this kind can be turned on its side — the Bars, lying down or standing up. The meter could
+    /// not, its value beside it in a layout that read one way only; it is Bars lying down now.</summary>
     public bool HasDirection { get; init; }
 
     /// <summary>Whether its reading comes with a unit, and so whether offering to hide one means anything.
@@ -135,8 +135,21 @@ public sealed record WidgetKindInfo(
     public Func<DesktopWidgetDefinition, bool>? HasShape { get; init; }
 
     /// <summary>Whether a widget can be made this kind — offered in the gallery and the editor. False only for a kind
-    /// kept so that widgets saved as it open exactly as they were (the old two-reading chart).</summary>
+    /// kept so that widgets saved as it open exactly as they were (the old two-reading chart, the old Bars).</summary>
     public bool Listed { get; init; } = true;
+
+    /// <summary>
+    /// Whether every reading takes the same ramp unless it names one — the first, as a reading alone would. True for the
+    /// bars: sixteen cores are sixteen of the same thing, and the colour of a bar says its state, not which bar it is;
+    /// by position, the third and fourth cores came out in other colours from the rest. A chart's lines are different
+    /// readings, and each takes the ramp at its place.
+    /// </summary>
+    public bool OneRamp { get; init; }
+
+    /// <summary>The place a reading's ramp is chosen by (<see cref="Preset.RampNameFor"/>): its own, or the first for a
+    /// kind whose readings share one. Asked by the desktop and the editor alike, so the picker shows what is drawn.
+    /// </summary>
+    public int RampPlace(int index) => OneRamp ? 0 : index;
 }
 
 public static class WidgetCatalog
@@ -164,13 +177,21 @@ public static class WidgetCatalog
                 MadeNow = chart => (chart.ReadingsAt, chart.ShowEnd, chart.ColourByReading) = (ReadingPlace.Title, true, true),
             },
 
-        new(DesktopWidgetKind.SensorMeter,
-            "Meter",
-            "A bar with the value beside it.",
+        // The meter and the Bars in one (docs/widget-barras). New bars start lying down, their names and numbers above
+        // them — one bar's number in the title — painted in the colours of the limits they pass, and holding their
+        // peaks; their limits' marks are asked for.
+        new(DesktopWidgetKind.BarChart,
+            BarsName,
+            BarsDescription,
             240, 80,
-            series => BuildMeter(series[0]),
-            SeriesPaint.Properties(SensorMeter.AccentProperty))
-            { HasBar = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = "One reading as a bar" },
+            series => new BarsTile(series),
+            BarsPaint)
+            {
+                HasBar = true, HasDirection = true, OneRamp = true,
+                Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = BarsSummary,
+                MadeNow = bars => (bars.BarDirection, bars.BarLayout, bars.ShowNames, bars.ColourByReading, bars.ShowPeak) =
+                    (BarDirection.Horizontal, BarLayout.Above, true, true, true),
+            },
 
         // Wider since its notes, which a Number made today starts with: a throughput's "min 0  max 980.4 MB/s" is the
         // widest line it writes, and at 150 it did not fit. A Number from before them keeps the size it was given, and
@@ -237,16 +258,20 @@ public static class WidgetCatalog
                 MadeNow = clock => clock.Rings = ClockRings.All,
             },
 
-        // The first kind whose count the hardware decides. Sixteen is a ceiling, not a shape: this machine
-        // has sixteen CPU cores and the editor stops offering more there, but four readings make four bars.
-        // Each keeps its own ramp, so a core going amber says so on its own.
+        // The Bars as layouts before docs/widget-barras saved them: the same piece, measured at the 260×140 they always
+        // were, so a widget saved as one opens as large as it was. Never offered — the gallery and the editor show them
+        // as the Bars above (Shown) — and a widget keeps the name it was saved with until its kind is changed. The first
+        // kind whose count the hardware decides: sixteen cores make sixteen bars.
         new(DesktopWidgetKind.Bars,
-            "Bars",
-            "A row of vertical bars, one per reading. Good for per-core load.",
+            BarsName,
+            BarsDescription,
             260, 140,
-            series => new SensorBars(series),
-            SeriesPaint.Many(16, (piece, i, brush) => ((SensorBars)piece).PaintBar(i, brush)))
-            { HasBar = true, HasDirection = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataBarVertical24, Summary = "Up to 16 readings side by side" },
+            series => new BarsTile(series),
+            BarsPaint)
+            {
+                HasBar = true, HasDirection = true, OneRamp = true, Listed = false,
+                Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = BarsSummary,
+            },
 
         // The first kind whose reading is not a sensor. Its one series names a list, which the SOURCE orders
         // and sizes; how many of its rows are shown is the widget's. One ramp for the whole list, and each row
@@ -282,11 +307,25 @@ public static class WidgetCatalog
     private static SeriesPaint ChartPaint =>
         SeriesPaint.Many(ChartTile.MostReadings, (piece, i, brush) => ((ChartTile)piece).PaintLine(i, brush));
 
+    private const string BarsName = "Bars";
+    private const string BarsSummary = "One to sixteen readings as bars";
+    private const string BarsDescription =
+        "One to sixteen readings as bars, lying down or standing up — each with its name and number beside it or above it.";
+
+    private static SeriesPaint BarsPaint =>
+        SeriesPaint.Many(BarsTile.MostReadings, (piece, i, brush) => ((BarsTile)piece).PaintBar(i, brush));
+
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which
     /// a user can hand-edit and an older build may have written before a kind was renamed. A sparkline is a
-    /// Chart now — a layout loads it as one, so this only answers a definition made some other way.</summary>
+    /// Chart now and a meter is Bars — a layout loads them as such, so this only answers a definition made some other
+    /// way.</summary>
     public static WidgetKindInfo For(DesktopWidgetKind kind) =>
-        All.FirstOrDefault(k => k.Kind == (kind == DesktopWidgetKind.MiniSparkline ? DesktopWidgetKind.Chart : kind))
+        All.FirstOrDefault(k => k.Kind == kind switch
+        {
+            DesktopWidgetKind.MiniSparkline => DesktopWidgetKind.Chart,
+            DesktopWidgetKind.SensorMeter => DesktopWidgetKind.BarChart,
+            _ => kind,
+        })
         ?? All[0];
 
     /// <summary>The kinds a widget can be made — the gallery's and the editor's — without the ones kept only so that
@@ -294,9 +333,13 @@ public static class WidgetCatalog
     public static IReadOnlyList<WidgetKindInfo> Listed { get; } = [.. All.Where(kind => kind.Listed)];
 
     /// <summary>The kind a widget is shown as, in the gallery and the editor: the Chart for a chart saved before it
-    /// took over, every other kind as itself.</summary>
-    public static WidgetKindInfo Shown(DesktopWidgetKind kind) =>
-        For(kind == DesktopWidgetKind.SparklineChart ? DesktopWidgetKind.Chart : kind);
+    /// took over, the Bars for bars saved before theirs did, every other kind as itself.</summary>
+    public static WidgetKindInfo Shown(DesktopWidgetKind kind) => For(kind switch
+    {
+        DesktopWidgetKind.SparklineChart => DesktopWidgetKind.Chart,
+        DesktopWidgetKind.Bars => DesktopWidgetKind.BarChart,
+        _ => kind,
+    });
 
     /// <summary>
     /// The kind a widget made from one sensor starts as — pinned from the Explorer, or added from the edit bar.

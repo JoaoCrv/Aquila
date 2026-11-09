@@ -888,13 +888,13 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     [ObservableProperty] private double _barThickness = 6;
     [ObservableProperty] private double _barCorner = 3;
-    [ObservableProperty] private MeterLayout _barLayout = MeterLayout.Beside;
+    [ObservableProperty] private BarLayout _barLayout = BarLayout.Beside;
 
-    public IReadOnlyList<MeterLayout> Layouts { get; } = Enum.GetValues<MeterLayout>();
+    public IReadOnlyList<BarLayout> Layouts { get; } = Enum.GetValues<BarLayout>();
 
     partial void OnBarThicknessChanged(double value) => Dress();
     partial void OnBarCornerChanged(double value) => Dress();
-    partial void OnBarLayoutChanged(MeterLayout value) => Dress();
+    partial void OnBarLayoutChanged(BarLayout value) => Dress();
 
     // --- Number ---
 
@@ -1616,18 +1616,21 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     ///
     /// More than one, and they take separate roles instead. Two lines both following their readings would
     /// be the same colour whenever both were in the same state, and two lines in one colour are one line —
-    /// which is the reason this method spread them across roles in the first place.
+    /// which is the reason this method spread them across roles in the first place. Not for bars, whose
+    /// readings share one (<see cref="WidgetKindInfo.OneRamp"/>): a bar's colour says its state.
     /// </summary>
     private string DefaultRamp(int index) =>
-        SelectedPreset?.RampNameFor(null, index) ?? Ramp.Primary;
+        SelectedPreset?.RampNameFor(null, RampPlace(index)) ?? Ramp.Primary;
 
     /// <summary>The ramp a row is actually drawn in under the chosen preset. Asked of the same rule the
     /// renderer asks, <see cref="Preset.RampNameFor"/>, so the picker shows what the desktop shows — it
     /// used to be a copy of that rule, kept in step by a comment.</summary>
     private string? ShownRamp(SeriesRow row) =>
         SelectedPreset is { } preset
-            ? preset.RampNameFor(row.Ramp, Math.Max(0, Chosen.IndexOf(row)))
+            ? preset.RampNameFor(row.Ramp, RampPlace(Math.Max(0, Chosen.IndexOf(row))))
             : Ramp.Primary;
+
+    private int RampPlace(int index) => SelectedKind?.RampPlace(index) ?? index;
 
     /// <summary>The entry in the picker's own list for what a row is drawn in. Looked up by name in a list
     /// built afresh, which is fine: the picker matches records by value, and this one is equal to its own.</summary>

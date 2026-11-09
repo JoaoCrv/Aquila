@@ -166,6 +166,16 @@ public sealed class DesktopLayoutService(ILogger<DesktopLayoutService> logger)
             widget.ReadingsAt = widget.ShowValue ? ReadingPlace.Title : ReadingPlace.None;
         }
 
+        // The meter became the Bars (docs/widget-barras): the same size of reference, one bar lying down with its number
+        // beside it, as every built-in preset drew it. Its number and its limits stay as they were. Once: saved, it is
+        // Bars.
+        if (widget.Kind == DesktopWidgetKind.SensorMeter)
+        {
+            widget.Kind = DesktopWidgetKind.BarChart;
+            widget.BarDirection = BarDirection.Horizontal;
+            widget.BarLayout = BarLayout.Beside;
+        }
+
         return widget;
     }
 

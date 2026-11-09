@@ -45,6 +45,30 @@ public interface IReadingNames
     void NameReadings(IReadOnlyList<(string Identifier, string Label)> names);
 }
 
+/// <summary>The rule both pieces that write names follow — a chart's legend, a bar's label — in one home.</summary>
+public static class ReadingNames
+{
+    /// <summary>The name each reading is written under: the widget's for a reading it named, the sensor's for the rest.
+    /// The n-th reading of a sensor takes the n-th name given to it, should a widget read one sensor twice.</summary>
+    public static string[] Of(IReadOnlyList<SensorNode> sensors, IReadOnlyList<(string Identifier, string Label)> names)
+    {
+        var written = new string[sensors.Count];
+        var taken = new Dictionary<string, int>();
+
+        for (var i = 0; i < written.Length; i++)
+        {
+            var identifier = sensors[i].Identifier ?? string.Empty;
+            var nth = taken.GetValueOrDefault(identifier);
+            taken[identifier] = nth + 1;
+
+            var label = names.Where(n => n.Identifier == identifier).Select(n => n.Label).ElementAtOrDefault(nth);
+            written[i] = string.IsNullOrWhiteSpace(label) ? sensors[i].Name ?? string.Empty : label;
+        }
+
+        return written;
+    }
+}
+
 /// <summary>What a chart writes with, from the preset: the halo kept round what it writes over its lines — the
 /// panel's own colour — and the title's face, which a legend names its readings in.</summary>
 public interface IPlotTextStyle
