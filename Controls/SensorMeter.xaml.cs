@@ -9,40 +9,21 @@ namespace Aquila.Controls;
 public enum MeterLabelPlacement { Inline, Top }
 
 /// <summary>
-/// One sensor as a labeled bar with a value (sibling of <see cref="RadialGauge"/> /
-/// <see cref="ChartTile"/> — wraps <see cref="SensorBar"/>). <see cref="LabelPlacement"/> picks
-/// between label|bar|value in a row (Inline, e.g. PowerCard) and label/value on top with the bar
-/// below (Top, e.g. StorageCard). <see cref="Label"/>/<see cref="ValueText"/> are plain strings the
-/// caller formats, the same convention as <see cref="StatBox"/>.
+/// The dashboard cards' meter: one sensor as a labeled bar with a value, wrapping <see cref="SensorBar"/>.
+/// <see cref="LabelPlacement"/> picks between label|bar|value in a row (Inline, e.g. PowerCard) and label/value on top
+/// with the bar below (Top, e.g. StorageCard). <see cref="Label"/>/<see cref="ValueText"/> are plain strings the caller
+/// formats, the same convention as <see cref="StatBox"/>.
+///
+/// The cards' alone since the Bars widget (docs/widget-barras), which took over the desktop's meter: what only the
+/// widget set — its look, its limits, its fonts, its unit, its scale — went with it, and the meter draws as the cards
+/// always had it.
 /// </summary>
-public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScaledFigure, ILimitParts, ILimitStyle
+public partial class SensorMeter : UserControl
 {
-    /// <summary>The spacing of the Above layout, as the XAML gives it — which stays its one home; the scale
-    /// multiplies it.</summary>
-    private readonly Thickness _topRowMargin;
-    private readonly Thickness _topBarMargin;
-
     public SensorMeter()
     {
         InitializeComponent();
-        _topRowMargin = TopRow.Margin;
-        _topBarMargin = TopBar.Margin;
         Apply();
-    }
-
-    private double _figureScale = 1;
-
-    /// <summary>
-    /// For the columns and the spacing, which are the meter's own. The value column most of all: the number grows
-    /// with the widget, and in a column that stayed 64 pixels wide a reading twice the size is cut off.
-    ///
-    /// The columns as given are kept, and multiplied where they are applied, so a card that sets its own widths
-    /// and never a scale draws exactly what it always did.
-    /// </summary>
-    public double FigureScale
-    {
-        get => _figureScale;
-        set { _figureScale = value; Apply(); }
     }
 
     public static readonly DependencyProperty SensorProperty =
@@ -55,49 +36,7 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
 
     public static readonly DependencyProperty ValueTextProperty =
         DependencyProperty.Register(nameof(ValueText), typeof(string), typeof(SensorMeter),
-            new PropertyMetadata("--", (d, _) => ((SensorMeter)d).Compose()));
-
-    public static readonly DependencyProperty UnitProperty =
-        DependencyProperty.Register(nameof(Unit), typeof(string), typeof(SensorMeter),
-            new PropertyMetadata(string.Empty, (d, _) => ((SensorMeter)d).Compose()));
-
-    public static readonly DependencyProperty ShowUnitProperty =
-        DependencyProperty.Register(nameof(ShowUnit), typeof(bool), typeof(SensorMeter),
-            new PropertyMetadata(true, (d, _) => ((SensorMeter)d).Compose()));
-
-    public static readonly DependencyProperty DisplayTextProperty =
-        DependencyProperty.Register(nameof(DisplayText), typeof(string), typeof(SensorMeter),
             new PropertyMetadata("--"));
-
-    /// <summary>The unit to put after <see cref="ValueText"/>, when there is one to add.
-    ///
-    /// Separate from the value rather than baked into its format string, which is how the desktop widget
-    /// used to do it: a format string is fixed when the binding is made, so turning the unit off would have
-    /// meant rebuilding the widget — and rebuilding is reserved for structure. The dashboard cards set
-    /// neither this nor ShowUnit and go on formatting their own text, unchanged.</summary>
-    public string Unit
-    {
-        get => (string)GetValue(UnitProperty);
-        set => SetValue(UnitProperty, value);
-    }
-
-    public bool ShowUnit
-    {
-        get => (bool)GetValue(ShowUnitProperty);
-        set => SetValue(ShowUnitProperty, value);
-    }
-
-    /// <summary>What is actually drawn: the caller's number, plus the unit if there is one and it is
-    /// wanted. Read-only from outside — a property of its own for the same reason StatBox has UnitText,
-    /// namely that writing over the caller's own binding would break the cards that rely on it.</summary>
-    public string DisplayText
-    {
-        get => (string)GetValue(DisplayTextProperty);
-        private set => SetValue(DisplayTextProperty, value);
-    }
-
-    private void Compose() =>
-        DisplayText = ShowUnit && !string.IsNullOrEmpty(Unit) ? ValueText + Unit : ValueText;
 
     public static readonly DependencyProperty AccentProperty =
         DependencyProperty.Register(nameof(Accent), typeof(Brush), typeof(SensorMeter),
@@ -110,14 +49,6 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
     public static readonly DependencyProperty LabelPlacementProperty =
         DependencyProperty.Register(nameof(LabelPlacement), typeof(MeterLabelPlacement), typeof(SensorMeter),
             new PropertyMetadata(MeterLabelPlacement.Inline, (d, _) => ((SensorMeter)d).Apply()));
-
-    public static readonly DependencyProperty LabelWidthProperty =
-        DependencyProperty.Register(nameof(LabelWidth), typeof(GridLength), typeof(SensorMeter),
-            new PropertyMetadata(new GridLength(36), (d, _) => ((SensorMeter)d).Apply()));
-
-    public static readonly DependencyProperty ValueWidthProperty =
-        DependencyProperty.Register(nameof(ValueWidth), typeof(GridLength), typeof(SensorMeter),
-            new PropertyMetadata(new GridLength(44), (d, _) => ((SensorMeter)d).Apply()));
 
     public static readonly DependencyProperty MaximumProperty =
         DependencyProperty.Register(nameof(Maximum), typeof(double), typeof(SensorMeter),
@@ -155,7 +86,7 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         set => SetValue(ValueTextProperty, value);
     }
 
-    /// <summary>Bar fill colour. Falls back to the CPU accent token when unset (see SensorBar).</summary>
+    /// <summary>Bar fill colour. Falls back to the dashboard's accent when unset (see SensorBar).</summary>
     public Brush? Accent
     {
         get => (Brush?)GetValue(AccentProperty);
@@ -177,131 +108,11 @@ public partial class SensorMeter : UserControl, ISensorPiece, IMeterStyle, IScal
         set => SetValue(LabelPlacementProperty, value);
     }
 
-    /// <summary>Label column width in Inline layout. Default 36.</summary>
-    public GridLength LabelWidth
-    {
-        get => (GridLength)GetValue(LabelWidthProperty);
-        set => SetValue(LabelWidthProperty, value);
-    }
-
-    /// <summary>Value column width in Inline layout. Default 44.</summary>
-    public GridLength ValueWidth
-    {
-        get => (GridLength)GetValue(ValueWidthProperty);
-        set => SetValue(ValueWidthProperty, value);
-    }
-
-    public static readonly DependencyProperty ShowValueProperty =
-        DependencyProperty.Register(nameof(ShowValue), typeof(bool), typeof(SensorMeter),
-            new PropertyMetadata(true, (d, _) => ((SensorMeter)d).Apply()));
-
-    public static readonly DependencyProperty ValueFontProperty =
-        DependencyProperty.Register(nameof(ValueFont), typeof(string), typeof(SensorMeter),
-            new PropertyMetadata(null, (d, _) => ((SensorMeter)d).Apply()));
-
-    public static readonly DependencyProperty ValueWeightProperty =
-        DependencyProperty.Register(nameof(ValueWeight), typeof(TextWeight), typeof(SensorMeter),
-            new PropertyMetadata(TextWeight.Regular, (d, _) => ((SensorMeter)d).Apply()));
-
-    public string? ValueFont
-    {
-        get => (string?)GetValue(ValueFontProperty);
-        set => SetValue(ValueFontProperty, value);
-    }
-
-    public TextWeight ValueWeight
-    {
-        get => (TextWeight)GetValue(ValueWeightProperty);
-        set => SetValue(ValueWeightProperty, value);
-    }
-
-    public static readonly DependencyProperty ValueSizeProperty =
-        DependencyProperty.Register(nameof(ValueSize), typeof(double), typeof(SensorMeter),
-            new PropertyMetadata(13d, (d, _) => ((SensorMeter)d).Apply()));
-
-    private bool _showLimits;
-    private Brush? _limitBrush;
-
-    /// <summary>Marks across the bar where the reading turns elevated and alert. A card never asks for them.</summary>
-    public bool ShowLimits
-    {
-        get => _showLimits;
-        set { _showLimits = value; Apply(); }
-    }
-
-    public Brush? LimitBrush
-    {
-        get => _limitBrush;
-        set { _limitBrush = value; Apply(); }
-    }
-
-    private Primitives.BarLook? _barLook;
-
-    /// <summary>The bar's thickness, corners and track, from the widget's preset — handed to the bar as it is. Unset,
-    /// as on a card, the bar draws the cards' thin bar over the dashboard's track.</summary>
-    public Primitives.BarLook? BarLook
-    {
-        get => _barLook;
-        set { _barLook = value; Apply(); }
-    }
-
-    /// <summary>Whether the reading is drawn beside (or above) the bar.</summary>
-    public bool ShowValue
-    {
-        get => (bool)GetValue(ShowValueProperty);
-        set => SetValue(ShowValueProperty, value);
-    }
-
-    /// <summary>Point size of that reading.</summary>
-    public double ValueSize
-    {
-        get => (double)GetValue(ValueSizeProperty);
-        set => SetValue(ValueSizeProperty, value);
-    }
-
-    /// <summary>
-    /// The widget-facing name for <see cref="LabelPlacement"/>, projected rather than stored.
-    ///
-    /// Two properties holding the same fact is how they end up disagreeing. The dashboard cards say
-    /// Inline/Top because they are placing a label; a widget has its title elsewhere and is only choosing
-    /// where the number goes, so it says Beside/Above.
-    /// </summary>
-    public BarLayout Layout
-    {
-        get => LabelPlacement == MeterLabelPlacement.Top ? BarLayout.Above : BarLayout.Beside;
-        set => LabelPlacement = value == BarLayout.Above ? MeterLabelPlacement.Top : MeterLabelPlacement.Inline;
-    }
-
     private void Apply()
     {
         bool inline = LabelPlacement == MeterLabelPlacement.Inline;
         InlineLayout.Visibility = inline ? Visibility.Visible : Visibility.Collapsed;
         TopLayout.Visibility = inline ? Visibility.Collapsed : Visibility.Visible;
-
-        InlineLabelColumn.Width = LabelWidth.Scaled(_figureScale);
-
-        // The value column collapses with the value, so hiding the number gives the bar the width back
-        // rather than leaving a 44px gap where it used to be.
-        InlineValueColumn.Width = ShowValue ? ValueWidth.Scaled(_figureScale) : new GridLength(0);
-        InlineValueText.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
-        InlineValueText.FontSize = ValueSize;
-        InlineValueText.Wear(ValueFont, ValueWeight);
-
-        // In the Top layout the number shares a row with the label. A widget leaves that label empty, so
-        // with the number gone the whole row is blank margin — collapse it too.
-        TopRow.Visibility = ShowValue ? Visibility.Visible : Visibility.Collapsed;
-        TopRow.Margin = _topRowMargin.Scaled(_figureScale);
-        TopBar.Margin = _topBarMargin.Scaled(_figureScale);
-        TopValueText.FontSize = ValueSize;
-        TopValueText.Wear(ValueFont, ValueWeight);
-
-        foreach (var bar in new[] { InlineBar, TopBar })
-        {
-            bar.Look = _barLook;
-            bar.ShowLimits = _showLimits;
-            bar.LimitBrush = _limitBrush;
-            bar.MarkReach = LimitMarks.Reach * _figureScale;
-        }
 
         if (ColorValue)
             TopValueText.Foreground = Accent ?? TryFindResource("Aquila.Scheme.Accent") as Brush;

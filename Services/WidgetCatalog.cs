@@ -1,7 +1,5 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using Aquila.Controls;
 using Aquila.Models;
 using Aquila.Models.Nodes;
@@ -358,74 +356,4 @@ public static class WidgetCatalog
     /// </summary>
     public static IReadOnlyList<T> ReadingsKept<T>(WidgetKindInfo to, IEnumerable<T> readings, Func<T, bool> isList) =>
         [.. readings.Where(reading => isList(reading) == to.HasList).Take(to.MaxSeries)];
-
-    /// <summary>
-    /// SensorMeter takes the displayed number as a pre-formatted string — the Sensor property only drives
-    /// the bar — the same convention as the dashboard's StatBox, where the caller decides the format. The
-    /// dashboard cards hardcode both format and unit because each knows its sensor; a generic widget cannot,
-    /// so it asks SensorFormat, through the converter below.
-    /// </summary>
-    private static SensorMeter BuildMeter(SensorNode sensor)
-    {
-        var meter = new SensorMeter
-        {
-            Sensor = sensor,
-            LabelPlacement = MeterLabelPlacement.Inline,
-            // The widget already carries a title, so the inline label column would just be an empty gap.
-            LabelWidth = new GridLength(0),
-            ValueWidth = new GridLength(64),
-        };
-
-        // The unit is bound rather than assigned, because for a throughput sensor it is not fixed: the
-        // same drive reads B/s when idle and MB/s when busy, and the unit has to follow the number. It is
-        // still separate FROM the number, so a preset turning the unit off stays a restyle and never a
-        // rebuild.
-        Bind(meter, SensorMeter.ValueTextProperty, SensorMeter.UnitProperty, sensor);
-
-        return meter;
-    }
-
-    /// <summary>
-    /// Points a piece's number and its unit at one sensor, both formatted by <see cref="SensorFormat"/>.
-    ///
-    /// Two bindings off the same value, because the unit is not a constant: a throughput sensor reads B/s
-    /// idle and MB/s busy, and a unit assigned once would go on claiming bytes while the number had moved
-    /// to megabytes. One converter instance serves both — it holds the sensor's own unit, which is what
-    /// decides whether there is anything to scale at all.
-    /// </summary>
-    private static void Bind(
-        DependencyObject target, DependencyProperty number, DependencyProperty unit, SensorNode sensor)
-    {
-        var format = new ReadingPart(sensor.Unit);
-
-        BindingOperations.SetBinding(target, number, new Binding(nameof(SensorNode.Value))
-        {
-            Source = sensor,
-            Converter = format,
-            FallbackValue = "--",
-        });
-
-        BindingOperations.SetBinding(target, unit, new Binding(nameof(SensorNode.Value))
-        {
-            Source = sensor,
-            Converter = format,
-            ConverterParameter = "unit",
-            FallbackValue = string.Empty,
-        });
-    }
-
-    /// <summary>One half of a formatted reading, chosen by the parameter. Private because it exists for
-    /// the meter, which takes its number as a pre-formatted string; everything else asks SensorFormat
-    /// directly.</summary>
-    private sealed class ReadingPart(string? unit) : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            var (text, scaled) = SensorFormat.Parts(value as float?, unit);
-            return string.Equals(parameter as string, "unit", StringComparison.Ordinal) ? scaled : text;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotSupportedException();
-    }
 }

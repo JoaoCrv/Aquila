@@ -4,7 +4,7 @@ namespace Aquila.Controls;
 
 /// <summary>
 /// A piece that is a number, and what the preset says about how it looks. Beside <see cref="IChartStyle"/>,
-/// <see cref="IGaugeStyle"/> and <see cref="IMeterStyle"/>; its bar is dressed through <see cref="IBarStyle"/>, as every
+/// <see cref="IGaugeStyle"/> and <see cref="IBarStyle"/>; its bar is dressed through <see cref="IBarStyle"/>, as every
 /// bar is.
 ///
 /// It drew its own rounded fill once, the dashboard card's, which a preset could turn on — the theme's card colour
