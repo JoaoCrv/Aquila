@@ -133,6 +133,10 @@ public sealed record WidgetKindInfo(
     /// line of text, as free as a caption.
     /// </summary>
     public Func<DesktopWidgetDefinition, bool>? HasShape { get; init; }
+
+    /// <summary>Whether a widget can be made this kind — offered in the gallery and the editor. False only for a kind
+    /// kept so that widgets saved as it open exactly as they were (the old two-reading chart).</summary>
+    public bool Listed { get; init; } = true;
 }
 
 public static class WidgetCatalog
@@ -147,13 +151,18 @@ public static class WidgetCatalog
             SeriesPaint.Properties(RadialGauge.AccentProperty))
             { HasDial = true, HasShape = _ => true, Icon = Wpf.Ui.Controls.SymbolRegular.Gauge24, Summary = "One reading as a dial" },
 
-        new(DesktopWidgetKind.MiniSparkline,
-            "Sparkline",
-            "A small line chart of the recent history.",
+        // The sparkline and the two-reading chart in one (docs/widget-grafico). A new one starts with its number in the
+        // title, a dot on its newest reading and its line in its states' colours; the rest is asked for.
+        new(DesktopWidgetKind.Chart,
+            ChartName,
+            ChartDescription,
             240, 100,
-            series => new MiniSparkline { Sensor = series[0] },
-            SeriesPaint.Properties(MiniSparkline.AccentProperty))
-            { HasLine = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataLine24, Summary = "One reading and its recent history" },
+            series => new ChartTile(series),
+            ChartPaint)
+            {
+                HasLine = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = ChartSummary,
+                MadeNow = chart => (chart.ReadingsAt, chart.ShowEnd, chart.ColourByReading) = (ReadingPlace.Title, true, true),
+            },
 
         new(DesktopWidgetKind.SensorMeter,
             "Meter",
@@ -180,14 +189,16 @@ public static class WidgetCatalog
                 MadeNow = number => (number.ShowBar, number.ShowMinMax) = (true, true),
             },
 
+        // The chart as layouts before docs/widget-grafico saved it: the same piece, measured at the 300×160 it always
+        // was, so a widget saved as one opens as large as it was. Never offered — the gallery and the editor show it
+        // as the Chart (Shown) — and a widget keeps the name it was saved with until its kind is changed.
         new(DesktopWidgetKind.SparklineChart,
-            "Chart",
-            "The same trend as a sparkline, with room to read it. Takes two readings.",
+            ChartName,
+            ChartDescription,
             300, 160,
-            BuildChart,
-            SeriesPaint.Properties(
-                SparklineChart.SeriesColorProperty, SparklineChart.SecondColorProperty))
-            { HasLine = true, HasValue = false, HasUnit = false, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = "Two readings and their history" },
+            series => new ChartTile(series),
+            ChartPaint)
+            { HasLine = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = ChartSummary, Listed = false },
 
         // Nowhere to put a colour, so MaxSeries is 0 — the first kind that reads nothing at all. Everything
         // it draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is
@@ -261,10 +272,31 @@ public static class WidgetCatalog
             },
     ];
 
+    private const string ChartName = "Chart";
+    private const string ChartSummary = "One to four readings and their history";
+    private const string ChartDescription =
+        "One to four readings and their recent history — their numbers in the title, at the line ends or in a legend.";
+
+    /// <summary>A property and not a field: <see cref="All"/> is made first, before any field below it would be.
+    /// </summary>
+    private static SeriesPaint ChartPaint =>
+        SeriesPaint.Many(ChartTile.MostReadings, (piece, i, brush) => ((ChartTile)piece).PaintLine(i, brush));
+
     /// <summary>Falls back to the first kind rather than throwing: the kind comes from widgets.json, which
-    /// a user can hand-edit and an older build may have written before a kind was renamed.</summary>
+    /// a user can hand-edit and an older build may have written before a kind was renamed. A sparkline is a
+    /// Chart now — a layout loads it as one, so this only answers a definition made some other way.</summary>
     public static WidgetKindInfo For(DesktopWidgetKind kind) =>
-        All.FirstOrDefault(k => k.Kind == kind) ?? All[0];
+        All.FirstOrDefault(k => k.Kind == (kind == DesktopWidgetKind.MiniSparkline ? DesktopWidgetKind.Chart : kind))
+        ?? All[0];
+
+    /// <summary>The kinds a widget can be made — the gallery's and the editor's — without the ones kept only so that
+    /// widgets saved as them open as they were.</summary>
+    public static IReadOnlyList<WidgetKindInfo> Listed { get; } = [.. All.Where(kind => kind.Listed)];
+
+    /// <summary>The kind a widget is shown as, in the gallery and the editor: the Chart for a chart saved before it
+    /// took over, every other kind as itself.</summary>
+    public static WidgetKindInfo Shown(DesktopWidgetKind kind) =>
+        For(kind == DesktopWidgetKind.SparklineChart ? DesktopWidgetKind.Chart : kind);
 
     /// <summary>
     /// The kind a widget made from one sensor starts as — pinned from the Explorer, or added from the edit bar.
@@ -273,7 +305,7 @@ public static class WidgetCatalog
     /// whatever the units are (João, 2026-10-07: consistency across pins). A different shape is one click away.
     /// </summary>
     public static WidgetKindInfo SuggestFor(SensorNode sensor) =>
-        For(sensor.Unit == "%" ? DesktopWidgetKind.RadialGauge : DesktopWidgetKind.MiniSparkline);
+        For(sensor.Unit == "%" ? DesktopWidgetKind.RadialGauge : DesktopWidgetKind.Chart);
 
     /// <summary>
     /// The readings a widget keeps when it becomes <paramref name="to"/>, in their order: those of the sort it draws
@@ -353,21 +385,4 @@ public static class WidgetCatalog
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotSupportedException();
     }
-
-    /// <summary>
-    /// The chart reads the node's rolling history directly — an ObservableCollection the sensor already
-    /// maintains, so nothing here has to poll or copy. It holds no SensorNode, which is why it is not an
-    /// ISensorPiece: its subscription is to a collection, and it tears that down on Unloaded by itself.
-    ///
-    /// A percentage or a temperature gets a fixed top (<see cref="SensorScale.Fixed"/>). Anything else
-    /// auto-scales, because there is no honest upper bound to assume for watts or bytes per second.
-    /// </summary>
-    private static SparklineChart BuildChart(IReadOnlyList<SensorNode> series) => new()
-    {
-        Values = series[0].History,
-        SecondValues = series.Count > 1 ? series[1].History : null,
-        MaxY = SensorScale.Fixed(series[0]) ?? double.NaN,
-        LimitsOf = series[0],
-    };
-
 }

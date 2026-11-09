@@ -9,8 +9,9 @@ using Aquila.Services;
 namespace Aquila.Controls;
 
 /// <summary>
-/// A sparkline with the area under it: one series, or two on one scale (a download and its upload). The trend in the
-/// dashboard's cards, the storage page and the Sparkline and Chart widgets.
+/// A sparkline with the area under it: one series, or two on one scale (a download and its upload) — the trend in the
+/// dashboard's cards and the storage page. The Chart widget is <see cref="ChartTile"/>; the two share the translation of
+/// a chart's settings into the plot's terms (<see cref="PlotDress"/>).
 ///
 /// Drawn by <see cref="LinePlot"/>. This piece only says, in the terms its callers and presets already use — a fill, a
 /// scale, a window — what the plot should draw; it draws nothing itself and keeps nothing of its own. It was a
@@ -28,7 +29,7 @@ namespace Aquila.Controls;
 ///     MaxY="100"/&gt;
 /// </code>
 /// </example>
-public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILimitStyle, IChartParts, IReadingRamp
+public partial class SparklineChart : UserControl, IChartStyle
 {
     /// <summary>The colour a series without one is drawn in — the chart's default, kept from when it drew its own.
     /// </summary>
@@ -158,102 +159,6 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
     public SparklineChart()
     {
         InitializeComponent();
-        Loaded += (_, _) => Hook();
-        Unloaded += (_, _) => Unhook();
-        Translate();
-    }
-
-    /// <summary>A dot on the newest reading, in its state's colour, that pulses as each reading arrives.</summary>
-    public bool ShowEnd
-    {
-        get => Plot.ShowEnd;
-        set => Plot.ShowEnd = value;
-    }
-
-    private bool _colourByReading;
-
-    /// <summary>The first series coloured by its reading along the way: each stretch between the limits in the ramp's
-    /// colour for it. Needs limits and the ramp, and draws in one colour while either is missing.</summary>
-    public bool ColourByReading
-    {
-        get => _colourByReading;
-        set { _colourByReading = value; Guide(); }
-    }
-
-    /// <summary>The ramp of the first reading, Normal to Critical, as the bands are painted.</summary>
-    private Color[]? _ramp;
-
-    /// <summary>The first line's bands, kept while they hold, so the line is not handed new ones on every reading.
-    /// </summary>
-    private IReadOnlyList<(double From, Color Color)>? _bands;
-
-    public void UseRamp(Ramp ramp)
-    {
-        var colours = PlotDress.Colours(ramp);
-        if (_ramp is not null && _ramp.SequenceEqual(colours)) return;
-
-        _ramp = colours;
-        Guide();
-    }
-
-    // ── Limits ─────────────────────────────────────────────────────
-
-    private bool _showLimits;
-    private SensorNode? _limitsOf;
-    private Brush? _limitBrush;
-    private VitalMonitor? _monitor;
-
-    /// <summary>Fine dashed lines where the reading turns elevated and alert, where the scale reaches them.</summary>
-    public bool ShowLimits
-    {
-        get => _showLimits;
-        set { _showLimits = value; Guide(); }
-    }
-
-    /// <summary>The reading whose limits are drawn — the first the chart draws. Told by whoever builds the chart, since
-    /// the chart itself holds only the series.</summary>
-    public SensorNode? LimitsOf
-    {
-        get => _limitsOf;
-        set { _limitsOf = value; Guide(); }
-    }
-
-    public Brush? LimitBrush
-    {
-        get => _limitBrush;
-        set { _limitBrush = value; Guide(); }
-    }
-
-    /// <summary>Listens for the limits changing — in Settings, say — while the chart is on screen, and only then.
-    /// </summary>
-    private void Hook()
-    {
-        Unhook();
-        _monitor = VitalMonitor.Current;
-        if (_monitor is not null) _monitor.Changed += Guide;
-        Guide();
-    }
-
-    private void Unhook()
-    {
-        if (_monitor is not null) _monitor.Changed -= Guide;
-        _monitor = null;
-    }
-
-    /// <summary>What the limits draw: the lines across the chart, and the bands the line is coloured in — both from the
-    /// limits in force, so both follow a change of them.</summary>
-    private void Guide()
-    {
-        if (Plot is null) return;
-
-        var guides = _showLimits ? LimitMarks.Of(_limitsOf) : null;
-        if (!LimitMarks.Same(Plot.Guides, guides)) Plot.Guides = guides;
-        Plot.GuideBrush = _limitBrush ?? LimitMarks.Unpainted;
-
-        var bands = _colourByReading ? PlotDress.Bands(_limitsOf, _ramp) : null;
-        if (PlotDress.Same(_bands, bands)) return;
-
-        _bands = bands;
         Translate();
     }
 
@@ -267,7 +172,7 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         if (Plot is null) return;
 
         var lines = new List<PlotLine>(2);
-        if (ListOf(Values) is { } first) lines.Add(new PlotLine(first, SeriesColor ?? Unpainted, _bands));
+        if (ListOf(Values) is { } first) lines.Add(new PlotLine(first, SeriesColor ?? Unpainted));
         if (ListOf(SecondValues) is { } second) lines.Add(new PlotLine(second, SecondColor ?? Unpainted));
         if (Plot.Lines is not { } drawn || !drawn.SequenceEqual(lines)) Plot.Lines = lines;
 

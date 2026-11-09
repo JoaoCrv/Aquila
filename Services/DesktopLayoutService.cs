@@ -158,6 +158,14 @@ public sealed class DesktopLayoutService(ILogger<DesktopLayoutService> logger)
             screen.GetString() is { Length: > 0 } key)
             widget.Surface = WidgetSurface.Screen(key);
 
+        // The sparkline became the Chart (docs/widget-grafico): the same size of reference, and its one number moved
+        // from the chart's corner to the title — or nowhere, if it had been turned off. Once: saved, it is a Chart.
+        if (widget.Kind == DesktopWidgetKind.MiniSparkline)
+        {
+            widget.Kind = DesktopWidgetKind.Chart;
+            widget.ReadingsAt = widget.ShowValue ? ReadingPlace.Title : ReadingPlace.None;
+        }
+
         return widget;
     }
 

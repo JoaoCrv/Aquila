@@ -31,6 +31,31 @@ public enum DesktopWidgetKind
     /// <summary>A list the source orders — the applications using the most CPU, largest first — a row per
     /// item. The first kind whose reading is not a sensor: its one series names a list.</summary>
     List,
+
+    /// <summary>
+    /// The chart: one to four readings and their history, drawn by the LinePlot, with their numbers in the title, at
+    /// the line ends or in a legend (docs/widget-grafico). It took over from the sparkline, which a layout loads as
+    /// one (<c>DesktopLayoutService.Migrate</c>), and from the old two-reading chart, which keeps its own name — and
+    /// its own reference size — so a widget saved as one opens exactly as large as it was.
+    /// </summary>
+    Chart,
+}
+
+/// <summary>Where a chart writes its readings' numbers.</summary>
+public enum ReadingPlace
+{
+    /// <summary>Nowhere: the lines alone.</summary>
+    None,
+
+    /// <summary>At the end of the title's line — one reading at the reading's size, several smaller, each in its
+    /// line's colour.</summary>
+    Title,
+
+    /// <summary>Right of each line's end, in its colour, set apart where they would touch.</summary>
+    LineEnds,
+
+    /// <summary>A row under the chart: each reading's colour, its name and its number.</summary>
+    Legend,
 }
 
 /// <summary>
@@ -314,6 +339,18 @@ public class DesktopWidgetDefinition
     /// elevated, red where it was critical — rather than the newest reading's colour throughout. Off when absent.
     /// </summary>
     public bool ColourByReading { get; set; }
+
+    /// <summary>Where a chart writes its readings' numbers. None when absent — the old two-reading chart wrote none; a
+    /// sparkline wrote its one in a corner, and a layout loads it with <see cref="ReadingPlace.Title"/> unless it had
+    /// turned it off.</summary>
+    public ReadingPlace ReadingsAt { get; set; }
+
+    /// <summary>Whether a chart writes the top and the bottom of its scale at its left edge. Off when absent.</summary>
+    public bool ShowScaleLabels { get; set; }
+
+    /// <summary>Whether a chart rings its first reading's highest point in the window and writes it. Off when absent.
+    /// </summary>
+    public bool ShowPeak { get; set; }
 
     /// <summary>Whether each row of a list draws its recent history beside its number. Off by default, for the reason
     /// <see cref="ShowBar"/> gives.</summary>

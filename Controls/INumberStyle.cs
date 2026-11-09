@@ -11,7 +11,7 @@ namespace Aquila.Controls;
 /// inside a panel the preset had already coloured, and a box in a box. Gone with the Number's own piece
 /// (docs/widget-numero), and with it the last colour on a desktop widget that no preset could reach.
 /// </summary>
-public interface INumberStyle : IValueStyle, IUnitStyle
+public interface INumberStyle : IValueStyle, IUnitStyle, INoteStyle
 {
     /// <summary>How big the unit is drawn beside the number. Only the Number has this: it is the one piece that draws
     /// the unit as a run of its own, so it is the one piece where a second size can mean anything. The others write
@@ -22,13 +22,19 @@ public interface INumberStyle : IValueStyle, IUnitStyle
     /// number, so it takes the number's colour — the theme's grey it wore before was the other colour no preset could
     /// reach — and stands back from it by this much.</summary>
     double UnitOpacity { get; set; }
+}
 
-    /// <summary>What the notes under the number are written in — the session's lowest and highest, the trend arrow and
-    /// the bar's marks: the title's colour at the title's opacity. They say something ABOUT the reading, as a title
-    /// does, so they wear the title's colour and not the ramp's.</summary>
+/// <summary>
+/// The notes a piece writes about its reading — a Number's lowest and highest and its arrow, a chart's numbers beside
+/// others and its scale's ends: in the title's colour at the title's opacity, at the title's size, in the reading's
+/// face. They say something ABOUT the reading, as a title does, so they wear the title's colour and not the ramp's.
+/// </summary>
+public interface INoteStyle
+{
+    /// <summary>What the notes are written in: the title's colour at the title's opacity.</summary>
     Brush? NoteBrush { get; set; }
 
-    /// <summary>How big the notes are written: the title's size, in the number's face.</summary>
+    /// <summary>How big the notes are written: the title's size, in the reading's face.</summary>
     double NoteSize { get; set; }
 }
 
