@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -39,8 +38,12 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
     /// <summary>Between two numbers in the title, and between two readings of the legend.</summary>
     private const double Apart = 10;
 
-    /// <summary>From the chart down to its legend.</summary>
-    private const double LegendGap = 4;
+    /// <summary>From the chart down to its legend, and between the legend's lines.</summary>
+    private const double LegendGap = 4, LegendLineGap = 2;
+
+    /// <summary>The most of the chart's height its legend may take; past it, the names are cut rather than folded.
+    /// </summary>
+    private const double LegendShare = 0.5;
 
     /// <summary>A legend's swatch of its line's colour, and the gap after it.</summary>
     private const double SwatchWidth = 10, SwatchHeight = 2, SwatchGap = 5;
@@ -48,7 +51,7 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
     private readonly SensorNode[] _sensors;
     private readonly LinePlot _plot = new();
     private readonly StackPanel _aside = new() { Orientation = Orientation.Horizontal };
-    private readonly UniformGrid _legend = new() { Rows = 1 };
+    private readonly LegendPanel _legend = new();
     private readonly TextBlock[] _titleNumbers;
     private readonly (TextBlock Name, TextBlock Number, Rectangle Swatch)[] _legendRows;
 
@@ -270,15 +273,23 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
             swatch.Width = SwatchWidth * _figureScale;
             swatch.Height = Math.Max(1, SwatchHeight * _figureScale);
             swatch.Margin = new Thickness(0, 0, SwatchGap * _figureScale, 0);
-            ((FrameworkElement)swatch.Parent).Margin = new Thickness(0, 0, i < _sensors.Length - 1 ? Apart * _figureScale : 0, 0);
         }
 
         _legend.Margin = new Thickness(0, LegendGap * _figureScale, 0, 0);
+        (_legend.Gap, _legend.LineGap) = (Apart * _figureScale, LegendLineGap * _figureScale);
 
         // What the plot writes — its line ends, its peak and its scale — in the notes' face, size and colour.
         var family = string.IsNullOrWhiteSpace(_valueFont) ? FontFamily : new FontFamily(_valueFont);
         _plot.Text = new TextLook(new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
             Math.Max(1, _noteSize), notes, _haloBrush);
+    }
+
+    /// <summary>The legend may fold into as many lines as half the chart's height holds — set here, where that height
+    /// is known, before the legend is measured.</summary>
+    protected override Size MeasureOverride(Size constraint)
+    {
+        _legend.Room = constraint.Height * LegendShare;
+        return base.MeasureOverride(constraint);
     }
 
     // ── Listening ────────────────────────────────────────────────────

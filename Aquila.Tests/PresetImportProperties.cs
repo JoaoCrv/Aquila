@@ -29,6 +29,33 @@ public sealed class PresetImportProperties : IDisposable
     [Fact]
     public void Every_built_in_preset_imports_drawable()
     {
+        foreach (var (name, preset) in BuiltIns())
+        {
+            Assert.True(preset is not null, $"{name} was refused");
+            Assert.True(Drawable(preset!), $"{name} is not drawable");
+        }
+    }
+
+    /// <summary>A chart draws up to four lines, each in the ramp of its place, so every built-in preset has four ramps
+    /// in that order (docs/widget-grafico) — and four lines are four colours, except in Classic, whose ramps all say
+    /// only the state.</summary>
+    [Fact]
+    public void Every_built_in_preset_colours_a_chart_s_four_lines()
+    {
+        foreach (var (name, preset) in BuiltIns())
+        {
+            Assert.NotNull(preset);
+            var lines = Enumerable.Range(0, 4).ToList();
+
+            Assert.Equal(["primary", "secondary", "tertiary", "quaternary"], lines.Select(i => preset!.RampNameFor(null, i)));
+            Assert.True(lines.Select(i => preset!.RampFor(null, i).Normal).Distinct().Count() == (preset!.Id == "classic" ? 1 : 4),
+                $"{name}: four lines in the wrong number of colours");
+        }
+    }
+
+    /// <summary>The built-in presets, as the app ships them, each imported.</summary>
+    private IEnumerable<(string Name, Preset? Preset)> BuiltIns()
+    {
         var assembly = typeof(Preset).Assembly;
         var names = assembly.GetManifestResourceNames().Where(n => n.Contains(".Presets.") && n.EndsWith(".json")).ToList();
         Assert.NotEmpty(names);
@@ -37,10 +64,7 @@ public sealed class PresetImportProperties : IDisposable
         {
             using var stream = assembly.GetManifestResourceStream(name)!;
             using var reader = new StreamReader(stream);
-            var preset = Import(reader.ReadToEnd());
-
-            Assert.True(preset is not null, $"{name} was refused");
-            Assert.True(Drawable(preset!), $"{name} is not drawable");
+            yield return (name, Import(reader.ReadToEnd()));
         }
     }
 

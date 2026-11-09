@@ -16,6 +16,18 @@
       "elevated": "#4DA6FF",
       "alert": "#1E7FE0",
       "critical": "#0B4FA8"
+    },
+    "tertiary": {
+      "normal": "#B9B0FF",
+      "elevated": "#4DA6FF",
+      "alert": "#1E7FE0",
+      "critical": "#0B4FA8"
+    },
+    "quaternary": {
+      "normal": "#6FD3C7",
+      "elevated": "#4DA6FF",
+      "alert": "#1E7FE0",
+      "critical": "#0B4FA8"
     }
   },
   "background": {
