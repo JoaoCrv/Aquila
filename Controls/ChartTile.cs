@@ -24,7 +24,7 @@ namespace Aquila.Controls;
 /// It takes hold of its readings and the limits on Loaded and lets go on Unloaded.
 /// </summary>
 public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyle, INoteStyle, IPlotTextStyle,
-    ILimitParts, ILimitStyle, IChartParts, IReadingRamp, ITitleAside, IScaledFigure
+    ILimitParts, ILimitStyle, IChartParts, IReadingRamp, IReadingNames, ITitleAside, IScaledFigure
 {
     /// <summary>The most readings a chart draws: four, each in a ramp of the preset's.</summary>
     public const int MostReadings = 4;
@@ -145,6 +145,22 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
 
         _ramps[index] = colours;
         Band();
+    }
+
+    /// <summary>The legend's names: the widget's for a reading it named, the sensor's for the rest. The n-th reading of
+    /// a sensor takes the n-th name given to it, should a chart read one sensor twice.</summary>
+    public void NameReadings(IReadOnlyList<(string Identifier, string Label)> names)
+    {
+        var taken = new Dictionary<string, int>();
+        for (var i = 0; i < _sensors.Length; i++)
+        {
+            var identifier = _sensors[i].Identifier ?? string.Empty;
+            var nth = taken.GetValueOrDefault(identifier);
+            taken[identifier] = nth + 1;
+
+            var label = names.Where(n => n.Identifier == identifier).Select(n => n.Label).ElementAtOrDefault(nth);
+            _legendRows[i].Name.Text = string.IsNullOrWhiteSpace(label) ? _sensors[i].Name ?? string.Empty : label;
+        }
     }
 
     /// <summary>Each line's bands: its ramp's colours between its own reading's limits, or one colour throughout.

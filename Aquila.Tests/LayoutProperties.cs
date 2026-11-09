@@ -79,6 +79,20 @@ public sealed class LayoutProperties
         Assert.Equal("/cpu/0/temperature/0", Assert.Single(chart.Series).SensorIdentifier);
     }
 
+    /// <summary>A reading's name is kept through a save, and a reading written before names existed has none — the
+    /// sensor's own is written in its place.</summary>
+    [Fact]
+    public void A_reading_s_name_survives_a_save()
+    {
+        var (widgets, unread) = DesktopLayoutService.Parse("""
+            [ { "Kind": "Chart", "Series": [ { "SensorIdentifier": "/nvme/0/temperature/0", "Label": "System drive" },
+                                             { "SensorIdentifier": "/nvme/1/temperature/0" } ] } ]
+            """);
+        var (again, _) = DesktopLayoutService.Parse(DesktopLayoutService.Write(widgets, unread));
+
+        Assert.Equal(["System drive", ""], Assert.Single(again).Series.Select(series => series.Label));
+    }
+
     [Fact]
     public void An_old_chart_keeps_its_kind_and_writes_no_numbers()
     {

@@ -1290,7 +1290,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         // spends a frame with nothing to draw.
         if (ReplacesSeries) Chosen.Clear();
 
-        Chosen.Add(new SeriesRow(option, DefaultRamp(Chosen.Count), OnSeriesEdited, ShownItem));
+        Chosen.Add(new SeriesRow(option, DefaultRamp(Chosen.Count), OnSeriesEdited, ShownItem, renamed: OnReadingRenamed));
 
         // Offered, not imposed: an untitled widget takes the sensor's name the first time it is given one,
         // and keeps whatever it has after that — including nothing, if that is what the user chose.
@@ -1581,7 +1581,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty] private bool _peakShown;
 
     /// <summary>Where a chart writes its readings' numbers — or nowhere.</summary>
-    [ObservableProperty] private ReadingPlace _readingsAt;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsReadingNames))]
+    private ReadingPlace _readingsAt;
 
     /// <summary>One choice in the numbers' picker, named as a phrase, as <see cref="ScaleChoice"/> is.</summary>
     public sealed record ReadingPlaceChoice(ReadingPlace Value, string Label);
@@ -1644,6 +1646,15 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         NotifySeriesState();
         Apply(WidgetChange.Structure);
     }
+
+    /// <summary>A reading renamed: Style, since the piece writes the new name in place — a chart's line is not started
+    /// again for a word in its legend.</summary>
+    private void OnReadingRenamed() => Apply();
+
+    /// <summary>Whether this widget writes its readings' names, and so whether each can be given one: a Chart with its
+    /// legend on. Only then, as a scale's ends are offered only when Manual — a box that changes nothing on the screen
+    /// reads as broken.</summary>
+    public bool ShowsReadingNames => ShowsReadingPlace && ReadingsAt == ReadingPlace.Legend;
 
     /// <summary>
     /// Everything the chosen kind and the series list decide together. Raised from every place that changes
@@ -1751,6 +1762,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             SensorIdentifier = row.Sensor.Identifier,
             Ramp = row.Ramp,
             Metric = row.Sensor.Metric,
+            Label = row.Label.Trim(),
         })];
         // Written as given, empty included. Clearing it used to bring the sensor's name back, so a widget
         // could never be untitled — which the Text and Clock kinds need, and which a gauge under a Backdrop
@@ -2005,7 +2017,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
             // The stored name as it is, even when this preset lacks it. Replacing it with a default here
             // was a second door to the same loss: opening the widget in the editor quietly rewrote its
             // choice, and the next save kept the rewrite. What the picker SHOWS is ShownRamp's business.
-            Chosen.Add(new SeriesRow(sensor, series.Ramp, OnSeriesEdited, ShownItem));
+            Chosen.Add(new SeriesRow(sensor, series.Ramp, OnSeriesEdited, ShownItem, series.Label, OnReadingRenamed));
         }
 
         // Pinned from the Explorer: the sensor is already decided, so add it rather than making the user
@@ -2014,7 +2026,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         {
             var pinned = _allSensors.FirstOrDefault(s => s.Identifier == presetSensorIdentifier);
             if (pinned is not null)
-                Chosen.Add(new SeriesRow(pinned, DefaultRamp(0), OnSeriesEdited, ShownItem));
+                Chosen.Add(new SeriesRow(pinned, DefaultRamp(0), OnSeriesEdited, ShownItem, renamed: OnReadingRenamed));
         }
 
         ReadOptions(target);
@@ -2088,12 +2100,29 @@ public partial class SeriesRow : ObservableObject
 
     private readonly Func<SeriesRow, RampPreview?> _shown;
 
-    public SeriesRow(SensorOption sensor, string ramp, Action changed, Func<SeriesRow, RampPreview?> shown)
+    public SeriesRow(SensorOption sensor, string ramp, Action changed, Func<SeriesRow, RampPreview?> shown,
+        string label = "", Action? renamed = null)
     {
         Sensor = sensor;
         _ramp = ramp;
         _changed = changed;
         _shown = shown;
+        _label = label;
+        _renamed = renamed;
+    }
+
+    private readonly Action? _renamed;
+    private string _label;
+
+    /// <summary>What the widget calls this reading — empty for the sensor's own name. Typed, so told on every key: the
+    /// edit session's settle makes the word one step to undo.</summary>
+    public string Label
+    {
+        get => _label;
+        set
+        {
+            if (SetProperty(ref _label, value ?? string.Empty)) _renamed?.Invoke();
+        }
     }
 
     public SensorOption Sensor { get; }

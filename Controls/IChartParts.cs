@@ -36,6 +36,15 @@ public interface IReadingRamp
     void UseRamp(int index, Ramp ramp);
 }
 
+/// <summary>A piece that writes its readings' names — a chart's legend — given the names the widget calls them by,
+/// each with the sensor it names. By the sensor, not by position: a reading whose sensor has gone is not drawn, so
+/// the piece's third reading may be the widget's fourth. A reading the widget gives no name keeps the sensor's.
+/// </summary>
+public interface IReadingNames
+{
+    void NameReadings(IReadOnlyList<(string Identifier, string Label)> names);
+}
+
 /// <summary>What a chart writes with, from the preset: the halo kept round what it writes over its lines — the
 /// panel's own colour — and the title's face, which a legend names its readings in.</summary>
 public interface IPlotTextStyle

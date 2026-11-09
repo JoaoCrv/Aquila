@@ -408,5 +408,9 @@ public class WidgetSeries
     /// that CAN say is only consulted while listing sensors.</summary>
     public string Metric { get; set; } = string.Empty;
 
+    /// <summary>What the widget calls this reading where it writes its name — a chart's legend. Empty is the sensor's
+    /// own name, which does not always say whose it is: two NVMe drives are both "Composite Temperature".</summary>
+    public string Label { get; set; } = string.Empty;
+
     public WidgetSeries Clone() => (WidgetSeries)MemberwiseClone();
 }

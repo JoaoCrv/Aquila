@@ -573,13 +573,17 @@
                                 <ItemsControl ItemsSource="{Binding ViewModel.Chosen}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid MinHeight="44" Margin="12,0,6,0">
+                                            <Grid Margin="12,0,6,0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="44"/>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition MinHeight="44"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
                                                 <!-- The ramp the reading is DRAWN in under this preset (ShownItem), not
                                                      the name it stored — see SeriesRow.ShownItem. -->
                                                 <UniformGrid Grid.Column="0" Rows="1" Height="10" VerticalAlignment="Center">
@@ -611,6 +615,16 @@
                                                            Command="{Binding DataContext.ViewModel.RemoveSeriesCommand,
                                                                      RelativeSource={RelativeSource AncestorType=Window}}"
                                                            CommandParameter="{Binding}"/>
+                                                <!-- What the widget calls the reading where it writes names — a chart's
+                                                     legend. Empty is the sensor's own name, shown as the placeholder. -->
+                                                <ui:TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Margin="12,0,0,10"
+                                                            PlaceholderText="{Binding Sensor.Name, Mode=OneWay}"
+                                                            ToolTip="The name written in the legend. Empty uses the sensor's own."
+                                                            AutomationProperties.Name="Name in the legend"
+                                                            Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                                            Visibility="{Binding DataContext.ViewModel.ShowsReadingNames,
+                                                                         RelativeSource={RelativeSource AncestorType=Window},
+                                                                         Converter={StaticResource BoolToVisibility}}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

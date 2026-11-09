@@ -1511,6 +1511,11 @@ public sealed class DesktopWidgetService
             chartParts.ShowScaleLabels = definition.ShowScaleLabels;
             chartParts.ReadingsAt = definition.ReadingsAt;
         }
+
+        // What the widget calls each reading, where the piece writes names — a chart's legend. Words on the screen, as
+        // a caption's are, so here and not with the colours.
+        if (piece is IReadingNames named)
+            named.NameReadings([.. definition.Series.Select(series => (series.SensorIdentifier, series.Label))]);
     }
 
     /// <summary>
