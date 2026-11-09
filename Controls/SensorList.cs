@@ -289,7 +289,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         var row = _pool.Count > 0 ? _pool.Pop() : Create();
 
         row.Node = node;
-        row.Trend.Values = node.History;
+        row.Trend.Lines = [new PlotLine(node.History, Foreground)];
         row.Y = double.NaN;
         row.Shown = double.NaN;
 
@@ -308,7 +308,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
 
         row.Node = null;
         row.Presence = Presence.Hidden;
-        row.Trend.Values = null;
+        row.Trend.Lines = null;
         row.Root.Visibility = Visibility.Collapsed;
 
         if (_pool.Count < ListNode.MaxRows)
@@ -343,7 +343,7 @@ public sealed class SensorList : UserControl, IValueStyle, IUnitStyle, IListStyl
         var brush = _judge?.Invoke(node.Value);
         if (brush is not null) row.Reading.Foreground = brush;
 
-        row.Trend.Stroke = brush ?? Foreground;
+        row.Trend.Lines = [new PlotLine(node.History, brush ?? Foreground)];
         row.Bar.Fill = brush ?? Foreground;
     }
 

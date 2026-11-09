@@ -52,15 +52,20 @@ public static class PlotGeometry
     /// nothing to fit to, it is nought to one.
     /// </summary>
     public static (double Min, double Max) Range(IReadOnlyList<double>? values, IReadOnlyList<double>? second,
-        int window, double min, double max)
+        int window, double min, double max) =>
+        Range([values, second], window, min, max);
+
+    /// <summary>The scale for any number of series on one scale — every reading shown of every one of them held — by
+    /// the rules above.</summary>
+    public static (double Min, double Max) Range(IEnumerable<IReadOnlyList<double>?> series, int window, double min,
+        double max)
     {
         var fitBottom = !double.IsFinite(min);
         var fitTop = !double.IsFinite(max) || (!fitBottom && max <= min);
         if (!fitBottom && !fitTop) return (min, max);
 
         var (low, high) = (double.PositiveInfinity, double.NegativeInfinity);
-        Extent(values, window, ref low, ref high);
-        Extent(second, window, ref low, ref high);
+        foreach (var one in series) Extent(one, window, ref low, ref high);
 
         var (bottom, top) = Ends(fitBottom ? low : min, fitTop ? high : max, fitBottom, fitTop);
         var room = (top - bottom) * Headroom;

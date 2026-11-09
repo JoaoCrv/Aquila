@@ -183,17 +183,18 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
     /// <summary>The ramp of the first reading, Normal to Critical, as the bands are painted.</summary>
     private Color[]? _ramp;
 
+    /// <summary>The first line's bands, kept while they hold, so the line is not handed new ones on every reading.
+    /// </summary>
+    private IReadOnlyList<(double From, Color Color)>? _bands;
+
     public void UseRamp(Ramp ramp)
     {
-        Color[] colours = [Colour(ramp.Normal), Colour(ramp.Elevated), Colour(ramp.Alert), Colour(ramp.Critical)];
+        var colours = PlotDress.Colours(ramp);
         if (_ramp is not null && _ramp.SequenceEqual(colours)) return;
 
         _ramp = colours;
         Guide();
     }
-
-    private static Color Colour(string hex) =>
-        Helpers.HexBrush.From(hex, 1) is SolidColorBrush solid ? solid.Color : Colors.Transparent;
 
     // ── Limits ─────────────────────────────────────────────────────
 
@@ -249,50 +250,32 @@ public partial class SparklineChart : UserControl, IChartStyle, ILimitParts, ILi
         if (!LimitMarks.Same(Plot.Guides, guides)) Plot.Guides = guides;
         Plot.GuideBrush = _limitBrush ?? LimitMarks.Unpainted;
 
-        IReadOnlyList<(double From, Color Color)>? bands =
-            _colourByReading && _ramp is { } ramp && _limitsOf is not null
-            && VitalMonitor.Current?.LimitsOf(_limitsOf) is { } limits
-                ? [(double.NegativeInfinity, ramp[0]), (limits.Elevated, ramp[1]), (limits.Alert, ramp[2]),
-                    (limits.Critical, ramp[3])]
-                : null;
+        var bands = _colourByReading ? PlotDress.Bands(_limitsOf, _ramp) : null;
+        if (PlotDress.Same(_bands, bands)) return;
 
-        var same = Plot.Bands is null ? bands is null : bands is not null && Plot.Bands.SequenceEqual(bands);
-        if (!same) Plot.Bands = bands;
+        _bands = bands;
+        Translate();
     }
 
     /// <summary>
-    /// Says it all to the plot again, in the plot's terms. Every property lands here, because each is a plain
-    /// assignment: the plot draws again for what changed and never rebuilds anything.
-    ///
-    /// The scale: fitted at both ends; manual between its two numbers, but only while the top is above the bottom —
-    /// the editor lets the two be typed in any order, and passing through the moment they cross must not collapse the
-    /// chart — and otherwise from nought, up to <see cref="MaxY"/> or fitted when there is none.
+    /// Says it all to the plot again, in the plot's terms (<see cref="PlotDress"/>): the two lines, the window, the
+    /// scale's ends and the look. Every property lands here, because each is a plain assignment: the plot draws again
+    /// for what changed and never rebuilds anything — new lines of the same readings are the same lines repainted.
     /// </summary>
     private void Translate()
     {
         if (Plot is null) return;
 
-        Plot.Values = ListOf(Values);
-        Plot.SecondValues = ListOf(SecondValues);
+        var lines = new List<PlotLine>(2);
+        if (ListOf(Values) is { } first) lines.Add(new PlotLine(first, SeriesColor ?? Unpainted, _bands));
+        if (ListOf(SecondValues) is { } second) lines.Add(new PlotLine(second, SecondColor ?? Unpainted));
+        if (Plot.Lines is not { } drawn || !drawn.SequenceEqual(lines)) Plot.Lines = lines;
+
         Plot.Window = PointCount;
-        Plot.Stroke = SeriesColor ?? Unpainted;
-        Plot.SecondStroke = SecondColor ?? Unpainted;
-
-        (Plot.RangeMin, Plot.RangeMax) = Scale switch
-        {
-            ChartScale.FitToData => (double.NaN, double.NaN),
-            ChartScale.Manual when ScaleMax > ScaleMin => (ScaleMin, ScaleMax),
-            _ => (0d, MaxY),
-        };
-
-        var look = new LineLook(LineThickness, Fill switch
-        {
-            ChartFill.None => AreaFill.None,
-            ChartFill.Flat => AreaFill.Flat,
-            _ => AreaFill.Fade,
-        }, FillOpacity, Smoothness, PointSize);
+        (Plot.RangeMin, Plot.RangeMax) = PlotDress.Range(Scale, ScaleMin, ScaleMax, MaxY);
 
         // Equal looks are left alone, so a restyle that changed nothing here draws nothing.
+        var look = PlotDress.Look(LineThickness, Fill, FillOpacity, Smoothness, PointSize);
         if (!Equals(Plot.Look, look)) Plot.Look = look;
     }
 
