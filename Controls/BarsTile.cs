@@ -30,7 +30,7 @@ namespace Aquila.Controls;
 /// </summary>
 public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, IOrientedBars, IScaledFigure,
     IFollowsSchemeTrack, ILimitParts, ILimitStyle, INoteStyle, IPlotTextStyle, IReadingRamp, IReadingNames, ITitleAside,
-    IBarParts
+    IBarParts, ITurnedFigure
 {
     /// <summary>The most readings the widget draws — this machine's sixteen cores, and a ceiling, not a shape.</summary>
     public const int MostReadings = 16;
@@ -105,6 +105,7 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
         SchemeTrack.Follow(this);
 
         Loaded += (_, _) => Hook();
+        _cells.SizeChanged += (_, _) => FigureScaling.Turn(_cells, _angle);
         Unloaded += (_, _) => Unhook();
 
         Apply();
@@ -607,6 +608,12 @@ public sealed class BarsTile : UserControl, IBarStyle, IValueStyle, IUnitStyle, 
     public bool ColourByReading { get => _colourByReading; set { _colourByReading = value; Apply(); } }
     public bool ShowPeak { get => _showPeak; set { _showPeak = value; Apply(); } }
     public int PointCount { get => _pointCount; set { _pointCount = value; Apply(); } }
+
+    /// <summary>How far the bars are turned, clockwise, about their middle and shrunk to fit their place — the words written
+    /// with the bars turn with them; the title's numbers and the legend stay upright.</summary>
+    public double Angle { get => _angle; set { _angle = value; FigureScaling.Turn(_cells, value); } }
+
+    private double _angle;
 
     private static Brush Frozen(Color colour)
     {

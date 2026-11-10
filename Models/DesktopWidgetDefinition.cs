@@ -290,6 +290,14 @@ public class DesktopWidgetDefinition
     /// declares who can be asked.</summary>
     public BarDirection BarDirection { get; set; } = BarDirection.Vertical;
 
+    /// <summary>
+    /// How far a widget's figure is turned, in degrees clockwise — a dial's arc, a clock's rings, a chart's plot, the
+    /// bars — so designs can lean (João, 2026-11-10: arcs set round a clock). Never its words: the title, its numbers
+    /// and a legend stay upright. The widget's box does not turn, so selecting and resizing it are as they were. On the
+    /// widget, like <see cref="BarDirection"/>: it is how this widget fits its place. 0 when absent.
+    /// </summary>
+    public double Angle { get; set; }
+
     public string Text { get; set; } = string.Empty;
 
     /// <summary>What a Clock widget shows. Which of time or date is content; how big it is drawn is not.</summary>

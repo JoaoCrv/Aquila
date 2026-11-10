@@ -1280,6 +1280,26 @@
                             </ui:CardControl>
                         </StackPanel>
 
+                        <!-- How far the figure is turned, five degrees a step — never its words, and never the
+                             widget's box, so moving and resizing are as they were. -->
+                        <ui:CardControl Style="{StaticResource Row}" Margin="0,0,0,16" Icon="{ui:SymbolIcon ArrowRotateClockwise24}"
+                                        Visibility="{Binding ViewModel.ShowsRotation, Converter={StaticResource BoolToVisibility}}">
+                            <ui:CardControl.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Rotation"/>
+                                    <TextBlock Style="{StaticResource SettingHint}"
+                                               Text="Turns the figure. Its title and legend stay upright."/>
+                                </StackPanel>
+                            </ui:CardControl.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <controls:SliderField Minimum="-180" Maximum="180" Step="5" Format="{}{0:F0}°"
+                                                      Value="{Binding ViewModel.FigureAngle}"/>
+                                <ui:Button Margin="6,0,0,0" Icon="{ui:SymbolIcon ArrowReset24}" ToolTip="Upright"
+                                           AutomationProperties.Name="Upright"
+                                           Command="{Binding ViewModel.ResetAngleCommand}"/>
+                            </StackPanel>
+                        </ui:CardControl>
+
                         <!-- Where it sits and how big it is, in exact numbers. Dragging and the wheel are the
                              quick way; these are for lining widgets up deliberately, and for fetching one back
                              when it has ended up somewhere off-screen. Two by two in one card, because a number

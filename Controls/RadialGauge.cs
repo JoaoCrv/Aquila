@@ -25,7 +25,7 @@ namespace Aquila.Controls;
 ///
 /// The ring sits under the number, so a widget too small for both never draws the arc over the reading.
 /// </summary>
-public sealed class RadialGauge : Panel, ISensorPiece, IGaugeStyle
+public sealed class RadialGauge : Panel, ISensorPiece, IGaugeStyle, ITurnedFigure
 {
     /// <summary>Where nothing names the arc's colour: the dashboard's accent, and failing that a plain blue.</summary>
     private static readonly Brush FallbackAccent = Frozen(Color.FromRgb(96, 205, 255));
@@ -288,6 +288,19 @@ public sealed class RadialGauge : Panel, ISensorPiece, IGaugeStyle
             GaugeSweep.Ring => (-90d, 360d),
             _ => (-225d, 270d),
         };
+
+        // Turned about its own centre, and fitted to the box again for where it now reaches (RingFit.Sweep); the
+        // number in the middle stays upright.
+        _ring.StartAngle += _angle;
+    }
+
+    private double _angle;
+
+    /// <summary>How far the arc is turned, clockwise.</summary>
+    public double Angle
+    {
+        get => _angle;
+        set { _angle = double.IsFinite(value) ? value : 0; Shape(); }
     }
 
     /// <summary>

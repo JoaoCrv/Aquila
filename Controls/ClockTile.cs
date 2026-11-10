@@ -33,7 +33,7 @@ namespace Aquila.Controls;
 /// Its own default is all three rings, so the type picker — which builds the piece and never dresses it — shows
 /// what a clock made today looks like.
 /// </summary>
-public sealed class ClockTile : Grid, IClockStyle, IArcStyle
+public sealed class ClockTile : Grid, IClockStyle, IArcStyle, ITurnedFigure
 {
     /// <summary>
     /// A line of the clock's text.
@@ -207,6 +207,15 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
     /// Elevated is the stop left out: in most ramps it sits close to Normal — it is the first step away from calm —
     /// and two neighbouring rings in nearly one colour would read as one thick ring.
     /// </summary>
+    private double _angle;
+
+    /// <summary>How far the rings are turned, clockwise — where they start.</summary>
+    public double Angle
+    {
+        get => _angle;
+        set { _angle = double.IsFinite(value) ? value : 0; Paint(); }
+    }
+
     private void Paint()
     {
         string[] stops = [_ramp.Normal, _ramp.Alert, _ramp.Critical];
@@ -222,6 +231,9 @@ public sealed class ClockTile : Grid, IClockStyle, IArcStyle
             if ((hand.Stroke as SolidColorBrush)?.Color != colour.Color) hand.Stroke = colour;
 
             hand.Look = look;
+
+            // Turned, the rings start somewhere other than twelve; the time in the middle stays upright.
+            hand.StartAngle = -90 + _angle;
         }
 
         var seconds = HexBrush.From(_ramp.Normal);

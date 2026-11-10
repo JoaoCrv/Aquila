@@ -132,6 +132,11 @@ public sealed record WidgetKindInfo(
     /// </summary>
     public Func<DesktopWidgetDefinition, bool>? HasShape { get; init; }
 
+    /// <summary>Whether this kind's figure can be turned (<see cref="Controls.ITurnedFigure"/>) — a dial's arc, a clock's
+    /// rings, a chart's plot, the bars. Declared, like the other flags, because the editor asks before it builds.
+    /// </summary>
+    public bool Turns { get; init; }
+
     /// <summary>Whether a widget can be made this kind — offered in the gallery and the editor. False only for a kind
     /// kept so that widgets saved as it open exactly as they were (the old two-reading chart, the old Bars).</summary>
     public bool Listed { get; init; } = true;
@@ -164,7 +169,7 @@ public static class WidgetCatalog
             170, 190,
             series => new RadialGauge { Sensor = series[0] },
             SeriesPaint.Properties(RadialGauge.AccentProperty))
-            { HasDial = true, HasShape = _ => true, Icon = Wpf.Ui.Controls.SymbolRegular.Gauge24, Summary = "One reading as a dial" },
+            { HasDial = true, HasShape = _ => true, Turns = true, Icon = Wpf.Ui.Controls.SymbolRegular.Gauge24, Summary = "One reading as a dial" },
 
         // The sparkline and the two-reading chart in one (docs/widget-grafico). A new one starts with its number in the
         // title, a dot on its newest reading and its line in its states' colours; the rest is asked for.
@@ -175,7 +180,7 @@ public static class WidgetCatalog
             series => new ChartTile(series),
             ChartPaint)
             {
-                HasLine = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = ChartSummary,
+                HasLine = true, Turns = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = ChartSummary,
                 MadeNow = chart => (chart.ReadingsAt, chart.ShowEnd, chart.ColourByReading) = (ReadingPlace.Title, true, true),
             },
 
@@ -189,7 +194,7 @@ public static class WidgetCatalog
             series => new BarsTile(series),
             BarsPaint)
             {
-                HasBar = true, HasDirection = true, OneRamp = true,
+                HasBar = true, HasDirection = true, OneRamp = true, Turns = true,
                 Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = BarsSummary,
                 MadeNow = bars => (bars.BarDirection, bars.ReadingsAt, bars.ColourByReading, bars.ShowPeak) =
                     (BarDirection.Horizontal, ReadingPlace.Above, true, true),
@@ -221,7 +226,7 @@ public static class WidgetCatalog
             300, 160,
             series => new ChartTile(series),
             ChartPaint)
-            { HasLine = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = ChartSummary, Listed = false },
+            { HasLine = true, Turns = true, Icon = Wpf.Ui.Controls.SymbolRegular.DataTrending24, Summary = ChartSummary, Listed = false },
 
         // Nowhere to put a colour, so MaxSeries is 0 — the first kind that reads nothing at all. Everything
         // it draws, the widget's own Border already draws: colour, opacity, corners, border. The piece is
@@ -254,7 +259,7 @@ public static class WidgetCatalog
             _ => new ClockTile(),
             SeriesPaint.None)
             {
-                NeedsReading = false, HasClock = true, HasUnit = false, Icon = Wpf.Ui.Controls.SymbolRegular.Clock24, Summary = "The time, in rings or as text",
+                NeedsReading = false, HasClock = true, HasUnit = false, Turns = true, Icon = Wpf.Ui.Controls.SymbolRegular.Clock24, Summary = "The time, in rings or as text",
                 Reference = clock => clock.Rings == ClockRings.None ? (200, 70) : (200, 200),
                 HasShape = clock => clock.Rings != ClockRings.None,
                 MadeNow = clock => clock.Rings = ClockRings.All,
@@ -271,7 +276,7 @@ public static class WidgetCatalog
             series => new BarsTile(series),
             BarsPaint)
             {
-                HasBar = true, HasDirection = true, OneRamp = true, Listed = false,
+                HasBar = true, HasDirection = true, OneRamp = true, Turns = true, Listed = false,
                 Icon = Wpf.Ui.Controls.SymbolRegular.DataBarHorizontal24, Summary = BarsSummary,
             },
 

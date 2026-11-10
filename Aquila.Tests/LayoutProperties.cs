@@ -132,6 +132,16 @@ public sealed class LayoutProperties
         Assert.Equal((false, false), (bars.ColourByReading, bars.ShowPeak));
     }
 
+    /// <summary>A figure's turn is kept through a save, and a widget written before turning existed is upright.</summary>
+    [Fact]
+    public void A_widget_s_angle_survives_a_save()
+    {
+        var (widgets, unread) = DesktopLayoutService.Parse("""[ { "Kind": "RadialGauge", "Angle": -45 }, { "Kind": "Chart" } ]""");
+        var (again, _) = DesktopLayoutService.Parse(DesktopLayoutService.Write(widgets, unread));
+
+        Assert.Equal([-45d, 0d], again.Select(widget => widget.Angle));
+    }
+
     [Fact]
     public void An_old_chart_keeps_its_kind_and_writes_no_numbers()
     {

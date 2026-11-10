@@ -1477,6 +1477,7 @@ public sealed class DesktopWidgetService
         // silently remove a number you were reading.
         if (piece is IUnitStyle unit) unit.ShowUnit = definition.ShowUnit;
         if (piece is IOrientedBars bars) bars.Direction = definition.BarDirection;
+        if (piece is ITurnedFigure turned) turned.Angle = definition.Angle;
         if (piece is IHideableValue hideable) hideable.ShowValue = definition.ShowValue;
 
         if (piece is IChartStyle chart)

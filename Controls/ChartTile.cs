@@ -22,7 +22,7 @@ namespace Aquila.Controls;
 /// It takes hold of its readings and the limits on Loaded and lets go on Unloaded.
 /// </summary>
 public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyle, INoteStyle, IPlotTextStyle,
-    ILimitParts, ILimitStyle, IChartParts, IReadingRamp, IReadingNames, ITitleAside, IScaledFigure
+    ILimitParts, ILimitStyle, IChartParts, IReadingRamp, IReadingNames, ITitleAside, IScaledFigure, ITurnedFigure
 {
     /// <summary>The most readings a chart draws: four, each in a ramp of the preset's.</summary>
     public const int MostReadings = 4;
@@ -70,6 +70,7 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
         Content = root;
 
         Loaded += (_, _) => Hook();
+        _plot.SizeChanged += (_, _) => FigureScaling.Turn(_plot, _angle);
         Unloaded += (_, _) => Unhook();
 
         Format();
@@ -346,6 +347,12 @@ public sealed class ChartTile : UserControl, IChartStyle, IValueStyle, IUnitStyl
     public bool ShowPeak { get => _showPeak; set { _showPeak = value; Apply(); } }
     public bool ShowScaleLabels { get => _showScaleLabels; set { _showScaleLabels = value; Apply(); } }
     public ReadingPlace ReadingsAt { get => _readingsAt; set { _readingsAt = value; Apply(); } }
+
+    /// <summary>How far the plot is turned, clockwise, about its middle and shrunk to fit its place — the lines and what is
+    /// written over them turn with it; the title's numbers and the legend stay upright.</summary>
+    public double Angle { get => _angle; set { _angle = value; FigureScaling.Turn(_plot, value); } }
+
+    private double _angle;
 
     private static Brush Frozen(Color colour)
     {

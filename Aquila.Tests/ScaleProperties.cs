@@ -176,6 +176,30 @@ public sealed class ScaleProperties
         Assert.Equal((240d, 80d), WidgetScale.ReferenceOf(new DesktopWidgetDefinition { Kind = DesktopWidgetKind.SensorMeter }));
     }
 
+    /// <summary>
+    /// A turned figure (<see cref="Aquila.Controls.FigureScaling.TurnedScale"/>) still fits where it was laid out — its
+    /// turned corners inside the frame — shrunk no more than that, never grown, and not at all upright or upside down.
+    /// </summary>
+    [Property(MaxTest = 1000)]
+    public Property A_turned_figure_fits_its_place() =>
+        Prop.ForAll(
+            (from width in Gen.Choose(1, 2000) from height in Gen.Choose(1, 2000) from angle in Gen.Choose(-720, 720)
+             select (width: (double)width, height: (double)height, angle: (double)angle)).ToArbitrary(),
+            turn =>
+            {
+                var (width, height, angle) = turn;
+                var scale = Aquila.Controls.FigureScaling.TurnedScale(new System.Windows.Size(width, height), angle);
+                var radians = angle * Math.PI / 180;
+                var (cos, sin) = (Math.Abs(Math.Cos(radians)), Math.Abs(Math.Sin(radians)));
+                var across = scale * (width * cos + height * sin);
+                var down = scale * (width * sin + height * cos);
+                var tight = Math.Abs(across - width) < 1e-6 || Math.Abs(down - height) < 1e-6;
+
+                return scale is > 0 and <= 1 && across <= width + 1e-6 && down <= height + 1e-6
+                    && (tight || scale == 1)
+                    && (angle % 180 != 0 || scale == 1);
+            });
+
     /// <summary>Whatever a file says the size is, the scale stays within its bounds.</summary>
     [Property(MaxTest = 1000)]
     public Property The_scale_is_always_within_its_bounds() =>

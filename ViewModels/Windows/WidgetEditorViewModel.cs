@@ -1446,7 +1446,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     /// <summary>The rings round a clock, and the lines written inside them.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsClockFormat), nameof(ShowsRingOptions), nameof(ShowsArc))]
+    [NotifyPropertyChangedFor(nameof(ShowsClockFormat), nameof(ShowsRingOptions), nameof(ShowsArc), nameof(ShowsRotation))]
     private ClockRings _selectedRings = ClockRings.None;
 
     [ObservableProperty] private bool _secondsShown = true;
@@ -1617,6 +1617,19 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsBarWindow))]
     private bool _peakShown;
+
+    /// <summary>How far the widget's figure is turned, clockwise, in degrees — its words stay upright.</summary>
+    [ObservableProperty] private double _figureAngle;
+
+    partial void OnFigureAngleChanged(double value) => Apply();
+
+    /// <summary>Upright again.</summary>
+    [RelayCommand]
+    private void ResetAngle() => FigureAngle = 0;
+
+    /// <summary>Whether this widget has a figure to turn: a dial, a chart, bars — and a clock only with rings, since
+    /// without them it is words.</summary>
+    public bool ShowsRotation => SelectedKind?.Turns == true && (!ShowsClockOptions || ShowsRingOptions);
 
     /// <summary>The time window, for bars: only while they hold a peak, which is all it is for there.</summary>
     public bool ShowsBarWindow => ShowsDirection && PeakShown;
@@ -1846,6 +1859,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         _target.ShowValue = ValueShown;
         _target.ShowUnit = UnitShown;
         _target.BarDirection = BarDirection;
+        _target.Angle = FigureAngle;
 
         _target.PointCount = (int)PointCount;
         _target.Scale = SelectedScale;
@@ -2116,6 +2130,7 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
         ValueShown = source.ShowValue;
         UnitShown = source.ShowUnit;
         BarDirection = source.BarDirection;
+        FigureAngle = source.Angle;
 
         PointCount = source.PointCount;
         SelectedScale = source.Scale;
