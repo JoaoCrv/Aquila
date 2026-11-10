@@ -80,9 +80,10 @@ in [SECURITY.md](SECURITY.md#verifying-a-download).
 ### Desktop widgets
 
 Edit mode: the widgets stay on the real desktop, the one selected wears its handles, and the editor stands beside
-them; nothing is saved until you press Save.
+them; nothing is saved until you press Save. Here, a chart with its legend and scale, bars, a dial, a clock with
+rings and the busiest applications — and the preview, which shows every widget in a state of your choosing.
 
-<img src="Assets/Screenshots/desktop-widgets-editor.png" alt="Desktop widgets in edit mode: a selected widget with handles, the edit bar at the top and the editor panel docked on the left" />
+<img src="Assets/Screenshots/desktop-widgets-editor.png" alt="Desktop widgets in edit mode: a selected chart with a legend and handles, bars, a dial, a ringed clock and a list of the busiest applications, the edit bar at the top with the preview menu open, and the editor panel docked on the left" />
 
 ### Themes
 
@@ -124,7 +125,7 @@ one, and every desktop widget can wear its own.
 
 **Create and edit widgets**
 
-https://github.com/user-attachments/assets/bfed3dca-ae4f-467d-86fb-4fe7dca73c78
+https://github.com/user-attachments/assets/f35192e8-bc7f-4774-9684-4f4d2947b4e5
 
 **Dashboard mode**
 
