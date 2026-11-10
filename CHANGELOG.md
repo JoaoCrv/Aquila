@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="2.5.0"></a>
+## [2.5.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.5.0) (2026-11-10)
+
+### Features
+
+* **bars:** every bar that moves is a BarFill ([14710f9](https://www.github.com/JoaoCrv/Aquila/commit/14710f942d9081d266837466a6029a3b117f650a))
+* **bars:** the dashboard's still bars on the framework too ([22e9e89](https://www.github.com/JoaoCrv/Aquila/commit/22e9e899bed85b32425a4fedf2a079c34b26afa8))
+* **charts:** a dot on the latest reading, pulsing as each one arrives ([ae8506d](https://www.github.com/JoaoCrv/Aquila/commit/ae8506db39926f9a527de042016acdd5183bdd42))
+* **charts:** colour by reading — the line in each reading's state along the way ([a008bc0](https://www.github.com/JoaoCrv/Aquila/commit/a008bc0cf0cf95a18120c5811319db1491a501d7))
+* **charts:** every chart drawn by LinePlot — LiveCharts draws nothing now ([fc94df4](https://www.github.com/JoaoCrv/Aquila/commit/fc94df430ebb439f043796c3a6305aadd5ecd3f1))
+* **charts:** Slide charts with time — a machine setting, off by default ([c09e0fd](https://www.github.com/JoaoCrv/Aquila/commit/c09e0fddc95cd2a272c1ed1108584f9e8d44ef94))
+* **charts:** the scale travels to new ends instead of jumping ([5babf98](https://www.github.com/JoaoCrv/Aquila/commit/5babf98c7dc85f70bc0ec3e88763cbc7665be17e))
+* **editor:** a widget starts from what you want to see, and every change can be taken back ([ad5e368](https://www.github.com/JoaoCrv/Aquila/commit/ad5e36822bed77023494871a805ebc1f085681c2))
+* **editor:** edit mode redesigned — a selected widget with handles, one bar for the session, and a panel in three tabs ([8c8a76e](https://www.github.com/JoaoCrv/Aquila/commit/8c8a76ea3217652d66890c39a49c22bc23bc635a))
+* **editor:** options drawn as Windows 11's Settings draws them ([a3df3f3](https://www.github.com/JoaoCrv/Aquila/commit/a3df3f30cc6d78c86c25eb0970498614a1fc3217))
+* **editor:** the Bars in the panel — their text, names, colour by reading and peak ([369c68e](https://www.github.com/JoaoCrv/Aquila/commit/369c68e0eaaad26010eb5fa4aaea7ebdbc7d979e))
+* **editor:** the Chart in the panel — where its numbers go, scale labels, peak ([e74636b](https://www.github.com/JoaoCrv/Aquila/commit/e74636b95587827fce14066fa1350ce717c3c42e))
+* **presets:** a bar's fill can fade in along it ([8109f0a](https://www.github.com/JoaoCrv/Aquila/commit/8109f0a35101f65b868b195de706c02331cfc5bd))
+* **presets:** a ramp for each of a chart's four lines; the legend folds ([2543291](https://www.github.com/JoaoCrv/Aquila/commit/2543291df503915321ae82517546838f4d50386d))
+* **presets:** bars drawn in blocks, an LED meter's ([2a41e8e](https://www.github.com/JoaoCrv/Aquila/commit/2a41e8e9846d712a2968bff67bb151b612f3b829))
+* **presets:** the title gets a box of its own, which can reach the panel's edges as a title bar ([354ac03](https://www.github.com/JoaoCrv/Aquila/commit/354ac0301fcf9c72aeb48bec87c18d35dc1970ca))
+* **primitives:** BarFill draws bands, the peak and blocks ([32e57f2](https://www.github.com/JoaoCrv/Aquila/commit/32e57f2080df186ad4592a71d326225163f6512a))
+* **primitives:** LinePlot draws up to four lines, each with its own bands and end ([884659a](https://www.github.com/JoaoCrv/Aquila/commit/884659a021d87e379dc8d566ae9cefabdc37d6d0))
+* **primitives:** LinePlot writes — end labels set apart, the peak, the scale's ends ([06a7308](https://www.github.com/JoaoCrv/Aquila/commit/06a730838d409d1bd09f275782bec78636cee959))
+* **primitives:** the base of a drawing framework of our own ([cf32f09](https://www.github.com/JoaoCrv/Aquila/commit/cf32f092a28535d518feb249bf7d5ec1a238186d))
+* **primitives:** the elements — LinePlot, and BarFill and RingArc on the base ([18c0fba](https://www.github.com/JoaoCrv/Aquila/commit/18c0fba53ef0e308d5c8480d4059d0525c8c6b44))
+* **updates:** the update's notification goes straight to Install ([dbfc944](https://www.github.com/JoaoCrv/Aquila/commit/dbfc94491da3177fbf6ba044f9265150d75bf623))
+* **widgets:** a name of its own for each of a chart's readings ([f419e65](https://www.github.com/JoaoCrv/Aquila/commit/f419e65551d0f978959035422800e802db56644d))
+* **widgets:** Show limits — dashed lines on a chart, marks on a bar, where the reading turns ([a92c839](https://www.github.com/JoaoCrv/Aquila/commit/a92c8390117604e9c799d2e9dec59c4f4d353c21))
+* **widgets:** the Bars — one widget for the meter and the bars ([4320cc2](https://www.github.com/JoaoCrv/Aquila/commit/4320cc23b84817028336923c42b8d9240fea6e91))
+* **widgets:** the Bars write their readings where the Chart can — a legend included ([494953c](https://www.github.com/JoaoCrv/Aquila/commit/494953cdc620aa02bd5a2f98217bbd664167321f))
+* **widgets:** the Chart — one widget for the sparkline and the chart ([5fd763a](https://www.github.com/JoaoCrv/Aquila/commit/5fd763a3d1b8dce2df4268c7f6f59c02c1aafd08))
+* **widgets:** the Number shows how far into its limits, its lowest and highest, and where it is heading ([8bef9c6](https://www.github.com/JoaoCrv/Aquila/commit/8bef9c6b693feea77aa998d7628d0c1d1e219e11))
+* **widgets:** the process list as the design draws it, and motion steps that can be told apart ([4820b18](https://www.github.com/JoaoCrv/Aquila/commit/4820b18cb7eee83157856faffe073feaf6a2033a))
+* **widgets:** turn a widget's figure, never its words ([1f883b4](https://www.github.com/JoaoCrv/Aquila/commit/1f883b46c7f6dab268a7175b3fcef073e891d6fe))
+
+### Bug Fixes
+
+* **runtime:** run on .NET 10, before .NET 9 stops getting security fixes on November 10 ([0038a4f](https://www.github.com/JoaoCrv/Aquila/commit/0038a4f12c91b2461db5e9044e4542fe19242f0a))
+* **settings:** a motion step chosen in 2.4.0 keeps its name after the steps were spread out ([b210881](https://www.github.com/JoaoCrv/Aquila/commit/b2108816801b3f21a1d3779326edb2555ceffd6c))
+* **widgets:** a widget sent to another screen no longer freezes its colour, and a discarded build no longer paints unseen ([31db210](https://www.github.com/JoaoCrv/Aquila/commit/31db21012e6c62814c9ed93943551e46cfad39ee))
+* **widgets:** process rows that read the same keep their places ([318fa18](https://www.github.com/JoaoCrv/Aquila/commit/318fa18e846514cfa3576ea0247da93f5f303013))
+* **window:** a reopened window no longer shows the closed one's page as selected ([a2f6dd7](https://www.github.com/JoaoCrv/Aquila/commit/a2f6dd733054fd5f5cc2e6d506dae2acd4a84178))
+
 <a name="2.4.0"></a>
 ## [2.4.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.4.0) (2026-10-26)
 
