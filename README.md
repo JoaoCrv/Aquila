@@ -36,7 +36,8 @@ Grab the latest release from the [**Releases page**](https://github.com/JoaoCrv/
 - **`Aquila-win-Setup.exe`** — installer with automatic updates (recommended)
 - **`Aquila-win-Portable.zip`** — portable build, no installation required
 
-Once installed, Aquila checks for updates silently on startup and notifies you before downloading anything.
+Once installed, Aquila checks for updates silently on startup and notifies you before downloading anything —
+click the notification and it opens straight on **Install update**.
 
 Releases are not code-signed, so Windows SmartScreen may warn the first time the installer runs — choose
 **More info**, then **Run anyway**. Instead, every release is built by GitHub Actions from a public commit
@@ -45,16 +46,22 @@ in [SECURITY.md](SECURITY.md#verifying-a-download).
 
 ## Features
 
-- **Desktop widgets** — put any reading on your desktop: dials, sparklines, bars, numbers, an equaliser, text,
-  a clock, and backdrops to group them on. They sit above the wallpaper and behind your windows, and clicks
-  pass straight through them.
+- **Desktop widgets** — put any reading on your desktop: charts of up to four readings, dials, bars (up to sixteen,
+  lying down or standing up — an equaliser of your CPU cores), numbers, the busiest applications, text, a clock with
+  rings, and backdrops to group them on. They sit above the wallpaper and behind your windows, and clicks pass
+  straight through them.
+- **Charts and bars drawn by Aquila itself** — write a chart's numbers in its title, at its line ends or in a
+  legend, with names of your own; mark the limits, the peak and the scale. Bars can take the colour of every limit
+  they pass, like a VU meter, hold their peak, glow as LED blocks or fade in as a gradient. Turn a dial's arc, a
+  chart or a row of bars to any angle — set arcs around a clock — while their titles and legends stay upright.
 - **Create and edit them in place** — start a widget from the reading you want to see, or pin any sensor
   straight from the Explorer. Edit mode keeps the widgets on your real desktop: click one to select it, drag it,
   pull a corner to resize it, and a panel beside it sets its content, its preset and the rest of how it is drawn
   and where — even which widget sits in front. A bar at the top adds widgets, finds them, previews the desktop in
   any state, and saves or discards: nothing is saved until you press Save, and Discard puts everything back.
-- **Make it yours** — themes dress the app, presets dress the data: colour ramps, typefaces, dials and bars,
-  chosen per widget. Edit the built-in presets, make your own, and share them as files.
+- **Make it yours** — themes dress the app, presets dress the data: colour ramps, typefaces, dials, lines and bars
+  (whole, in LED blocks or as a gradient), chosen per widget. Edit the built-in presets, make your own, and share
+  them as files.
 - **Tray flyout and menu** — click the tray icon for the machine at a glance: CPU, GPU, RAM and package
   temperature, the latest notice, and shortcuts to open Aquila, edit widgets or exit. Right-click for a menu
   in the app's own theme. Minimize to tray, start with Windows, start minimized.
@@ -87,7 +94,7 @@ accent colour and comes in light and dark — or follows Windows as it switches 
 ### Presets
 
 A preset decides how readings are drawn — the colours a value moves through as it climbs, the typefaces, the
-dials and bars. Four come built in: **Ember**, **Classic**, **Signal** and **Sky**. Every one is editable, and the
+dials, lines and bars. Four come built in: **Ember**, **Classic**, **Signal** and **Sky**. Every one is editable, and the
 widgets wearing it change as you edit; a built-in is never overwritten, your changes are kept as a copy of your
 own. Start a new preset from any other, and export or import them as files. The dashboard wears
 one, and every desktop widget can wear its own.
