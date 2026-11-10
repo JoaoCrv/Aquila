@@ -61,7 +61,7 @@ namespace Aquila.Services
                     return;
 
                 const string title = "Update available";
-                const string message = "A new Aquila version is ready. Open Settings to install it.";
+                const string message = "A new Aquila version is ready to install.";
 
                 // A nudge rather than good news: nothing has gone right, there is something to do. Which
                 // is exactly the sort of judgement only the writer can make, and why StatusKind is set
@@ -72,7 +72,8 @@ namespace Aquila.Services
                 // isn't told twice.
                 if (trayNotifier is { IsWindowVisible: false })
                 {
-                    trayNotifier.Notify(title, message);
+                    // Clicked, it goes straight to where the update is installed, not to the dashboard.
+                    trayNotifier.Notify(title, message, trayNotifier.ShowUpdates);
                     return;
                 }
 

@@ -34,9 +34,13 @@ public sealed class MainWindowService(IServiceProvider services)
 
     /// <summary>
     /// Brings the window up: built and on the dashboard when there is none, put back as it was when it is only
-    /// minimised.
+    /// minimised — or on <paramref name="page"/> when one is asked for, as an update's notification asks for
+    /// Settings.
     /// </summary>
-    public void Open()
+    public void Open() => Open(null);
+
+    /// <inheritdoc cref="Open()"/>
+    public void Open(Type? page)
     {
         var first = _window is null;
         var window = _window ?? Create();
@@ -47,7 +51,7 @@ public sealed class MainWindowService(IServiceProvider services)
         // while the window is hidden. Set before Show, so the button is not added to a window already up.
         window.ShowInTaskbar = true;
         window.Show();
-        if (first) window.Navigate(typeof(Views.Pages.DashboardPage));
+        if (first || page is not null) window.Navigate(page ?? typeof(Views.Pages.DashboardPage));
         window.Activate();
         window.WindowState = WindowState.Normal;
     }

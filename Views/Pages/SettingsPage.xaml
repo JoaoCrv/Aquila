@@ -324,7 +324,7 @@
 
         <!-- An expander, because this one carries a status message that changes and would not fit beside
              a header. -->
-        <ui:CardExpander Margin="0,0,0,20" Icon="{ui:SymbolIcon ArrowSync24}">
+        <ui:CardExpander x:Name="UpdatesCard" Margin="0,0,0,20" Icon="{ui:SymbolIcon ArrowSync24}">
             <ui:CardExpander.Header>
                 <StackPanel>
                     <TextBlock Text="Updates" />
@@ -340,8 +340,9 @@
                            Text="{Binding ViewModel.UpdateStatusMessage, Mode=OneWay}" />
 
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <!-- "Install update" once one is known: the same command, which checks, asks once and installs. -->
                     <ui:Button Command="{Binding ViewModel.CheckForUpdatesCommand, Mode=OneWay}"
-                               Content="Check for updates"
+                               Content="{Binding ViewModel.UpdateButtonText, Mode=OneWay}"
                                Icon="{ui:SymbolIcon ArrowDownload24}" />
                     <ui:ProgressRing Width="18" Height="18" Margin="10,0,0,0"
                                      VerticalAlignment="Center" IsIndeterminate="True"

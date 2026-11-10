@@ -18,4 +18,8 @@ public interface ITrayNotifier
     /// Lets a caller skip an in-window notification that nobody would see, or skip doubling up when they
     /// would.</summary>
     bool IsWindowVisible { get; }
+
+    /// <summary>Brings the window up on Settings, at its updates — where an update is installed. What clicking an
+    /// update's notification does.</summary>
+    void ShowUpdates();
 }

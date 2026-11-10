@@ -287,6 +287,7 @@ namespace Aquila.ViewModels.Pages
             AppVersion = $"Current version: {GetAssemblyVersion()}";
             UpdateStatusMessage = _updateService.StatusMessage;
             UpdateStatusKind = _updateService.StatusKind;
+            UpdateAvailable = _updateService.IsUpdateAvailable;
             SelectedPollingInterval =
                 PollingIntervalOptions.FirstOrDefault(o => o.Ms == _settings.Current.PollingIntervalMs)
                 ?? PollingIntervalOptions[1];
@@ -326,6 +327,28 @@ namespace Aquila.ViewModels.Pages
         {
             UpdateStatusMessage = _updateService.StatusMessage;
             UpdateStatusKind = _updateService.StatusKind;
+            UpdateAvailable = _updateService.IsUpdateAvailable;
+        }
+
+        /// <summary>Whether an update is known to be waiting — the button then installs it rather than looking for
+        /// one. The same command either way: it checks, asks once and installs.</summary>
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(UpdateButtonText))]
+        private bool _updateAvailable;
+
+        public string UpdateButtonText => UpdateAvailable ? "Install update" : "Check for updates";
+
+        /// <summary>Set by whoever opens Settings FOR its updates — an update's notification — and taken by the page,
+        /// which opens the section and brings it into view.</summary>
+        public bool UpdatesWanted { get; set; }
+
+        /// <summary>Raised when the updates are wanted while the page is already showing.</summary>
+        public event Action? UpdatesRequested;
+
+        public void ShowUpdates()
+        {
+            UpdatesWanted = true;
+            UpdatesRequested?.Invoke();
         }
 
         // ── Appearance ─────────────────────────────────────────────────────────────────────────────

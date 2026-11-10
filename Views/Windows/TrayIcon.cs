@@ -91,6 +91,14 @@ public sealed class TrayIcon : ITrayNotifier, IDisposable
 
     public bool IsWindowVisible => _mainWindow.IsOnScreen;
 
+    /// <summary>The window on Settings, its updates open and in view — one click from the notification to the
+    /// Install button.</summary>
+    public void ShowUpdates()
+    {
+        _services.GetRequiredService<ViewModels.Pages.SettingsViewModel>().ShowUpdates();
+        _mainWindow.Open(typeof(Views.Pages.SettingsPage));
+    }
+
     /// <summary>
     /// The tray flyout, built on first use and kept.
     ///
