@@ -93,6 +93,45 @@ public sealed class LayoutProperties
         Assert.Equal(["System drive", ""], Assert.Single(again).Series.Select(series => series.Label));
     }
 
+    /// <summary>A meter is read as the Bars it became — one bar lying down, its number beside it, as every built-in
+    /// preset drew it, or none if it had been turned off — with its limits as they were (docs/widget-barras).</summary>
+    [Theory]
+    [InlineData(true, false, ReadingPlace.Beside)]
+    [InlineData(false, true, ReadingPlace.None)]
+    public void A_meter_is_read_as_bars(bool showValue, bool showLimits, ReadingPlace expected)
+    {
+        var (widgets, _) = DesktopLayoutService.Parse($$"""
+            [ { "Kind": "SensorMeter", "Title": "CPU Power", "Width": 240, "Height": 80,
+                "ShowValue": {{(showValue ? "true" : "false")}}, "ShowLimits": {{(showLimits ? "true" : "false")}},
+                "Series": [ { "SensorIdentifier": "/cpu/0/power/0" } ] } ]
+            """);
+
+        var bars = Assert.Single(widgets);
+        Assert.Equal(DesktopWidgetKind.BarChart, bars.Kind);
+        Assert.Equal((BarDirection.Horizontal, expected), (bars.BarDirection, bars.ReadingsAt));
+        Assert.Equal(showLimits, bars.ShowLimits);
+        Assert.Equal((false, false), (bars.ColourByReading, bars.ShowPeak));
+        Assert.Equal(("CPU Power", 240d, 80d), (bars.Title, bars.Width, bars.Height));
+    }
+
+    /// <summary>The old Bars keep their kind and are drawn as they were: their direction, their numbers beside — under
+    /// standing bars — or none if turned off, and no bands or peak. Bars that say where their numbers go keep it, None
+    /// included.</summary>
+    [Theory]
+    [InlineData("""{ "Kind": "Bars", "BarDirection": "Horizontal" }""", ReadingPlace.Beside)]
+    [InlineData("""{ "Kind": "Bars", "ShowValue": false }""", ReadingPlace.None)]
+    [InlineData("""{ "Kind": "Bars", "ReadingsAt": "None" }""", ReadingPlace.None)]
+    [InlineData("""{ "Kind": "BarChart", "ReadingsAt": "Legend" }""", ReadingPlace.Legend)]
+    public void Old_bars_keep_their_kind(string widget, ReadingPlace expected)
+    {
+        var (widgets, _) = DesktopLayoutService.Parse($"[ {widget} ]");
+
+        var bars = Assert.Single(widgets);
+        Assert.NotEqual(DesktopWidgetKind.SensorMeter, bars.Kind);
+        Assert.Equal(expected, bars.ReadingsAt);
+        Assert.Equal((false, false), (bars.ColourByReading, bars.ShowPeak));
+    }
+
     [Fact]
     public void An_old_chart_keeps_its_kind_and_writes_no_numbers()
     {

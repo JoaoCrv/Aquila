@@ -100,6 +100,135 @@ public static class BarGeometry
         return parts;
     }
 
+    /// <summary>
+    /// How strong a fading bar is where it starts (<see cref="BarLook.Fade"/>); its tip has its whole colour. A quarter
+    /// and not nothing: faded to nothing, a short bar would seem to start halfway along, and a reading at rest would
+    /// show no bar at all — what <see cref="Least"/> exists to prevent.
+    /// </summary>
+    public const double FadeFrom = 0.25;
+
+    // ── Bands ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The filled part split where its colour changes — a VU meter's bar. Each band starts at a share of the track,
+    /// counted from where the bar fills, and paints from there to the end of the filled part: in ascending order, as a
+    /// reading's limits are, each later band lies over the one before, so the joins have no seam between two edges.
+    ///
+    /// One part per band, in the bands' order: from its start, held to the track, to the end of the
+    /// <see cref="Filled"/> part — and nothing, at that end, for a band the bar has not reached.
+    /// </summary>
+    public static Rect[] Banded(Rect track, double fraction, IReadOnlyList<double> froms, Orientation orientation)
+    {
+        var parts = new Rect[froms.Count];
+        var horizontal = orientation == Orientation.Horizontal;
+        var length = horizontal ? track.Width : track.Height;
+        var end = Share(fraction) * length;
+
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var from = Math.Min(Math.Clamp(double.IsNaN(froms[i]) ? 0 : froms[i], 0, 1) * length, end);
+
+            parts[i] = horizontal
+                ? new Rect(track.X + from, track.Y, end - from, track.Height)
+                : new Rect(track.X, track.Bottom - end, track.Width, end - from);
+        }
+
+        return parts;
+    }
+
+    /// <summary>The band a share of the track falls in: the last whose start it has reached — the highest limit a
+    /// reading has passed. -1 below the first.</summary>
+    public static int BandAt(IReadOnlyList<double> froms, double share)
+    {
+        var at = -1;
+        for (var i = 0; i < froms.Count; i++)
+            if (froms[i] <= share)
+                at = i;
+
+        return at;
+    }
+
+    // ── Blocks ───────────────────────────────────────────────────────────
+
+    /// <summary>The shortest a block is drawn: a pixel. Shorter, a track would be thousands of blocks, and no screen
+    /// shows one.</summary>
+    public const double LeastBlock = 1;
+
+    /// <summary>
+    /// A track as blocks — an LED meter's — laid from where the bar fills, as many as fit at
+    /// <paramref name="block"/> long with <paramref name="gap"/> between them, and each stretched by the same amount so
+    /// the first starts where the track does and the last ends where it ends: the top of the track is the top of the
+    /// scale, blocks or not. None for a block of nought — a bar drawn whole.
+    /// </summary>
+    public static Rect[] Blocks(Rect track, double block, double gap, Orientation orientation)
+    {
+        var horizontal = orientation == Orientation.Horizontal;
+        var length = horizontal ? track.Width : track.Height;
+        if (!(block > 0) || !(length > 0)) return [];
+
+        var size = Math.Max(block, LeastBlock);
+        var space = double.IsFinite(gap) ? Math.Max(0, gap) : 0;
+        var count = (int)Math.Max(1, Math.Floor((length + space) / (size + space)));
+        var each = (length - (count - 1) * space) / count;
+
+        var blocks = new Rect[count];
+        for (var i = 0; i < count; i++)
+        {
+            var from = i * (each + space);
+            blocks[i] = horizontal
+                ? new Rect(track.X + from, track.Y, each, track.Height)
+                : new Rect(track.X, track.Bottom - from - each, track.Width, each);
+        }
+
+        return blocks;
+    }
+
+    /// <summary>
+    /// A block's corners: the look's, but never rounder than a quarter of the block's shorter side. A preset's corner is
+    /// meant for a whole bar — Ember's 3 on a 6 px bar ends it in a half circle — and on a 5 px block the same corner
+    /// turns every block into a dot and the meter into a dotted line.
+    /// </summary>
+    public static double BlockCorner(double corner, Rect block) =>
+        Math.Min(Corner(corner, block), block.IsEmpty ? 0 : Math.Min(block.Width, block.Height) / 4);
+
+    /// <summary>
+    /// How many of <paramref name="count"/> blocks a reading lights, from where the bar fills. Each block stands for an
+    /// equal share of the scale and lights once the reading passes the middle of it — so a reading is shown to the
+    /// nearest block, and a block never lights for a reading that has barely entered it.
+    /// </summary>
+    public static int Lit(int count, double fraction) =>
+        count <= 0 ? 0 : (int)Math.Clamp(Math.Floor(Share(fraction) * count + 0.5), 0, count);
+
+    // ── The peak ─────────────────────────────────────────────────────────
+
+    /// <summary>The least a peak's line is drawn along the bar: thinner, it is lost against the track's edge.</summary>
+    public const double LeastPeak = 1.5;
+
+    /// <summary>
+    /// The line that holds a bar's highest recent reading: across the bar, reaching <paramref name="reach"/> past it
+    /// either side as the marks do, and a third of the bar's thickness along it — never less than
+    /// <see cref="LeastPeak"/>, never more than the track — centred on the peak's share and kept inside the track at
+    /// its ends.
+    /// </summary>
+    public static Rect PeakLine(Rect track, double peak, double reach, Orientation orientation)
+    {
+        var horizontal = orientation == Orientation.Horizontal;
+        var length = Math.Max(0, horizontal ? track.Width : track.Height);
+        var across = Math.Max(0, horizontal ? track.Height : track.Width);
+        var past = double.IsFinite(reach) ? Math.Max(0, reach) : 0;
+
+        var along = Math.Min(length, Math.Max(LeastPeak, across / 3));
+        var from = Math.Clamp(Share(peak) * length - along / 2, 0, length - along);
+
+        return horizontal
+            ? new Rect(track.X + from, track.Top - past, along, across + 2 * past)
+            : new Rect(track.Left - past, track.Bottom - from - along, across + 2 * past, along);
+    }
+
+    /// <summary>The block a peak lights among <paramref name="count"/>: the highest it would light as a reading, -1
+    /// for none.</summary>
+    public static int PeakBlock(int count, double peak) => Lit(count, peak) - 1;
+
     /// <summary>Whether a mark falls on the track at all.</summary>
     public static bool IsMark(double mark) => mark is >= 0 and <= 1;
 

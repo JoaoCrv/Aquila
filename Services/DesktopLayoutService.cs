@@ -166,6 +166,22 @@ public sealed class DesktopLayoutService(ILogger<DesktopLayoutService> logger)
             widget.ReadingsAt = widget.ShowValue ? ReadingPlace.Title : ReadingPlace.None;
         }
 
+        // The meter became the Bars (docs/widget-barras): the same size of reference, one bar lying down with its number
+        // beside it, as every built-in preset drew it — or none, if it had been turned off. Its limits stay as they
+        // were. Once: saved, it is Bars.
+        if (widget.Kind == DesktopWidgetKind.SensorMeter)
+        {
+            widget.Kind = DesktopWidgetKind.BarChart;
+            widget.BarDirection = BarDirection.Horizontal;
+        }
+
+        // Bars that never said where their numbers go — a meter, just above, or Bars from before the Bars widget — wrote
+        // them beside each bar, unless they were turned off. Read from the file, not the field: a layout saying "None"
+        // has chosen it.
+        if (widget.Kind is DesktopWidgetKind.BarChart or DesktopWidgetKind.Bars &&
+            !element.TryGetProperty(nameof(DesktopWidgetDefinition.ReadingsAt), out _))
+            widget.ReadingsAt = widget.ShowValue ? ReadingPlace.Beside : ReadingPlace.None;
+
         return widget;
     }
 

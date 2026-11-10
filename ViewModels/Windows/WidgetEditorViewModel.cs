@@ -670,14 +670,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// it goes. A dial becomes a ring, a bar a bar.
     ///
     /// The Number and the two word kinds are excluded by having no graphic, so hiding the reading would leave an
-    /// empty widget — and the Chart because it is asked a better question, where its numbers go
+    /// empty widget — and the Chart and the Bars because they are asked a better question, where their numbers go
     /// (<see cref="ShowsReadingPlace"/>), of which "nowhere" is one answer.
     /// </summary>
-    public bool CanHideValue => ShowsValue && (ShowsDial || ShowsBar);
+    public bool CanHideValue => ShowsValue && ShowsDial;
 
-    /// <summary>Whether this kind writes its readings' numbers in one of several places — every kind drawn as a line,
-    /// which is the Chart.</summary>
-    public bool ShowsReadingPlace => ShowsLine;
+    /// <summary>Whether this kind writes its readings' numbers in one of several places — the Chart and the Bars, each
+    /// offering the places it has (<see cref="ReadingPlaces"/>).</summary>
+    public bool ShowsReadingPlace => ShowsLine || ShowsDirection;
 
     /// <summary>Whether this kind's reading has a unit to hide. The clock draws a reading and has none.
     /// </summary>
@@ -888,13 +888,31 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
     [ObservableProperty] private double _barThickness = 6;
     [ObservableProperty] private double _barCorner = 3;
-    [ObservableProperty] private MeterLayout _barLayout = MeterLayout.Beside;
 
-    public IReadOnlyList<MeterLayout> Layouts { get; } = Enum.GetValues<MeterLayout>();
+    /// <summary>The length of a bar's blocks, an LED meter's; 0 draws it whole.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsBlockGap))]
+    private double _barBlock;
+
+    [ObservableProperty] private double _barBlockGap = 2;
+
+    /// <summary>A bar's fill, solid or fading in along it.</summary>
+    [ObservableProperty] private BarShade _barFill;
+
+    public IReadOnlyList<BarShade> BarFills { get; } = Enum.GetValues<BarShade>();
+
+    partial void OnBarFillChanged(BarShade value) => Dress();
+
+    /// <summary>The gap between blocks, only when there are blocks to space.</summary>
+    public bool ShowsBlockGap => BarBlock > 0;
+
+    // No layout: where a bar's number goes is what is on screen, so the widget says it (docs/widget-barras). A preset
+    // that still says "layout" keeps it, unread.
 
     partial void OnBarThicknessChanged(double value) => Dress();
     partial void OnBarCornerChanged(double value) => Dress();
-    partial void OnBarLayoutChanged(MeterLayout value) => Dress();
+    partial void OnBarBlockChanged(double value) => Dress();
+    partial void OnBarBlockGapChanged(double value) => Dress();
 
     // --- Number ---
 
@@ -994,7 +1012,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
             BarThickness = preset.Bar.Thickness;
             BarCorner = preset.Bar.Corner;
-            BarLayout = preset.Bar.Layout;
+            BarBlock = preset.Bar.Block;
+            BarBlockGap = preset.Bar.BlockGap;
+            BarFill = preset.Bar.Fill;
 
             UnitSize = preset.Number.UnitSize;
             UnitOpacity = preset.Number.UnitOpacity * 100;
@@ -1067,7 +1087,9 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
 
         preset.Bar.Thickness = BarThickness;
         preset.Bar.Corner = BarCorner;
-        preset.Bar.Layout = BarLayout;
+        preset.Bar.Block = Math.Max(0, BarBlock);
+        preset.Bar.BlockGap = Math.Max(0, BarBlockGap);
+        preset.Bar.Fill = BarFill;
 
         preset.Number.UnitSize = UnitSize;
         preset.Number.UnitOpacity = UnitOpacity / 100;
@@ -1566,7 +1588,20 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     partial void OnColouredByReadingChanged(bool value) => Apply();
     partial void OnScaleLabelsShownChanged(bool value) => Apply();
     partial void OnPeakShownChanged(bool value) => Apply();
-    partial void OnReadingsAtChanged(ReadingPlace value) => Apply();
+    /// <summary>
+    /// Bars moved into a legend, or out of one, change the ramp a reading takes when it names none of its own
+    /// (<see cref="WidgetKindInfo.RampPlace"/>): in a legend each bar is told apart by its colour. The rows hold what they
+    /// were given, so a row still on the old default moves to the new one; a ramp somebody chose stays.
+    /// </summary>
+    partial void OnReadingsAtChanged(ReadingPlace oldValue, ReadingPlace newValue)
+    {
+        if (_loaded && SelectedKind is { OneRamp: true } kind && SelectedPreset is { } preset)
+            for (var i = 0; i < Chosen.Count; i++)
+                if (Chosen[i].Ramp == preset.RampNameFor(null, kind.RampPlace(i, oldValue)))
+                    Chosen[i].SetRampQuietly(preset.RampNameFor(null, kind.RampPlace(i, newValue)) ?? Ramp.Primary);
+
+        Apply();
+    }
 
     /// <summary>A dot on each of a chart's lines at its newest reading, pulsing as each one arrives.</summary>
     [ObservableProperty] private bool _endShown;
@@ -1577,8 +1612,14 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>The top and bottom of a chart's scale, written at its left edge.</summary>
     [ObservableProperty] private bool _scaleLabelsShown;
 
-    /// <summary>The highest point of a chart's first reading in its window, marked and written.</summary>
-    [ObservableProperty] private bool _peakShown;
+    /// <summary>The highest point of a chart's first reading in its window, marked and written — and the highest of
+    /// each bar's window, held over the bar.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsBarWindow))]
+    private bool _peakShown;
+
+    /// <summary>The time window, for bars: only while they hold a peak, which is all it is for there.</summary>
+    public bool ShowsBarWindow => ShowsDirection && PeakShown;
 
     /// <summary>Where a chart writes its readings' numbers — or nowhere.</summary>
     [ObservableProperty]
@@ -1588,11 +1629,24 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// <summary>One choice in the numbers' picker, named as a phrase, as <see cref="ScaleChoice"/> is.</summary>
     public sealed record ReadingPlaceChoice(ReadingPlace Value, string Label);
 
-    public IReadOnlyList<ReadingPlaceChoice> ReadingPlaces { get; } =
+    /// <summary>The places this kind has: a chart its line ends, bars a place beside or above each bar — the same
+    /// choice otherwise, so the two are learnt once.</summary>
+    public IReadOnlyList<ReadingPlaceChoice> ReadingPlaces => ShowsDirection ? BarReadingPlaces : ChartReadingPlaces;
+
+    private static readonly IReadOnlyList<ReadingPlaceChoice> ChartReadingPlaces =
     [
         new(ReadingPlace.None, "Off"),
         new(ReadingPlace.Title, "In the title"),
         new(ReadingPlace.LineEnds, "At the line ends"),
+        new(ReadingPlace.Legend, "In a legend"),
+    ];
+
+    private static readonly IReadOnlyList<ReadingPlaceChoice> BarReadingPlaces =
+    [
+        new(ReadingPlace.None, "Off"),
+        new(ReadingPlace.Title, "In the title"),
+        new(ReadingPlace.Beside, "Beside each bar"),
+        new(ReadingPlace.Above, "Above each bar"),
         new(ReadingPlace.Legend, "In a legend"),
     ];
 
@@ -1616,18 +1670,21 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     ///
     /// More than one, and they take separate roles instead. Two lines both following their readings would
     /// be the same colour whenever both were in the same state, and two lines in one colour are one line —
-    /// which is the reason this method spread them across roles in the first place.
+    /// which is the reason this method spread them across roles in the first place. Not for bars, whose
+    /// readings share one (<see cref="WidgetKindInfo.OneRamp"/>): a bar's colour says its state.
     /// </summary>
     private string DefaultRamp(int index) =>
-        SelectedPreset?.RampNameFor(null, index) ?? Ramp.Primary;
+        SelectedPreset?.RampNameFor(null, RampPlace(index)) ?? Ramp.Primary;
 
     /// <summary>The ramp a row is actually drawn in under the chosen preset. Asked of the same rule the
     /// renderer asks, <see cref="Preset.RampNameFor"/>, so the picker shows what the desktop shows — it
     /// used to be a copy of that rule, kept in step by a comment.</summary>
     private string? ShownRamp(SeriesRow row) =>
         SelectedPreset is { } preset
-            ? preset.RampNameFor(row.Ramp, Math.Max(0, Chosen.IndexOf(row)))
+            ? preset.RampNameFor(row.Ramp, RampPlace(Math.Max(0, Chosen.IndexOf(row))))
             : Ramp.Primary;
+
+    private int RampPlace(int index) => SelectedKind?.RampPlace(index, ReadingsAt) ?? index;
 
     /// <summary>The entry in the picker's own list for what a row is drawn in. Looked up by name in a list
     /// built afresh, which is fine: the picker matches records by value, and this one is equal to its own.</summary>
@@ -1651,10 +1708,12 @@ public partial class WidgetEditorViewModel(PresetService presets) : ObservableOb
     /// again for a word in its legend.</summary>
     private void OnReadingRenamed() => Apply();
 
-    /// <summary>Whether this widget writes its readings' names, and so whether each can be given one: a Chart with its
-    /// legend on. Only then, as a scale's ends are offered only when Manual — a box that changes nothing on the screen
-    /// reads as broken.</summary>
-    public bool ShowsReadingNames => ShowsReadingPlace && ReadingsAt == ReadingPlace.Legend;
+    /// <summary>Whether this widget writes its readings' names, and so whether each can be given one: in a legend, or
+    /// with the bars, beside or above them, when there are two or more — one bar's name is the title. Only then, as a
+    /// scale's ends are offered only when Manual — a box that changes nothing on the screen reads as broken.</summary>
+    public bool ShowsReadingNames =>
+        ShowsReadingPlace && ReadingsAt == ReadingPlace.Legend
+        || ShowsDirection && ReadingsAt is ReadingPlace.Beside or ReadingPlace.Above && Chosen.Count > 1;
 
     /// <summary>
     /// Everything the chosen kind and the series list decide together. Raised from every place that changes

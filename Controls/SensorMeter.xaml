@@ -6,39 +6,39 @@
              xmlns:controls="clr-namespace:Aquila.Controls"
              mc:Ignorable="d"
              d:DesignWidth="220">
-    <!-- One sensor as a labeled bar with a value. Two layouts, chosen via LabelPlacement: label|bar
-         |value in a row (Inline, e.g. PowerCard), or label/value on top with the bar below (Top,
-         e.g. StorageCard). Wraps SensorBar; Label/ValueText are plain strings the caller formats,
-         same convention as StatBox. -->
+    <!-- The dashboard cards' meter: one sensor as a labeled bar with a value. Two layouts, chosen via
+         LabelPlacement: label|bar|value in a row (Inline, e.g. PowerCard), or label/value on top with the bar
+         below (Top, e.g. StorageCard). Wraps SensorBar; Label/ValueText are plain strings the caller formats,
+         same convention as StatBox. The values are 13 px at normal weight, as the cards have always drawn them. -->
     <Grid>
         <Grid x:Name="InlineLayout">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="InlineLabelColumn" Width="36"/>
+                <ColumnDefinition Width="36"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition x:Name="InlineValueColumn" Width="44"/>
+                <ColumnDefinition Width="44"/>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Style="{StaticResource RowLabel}"
                        Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-            <controls:SensorBar x:Name="InlineBar" Grid.Column="1" VerticalAlignment="Center"
+            <controls:SensorBar Grid.Column="1" VerticalAlignment="Center"
                 Sensor="{Binding Sensor, RelativeSource={RelativeSource AncestorType=UserControl}}"
                 Accent="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"
                 Maximum="{Binding Maximum, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-            <TextBlock x:Name="InlineValueText" Grid.Column="2" Style="{StaticResource RowValue}"
-                       Text="{Binding DisplayText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+            <TextBlock Grid.Column="2" Style="{StaticResource RowValue}" FontSize="13" FontWeight="Normal"
+                       Text="{Binding ValueText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
         </Grid>
 
         <StackPanel x:Name="TopLayout">
-            <Grid x:Name="TopRow" Margin="0,0,0,4">
+            <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Style="{StaticResource RowLabel}"
                            Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                <TextBlock x:Name="TopValueText" Grid.Column="1" FontSize="13" FontWeight="SemiBold"
-                           Text="{Binding DisplayText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock x:Name="TopValueText" Grid.Column="1" FontSize="13" FontWeight="Normal"
+                           Text="{Binding ValueText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
             </Grid>
-            <controls:SensorBar x:Name="TopBar" Margin="0,2,0,6"
+            <controls:SensorBar Margin="0,2,0,6"
                 Sensor="{Binding Sensor, RelativeSource={RelativeSource AncestorType=UserControl}}"
                 Accent="{Binding Accent, RelativeSource={RelativeSource AncestorType=UserControl}}"
                 Maximum="{Binding Maximum, RelativeSource={RelativeSource AncestorType=UserControl}}"/>

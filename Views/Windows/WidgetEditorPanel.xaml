@@ -935,13 +935,60 @@
                               Visibility="{Binding ViewModel.SelectedTab, Converter={StaticResource Match}, ConverterParameter=Customize}">
                     <StackPanel Margin="2,16,12,16">
                         <!-- First of the kind's options, because it is about the shape the widget takes:
-                             having picked bars, the next thing to say is which way they run. -->
-                        <ui:CardControl Style="{StaticResource Row}" Margin="0,0,0,16" Header="Bars run"
-                                        Icon="{ui:SymbolIcon ArrowSwap24}"
-                                        Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
-                            <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.BarDirections}"
-                                      SelectedItem="{Binding ViewModel.BarDirection}"/>
-                        </ui:CardControl>
+                             having picked bars, the next thing to say is which way they run — then where their
+                             words go, and what they draw besides their readings (docs/widget-barras). -->
+                        <StackPanel Margin="0,0,0,16"
+                                    Visibility="{Binding ViewModel.ShowsDirection, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Bars" Style="{StaticResource Section}"/>
+                            <ui:CardControl Style="{StaticResource Row}" Header="Bars run" Icon="{ui:SymbolIcon ArrowSwap24}">
+                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.BarDirections}"
+                                          SelectedItem="{Binding ViewModel.BarDirection}"/>
+                            </ui:CardControl>
+
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon ColorLine24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Colour by reading"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Each part of the bar in the colour of the limits it has passed, like a VU meter. Only for readings with limits."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Colour by reading"
+                                                 IsChecked="{Binding ViewModel.ColouredByReading}"/>
+                            </ui:CardControl>
+
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Flag24}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Peak"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Holds the highest reading of the time window on the bar, and lets it fall when that reading leaves."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                                <ui:ToggleSwitch AutomationProperties.Name="Peak"
+                                                 IsChecked="{Binding ViewModel.PeakShown}"/>
+                            </ui:CardControl>
+
+                            <!-- Only while there is a peak: it is all the window does for bars. The card's width, as the
+                                 chart's own, for the same reason. -->
+                            <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon Timer24}"
+                                            Visibility="{Binding ViewModel.ShowsBarWindow, Converter={StaticResource BoolToVisibility}}">
+                                <ui:CardControl.Header>
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Margin="8,0,0,0"
+                                                       VerticalAlignment="Center" Text="{Binding ViewModel.WindowLabel}"/>
+                                            <TextBlock Text="Time window"/>
+                                        </DockPanel>
+                                        <Slider Margin="0,6,0,0" Minimum="20" Maximum="600" TickFrequency="10"
+                                                IsSnapToTickEnabled="True" AutomationProperties.Name="Time window"
+                                                Value="{Binding ViewModel.PointCount}"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="How long the peak is held. Only the sensors these bars draw keep a longer history."/>
+                                    </StackPanel>
+                                </ui:CardControl.Header>
+                            </ui:CardControl>
+                        </StackPanel>
 
                         <StackPanel Margin="0,0,0,16"
                                     Visibility="{Binding ViewModel.ShowsClockOptions, Converter={StaticResource BoolToVisibility}}">
@@ -1201,14 +1248,15 @@
                                                  IsChecked="{Binding ViewModel.ValueShown}"/>
                             </ui:CardControl>
 
-                            <!-- A chart's answer to "Show the reading": where its numbers go, nowhere included. -->
+                            <!-- The chart's and the bars' answer to "Show the reading": where their numbers and names go,
+                                 nowhere included — each kind offering the places it has. -->
                             <ui:CardControl Style="{StaticResource Row}" Icon="{ui:SymbolIcon NumberSymbol24}"
                                             Visibility="{Binding ViewModel.ShowsReadingPlace, Converter={StaticResource BoolToVisibility}}">
                                 <ui:CardControl.Header>
                                     <StackPanel>
                                         <TextBlock Text="Readings"/>
                                         <TextBlock Style="{StaticResource SettingHint}"
-                                                   Text="Where each reading's number is written. In the title, several readings are written smaller, each in its line's colour."/>
+                                                   Text="Where each reading's name and number are written. In the title, several readings are written smaller, each in its own colour."/>
                                     </StackPanel>
                                 </ui:CardControl.Header>
                                 <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.ReadingPlaces}"
@@ -1615,11 +1663,39 @@
                                 <controls:SliderField Minimum="0" Maximum="20" Format="{}{0:F0} px"
                                                       Value="{Binding ViewModel.BarCorner}"/>
                             </HeaderedContentControl>
-                            <!-- A list's row bar is always under its line, so only the bar kinds are asked. -->
-                            <HeaderedContentControl Style="{StaticResource Line}" Header="Layout"
-                                                    Visibility="{Binding ViewModel.ShowsBar, Converter={StaticResource BoolToVisibility}}">
-                                <ComboBox MinWidth="160" ItemsSource="{Binding ViewModel.Layouts}"
-                                          SelectedItem="{Binding ViewModel.BarLayout}"/>
+                            <!-- No Layout: where a bar's words go is the widget's now, in Customize → Bars. The fill
+                                 and the blocks are how the bar looks, so they are the preset's (docs/widget-barras). -->
+                            <HeaderedContentControl Style="{StaticResource Line}">
+                                <HeaderedContentControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Fill"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Gradient fades the bar in along its length, as a chart's area fades to its line."/>
+                                    </StackPanel>
+                                </HeaderedContentControl.Header>
+                                <ComboBox MinWidth="120" ItemsSource="{Binding ViewModel.BarFills}"
+                                          AutomationProperties.Name="Fill"
+                                          SelectedItem="{Binding ViewModel.BarFill}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}">
+                                <HeaderedContentControl.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Block"/>
+                                        <TextBlock Style="{StaticResource SettingHint}"
+                                                   Text="Draws the bar as blocks of this length, like an LED meter. 0 draws it whole."/>
+                                    </StackPanel>
+                                </HeaderedContentControl.Header>
+                                <ui:NumberBox MinWidth="120" Minimum="0" Maximum="40" MaxDecimalPlaces="0"
+                                              SmallChange="1" LargeChange="5" ClearButtonEnabled="False"
+                                              AutomationProperties.Name="Block"
+                                              Value="{Binding ViewModel.BarBlock, Mode=TwoWay}"/>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl Style="{StaticResource Line}" Header="Gap"
+                                                    Visibility="{Binding ViewModel.ShowsBlockGap, Converter={StaticResource BoolToVisibility}}">
+                                <ui:NumberBox MinWidth="120" Minimum="0" Maximum="20" MaxDecimalPlaces="0"
+                                              SmallChange="1" LargeChange="5" ClearButtonEnabled="False"
+                                              AutomationProperties.Name="Gap"
+                                              Value="{Binding ViewModel.BarBlockGap, Mode=TwoWay}"/>
                             </HeaderedContentControl>
                         </StackPanel>
                     </ui:CardExpander>

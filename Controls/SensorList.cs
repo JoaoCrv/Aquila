@@ -15,7 +15,7 @@ namespace Aquila.Controls;
 /// where the widget asks for them, a bar under each row, the row's recent trend beside its number, and the whole
 /// list's total at the end of the title's line.
 ///
-/// Built the way <see cref="SensorBars"/> is — in code, one visual per reading, each coloured on its own through
+/// Built the way <see cref="BarsTile"/> is — in code, one visual per reading, each coloured on its own through
 /// the catalogue — and not an <see cref="ISensorPiece"/> for the same reason: it holds a list rather than one
 /// node, and lets go of it by itself.
 ///

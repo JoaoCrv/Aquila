@@ -114,7 +114,7 @@ public sealed class DesktopWidgetService
             32, 150, 170, 190),
         (DesktopWidgetKind.Chart,         "CPU Temp",  h => h.Cpus.Count > 0 ? h.Cpus[0].Temperature.Primary : null,
             32, 360, 240, 100),
-        (DesktopWidgetKind.SensorMeter,   "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
+        (DesktopWidgetKind.BarChart,      "CPU Power", h => h.Cpus.Count > 0 ? h.Cpus[0].Power.Package : null,
             32, 480, 240,  80),
     ];
 
@@ -1429,7 +1429,9 @@ public sealed class DesktopWidgetService
     /// </summary>
     private static void KeepEnoughHistory(DesktopWidgetDefinition definition, IReadOnlyList<SensorNode> sensors)
     {
-        if (!WidgetCatalog.For(definition.Kind).HasLine) return;
+        // A chart draws its window; bars holding their peaks look back over theirs.
+        var kind = WidgetCatalog.For(definition.Kind);
+        if (!kind.HasLine && !(kind.HasDirection && definition.ShowPeak)) return;
 
         foreach (var sensor in sensors)
             if (sensor.HistoryDepth < definition.PointCount)
@@ -1512,8 +1514,16 @@ public sealed class DesktopWidgetService
             chartParts.ReadingsAt = definition.ReadingsAt;
         }
 
-        // What the widget calls each reading, where the piece writes names — a chart's legend. Words on the screen, as
-        // a caption's are, so here and not with the colours.
+        if (piece is IBarParts barParts)
+        {
+            barParts.ReadingsAt = definition.ReadingsAt;
+            barParts.ColourByReading = definition.ColourByReading;
+            barParts.ShowPeak = definition.ShowPeak;
+            barParts.PointCount = definition.PointCount;
+        }
+
+        // What the widget calls each reading, where the piece writes names — a chart's legend, a bar's label. Words on
+        // the screen, as a caption's are, so here and not with the colours.
         if (piece is IReadingNames named)
             named.NameReadings([.. definition.Series.Select(series => (series.SensorIdentifier, series.Label))]);
     }
@@ -1621,13 +1631,14 @@ public sealed class DesktopWidgetService
         // RestyleWidget.
         if (piece is IClockStyle clock) clock.Ramp = preset.RampFor(Ramp.Primary);
 
-        // The meter, the Bars, a list's rows and the Number's bar read the same section, as the dial and the rings
-        // share theirs — as one look, so a change of preset is one assignment.
+        // The Bars, a list's rows and the Number's bar read the same section, as the dial and the rings share theirs
+        // — as one look, so a change of preset is one assignment.
+        // Its blocks too, at the widget's size as the thickness is: an LED preset is drawn in blocks by every bar it
+        // dresses.
         if (piece is IBarStyle bar)
             bar.BarLook = new BarLook(preset.Bar.Thickness * scale, preset.Bar.Corner * scale,
-                HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity));
-
-        if (piece is IMeterStyle meter) meter.Layout = preset.Bar.Layout;
+                HexBrush.From(preset.Gauge.Track.Color, preset.Gauge.Track.Opacity),
+                preset.Bar.Block * scale, preset.Bar.BlockGap * scale, preset.Bar.Fill == BarShade.Gradient);
 
         // The Number's unit, and the notes that comment on its reading — in the title's colour and at its size, since
         // they say something about the reading as the title does. Its bar is the bar block's, above.
@@ -1795,8 +1806,8 @@ public sealed class DesktopWidgetService
             chosen.Add(series);
 
             // The ramp a reading is drawn in, by the rule the editor's picker asks too — so the picker
-            // shows what is drawn here.
-            ramps.Add(preset.RampFor(series.Ramp, ramps.Count));
+            // shows what is drawn here. A kind whose readings share a ramp asks for the first's.
+            ramps.Add(preset.RampFor(series.Ramp, kind.RampPlace(ramps.Count, definition.ReadingsAt)));
         }
 
         // A kind that does not need a reading draws anyway — a backdrop has none to lose, and a text is a
@@ -1832,11 +1843,12 @@ public sealed class DesktopWidgetService
             // brought them back, because a rebuild captures the name again.
             //
             // Reading the series at dress time keeps both ends current: a series that names nothing still
-            // follows the new preset's own default, and one that was renamed follows the rename.
+            // follows the new preset's own default, and one that was renamed follows the rename. Its place too: bars
+            // moved into a legend take the ramps of their places, and that is a re-dress, not a rebuild.
             var reading = chosen[i];
             var index = i;
 
-            repaints.Add(dressed => repaint(dressed.RampFor(reading.Ramp, index)));
+            repaints.Add(dressed => repaint(dressed.RampFor(reading.Ramp, kind.RampPlace(index, definition.ReadingsAt))));
         }
 
         KeepEnoughHistory(definition, resolved);

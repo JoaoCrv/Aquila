@@ -136,6 +136,46 @@ public sealed class ScaleProperties
             WidgetScale.ReferenceOf(new DesktopWidgetDefinition { Kind = DesktopWidgetKind.SparklineChart }));
     }
 
+    /// <summary>
+    /// Bars are measured against 240×80 whatever they write, whichever way they run and however many readings they
+    /// draw: more bars share the same room, and the text moving above or beside them never resizes what is drawn
+    /// (docs/widget-barras). The old Bars keep the 260×140 they always had, and a meter — read as Bars — the 240×80 it
+    /// had as a meter.
+    /// </summary>
+    [Property(MaxTest = 500)]
+    public Property Bars_are_measured_at_their_reference_with_any_text() =>
+        Prop.ForAll(
+            (from place in Gen.Elements(ReadingPlace.None, ReadingPlace.Title, ReadingPlace.Beside, ReadingPlace.Above,
+                 ReadingPlace.Legend)
+             from direction in Gen.Elements(Enum.GetValues<BarDirection>())
+             from readings in Gen.Choose(1, 16)
+             from parts in Gen.Choose(0, 7)
+             from width in Sizes()
+             from height in Sizes()
+             select (place, direction, readings, parts, width, height))
+            .ToArbitrary(),
+            bars =>
+            {
+                var (place, direction, readings, parts, width, height) = bars;
+                var widget = new DesktopWidgetDefinition
+                {
+                    Kind = DesktopWidgetKind.BarChart, Width = width, Height = height,
+                    ReadingsAt = place, BarDirection = direction,
+                    Series = [.. Enumerable.Range(0, readings).Select(i => new WidgetSeries { SensorIdentifier = $"/s/{i}" })],
+                    ShowPeak = (parts & 1) != 0, ColourByReading = (parts & 2) != 0, ShowLimits = (parts & 4) != 0,
+                };
+
+                return WidgetScale.ReferenceOf(widget) == (240d, 80d)
+                    && WidgetScale.Of(widget) == Math.Clamp(Math.Min(width / 240, height / 80), WidgetScale.Least, WidgetScale.Most);
+            });
+
+    [Fact]
+    public void Old_bars_and_a_meter_keep_their_references()
+    {
+        Assert.Equal((260d, 140d), WidgetScale.ReferenceOf(new DesktopWidgetDefinition { Kind = DesktopWidgetKind.Bars }));
+        Assert.Equal((240d, 80d), WidgetScale.ReferenceOf(new DesktopWidgetDefinition { Kind = DesktopWidgetKind.SensorMeter }));
+    }
+
     /// <summary>Whatever a file says the size is, the scale stays within its bounds.</summary>
     [Property(MaxTest = 1000)]
     public Property The_scale_is_always_within_its_bounds() =>

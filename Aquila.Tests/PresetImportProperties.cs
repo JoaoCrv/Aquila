@@ -53,6 +53,37 @@ public sealed class PresetImportProperties : IDisposable
         }
     }
 
+    /// <summary>Bars share one ramp (docs/widget-barras): sixteen cores are sixteen of the same thing, so every bar that
+    /// names no ramp is in the first — the colour of a bar says its state, not which bar it is — and one that names a
+    /// ramp keeps it. In a legend, where a swatch's colour tells one reading from the next, each takes the ramp of its
+    /// place again, as a chart's lines always do.</summary>
+    [Fact]
+    public void Every_bar_takes_the_first_ramp_unless_it_names_one()
+    {
+        var bars = WidgetCatalog.For(DesktopWidgetKind.BarChart);
+        var old = WidgetCatalog.For(DesktopWidgetKind.Bars);
+        var chart = WidgetCatalog.For(DesktopWidgetKind.Chart);
+
+        foreach (var (name, preset) in BuiltIns())
+        {
+            Assert.NotNull(preset);
+            var each = Enumerable.Range(0, BarsTileReadings).ToList();
+
+            foreach (var place in new[] { ReadingPlace.None, ReadingPlace.Title, ReadingPlace.Beside, ReadingPlace.Above })
+            {
+                Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, bars.RampPlace(i, place))));
+                Assert.All(each, i => Assert.Equal("primary", preset!.RampNameFor(null, old.RampPlace(i, place))));
+            }
+
+            Assert.Equal("secondary", preset!.RampNameFor("secondary", bars.RampPlace(5, ReadingPlace.Above)));
+            Assert.Equal(["primary", "secondary", "tertiary", "quaternary"],
+                Enumerable.Range(0, 4).Select(i => preset.RampNameFor(null, bars.RampPlace(i, ReadingPlace.Legend))));
+            Assert.Equal("tertiary", preset.RampNameFor(null, chart.RampPlace(2, ReadingPlace.Title)));
+        }
+    }
+
+    private const int BarsTileReadings = Aquila.Controls.BarsTile.MostReadings;
+
     /// <summary>The built-in presets, as the app ships them, each imported.</summary>
     private IEnumerable<(string Name, Preset? Preset)> BuiltIns()
     {
@@ -106,6 +137,31 @@ public sealed class PresetImportProperties : IDisposable
         Assert.Equal(thickness, title.Border.Thickness);
         Assert.Equal(0, title.Border.CornerRadius);
         Assert.Equal(0, title.Border.Padding);
+    }
+
+    /// <summary>
+    /// A bar's blocks survive an export and an import (docs/widget-barras), and a preset written when it said where the
+    /// meter's number went still reads — "layout" is kept, unread. Absent, a bar is drawn whole, two pixels apart if it
+    /// is ever given blocks; the built-ins draw theirs whole.
+    /// </summary>
+    [Fact]
+    public void A_bar_s_blocks_survive_an_export_and_an_old_layout_still_reads()
+    {
+        var led = Import("""{"id":"led","bar":{"thickness":14,"block":5,"blockGap":2,"layout":"Above","fill":"Gradient"}}""");
+        Assert.NotNull(led);
+
+        var path = Path.Combine(_folder, "led-out.json");
+        NewService().Export(led!, path);
+        var again = NewService().Import(path);
+
+        Assert.NotNull(again);
+        Assert.Equal((5d, 2d, BarLayout.Above, BarShade.Gradient),
+            (again!.Bar.Block, again.Bar.BlockGap, again.Bar.Layout, again.Bar.Fill));
+        Assert.True(Drawable(again));
+
+        var plain = Import("""{"id":"plain","bar":{"thickness":6}}""")!;
+        Assert.Equal((0d, 2d, BarShade.Solid), (plain.Bar.Block, plain.Bar.BlockGap, plain.Bar.Fill));
+        Assert.All(BuiltIns(), builtIn => Assert.Equal(0d, builtIn.Preset!.Bar.Block));
     }
 
     private Preset? Import(string json)

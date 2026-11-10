@@ -22,6 +22,7 @@ internal static class PresetFiles
         // "panel" is no longer read — the Number's own fill is gone — and stays, as the field every file written
         // before 2.5 still carries, which the reader must pass over.
         "fill", "fillOpacity", "smoothness", "pointSize", "layout", "unitSize", "unitOpacity", "panel", "gap", "bleed",
+        "block", "blockGap",
     ];
 
     // Ramp names, with the casing traps: the reader matches property names case-insensitively, so "primary" and

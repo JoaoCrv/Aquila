@@ -334,11 +334,36 @@ public sealed class PresetLine
     public double PointSize { get; set; }
 }
 
+/// <summary>How a bar's filled part is painted. Persisted by name.</summary>
+public enum BarShade
+{
+    /// <summary>The reading's colour throughout.</summary>
+    Solid,
+
+    /// <summary>Faint where the bar starts, the reading's whole colour at its tip.</summary>
+    Gradient,
+}
+
 public sealed class PresetBar
 {
     public double Thickness { get; set; } = 6;
     public double Corner { get; set; } = 3;
-    public MeterLayout Layout { get; set; } = MeterLayout.Beside;
+
+    /// <summary>The length of each block a bar is drawn in, an LED meter's, in pixels at a scale of one; 0 — and absent
+    /// — draws it whole. Appearance, so the preset's (docs/widget-barras): trying on an LED preset changes how a bar
+    /// looks, never what it reads. Read by the widgets' bars; the dashboard's cards draw theirs whole.</summary>
+    public double Block { get; set; }
+
+    /// <summary>The space between two blocks, in pixels at a scale of one.</summary>
+    public double BlockGap { get; set; } = 2;
+
+    /// <summary>How a bar's filled part is painted: its colour throughout — and when absent — or fading in along its
+    /// length, faint where it starts and whole at the tip, as a chart's area fades to its line.</summary>
+    public BarShade Fill { get; set; } = BarShade.Solid;
+    /// <summary>Where the meter wrote its number, when the preset said so. Read by nothing on the desktop since the bars
+    /// widget (docs/widget-barras) — where a number goes is what is on screen, so the widget says it now — and kept so
+    /// presets written with it, and the editor until it lets go of it, go on reading.</summary>
+    public BarLayout Layout { get; set; } = BarLayout.Beside;
 }
 
 public sealed class PresetNumber
