@@ -75,9 +75,9 @@
     <PackageReference Include="Velopack" Version="1.2.161" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <PackageReference Include="WPF-UI.DependencyInjection" Version="4.3.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.15" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="TaskScheduler" Version="2.12.1" />
+    <PackageReference Include="TaskScheduler" Version="2.12.2" />
   </ItemGroup>
 
   <ItemGroup>
