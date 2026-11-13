@@ -129,32 +129,16 @@ namespace Aquila
                     shared: true))
             .Build();
 
-        /// <summary>What Velopack's startup threw, kept for <see cref="OnStartup"/> to report.</summary>
-        private Exception? _velopackFailure;
-
-        public App()
-        {
-            try
-            {
-                // It's important to Run() the VelopackApp as early as possible in app startup.
-                // Uninstalling removes the folder, the shortcuts and the uninstall entry, and knows nothing of
-                // the elevation task — which runs elevated at every logon, so it must not outlive the app.
-                VelopackApp.Build()
-                    .OnBeforeUninstallFastCallback(_ => ElevationService.DeleteTask())
-                    .Run();
-            }
-            catch (Exception ex)
-            {
-                // Reported by OnStartup, as a notice — this used to be a system message box with a stack
-                // trace. Read in Velopack's source (0.0.1298, and again for 1.2.161): Run() catches the errors
-                // of the hooks, of reading the manifest and of clearing old packages itself, so what reaches
-                // here is in practice one thing: an update downloaded and never applied, and Update.exe failing
-                // to start to apply it (quarantined by an antivirus, say). The application is fine and starts
-                // on the version it has; the package stays, so the same thing fails at every start, logon
-                // included. A condition, then, not an emergency — and the box put it in front of every logon.
-                _velopackFailure = ex;
-            }
-        }
+        /// <summary>
+        /// What Velopack's startup threw (<see cref="Program.Main"/>), kept for <see cref="OnStartup"/> to report, as a
+        /// notice — it was a system message box with a stack trace once. Read in Velopack's source (0.0.1298, and again
+        /// for 1.2.161): Run() catches the errors of the hooks, of reading the manifest and of clearing old packages
+        /// itself, so what arrives here is in practice one thing: an update downloaded and never applied, and Update.exe
+        /// failing to start to apply it (quarantined by an antivirus, say). The application is fine and starts on the
+        /// version it has; the package stays, so the same thing fails at every start, logon included. A condition, then,
+        /// not an emergency — and the box put it in front of every logon.
+        /// </summary>
+        internal Exception? VelopackFailure { get; init; }
 
         /// <summary>
         /// Gets services.
@@ -307,9 +291,9 @@ namespace Aquila
             // runs cleanly never raises it. Installing again replaces Update.exe and the stuck package, which
             // is the whole repair. Logged here rather than where it was caught, because the logger is only
             // certain to exist once the host has started.
-            if (_velopackFailure is not null)
+            if (VelopackFailure is not null)
             {
-                Log.Error(_velopackFailure, "Velopack could not finish starting up");
+                Log.Error(VelopackFailure, "Velopack could not finish starting up");
                 notices.Set(
                     "updates.stuck",
                     "An update could not be installed",

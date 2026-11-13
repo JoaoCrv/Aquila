@@ -7,7 +7,24 @@ namespace Aquila.Services;
 
 public class SettingsService(ILogger<SettingsService> logger)
 {
-    private static readonly JsonSerializerOptions _json = new() { WriteIndented = true };
+    /// <summary>
+    /// How the settings file is written and read — the same both ways. NaN is allowed, as "NaN": a window's place is
+    /// NaN until it has one (<see cref="AppSettings.WindowLeft"/> and the rest), and the default options refuse to
+    /// write it. On a fresh install that refused EVERY save until a window had been moved — the first run's answers,
+    /// the PawnIO question, any setting changed — found on a clean VM (2026-11-13, "Failed to save settings").
+    /// </summary>
+    private static readonly JsonSerializerOptions _json = new()
+    {
+        WriteIndented = true,
+        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals,
+    };
+
+    /// <summary>The settings as the file holds them.</summary>
+    public static string Write(AppSettings settings) => JsonSerializer.Serialize(settings, _json);
+
+    /// <summary>The settings a file holds.</summary>
+    public static AppSettings Read(string text) => JsonSerializer.Deserialize<AppSettings>(text, _json) ?? new();
+
     private readonly ILogger<SettingsService> _logger = logger;
 
     public AppSettings Current { get; private set; } = new();
@@ -25,7 +42,7 @@ public class SettingsService(ILogger<SettingsService> logger)
             }
 
             var text = File.ReadAllText(AquilaPaths.Settings);
-            Current = JsonSerializer.Deserialize<AppSettings>(text) ?? new();
+            Current = Read(text);
 
             Migrate(text);
         }
@@ -95,8 +112,7 @@ public class SettingsService(ILogger<SettingsService> logger)
         try
         {
             Directory.CreateDirectory(AquilaPaths.Root);
-            File.WriteAllText(AquilaPaths.Settings,
-                JsonSerializer.Serialize(Current, _json));
+            File.WriteAllText(AquilaPaths.Settings, Write(Current));
             Changed?.Invoke();
         }
         catch (Exception ex)
