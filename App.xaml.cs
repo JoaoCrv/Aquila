@@ -140,6 +140,9 @@ namespace Aquila
         /// </summary>
         internal Exception? VelopackFailure { get; init; }
 
+        /// <summary>Started by the installer, just after installing (Velopack's first run).</summary>
+        internal bool JustInstalled { get; init; }
+
         /// <summary>
         /// Gets services.
         /// </summary>
@@ -204,7 +207,7 @@ namespace Aquila
             // tray's Exit, the main or dashboard window closed, a restart, the lines below).
             bool needsElevation = _host.Services.GetServices<IHardwareDriver>().Any(d => d.RequiresElevation);
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            bool carryOn = !needsElevation || await ElevationService.EnsureElevatedAsync();
+            bool carryOn = !needsElevation || await ElevationService.EnsureElevatedAsync(JustInstalled);
             if (!carryOn)
             {
                 Shutdown(0);

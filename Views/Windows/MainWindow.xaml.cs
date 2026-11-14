@@ -89,8 +89,24 @@ namespace Aquila.Views.Windows
 
         private void RestoreWindowBounds()
         {
+            // The floor gives way to a smaller screen, or the window could never fit it: 1180×760 against a
+            // 1024-wide VM, or a 1080p laptop at 150% (720 high, 672 above the taskbar).
+            var area = SystemParameters.WorkArea;
+            MinWidth  = Math.Min(MinWidth,  area.Width);
+            MinHeight = Math.Min(MinHeight, area.Height);
+
             var s = _settings.Current;
-            if (double.IsNaN(s.WindowLeft)) return; // first run — keep CenterScreen
+            if (double.IsNaN(s.WindowLeft))
+            {
+                // First run: the default size where it fits, centred in the working area. CenterScreen opened a
+                // 1600-wide window on a 1024-wide screen 288 to the left of it (a clean VM, 2026-11-13).
+                Width  = Math.Min(Width,  area.Width);
+                Height = Math.Min(Height, area.Height);
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = area.Left + (area.Width  - Width)  / 2;
+                Top  = area.Top  + (area.Height - Height) / 2;
+                return;
+            }
 
             // Validate the title-bar strip is reachable on at least one screen
             var titleRect = new System.Drawing.Rectangle(

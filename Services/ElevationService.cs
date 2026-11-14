@@ -232,8 +232,11 @@ public static class ElevationService
     ///
     /// The caller must keep the application alive while it is asked: before the main window exists, the dialog
     /// is the only window, and WPF's default shutdown mode ends the application when it closes.
+    ///
+    /// Just installed, it is also the installer's last word: the installer closes on its own and starts Aquila, so
+    /// this question is the first thing seen afterwards, and its title says the install is done.
     /// </summary>
-    public static async Task<bool> EnsureElevatedAsync()
+    public static async Task<bool> EnsureElevatedAsync(bool justInstalled)
     {
         if (!IsVelopackInstalled() || IsElevated())
             return true;
@@ -252,7 +255,8 @@ public static class ElevationService
                 message += $"\n\nIt also installs PawnIO, the signed driver that {PawnIoService.WhatItReads} are read "
                     + "through. It is downloaded from its official release and its signature is checked first.";
 
-            if (!await Dialogs.Ask("Set up Aquila", message, yes: "Set up", no: "Not now"))
+            string title = justInstalled ? "Aquila is installed" : "Set up Aquila";
+            if (!await Dialogs.Ask(title, message, yes: "Set up", no: "Not now"))
                 return true; // degraded, as when the prompt was declined
 
             taskReady = await CreateTaskElevatedAsync(installPawnIo: pawnIo);

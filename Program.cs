@@ -19,6 +19,7 @@ public static class Program
     public static void Main()
     {
         Exception? velopackFailure = null;
+        bool justInstalled = false;
 
         try
         {
@@ -26,6 +27,7 @@ public static class Program
             // elevation task — which runs elevated at every logon, so it must not outlive the app.
             VelopackApp.Build()
                 .OnBeforeUninstallFastCallback(_ => Services.ElevationService.DeleteTask())
+                .OnFirstRun(_ => justInstalled = true)
                 .Run();
         }
         catch (Exception ex)
@@ -33,7 +35,7 @@ public static class Program
             velopackFailure = ex;
         }
 
-        Start(velopackFailure);
+        Start(velopackFailure, justInstalled);
     }
 
     /// <summary>
@@ -41,9 +43,9 @@ public static class Program
     /// named in Main, WPF itself would be loaded before a hook had its chance to leave.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void Start(Exception? velopackFailure)
+    private static void Start(Exception? velopackFailure, bool justInstalled)
     {
-        var app = new App { VelopackFailure = velopackFailure };
+        var app = new App { VelopackFailure = velopackFailure, JustInstalled = justInstalled };
         app.InitializeComponent();
         app.Run();
     }

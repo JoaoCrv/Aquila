@@ -30,12 +30,14 @@ public static class Dialogs
     /// </summary>
     public static async Task Tell(string title, string message, Window? owner = null)
     {
+        owner ??= Active();
         var box = new Wpf.Ui.Controls.MessageBox
         {
             Title = title,
             Content = message,
             CloseButtonText = "OK",
-            Owner = owner ?? Active(),
+            Owner = owner,
+            Topmost = owner is null,
         };
 
         await box.ShowDialogAsync();
@@ -54,13 +56,15 @@ public static class Dialogs
     public static async Task<bool> Ask(string title, string message, string yes, string no,
         Window? owner = null)
     {
+        owner ??= Active();
         var box = new Wpf.Ui.Controls.MessageBox
         {
             Title = title,
             Content = message,
             PrimaryButtonText = yes,
             CloseButtonText = no,
-            Owner = owner ?? Active(),
+            Owner = owner,
+            Topmost = owner is null,
         };
 
         return await box.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary;
@@ -71,7 +75,9 @@ public static class Dialogs
     ///
     /// None is a real answer and not a failure. Aquila spends most of its life in the tray with no window
     /// shown at all, and an ownerless dialog is right there — asking to be owned by a hidden window would
-    /// put the dialog behind nothing, which is to say nowhere.
+    /// put the dialog behind nothing, which is to say nowhere. An ownerless dialog is kept on top: the first
+    /// run's question comes up seconds after the installer closes, and a question from the tray after the
+    /// click, and either would otherwise open behind whatever the person went back to.
     ///
     /// "The main one" is Aquila's main window, asked of MainWindowService, and NOT Application.MainWindow:
     /// started in the tray that slot goes to whichever window was built first, which is usually a desktop
