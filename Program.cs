@@ -35,6 +35,9 @@ public static class Program
             velopackFailure = ex;
         }
 
+        // Just installed, the installer has closed and the first question is seconds away (Services.Splash).
+        if (justInstalled)
+            Services.Splash.Show();
         Start(velopackFailure, justInstalled);
     }
 

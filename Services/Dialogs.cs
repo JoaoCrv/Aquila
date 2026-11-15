@@ -30,6 +30,7 @@ public static class Dialogs
     /// </summary>
     public static async Task Tell(string title, string message, Window? owner = null)
     {
+        Splash.Close(); // the loader is kept on top, and nothing is asked under it
         owner ??= Active();
         var box = new Wpf.Ui.Controls.MessageBox
         {
@@ -56,6 +57,7 @@ public static class Dialogs
     public static async Task<bool> Ask(string title, string message, string yes, string no,
         Window? owner = null)
     {
+        Splash.Close(); // the loader is kept on top, and nothing is asked under it
         owner ??= Active();
         var box = new Wpf.Ui.Controls.MessageBox
         {

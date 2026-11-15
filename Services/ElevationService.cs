@@ -259,10 +259,13 @@ public static class ElevationService
             if (!await Dialogs.Ask(title, message, yes: "Set up", no: "Not now"))
                 return true; // degraded, as when the prompt was declined
 
+            // The helper's work — the task, and PawnIO downloaded and installed — takes seconds, and the elevated
+            // Aquila that follows it seconds more.
+            Splash.Show();
             taskReady = await CreateTaskElevatedAsync(installPawnIo: pawnIo);
         }
 
-        if (taskReady && RunTask())
+        if (taskReady && await Splash.HandOverAsync(RunTask))
             return false; // elevated instance launched — this one exits
 
         return true; // UAC declined or task failed — run degraded

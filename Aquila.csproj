@@ -55,6 +55,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The loader (Services.Splash), read from the assembly by WPF's SplashScreen. -->
+    <Resource Include="Assets\Images\splash.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Built-in presets, embedded rather than copied to the output folder: they can then be neither
          corrupted nor deleted, so there is always something to fall back to. The user's own live in
          Documents\Aquila\presets and override these by id. -->

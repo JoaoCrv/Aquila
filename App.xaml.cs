@@ -231,6 +231,13 @@ namespace Aquila
             var settings = _host.Services.GetRequiredService<SettingsService>();
             settings.Load();
 
+            // A window is coming — the same setting ApplicationHostService opens it by — so the loader goes up until
+            // it has been drawn (after StartAsync, below). Then the Aquila that started this one through the task, if
+            // it is waiting with its own loader up, can go.
+            if (!settings.Current.StartMinimized)
+                Splash.Show();
+            Splash.TakeOver();
+
             if (settings.Current.EnableVerboseLogging)
                 LogLevel.MinimumLevel = LogEventLevel.Debug;
 
@@ -257,6 +264,11 @@ namespace Aquila
             VitalMonitor.Current = vitals;
 
             await _host.StartAsync();
+
+            // The main window was built, shown and put on the dashboard inside StartAsync. Everything that queued —
+            // its layout, its first frame, the page's second layout — runs before the dispatcher is next idle, so the
+            // loader goes then, with the readings on screen. Whether a window came or not.
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(Splash.Close));
 
             var aquila = _host.Services.GetRequiredService<AquilaService>();
             aquila.SetInterval(settings.Current.PollingIntervalMs);
