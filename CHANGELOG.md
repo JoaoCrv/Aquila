@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="2.6.0"></a>
+## [2.6.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.6.0) (2026-11-15)
+
+### Features
+
+* **startup:** a loader from the installer to the first readings ([8fd86c3](https://www.github.com/JoaoCrv/Aquila/commit/8fd86c310b157a1349fbc303a029a3b090412460))
+
+### Bug Fixes
+
+* **install:** settings save on a fresh install; Velopack's hook runs first ([c404c64](https://www.github.com/JoaoCrv/Aquila/commit/c404c64ac4d3ec2d4298f55c09745a10fc40f07f))
+* **install:** the first run says the install is done; the window fits the screen ([f4d9370](https://www.github.com/JoaoCrv/Aquila/commit/f4d937064841b60c77269f65fc41cf1a53daf816))
+
 <a name="2.5.0"></a>
 ## [2.5.0](https://www.github.com/JoaoCrv/Aquila/releases/tag/v2.5.0) (2026-11-10)
 
